@@ -1,0 +1,22 @@
+# Dependencias
+node_modules
+
+# Variables de entorno y secretos (NUNCA versionar)
+.env
+.env.*
+!.env.example
+*.local
+
+# Almacenamiento de archivos subidos
+storage
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / SO
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db

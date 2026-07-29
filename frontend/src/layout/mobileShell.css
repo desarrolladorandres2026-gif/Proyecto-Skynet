@@ -1,0 +1,146 @@
+/* Tema del shell móvil (los 6 roles no-admin): variante "app social" del
+   mismo acento cian de marca que panel.css (login/panel admin), pero con
+   fondos suaves tipo app en vez del negro HUD puro y esquinas más
+   redondeadas — más feed de tarjetas, menos consola táctica.
+
+   A propósito usa un prefijo de clase totalmente distinto (m-*) en vez de
+   reutilizar nombres panel-*: panel.css es CSS plano sin @layer, así que
+   cualquier utilidad Tailwind (que sí vive dentro de @layer utilities)
+   pierde silenciosamente contra un nombre panel-* con el mismo elemento
+   (ver memoria "trampa de cascade layers" — ya causó un bug real). Nombres
+   sin colisión = cero dependencia del orden de cascada. */
+:root {
+  /* Alto aproximado (generoso) de la barra inferior .m-tabbar — token único
+     para que FAB (mobileUi.jsx) sepa cuánto flotar por encima sin adivinar
+     un número mágico por su cuenta. No depende de tema, va en el :root base. */
+  --m-navh: 4.5rem;
+
+  --mobile-bg: #f4f7f9;
+  --mobile-surface: #ffffff;
+  --mobile-surface-2: #eef3f6;
+  --mobile-border: rgba(8, 145, 178, 0.14);
+  --mobile-text: #0f172a;
+  --mobile-text-dim: #64748b;
+  --mobile-accent: #0891b2;
+  --mobile-accent-fg: #ffffff;
+  --mobile-accent-soft: rgba(8, 145, 178, 0.1);
+  --mobile-shadow: rgba(15, 23, 42, 0.1);
+  --mobile-bar-bg: rgba(255, 255, 255, 0.92);
+  --mobile-backdrop: rgba(15, 23, 42, 0.4);
+}
+
+:root.dark {
+  --mobile-bg: #0a0f18;
+  --mobile-surface: #121a26;
+  --mobile-surface-2: #0d1420;
+  --mobile-border: rgba(0, 229, 255, 0.14);
+  --mobile-text: #e2e8f0;
+  --mobile-text-dim: #94a3b8;
+  --mobile-accent: #00e5ff;
+  --mobile-accent-fg: #05070a;
+  --mobile-accent-soft: rgba(0, 229, 255, 0.12);
+  --mobile-shadow: rgba(0, 0, 0, 0.55);
+  --mobile-bar-bg: rgba(11, 16, 24, 0.92);
+  --mobile-backdrop: rgba(2, 4, 7, 0.6);
+}
+
+.m-shell {
+  background: var(--mobile-bg);
+  color: var(--mobile-text);
+}
+
+/* Barra superior e inferior comparten el mismo tratamiento "vidrio" */
+.m-bar {
+  background: var(--mobile-bar-bg);
+  backdrop-filter: blur(10px);
+  border-color: var(--mobile-border);
+}
+
+.m-navitem {
+  color: var(--mobile-text-dim);
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+.m-navitem.is-active {
+  color: var(--mobile-accent);
+}
+.m-navitem:active {
+  transform: scale(0.94);
+}
+/* Puntito con glow bajo el ícono activo: la misma firma visual del
+   box-shadow inset cian que ya usa .panel-nav-link.is-active en el panel
+   de escritorio, aquí traducida a lenguaje de barra inferior de app. */
+.m-navdot {
+  background: transparent;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.m-navitem.is-active .m-navdot {
+  background: var(--mobile-accent);
+  box-shadow: 0 0 8px 1px var(--mobile-accent);
+}
+
+.m-card {
+  background: var(--mobile-surface);
+  border: 1px solid var(--mobile-border);
+  box-shadow: 0 8px 24px -16px var(--mobile-shadow);
+}
+
+.m-row {
+  background: var(--mobile-surface);
+  border: 1px solid var(--mobile-border);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.m-row:active {
+  transform: scale(0.985);
+  background: var(--mobile-surface-2);
+}
+
+.m-chip {
+  background: var(--mobile-surface);
+  border: 1px solid var(--mobile-border);
+  color: var(--mobile-text-dim);
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+.m-chip.is-active {
+  background: var(--mobile-accent-soft);
+  color: var(--mobile-accent);
+  border-color: var(--mobile-accent);
+}
+
+.m-fab {
+  background: var(--mobile-accent);
+  color: var(--mobile-accent-fg);
+  box-shadow: 0 12px 28px -10px var(--mobile-accent);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.m-fab:active {
+  transform: scale(0.95);
+}
+
+.m-sheet-backdrop {
+  background: var(--mobile-backdrop);
+  backdrop-filter: blur(2px);
+}
+.m-sheet {
+  background: var(--mobile-surface);
+  border-top: 1px solid var(--mobile-border);
+  box-shadow: 0 -20px 50px -20px var(--mobile-shadow);
+  animation: m-sheet-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.m-sheet-handle {
+  background: var(--mobile-border);
+}
+
+@keyframes m-sheet-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .m-sheet {
+    animation: none !important;
+  }
+  .m-navitem, .m-row, .m-fab, .m-chip {
+    transition: none !important;
+  }
+}

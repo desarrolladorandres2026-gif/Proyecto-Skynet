@@ -1,0 +1,321 @@
+/* Tema visual del panel admin: extiende el HUD táctico del login
+   (login.css) a todo el panel protegido. Se importa una sola vez desde
+   AppLayout, así envuelve cualquier módulo que se renderice en <Outlet/>. */
+
+/* Tokens de tema: claro (por defecto, :root) y oscuro (:root.dark, el HUD
+   nocturno original — mismos valores que antes, ahora extraídos a variables).
+   AppLayout alterna la clase "dark" en <html> (persistida en localStorage),
+   la misma clase que ya activa las variantes dark: de Tailwind en las
+   páginas de módulo — un solo interruptor para todo el sistema de diseño.
+   El claro es una variante "blueprint diurno": mismo acento cian/teal y las
+   mismas brackets/grid como firma visual, sobre papel claro en vez de negro. */
+:root {
+  --panel-bg: #eef3f6;
+  --panel-fg: #1e293b;
+
+  --panel-grid-line: rgba(8, 145, 178, 0.07);
+  --panel-bracket-border: rgba(8, 145, 178, 0.55);
+
+  --panel-sidebar-g1: rgba(255, 255, 255, 0.9);
+  --panel-sidebar-g2: rgba(238, 243, 246, 0.95);
+  --panel-sidebar-border: rgba(8, 145, 178, 0.16);
+
+  --panel-brand-color: #0e2a35;
+  --panel-brand-glow: rgba(8, 145, 178, 0.3);
+
+  --panel-navlink-color: rgba(30, 41, 59, 0.65);
+  --panel-navlink-hover-bg: rgba(8, 145, 178, 0.08);
+  --panel-navlink-hover-color: #0f2733;
+  --panel-navlink-active-bg: rgba(8, 145, 178, 0.12);
+  --panel-navlink-active-color: #0e7490;
+  --panel-navlink-active-shadow: #0891b2;
+
+  --panel-card-g1: rgba(255, 255, 255, 0.92);
+  --panel-card-g2: rgba(240, 245, 248, 0.88);
+  --panel-card-border: rgba(8, 145, 178, 0.16);
+  --panel-card-shadow-1: rgba(8, 145, 178, 0.05);
+  --panel-card-shadow-2: rgba(15, 23, 42, 0.1);
+
+  --panel-accent-bg: #0891b2;
+  --panel-accent-fg: #ffffff;
+  --panel-btn-primario-glow: rgba(8, 145, 178, 0.28);
+  --panel-btn-primario-glow-hover: rgba(8, 145, 178, 0.4);
+
+  --panel-btn-sec-border: rgba(8, 145, 178, 0.35);
+  --panel-btn-sec-color: #0e7490;
+  --panel-btn-sec-hover-bg: rgba(8, 145, 178, 0.08);
+  --panel-btn-sec-hover-border: rgba(8, 145, 178, 0.5);
+
+  --panel-btn-fantasma-color: #0e7490;
+  --panel-btn-fantasma-hover-bg: rgba(8, 145, 178, 0.08);
+
+  --panel-input-bg: rgba(15, 23, 42, 0.02);
+  --panel-input-border: rgba(100, 116, 139, 0.3);
+  --panel-input-color: #0f172a;
+  --panel-input-placeholder: rgba(100, 116, 139, 0.5);
+  --panel-input-focus-border: rgba(8, 145, 178, 0.6);
+  --panel-input-focus-bg: rgba(8, 145, 178, 0.05);
+  --panel-input-focus-ring: rgba(8, 145, 178, 0.15);
+  --panel-input-autofill-bg: #eef6f8;
+
+  --panel-table-bg: rgba(255, 255, 255, 0.75);
+  --panel-table-border: rgba(8, 145, 178, 0.16);
+  --panel-th-color: #0e7490;
+  --panel-th-border: rgba(8, 145, 178, 0.16);
+  --panel-td-color: #334155;
+  --panel-td-border: rgba(100, 116, 139, 0.14);
+  --panel-row-hover-bg: rgba(8, 145, 178, 0.05);
+
+  --panel-modal-backdrop-bg: rgba(15, 23, 42, 0.35);
+  --panel-modal-g1: rgba(255, 255, 255, 0.98);
+  --panel-modal-g2: rgba(240, 245, 248, 0.98);
+  --panel-modal-border: rgba(8, 145, 178, 0.2);
+  --panel-modal-shadow-1: rgba(15, 23, 42, 0.18);
+  --panel-modal-shadow-2: rgba(8, 145, 178, 0.1);
+}
+
+:root.dark {
+  --panel-bg: #05070a;
+  --panel-fg: #e2e8f0;
+
+  --panel-grid-line: rgba(0, 229, 255, 0.05);
+  --panel-bracket-border: rgba(0, 229, 255, 0.5);
+
+  --panel-sidebar-g1: rgba(13, 18, 26, 0.95);
+  --panel-sidebar-g2: rgba(6, 9, 14, 0.98);
+  --panel-sidebar-border: rgba(0, 229, 255, 0.12);
+
+  --panel-brand-color: #ffffff;
+  --panel-brand-glow: rgba(0, 229, 255, 0.45);
+
+  --panel-navlink-color: rgba(226, 232, 240, 0.65);
+  --panel-navlink-hover-bg: rgba(0, 229, 255, 0.06);
+  --panel-navlink-hover-color: #e2e8f0;
+  --panel-navlink-active-bg: rgba(0, 229, 255, 0.1);
+  --panel-navlink-active-color: #67e8f9;
+  --panel-navlink-active-shadow: #00e5ff;
+
+  --panel-card-g1: rgba(13, 18, 26, 0.85);
+  --panel-card-g2: rgba(8, 11, 16, 0.9);
+  --panel-card-border: rgba(0, 229, 255, 0.12);
+  --panel-card-shadow-1: rgba(0, 229, 255, 0.02);
+  --panel-card-shadow-2: rgba(0, 0, 0, 0.8);
+
+  --panel-accent-bg: #00e5ff;
+  --panel-accent-fg: #05070a;
+  --panel-btn-primario-glow: rgba(0, 229, 255, 0.6);
+  --panel-btn-primario-glow-hover: rgba(0, 229, 255, 0.8);
+
+  --panel-btn-sec-border: rgba(0, 229, 255, 0.25);
+  --panel-btn-sec-color: #a5f3fc;
+  --panel-btn-sec-hover-bg: rgba(0, 229, 255, 0.08);
+  --panel-btn-sec-hover-border: rgba(0, 229, 255, 0.4);
+
+  --panel-btn-fantasma-color: #67e8f9;
+  --panel-btn-fantasma-hover-bg: rgba(0, 229, 255, 0.08);
+
+  --panel-input-bg: rgba(255, 255, 255, 0.03);
+  --panel-input-border: rgba(148, 163, 184, 0.2);
+  --panel-input-color: #f1f5f9;
+  --panel-input-placeholder: rgba(148, 163, 184, 0.4);
+  --panel-input-focus-border: rgba(0, 229, 255, 0.6);
+  --panel-input-focus-bg: rgba(0, 229, 255, 0.04);
+  --panel-input-focus-ring: rgba(0, 229, 255, 0.1);
+  --panel-input-autofill-bg: #0b0f16;
+
+  --panel-table-bg: rgba(13, 18, 26, 0.6);
+  --panel-table-border: rgba(0, 229, 255, 0.12);
+  --panel-th-color: rgba(103, 232, 249, 0.7);
+  --panel-th-border: rgba(0, 229, 255, 0.12);
+  --panel-td-color: #cbd5e1;
+  --panel-td-border: rgba(148, 163, 184, 0.08);
+  --panel-row-hover-bg: rgba(0, 229, 255, 0.04);
+
+  --panel-modal-backdrop-bg: rgba(2, 4, 7, 0.75);
+  --panel-modal-g1: rgba(15, 20, 28, 0.98);
+  --panel-modal-g2: rgba(7, 10, 15, 0.98);
+  --panel-modal-border: rgba(0, 229, 255, 0.15);
+  --panel-modal-shadow-1: rgba(0, 0, 0, 0.9);
+  --panel-modal-shadow-2: rgba(0, 229, 255, 0.08);
+}
+
+.panel-shell {
+  background: var(--panel-bg);
+  color: var(--panel-fg);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.panel-mono {
+  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
+/* Grid táctico de fondo, igual que el login pero más tenue: aquí convive
+   con contenido denso (tablas), no puede competir por atención. */
+.panel-grid {
+  background-image:
+    linear-gradient(var(--panel-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--panel-grid-line) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(ellipse 120% 100% at 0% 0%, black 30%, transparent 85%);
+}
+
+/* Corner brackets reutilizados del login como firma visual del panel:
+   marcan tarjetas y el bloque activo del sidebar como "visor" de HUD. */
+.panel-bracket {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--panel-bracket-border);
+  pointer-events: none;
+}
+.panel-bracket--tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.panel-bracket--tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+.panel-bracket--bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+.panel-bracket--br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+/* Sidebar / header */
+.panel-sidebar {
+  background: linear-gradient(180deg, var(--panel-sidebar-g1), var(--panel-sidebar-g2));
+  border-color: var(--panel-sidebar-border);
+}
+
+.panel-brand {
+  color: var(--panel-brand-color);
+  text-shadow: 0 0 12px var(--panel-brand-glow);
+}
+
+.panel-nav-link {
+  color: var(--panel-navlink-color);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.panel-nav-link:hover {
+  background: var(--panel-navlink-hover-bg);
+  color: var(--panel-navlink-hover-color);
+}
+.panel-nav-link.is-active {
+  background: var(--panel-navlink-active-bg);
+  color: var(--panel-navlink-active-color);
+  box-shadow: inset 2px 0 0 0 var(--panel-navlink-active-shadow);
+}
+
+/* Tarjeta base: fondo casi negro, borde cian tenue, glow al hover */
+.panel-card {
+  position: relative;
+  background: linear-gradient(180deg, var(--panel-card-g1), var(--panel-card-g2));
+  border: 1px solid var(--panel-card-border);
+  box-shadow: 0 0 0 1px var(--panel-card-shadow-1), 0 12px 30px -16px var(--panel-card-shadow-2);
+}
+
+/* Botón primario: mismo cian sólido del botón de login */
+.panel-btn-primario {
+  background: var(--panel-accent-bg);
+  color: var(--panel-accent-fg);
+  box-shadow: 0 0 18px -6px var(--panel-btn-primario-glow);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+}
+.panel-btn-primario:hover:not(:disabled) {
+  box-shadow: 0 0 26px -4px var(--panel-btn-primario-glow-hover);
+  transform: translateY(-1px);
+}
+.panel-btn-primario:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.panel-btn-secundario {
+  border: 1px solid var(--panel-btn-sec-border);
+  color: var(--panel-btn-sec-color);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.panel-btn-secundario:hover:not(:disabled) {
+  background: var(--panel-btn-sec-hover-bg);
+  border-color: var(--panel-btn-sec-hover-border);
+}
+
+.panel-btn-peligro {
+  background: #dc2626;
+  color: white;
+  box-shadow: 0 0 18px -8px rgba(220, 38, 38, 0.7);
+}
+.panel-btn-peligro:hover:not(:disabled) {
+  box-shadow: 0 0 26px -6px rgba(220, 38, 38, 0.9);
+}
+
+.panel-btn-fantasma {
+  color: var(--panel-btn-fantasma-color);
+  transition: background-color 0.15s ease;
+}
+.panel-btn-fantasma:hover {
+  background: var(--panel-btn-fantasma-hover-bg);
+}
+
+/* Inputs: mismo fondo casi negro del login + foco cian */
+.panel-input {
+  background: var(--panel-input-bg);
+  border: 1px solid var(--panel-input-border);
+  color: var(--panel-input-color);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.panel-input::placeholder {
+  color: var(--panel-input-placeholder);
+}
+.panel-input:focus {
+  outline: none;
+  border-color: var(--panel-input-focus-border);
+  background: var(--panel-input-focus-bg);
+  box-shadow: 0 0 0 3px var(--panel-input-focus-ring);
+}
+
+/* Autofill: mismo fix que login.css, necesario en cualquier <input> del panel */
+.panel-input:-webkit-autofill,
+.panel-input:-webkit-autofill:hover,
+.panel-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px var(--panel-input-autofill-bg) inset;
+  box-shadow: 0 0 0px 1000px var(--panel-input-autofill-bg) inset;
+  -webkit-text-fill-color: var(--panel-input-color);
+  caret-color: var(--panel-input-color);
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Tabla */
+.panel-table-wrap {
+  background: var(--panel-table-bg);
+  border: 1px solid var(--panel-table-border);
+}
+.panel-th {
+  color: var(--panel-th-color);
+  border-bottom: 1px solid var(--panel-th-border);
+}
+.panel-td {
+  color: var(--panel-td-color);
+  border-bottom: 1px solid var(--panel-td-border);
+}
+.panel-row {
+  transition: background-color 0.15s ease;
+}
+.panel-row:hover {
+  background: var(--panel-row-hover-bg);
+}
+
+/* Modal */
+.panel-modal-backdrop {
+  background: var(--panel-modal-backdrop-bg);
+  backdrop-filter: blur(2px);
+}
+.panel-modal {
+  position: relative;
+  background: linear-gradient(180deg, var(--panel-modal-g1), var(--panel-modal-g2));
+  border: 1px solid var(--panel-modal-border);
+  box-shadow: 0 25px 60px -20px var(--panel-modal-shadow-1), 0 0 40px -10px var(--panel-modal-shadow-2);
+  animation: panel-modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes panel-modal-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-modal {
+    animation: none !important;
+  }
+}

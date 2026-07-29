@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+/* Los dos temas de shell (panel denso admin y shell móvil no-admin, ver
+   layout/AppShell.jsx) se cargan SIEMPRE, sin importar cuál esté montado:
+   páginas "universales" como Reportar daño (permiso `publico: true`) son
+   alcanzables por cualquier rol, así que pueden mezclar componentes de
+   components/ui.jsx (variables --panel-*) y components/mobileUi.jsx
+   (variables --mobile-*, clases m-*) sin que le falten tokens según qué
+   shell las envuelva. Los prefijos de clase no colisionan entre sí. */
+@import "./layout/panel.css";
+@import "./layout/mobileShell.css";
+
+/* El panel admin controla su propio tema claro/oscuro con un toggle
+   persistido (ver layout/panel.css y AppLayout.jsx), en vez de depender de
+   prefers-color-scheme del sistema. Sin este custom-variant, dark: solo
+   reaccionaría a la preferencia del SO; AppLayout alterna la clase "dark"
+   en <html> según la elección guardada del usuario. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* color-scheme decide qué paleta usa el navegador para widgets nativos
+   (scrollbars, <select>, el selector de <input type="date">, etc.). Debe
+   seguir el toggle de la app, no la preferencia del SO: si no, alguien con
+   SO claro que elige el panel oscuro ve popups nativos claros encima de un
+   fondo oscuro (o viceversa). */
+:root {
+  color-scheme: light;
+}
+:root.dark {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100svh;
+}

@@ -1,0 +1,264 @@
+/* Clases para el contenido "rico" (HTML de confianza, autor propio) de los
+   módulos de inducción: mantiene el HTML de induccionData.js legible en vez
+   de repetir cadenas larguísimas de clases Tailwind en cada string. Sigue el
+   mismo lenguaje visual HUD de panel.css, con su mismo par claro/oscuro
+   (:root vs :root.dark). */
+
+:root {
+  --ind-fg: #334155;
+  --ind-strong: #0f172a;
+  --ind-muted: #475569;
+  --ind-accent-heading: #0e7490;
+  --ind-accent-link: #0891b2;
+  --ind-tile-bg: rgba(15, 23, 42, 0.03);
+  --ind-tile-border: rgba(8, 145, 178, 0.15);
+  --ind-header-hover-bg: rgba(8, 145, 178, 0.06);
+  --ind-box-fg: #1e293b;
+}
+
+:root.dark {
+  --ind-fg: #cbd5e1;
+  --ind-strong: #f1f5f9;
+  --ind-muted: #94a3b8;
+  --ind-accent-heading: #67e8f9;
+  --ind-accent-link: #22d3ee;
+  --ind-tile-bg: rgba(255, 255, 255, 0.03);
+  --ind-tile-border: rgba(0, 229, 255, 0.1);
+  --ind-header-hover-bg: rgba(34, 211, 238, 0.05);
+  --ind-box-fg: #e2e8f0;
+}
+
+.ind-lead {
+  color: var(--ind-fg);
+  line-height: 1.7;
+  margin: 0 0 12px;
+}
+
+.ind-box {
+  background: rgba(255, 159, 10, 0.06);
+  border-left: 3px solid rgba(251, 191, 36, 0.5);
+  border-radius: 0.75rem;
+  padding: 14px 16px;
+  margin-top: 14px;
+  color: var(--ind-box-fg);
+  line-height: 1.7;
+}
+.ind-box p {
+  margin: 0 0 8px;
+}
+.ind-box p:last-child {
+  margin-bottom: 0;
+}
+
+.ind-list {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ind-list li {
+  position: relative;
+  padding-left: 22px;
+  color: var(--ind-fg);
+  line-height: 1.6;
+}
+.ind-list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--ind-accent-link);
+  font-weight: 700;
+}
+
+.ind-list-ol {
+  margin: 10px 0;
+  padding-left: 22px;
+  color: var(--ind-fg);
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ind-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.ind-tile {
+  width: 200px;
+  flex: 1 1 180px;
+  max-width: 240px;
+  background: var(--ind-tile-bg);
+  border: 1px solid var(--ind-tile-border);
+  border-radius: 0.75rem;
+  padding: 14px;
+  text-align: center;
+}
+.ind-tile img {
+  width: 100%;
+  max-width: 120px;
+  margin: 0 auto 8px;
+  border-radius: 0.5rem;
+  display: block;
+}
+.ind-tile h4 {
+  color: var(--ind-accent-heading);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.ind-tile p {
+  color: var(--ind-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.ind-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+  justify-content: center;
+}
+.ind-gallery img {
+  width: 31%;
+  min-width: 220px;
+  flex: 1 1 220px;
+  border-radius: 0.75rem;
+  border: 1px solid var(--ind-tile-border);
+}
+
+.ind-figure {
+  text-align: center;
+  margin-top: 16px;
+}
+.ind-figure img {
+  width: 100%;
+  max-width: 640px;
+  border-radius: 0.75rem;
+  border: 1px solid var(--ind-tile-border);
+}
+.ind-figure figcaption {
+  margin-top: 8px;
+  color: var(--ind-muted);
+  font-size: 0.85rem;
+}
+
+.ind-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  margin-top: 14px;
+  background: var(--ind-tile-bg);
+  border: 1px solid var(--ind-tile-border);
+  border-radius: 0.75rem;
+  padding: 16px;
+}
+.ind-row img {
+  width: 280px;
+  max-width: 100%;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+.ind-row-texto {
+  flex: 1;
+  min-width: 220px;
+  color: var(--ind-fg);
+  line-height: 1.7;
+}
+.ind-row-texto h4 {
+  color: var(--ind-accent-heading);
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.ind-downloads {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ind-highlight {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 0.92rem;
+  color: var(--ind-accent-heading);
+  font-weight: 600;
+}
+
+.ind-puntos {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ind-puntos li {
+  color: var(--ind-fg);
+  line-height: 1.6;
+}
+.ind-puntos img {
+  display: block;
+  margin-top: 8px;
+  max-width: 220px;
+  border-radius: 0.5rem;
+  border: 1px solid var(--ind-tile-border);
+}
+
+.ind-content h3 {
+  color: var(--ind-accent-heading);
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 18px 0 8px;
+}
+.ind-content strong {
+  color: var(--ind-strong);
+}
+.ind-content a {
+  color: var(--ind-accent-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Acordeón: los 6 módulos viven dentro de un único recuadro (Card), cada
+   uno como una sección plegable en vez de una tarjeta o ruta aparte. */
+.ind-acordeon-item + .ind-acordeon-item {
+  border-top: 1px solid var(--ind-tile-border);
+}
+.ind-acordeon-header {
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  transition: background-color 0.15s ease;
+}
+.ind-acordeon-header:hover {
+  background: var(--ind-header-hover-bg);
+}
+
+.ind-video-wrap {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid var(--ind-tile-border);
+}
+
+.ind-seccion {
+  background: var(--ind-tile-bg);
+  border: 1px solid var(--ind-tile-border);
+  border-radius: 0.75rem;
+  padding: 14px 16px;
+}
+
+.ind-pregunta {
+  background: var(--ind-tile-bg);
+  border: 1px solid var(--ind-tile-border);
+}

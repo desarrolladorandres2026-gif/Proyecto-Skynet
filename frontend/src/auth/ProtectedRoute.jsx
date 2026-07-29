@@ -1,0 +1,81 @@
+import { Navigate } from 'react-router-dom'
+import { useAuth } from './AuthContext.jsx'
+
+export function ProtectedRoute({ children }) {
+  const { usuario, cargando } = useAuth()
+
+  if (cargando) {
+    return (
+      <div className="flex min-h-svh items-center justify-center text-slate-500 dark:text-slate-400">
+        Cargando…
+      </div>
+    )
+  }
+
+  if (!usuario) return <Navigate to="/login" replace />
+
+  return children
+}
+
+// RBAC granular nuevo: reemplaza a AdminRoute para los módulos del ERP
+// (Usuarios, Roles, Auditoría, ...). ModuleRoute (abajo) se mantiene aparte
+// para las rutas legadas (mantenimiento/sigittn), que no cambian en esta fase.
+// `permiso` acepta un string o un array de alternativas (basta tener una).
+export function PermissionRoute({ permiso, children }) {
+  const { tienePermiso } = useAuth()
+
+  if (![].concat(permiso).some((p) => tienePermiso(p))) {
+    return (
+      <div className="flex min-h-[60svh] flex-col items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
+        <p className="text-lg font-medium text-slate-700 dark:text-slate-200">Sin acceso</p>
+        <p className="text-sm">No tienes permisos para ver esta sección.</p>
+      </div>
+    )
+  }
+
+  return children
+}
+
+// Gate de módulo del sistema desactivado por el Super Admin (ModuloSistema).
+// Se antepone a PermissionRoute en App.jsx para los módulos desactivables del
+// ERP (danos, flota, operacion); mantenimiento/sigittn lo heredan vía
+// ModuleRoute. Es solo experiencia de usuario: la API del módulo apagado ya
+// responde 403 desde el backend (middleware requiereModuloActivo).
+export function ModuloActivoRoute({ modulo, children }) {
+  const { moduloActivo } = useAuth()
+
+  if (!moduloActivo(modulo)) {
+    return (
+      <div className="flex min-h-[60svh] flex-col items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
+        <p className="text-lg font-medium text-slate-700 dark:text-slate-200">Módulo desactivado</p>
+        <p className="text-sm">El administrador del sistema desactivó este módulo.</p>
+      </div>
+    )
+  }
+
+  return children
+}
+
+export function ModuleRoute({ modulo, children }) {
+  const { tieneModulo, moduloActivo } = useAuth()
+
+  if (!moduloActivo(modulo)) {
+    return (
+      <div className="flex min-h-[60svh] flex-col items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
+        <p className="text-lg font-medium text-slate-700 dark:text-slate-200">Módulo desactivado</p>
+        <p className="text-sm">El administrador del sistema desactivó este módulo.</p>
+      </div>
+    )
+  }
+
+  if (!tieneModulo(modulo)) {
+    return (
+      <div className="flex min-h-[60svh] flex-col items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
+        <p className="text-lg font-medium text-slate-700 dark:text-slate-200">Sin acceso</p>
+        <p className="text-sm">No tienes permisos para ver este módulo.</p>
+      </div>
+    )
+  }
+
+  return children
+}

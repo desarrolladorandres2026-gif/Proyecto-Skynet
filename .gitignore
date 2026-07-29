@@ -1,0 +1,20 @@
+# Secretos (NUNCA versionar). Rota estas credenciales: ya estuvieron expuestas.
+atlas-credentials.env
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dependencias y builds
+**/node_modules
+**/dist
+
+# Almacenamiento de archivos subidos
+Backend/storage
+
+# SO / editor
+.DS_Store
+Thumbs.db
+.idea
+
+# Config local de Claude Code (puede contener datos sensibles de sesión)
+.claude/settings.local.json
