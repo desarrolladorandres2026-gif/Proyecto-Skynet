@@ -8,8 +8,8 @@
 
 ## 1. Resumen ejecutivo
 
-Skynet es un sistema unificado que integra dos aplicaciones legadas
-(mantenimiento de equipos de TI y la mesa de ayuda SIGITTN) con un ERP nuevo
+Skynet es un sistema unificado que integra una aplicación legada
+(mantenimiento de equipos de TI) con un ERP nuevo
 para la operación del Terminal de Transporte de Neiva. Está construido como
 monorepo con dos aplicaciones:
 
@@ -47,7 +47,7 @@ la base de datos y se administran desde la interfaz, sin tocar código.
 - **Cada petición se revalida contra la base de datos** — no se confía en el
   contenido del JWT. Desactivar un usuario o cambiarle el rol aplica al
   instante, sin esperar a que expire el token (8 horas).
-- Los módulos legados (mantenimiento TI, SIGITTN) conservan su esquema de
+- El módulo legado (mantenimiento TI) conserva su esquema de
   acceso binario (`Usuario.modulos`); el ERP nuevo usa el RBAC granular.
   Conviven sin interferirse.
 
@@ -78,8 +78,7 @@ backend/
    │  ├─ flota/              empresas · vehículos · conductores · plataformas
    │  ├─ operacion/          rutas · horarios · despachos · novedades ·
    │  │                      objetos perdidos · dashboard
-   │  ├─ mantenimiento/      LEGADO: equipos de TI y sus mantenimientos
-   │  └─ sigittn/            LEGADO: mesa de ayuda (tickets con chat)
+   │  └─ mantenimiento/      LEGADO: equipos de TI y sus mantenimientos
    ├─ routes/index.js        monta todos los módulos bajo /api
    ├─ seedData/rbac.data.js  FUENTE ÚNICA del catálogo de roles y permisos
    └─ utils/                 scope · auditoria · password · cookies · email
@@ -106,7 +105,7 @@ frontend/src/
 │  ├─ danos/                 Reportar daño · Tareas pendientes
 │  ├─ usuarios/ roles/ auditoria/
 │  ├─ induccion/             curso institucional (visible para todos)
-│  └─ mantenimiento/ sigittn/  LEGADOS
+│  └─ mantenimiento/         LEGADO
 └─ pwa/                      banner de instalación · service worker
 ```
 
@@ -157,8 +156,7 @@ Navegador ── GET /api/despachos (cookie JWT) ──►
 | `ReporteDano` | fecha/hora + descripción + foto en Cloudinary, flujo pendiente→en_proceso→resuelto | → Usuario |
 
 ### Grupo legado
-`Equipo`, `Mantenimiento`, `Marca`, `TipoEquipo` (TI) y `Ticket` (SIGITTN,
-con mensajes embebidos tipo chat).
+`Equipo`, `Mantenimiento`, `Marca`, `TipoEquipo` (TI).
 
 ---
 
@@ -187,7 +185,7 @@ Notas:
 - El **Administrador no ve Novedades** porque la especificación original no
   le asignó ese permiso; puede agregárselo el Super Admin desde la página
   «Roles y permisos» sin tocar código.
-- Los módulos legados (Mantenimiento TI, SIGITTN) se asignan aparte, por
+- El módulo legado (Mantenimiento TI) se asigna aparte, por
   usuario, con el campo `modulos`.
 - Matriz **verificada en vivo**: 11 endpoints × 7 roles; cada 200/403
   coincidió con lo esperado.
@@ -269,7 +267,7 @@ Datos demo disponibles (`npm run seed:operacion` en `backend/`): 6 plataformas,
 | Fase 4 | PQRS · Noticias · Eventos (atención al ciudadano) |
 | Fase 5 | Reportes avanzados · Configuración general |
 | Mejora | Notificación push al rol Mantenimiento cuando llega un reporte de daño (la infraestructura VAPID ya existe) |
-| Mejora | Migrar los módulos legados al RBAC granular |
+| Mejora | Migrar el módulo legado al RBAC granular |
 
 **Nota de red:** el DNS local falla resolviendo los registros SRV de Atlas
 (`querySrv ECONNREFUSED`); `config/db.js` reintenta automáticamente con DNS

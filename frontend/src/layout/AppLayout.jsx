@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { ChevronDown, GraduationCap, Moon, Sun } from 'lucide-react'
+import { ChevronDown, Moon, Sun } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { MODULOS_REGISTRO } from '../config/modulosRegistry.js'
 // panel.css se importa una sola vez, globalmente, desde index.css — junto
@@ -142,16 +142,6 @@ export function NavContent({ modulosVisibles, idPrefix, onNavigate }) {
 
   return (
     <nav className="flex flex-col gap-1 p-3">
-      {/* Inducción es contenido de onboarding, no un módulo asignable: se ve
-          siempre, incluso para un usuario recién creado sin módulos aún. */}
-      <div className="mb-1">
-        <p className="panel-mono flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-          <GraduationCap className="h-3.5 w-3.5" aria-hidden="true" />
-          Inducción
-        </p>
-        <EnlaceNav to="/induccion" label="Inducción" end sub onNavigate={onNavigate} />
-      </div>
-
       {modulosVisibles.map((m) => (
         <GrupoNav
           key={m.key}

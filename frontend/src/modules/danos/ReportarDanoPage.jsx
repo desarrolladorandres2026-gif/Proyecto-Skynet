@@ -192,7 +192,13 @@ export default function ReportarDanoPage() {
               }
               icon={r.foto?.url ? undefined : Camera}
               title={r.descripcion}
-              subtitle={`${TIPO_LABELS[r.tipo] || 'Daño'} · ${fmtFechaHora(r.fecha)}${r.atendidoPor?.nombre ? ` · ${r.atendidoPor.nombre}` : ''}`}
+              subtitle={`${TIPO_LABELS[r.tipo] || 'Daño'} · ${fmtFechaHora(r.fecha)}${
+                r.asignadoA?.nombre
+                  ? ` · ${r.asignadoA.nombre}`
+                  : r.atendidoPor?.nombre
+                    ? ` · ${r.atendidoPor.nombre}`
+                    : ''
+              }`}
               badge={<Badge valor={r.estado} />}
               trailing={null}
             />

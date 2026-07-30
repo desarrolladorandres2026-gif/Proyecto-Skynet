@@ -13,11 +13,6 @@ import OrdenesTrabajoPage from './modules/mantenimiento/OrdenesTrabajoPage.jsx'
 import OrdenDetallePage from './modules/mantenimiento/OrdenDetallePage.jsx'
 import SeguimientoPage from './modules/mantenimiento/SeguimientoPage.jsx'
 import SupervisorPage from './modules/mantenimiento/SupervisorPage.jsx'
-import SigittnHome from './modules/sigittn/SigittnHome.jsx'
-import TicketsPage from './modules/sigittn/TicketsPage.jsx'
-import TicketDetailPage from './modules/sigittn/TicketDetailPage.jsx'
-import SoportePage from './modules/sigittn/SoportePage.jsx'
-import SoporteDetallePage from './modules/sigittn/SoporteDetallePage.jsx'
 import UsuariosPage from './modules/usuarios/UsuariosPage.jsx'
 import ReportarDanoPage from './modules/danos/ReportarDanoPage.jsx'
 import TareasDanosPage from './modules/danos/TareasDanosPage.jsx'
@@ -42,6 +37,7 @@ import ModulosSistemaPage from './modules/sistema/ModulosSistemaPage.jsx'
 import InduccionHome from './modules/induccion/InduccionHome.jsx'
 import CertificadoPage from './modules/induccion/CertificadoPage.jsx'
 import InstallBanner from './pwa/InstallBanner.jsx'
+import PreferenciasNotificacionesPage from './modules/notificaciones/PreferenciasNotificacionesPage.jsx'
 
 export default function App() {
   return (
@@ -108,22 +104,11 @@ export default function App() {
               }
             />
 
-            <Route path="sigittn" element={<ModuleRoute modulo="sigittn"><SigittnHome /></ModuleRoute>} />
-            <Route path="sigittn/tickets" element={<ModuleRoute modulo="sigittn"><TicketsPage /></ModuleRoute>} />
-            <Route path="sigittn/tickets/:id" element={<ModuleRoute modulo="sigittn"><TicketDetailPage /></ModuleRoute>} />
-
-            {/* Soporte: acceso reducido a SIGITTN, universal (como "Reportar
-                daño") — crear una solicitud propia y conversar por chat, sin
-                el flag legado Usuario.modulos.sigittn que exige ModuleRoute
-                arriba. Depende de que el módulo "sigittn" esté activo
-                (mismo Ticket, mismo backend). */}
-            <Route path="soporte" element={<ModuloActivoRoute modulo="sigittn"><SoportePage /></ModuloActivoRoute>} />
-            <Route path="soporte/:id" element={<ModuloActivoRoute modulo="sigittn"><SoporteDetallePage /></ModuloActivoRoute>} />
-
             {/* Dashboard y reportar daño: universales, solo requieren sesión.
                 ModuloActivoRoute gobierna los módulos desactivables por el
                 Super Admin (/sistema/modulos); el dashboard es núcleo. */}
             <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="notificaciones" element={<PreferenciasNotificacionesPage />} />
             <Route path="danos/reportar" element={<ModuloActivoRoute modulo="danos"><ReportarDanoPage /></ModuloActivoRoute>} />
             <Route path="danos/tareas" element={<ModuloActivoRoute modulo="danos"><PermissionRoute permiso="danos:gestionar"><TareasDanosPage /></PermissionRoute></ModuloActivoRoute>} />
 

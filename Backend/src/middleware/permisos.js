@@ -1,6 +1,6 @@
 // Middleware de autorización granular para los módulos del ERP nuevo
 // (a diferencia de soloAdmin/requireModulo en auth.js, que son el esquema
-// binario legado que sigue gobernando mantenimiento/sigittn/usuarios).
+// binario legado que sigue gobernando mantenimiento/usuarios).
 export function requierePermiso(...codigos) {
   return (req, res, next) => {
     if (req.usuario?.esSuperAdmin) return next()

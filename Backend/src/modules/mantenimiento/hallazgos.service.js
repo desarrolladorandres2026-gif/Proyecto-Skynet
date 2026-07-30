@@ -4,7 +4,12 @@ import ConfiguracionSLA from '../../models/mantenimiento/ConfiguracionSLA.js'
 import { SLA_MANTENIMIENTO } from '../../seedData/slaMantenimiento.data.js'
 import { ErrorNoEncontrado, ErrorValidacion, ErrorConflicto } from '../../utils/errores.js'
 import { registrarAuditoria } from '../../utils/auditoria.js'
-import { notificarUsuarios } from '../../utils/sendPush.js'
+import { notificarUsuarios as _notificarUsuarios } from '../../utils/sendPush.js'
+
+// Categoría fija para todo este módulo (ver notificaciones.catalogo.js):
+// respeta la preferencia de canal/categoría del usuario en vez del envío
+// solo-push incondicional de antes.
+const notificarUsuarios = (userIds, payload) => _notificarUsuarios(userIds, payload, 'mantenimiento')
 import { obtenerOT, requiereSerParticipante, usuariosConPermiso } from './comun.js'
 
 // Módulo de Hallazgos (CMMS Fase 3): registrado siempre dentro del contexto

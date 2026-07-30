@@ -22,9 +22,16 @@ export const env = {
   EMAIL_USER: process.env.EMAIL_USER,
   EMAIL_PASS: process.env.EMAIL_PASS,
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',
+  // Usado para construir enlaces absolutos hacia el propio backend en emails
+  // (ej. el enlace de baja de notificaciones, que el usuario abre desde su
+  // cliente de correo sin sesión iniciada, así que no puede ser una ruta
+  // relativa del SPA).
+  API_PUBLIC_URL: process.env.API_PUBLIC_URL || `http://localhost:${process.env.PORT || 3001}/api`,
   VAPID_EMAIL: process.env.VAPID_EMAIL,
   VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+  NOTIF_WORKER_INTERVALO_MS: Number(process.env.NOTIF_WORKER_INTERVALO_MS) || 5000,
+  NOTIF_WORKER_LOTE: Number(process.env.NOTIF_WORKER_LOTE) || 25,
   STORAGE_ROOT: process.env.STORAGE_ROOT || './storage',
   FILES_PUBLIC_URL: process.env.FILES_PUBLIC_URL || 'http://localhost:3001/storage',
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,

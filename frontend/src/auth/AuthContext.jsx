@@ -64,7 +64,7 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  // Legado: gobierna solo mantenimiento/sigittn (Usuario.modulos, esquema
+  // Legado: gobierna solo mantenimiento (Usuario.modulos, esquema
   // binario que no se toca en esta fase). esSuperAdmin reemplaza al viejo
   // check `rol === 'admin'` — ver models/Rol.js / middleware/auth.js.
   const tieneModulo = useCallback(

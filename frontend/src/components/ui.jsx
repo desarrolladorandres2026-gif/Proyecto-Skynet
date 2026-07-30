@@ -48,6 +48,31 @@ export function Btn({ variante = 'primario', className = '', ...props }) {
   )
 }
 
+// Toggle on/off con el acento cian del tema HUD (no existía ninguna
+// primitiva de este tipo en el proyecto — ver PreferenciasNotificacionesPage).
+export function Switch({ checked, onChange, disabled = false, label }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        checked ? 'bg-cyan-600 dark:bg-cyan-500' : 'bg-slate-300 dark:bg-slate-700'
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+          checked ? 'translate-x-6' : 'translate-x-1'
+        }`}
+        aria-hidden="true"
+      />
+    </button>
+  )
+}
+
 const BADGE_COLORES = {
   // mantenimiento
   pendiente: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
@@ -59,9 +84,11 @@ const BADGE_COLORES = {
   'En progreso': 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
   Resuelto: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
   Cerrado: 'bg-slate-400/10 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-400/30',
-  // reportes de daños
-  en_proceso: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
+  // reportes de daños (ver Backend/src/modules/danos/danos.service.js)
+  asignado: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
+  en_proceso: 'bg-sky-400/10 text-sky-700 dark:text-sky-300 ring-1 ring-inset ring-sky-400/30',
   resuelto: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
+  cancelado: 'bg-slate-400/10 text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-400/30',
   // flota y operación
   libre: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
   ocupada: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',

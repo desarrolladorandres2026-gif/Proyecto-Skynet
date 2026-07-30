@@ -1,15 +1,15 @@
 import ReporteDano from '../../models/ReporteDano.js'
 import { subirImagen, eliminarImagen, cloudinaryConfigurado } from '../../config/cloudinary.js'
+import * as servicio from './danos.service.js'
+
+// Capa delgada: toda la lógica de asignación y de la máquina de estados vive
+// en danos.service.js. Aquí solo se traduce HTTP <-> Service.
 
 const POPULATE_REPORTANTE = { path: 'reportadoPor', select: 'nombre nombre_usuario dependencia' }
-const POPULATE_ATENDIDO = { path: 'atendidoPor', select: 'nombre nombre_usuario' }
-
-const ESTADOS = ['pendiente', 'en_proceso', 'resuelto']
-const TIPOS = ['dano', 'novedad', 'sugerencia', 'otro']
 
 export async function crearReporte(req, res) {
   const { fecha, descripcion } = req.body
-  const tipo = TIPOS.includes(req.body.tipo) ? req.body.tipo : 'dano'
+  const tipo = servicio.TIPOS.includes(req.body.tipo) ? req.body.tipo : 'dano'
 
   if (!descripcion?.trim()) {
     return res.status(400).json({ error: 'La descripción es obligatoria' })
@@ -29,6 +29,14 @@ export async function crearReporte(req, res) {
     fecha: fechaParsed,
     descripcion: descripcion.trim(),
     reportadoPor: req.usuario.id_usuario,
+    historial: [
+      {
+        accion: 'creado',
+        a: 'pendiente',
+        por: req.usuario.id_usuario,
+        nombrePor: req.usuario.nombre_usuario,
+      },
+    ],
   }
 
   if (req.file) {
@@ -47,68 +55,62 @@ export async function crearReporte(req, res) {
 
   const reporte = await ReporteDano.create(datosCreacion)
 
-  await reporte.populate(POPULATE_REPORTANTE)
+  // Reparto automático: si hay alguien de mantenimiento disponible el reporte
+  // sale ya asignado y notificado, sin pasar por el administrador. Es
+  // best-effort — nunca hace fallar la creación (ver el service).
+  await servicio.asignarAutomaticamente(reporte)
+
+  await reporte.populate([POPULATE_REPORTANTE, { path: 'asignadoA', select: 'nombre nombre_usuario' }])
   res.status(201).json({ reporte })
 }
 
 // Los reportes propios: los ve cualquier usuario autenticado (quien reporta
-// puede seguir el estado de lo que reportó).
+// puede seguir el estado de lo que reportó, y ahora también quién lo repara).
 export async function misReportes(req, res) {
   const reportes = await ReporteDano.find({ reportadoPor: req.usuario.id_usuario })
-    .populate(POPULATE_ATENDIDO)
+    .populate({ path: 'asignadoA', select: 'nombre nombre_usuario' })
+    .populate({ path: 'atendidoPor', select: 'nombre nombre_usuario' })
     .sort({ createdAt: -1 })
   res.json({ reportes })
 }
 
-// Vista de gestión (mantenimiento / administrador / super admin):
-// ?estado=pendiente|en_proceso|resuelto y/o ?tipo=dano|novedad|sugerencia|otro
-// filtran; sin filtro devuelve todo.
+// Vista de gestión (mantenimiento / administrador / super admin). Filtros:
+// ?estado= ?tipo= ?prioridad= ?asignado=mi|sin|<idUsuario>
 export async function listarReportes(req, res) {
-  const { estado, tipo } = req.query
-  const filtro = {}
-  if (estado) {
-    if (!ESTADOS.includes(estado)) {
-      return res.status(400).json({ error: `estado debe ser uno de: ${ESTADOS.join(', ')}` })
-    }
-    filtro.estado = estado
-  }
-  if (tipo) {
-    if (!TIPOS.includes(tipo)) {
-      return res.status(400).json({ error: `tipo debe ser uno de: ${TIPOS.join(', ')}` })
-    }
-    filtro.tipo = tipo
-  }
+  const { estado, tipo, prioridad, asignado } = req.query
+  const data = await servicio.listarReportes({ estado, tipo, prioridad, asignado }, req.usuario)
+  res.json(data)
+}
 
-  const reportes = await ReporteDano.find(filtro)
-    .populate(POPULATE_REPORTANTE)
-    .populate(POPULATE_ATENDIDO)
-    .sort({ estado: 1, fecha: -1 })
+// Ficha completa con historial y requerimientos vinculados: es lo que responde
+// "¿en qué va el daño y quién lo tiene?".
+export async function detalleReporte(req, res) {
+  const reporte = await servicio.obtenerReporte(req.params.id)
+  res.json({ reporte })
+}
 
-  const [pendientes, enProceso, resueltos] = await Promise.all([
-    ReporteDano.countDocuments({ estado: 'pendiente' }),
-    ReporteDano.countDocuments({ estado: 'en_proceso' }),
-    ReporteDano.countDocuments({ estado: 'resuelto' }),
-  ])
+// El equipo de mantenimiento con su carga de trabajo, para el modal de
+// asignación y para el panel de disponibilidad del administrador.
+export async function listarTecnicos(req, res) {
+  const tecnicos = await servicio.listarTecnicosConCarga()
+  res.json({ tecnicos })
+}
 
-  res.json({ reportes, resumen: { pendientes, en_proceso: enProceso, resueltos } })
+export async function asignarReporte(req, res) {
+  const { tecnicoId, nota } = req.body
+  const reporte = await servicio.asignarReporte(req.params.id, { tecnicoId, nota }, req.usuario)
+  res.json({ reporte })
 }
 
 export async function cambiarEstado(req, res) {
-  const { estado, observacion } = req.body
-  if (!ESTADOS.includes(estado)) {
-    return res.status(400).json({ error: `estado debe ser uno de: ${ESTADOS.join(', ')}` })
-  }
-
-  const reporte = await ReporteDano.findById(req.params.id)
-  if (!reporte) return res.status(404).json({ error: 'Reporte no encontrado' })
-
-  reporte.estado = estado
-  reporte.atendidoPor = req.usuario.id_usuario
-  if (observacion !== undefined) reporte.observacionAtencion = String(observacion).trim()
-  reporte.fechaResolucion = estado === 'resuelto' ? new Date() : null
-
-  await reporte.save()
-  await reporte.populate([POPULATE_REPORTANTE, POPULATE_ATENDIDO])
+  const { estado, nota, observacion, motivoEspera, prioridad } = req.body
+  const reporte = await servicio.cambiarEstadoReporte(
+    req.params.id,
+    // `observacion` es el nombre que usaba el cliente anterior; se acepta como
+    // alias para no romper nada que todavía lo mande.
+    { estado, nota: nota ?? observacion, motivoEspera, prioridad },
+    req.usuario
+  )
   res.json({ reporte })
 }
 

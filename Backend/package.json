@@ -1,7 +1,7 @@
 {
   "name": "skynet-backend",
   "version": "1.0.0",
-  "description": "Backend unificado (mantenimiento + SIGITTN) - Node.js + Express + MongoDB",
+  "description": "Backend unificado (mantenimiento) - Node.js + Express + MongoDB",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
@@ -9,9 +9,13 @@
     "start": "node src/index.js",
     "seed": "node scripts/seed.js",
     "seed:operacion": "node scripts/seed-operacion.js",
+    "seed:danos": "node scripts/seed-danos.js",
+    "seed:requerimientos": "node scripts/seed-requerimientos.js",
     "migrate:mantenimiento": "node scripts/migrate-mysql-to-mongo.js",
-    "migrate:sigittn": "node scripts/migrate-postgres-to-mongo.js",
-    "migrate:mantenimiento-ot": "node scripts/migrate-mantenimiento-ot.js"
+    "migrate:mantenimiento-ot": "node scripts/migrate-mantenimiento-ot.js",
+    "test": "vitest run",
+    "test:notificaciones": "node scripts/test-notificaciones.js",
+    "test:flujo-notificaciones": "node scripts/test-flujo-notificaciones.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -31,7 +35,9 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "mongodb-memory-server": "^10.1.2",
     "mysql2": "^3.11.0",
-    "pg": "^8.22.0"
+    "supertest": "^7.0.0",
+    "vitest": "^2.1.5"
   }
 }

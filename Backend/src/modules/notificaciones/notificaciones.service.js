@@ -1,0 +1,195 @@
+import Usuario from '../../models/Usuario.js'
+import PushSubscription from '../../models/PushSubscription.js'
+import PreferenciaNotificacion from '../../models/PreferenciaNotificacion.js'
+import EnvioNotificacion from '../../models/EnvioNotificacion.js'
+import webpush from '../../utils/webpush.js'
+import { enviarEmailGenerico } from '../../utils/email.js'
+import { plantillaNotificacion, plantillaNotificacionTexto, headersListaBaja } from './notificaciones.plantillas.js'
+import { esCategoriaValida } from './notificaciones.catalogo.js'
+
+// Punto de entrada único del sistema de notificaciones. Encola filas en
+// EnvioNotificacion (canal por destinatario que corresponda según sus
+// preferencias) y retorna de inmediato: el envío real lo hace
+// procesarPendientes() en el siguiente tick del worker (ver
+// notificaciones.worker.js), para que el request que originó el evento
+// (crear un ticket, aprobar un requerimiento...) nunca espere a que salga
+// un correo o un push.
+//
+// `transaccional: true` se salta preferencias por completo (siempre se
+// encola para todos los canales que el usuario tenga registrados) — está
+// pensado para alertas de seguridad, no para el flujo normal de eventos de
+// negocio, que sí debe respetar lo que el usuario configuró.
+//
+// `incluirEmail`/`incluirPush` acotan de qué canales participa este evento
+// en absoluto, ANTES de mirar preferencias. Existe por compatibilidad: los
+// ~9 módulos que llamaban a notificarUsuarios() antes de que este servicio
+// existiera solo mandaban push (ver utils/sendPush.js) — sin este corte,
+// literalmente todo evento del sistema empezaría a mandar también un correo
+// en cuanto se conecte, lo cual sería una sorpresa no pedida, no una mejora.
+export async function notificar({
+  usuarios, categoria, tipo, titulo, cuerpo, url,
+  transaccional = false, incluirEmail = true, incluirPush = true,
+}) {
+  const idsUnicos = [...new Set((usuarios || []).map(String))].filter(Boolean)
+  if (!idsUnicos.length) return []
+  if (!transaccional && !esCategoriaValida(categoria)) {
+    throw new Error(`Categoría de notificación desconocida: "${categoria}" (ver notificaciones.catalogo.js)`)
+  }
+
+  const [usuariosDocs, preferencias, suscripciones] = await Promise.all([
+    Usuario.find({ _id: { $in: idsUnicos } }).select('email estado'),
+    PreferenciaNotificacion.find({ usuario: { $in: idsUnicos } }),
+    PushSubscription.find({ usuario: { $in: idsUnicos }, estado: 'activa' }),
+  ])
+
+  const preferenciaPorUsuario = new Map(preferencias.map((p) => [String(p.usuario), p]))
+  const suscripcionesPorUsuario = new Map()
+  for (const sub of suscripciones) {
+    const key = String(sub.usuario)
+    if (!suscripcionesPorUsuario.has(key)) suscripcionesPorUsuario.set(key, [])
+    suscripcionesPorUsuario.get(key).push(sub)
+  }
+
+  const filas = []
+  for (const u of usuariosDocs) {
+    if (u.estado === 'inactivo') continue
+    const id = String(u._id)
+    const pref = preferenciaPorUsuario.get(id)
+    // Sin documento de preferencias = todo activado (ver
+    // models/PreferenciaNotificacion.js): un usuario que nunca abrió la
+    // pantalla de configuración igual debe recibir avisos.
+    const emailActivo = incluirEmail && (transaccional || (pref ? pref.email.activo : true))
+    const pushActivo = incluirPush && (transaccional || (pref ? pref.push.activo : true))
+    const categoriaActiva = transaccional || !pref || pref.categorias.get(categoria) !== false
+
+    if (!categoriaActiva) continue
+
+    if (pushActivo) {
+      for (const sub of suscripcionesPorUsuario.get(id) || []) {
+        filas.push({
+          usuario: u._id, canal: 'push', categoria, tipo, transaccional, titulo, cuerpo, url,
+          pushSubscription: sub._id,
+        })
+      }
+    }
+    if (emailActivo && u.email) {
+      filas.push({ usuario: u._id, canal: 'email', categoria, tipo, transaccional, titulo, cuerpo, url, emailDestino: u.email })
+    }
+  }
+
+  if (!filas.length) return []
+  return EnvioNotificacion.insertMany(filas)
+}
+
+// Backoff entre reintentos cuando un envío falla por algo no concluyente
+// (SMTP caído, timeout de red, VAPID mal configurado) — NO aplica a un
+// push que devuelve 404/410, que se descarta sin reintento porque ese
+// código significa "la suscripción ya no existe en el navegador", no "falló
+// esta vez". Exponencial con techo de 30 min: intento 1 -> 1 min, 2 -> 4 min,
+// 3 -> 9 min... para no martillar un proveedor caído cada pocos segundos
+// durante horas.
+//
+// Este es un punto de ajuste razonable si el volumen de notificaciones crece
+// o si un proveedor SMTP concreto tiene límites de tasa distintos — no hay
+// una única respuesta correcta, así que si lo cambias, documenta el motivo
+// aquí mismo.
+function calcularProximoIntento(intentos) {
+  const minutos = Math.min(intentos * intentos, 30)
+  return new Date(Date.now() + minutos * 60 * 1000)
+}
+
+async function enviarPush(envio) {
+  const sub = await PushSubscription.findById(envio.pushSubscription)
+  if (!sub || sub.estado !== 'activa') {
+    throw Object.assign(new Error('La suscripción push ya no existe'), { descartar: true })
+  }
+  await webpush.sendNotification(
+    { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+    JSON.stringify({ title: envio.titulo, body: envio.cuerpo, url: envio.url, tag: envio.tipo })
+  )
+  sub.ultimoUsoEn = new Date()
+  await sub.save()
+}
+
+// "Skynet · Ticket asignado" en vez de solo "Ticket asignado": un asunto
+// corto y sin contexto de remitente se parece al de un correo masivo
+// genérico, y además Gmail agrupa mejor los hilos cuando el asunto es
+// consistente. No se repite el nombre del módulo (ya va en el cuerpo) para
+// no comerse el ancho útil del asunto en móvil.
+function asuntoDe(envio) {
+  return `Skynet · ${envio.titulo}`
+}
+
+async function enviarEmail(envio) {
+  const datos = {
+    titulo: envio.titulo,
+    cuerpo: envio.cuerpo,
+    url: envio.url,
+    usuarioId: envio.usuario,
+    transaccional: envio.transaccional,
+    categoria: envio.categoria,
+    fecha: envio.createdAt,
+  }
+  await enviarEmailGenerico({
+    to: envio.emailDestino,
+    subject: asuntoDe(envio),
+    html: plantillaNotificacion(datos),
+    text: plantillaNotificacionTexto(datos),
+    headers: headersListaBaja(datos),
+  })
+}
+
+async function registrarFallo(envio, err) {
+  const esSuscripcionMuerta =
+    envio.canal === 'push' && (err.statusCode === 404 || err.statusCode === 410 || err.descartar)
+
+  if (esSuscripcionMuerta && envio.pushSubscription) {
+    await PushSubscription.deleteOne({ _id: envio.pushSubscription })
+  }
+
+  envio.intentos += 1
+  envio.error = String(err.message || 'Error desconocido').slice(0, 500)
+
+  if (esSuscripcionMuerta || envio.intentos >= envio.maxIntentos) {
+    envio.estado = 'fallido'
+  } else {
+    envio.proximoIntentoEn = calcularProximoIntento(envio.intentos)
+  }
+  await envio.save()
+}
+
+async function procesarUno(envio) {
+  try {
+    if (envio.canal === 'push') await enviarPush(envio)
+    else await enviarEmail(envio)
+    envio.estado = 'enviado'
+    envio.enviadoEn = new Date()
+    envio.error = undefined
+    await envio.save()
+  } catch (err) {
+    await registrarFallo(envio, err)
+  }
+}
+
+// Llamado periódicamente por notificaciones.worker.js. Asume un solo proceso
+// Node corriendo el worker (igual que el resto del backend hoy: no hay
+// balanceo de carga entre instancias) — con más de una instancia activa,
+// dos workers podrían tomar la misma fila pendiente y enviarla duplicada. Si
+// el proyecto llega a correr en múltiples instancias, este es el punto que
+// necesita un claim atómico (findOneAndUpdate a un estado 'procesando') antes
+// de escalar el worker con ellas.
+export async function procesarPendientes(limite) {
+  const ahora = new Date()
+  const pendientes = await EnvioNotificacion.find({ estado: 'pendiente', proximoIntentoEn: { $lte: ahora } })
+    .sort({ proximoIntentoEn: 1 })
+    .limit(limite)
+
+  await Promise.allSettled(pendientes.map(procesarUno))
+  return pendientes.length
+}
+
+export async function obtenerPreferencias(usuarioId) {
+  const pref = await PreferenciaNotificacion.findOne({ usuario: usuarioId })
+  if (pref) return pref
+  return { usuario: usuarioId, email: { activo: true }, push: { activo: true }, categorias: new Map() }
+}

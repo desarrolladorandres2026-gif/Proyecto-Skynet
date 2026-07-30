@@ -79,7 +79,12 @@ export async function resumenDashboard(req, res) {
   }
   if (puede('danos:gestionar')) {
     tareas.push(async () => {
-      tarjetas.danosPendientes = await ReporteDano.countDocuments({ estado: 'pendiente' })
+      // "Pendientes" = todo lo que sigue abierto, no solo lo que aún nadie
+      // tomó: desde que existen los estados asignado/en_proceso/en_espera,
+      // contar únicamente 'pendiente' escondía el trabajo ya en curso.
+      tarjetas.danosPendientes = await ReporteDano.countDocuments({
+        estado: { $nin: ['resuelto', 'cancelado'] },
+      })
     })
   }
 

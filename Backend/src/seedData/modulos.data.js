@@ -77,11 +77,4 @@ export const MODULOS_SISTEMA = [
     esNucleo: false,
     orden: 20,
   },
-  {
-    key: 'sigittn',
-    nombre: 'SIGITTN — Mesa de ayuda (legado)',
-    descripcion: 'Tickets de soporte con chat y notificaciones push.',
-    esNucleo: false,
-    orden: 21,
-  },
 ]

@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { FilePlus2, ShoppingCart, Wrench } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { FilePlus2, ShoppingCart, Wrench, TriangleAlert } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
+import { danos as danosApi } from '../../api/danos.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { Btn, Card, ErrorMsg, Field, Input } from '../../components/ui.jsx'
 import FormularioCompra, { filaVaciaCompra } from './FormularioCompra.jsx'
@@ -10,14 +11,30 @@ import FormularioServicio, { detalleServicioVacio } from './FormularioServicio.j
 export default function NuevoRequerimientoPage() {
   const { usuario } = useAuth()
   const navigate = useNavigate()
+  // ?dano=<id> lo pone el botón "Solicitar repuesto" del detalle de un reporte
+  // (modules/danos/TareasDanosPage.jsx). Deja el requerimiento enlazado al
+  // daño que lo originó, en los dos sentidos.
+  const [searchParams] = useSearchParams()
+  const origenDano = searchParams.get('dano')
 
   const [tipo, setTipo] = useState('compra')
   const [cargo, setCargo] = useState(usuario?.cargo || '')
-  const [areaOProceso, setAreaOProceso] = useState('')
+  const [areaOProceso, setAreaOProceso] = useState(origenDano ? 'Mantenimiento' : '')
   const [items, setItems] = useState([filaVaciaCompra()])
   const [detalleServicio, setDetalleServicio] = useState(detalleServicioVacio())
+  const [dano, setDano] = useState(null)
   const [error, setError] = useState('')
   const [enviando, setEnviando] = useState(false)
+
+  // Solo para mostrar el contexto del daño mientras se llena el formulario. Si
+  // falla (p. ej. quien entra no tiene danos:gestionar), el enlace se guarda
+  // igual: perder el banner no debe impedir pedir el repuesto.
+  useEffect(() => {
+    if (!origenDano) return
+    danosApi.detalle(origenDano)
+      .then(({ reporte }) => setDano(reporte))
+      .catch(() => setDano(null))
+  }, [origenDano])
 
   async function enviar(e) {
     e.preventDefault()
@@ -27,6 +44,7 @@ export default function NuevoRequerimientoPage() {
       const payload = { tipo, cargo, areaOProceso }
       if (tipo === 'compra') payload.itemsCompra = items
       else payload.detalleServicio = detalleServicio
+      if (origenDano) payload.origenDano = origenDano
 
       const { requerimiento } = await requerimientosApi.crear(payload)
       navigate(`/requerimientos/${requerimiento._id}`)
@@ -43,6 +61,19 @@ export default function NuevoRequerimientoPage() {
         <FilePlus2 className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
         Nuevo requerimiento
       </h1>
+
+      {dano && (
+        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <p className="panel-mono flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-amber-700 dark:text-amber-300">
+            <TriangleAlert className="h-3.5 w-3.5" aria-hidden="true" />
+            Repuesto para un daño reportado
+          </p>
+          <p className="mt-1.5 text-sm text-slate-700 dark:text-slate-200">{dano.descripcion}</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Este requerimiento quedará enlazado al reporte y aparecerá en su historial.
+          </p>
+        </div>
+      )}
 
       <Card>
         <form onSubmit={enviar} className="space-y-5">

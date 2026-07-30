@@ -2,9 +2,18 @@ import Requerimiento from '../../models/Requerimiento.js'
 import Usuario from '../../models/Usuario.js'
 import { ErrorNoEncontrado, ErrorValidacion, ErrorConflicto } from '../../utils/errores.js'
 import { reautenticar } from '../../utils/reautenticacion.js'
+import { vincularRequerimiento } from '../danos/danos.service.js'
+import { usuariosConPermiso } from '../mantenimiento/comun.js'
+import { notificarUsuarios as _notificarUsuarios } from '../../utils/sendPush.js'
 import { obtenerRequerimiento, puedeVer, auditar } from './comun.js'
 
 const ESTADOS_BODEGA = ['pendiente', 'aprobada', 'no_aprobada']
+
+// Categoría fija para todo este módulo (ver notificaciones.catalogo.js).
+// Requerimientos es el primer flujo conectado end-to-end al motor nuevo de
+// notificaciones (antes no avisaba a nadie en ningún paso) — sirve como caso
+// real para las pruebas de integración del sistema.
+const notificarUsuarios = (userIds, payload) => _notificarUsuarios(userIds, payload, 'requerimientos')
 
 function validarItemsCompra(items) {
   if (!Array.isArray(items) || items.length === 0) {
@@ -48,7 +57,7 @@ function normalizarDetalleServicio(detalle) {
 }
 
 export async function crearRequerimiento(datos, usuarioActor) {
-  const { tipo, cargo, areaOProceso, itemsCompra, detalleServicio } = datos || {}
+  const { tipo, cargo, areaOProceso, itemsCompra, detalleServicio, origenDano } = datos || {}
   if (!['compra', 'servicio'].includes(tipo)) {
     throw new ErrorValidacion('tipo debe ser "compra" o "servicio"')
   }
@@ -80,8 +89,29 @@ export async function crearRequerimiento(datos, usuarioActor) {
     datosCreacion.versionOriginal = { areaOProceso: datosCreacion.areaOProceso, detalleServicio: datosCreacion.detalleServicio }
   }
 
+  if (origenDano) datosCreacion.origenDano = origenDano
+
   const doc = await Requerimiento.create(datosCreacion)
   await auditar(usuarioActor, 'crear', doc, `Creó un requerimiento de ${tipo}`)
+
+  // Cierra el vínculo del otro lado (ReporteDano.requerimientos + su
+  // historial). Mejor esfuerzo: si el daño ya no existe, el requerimiento es
+  // válido igual — perder la referencia cruzada no justifica rechazarlo.
+  if (origenDano) {
+    try {
+      await vincularRequerimiento(origenDano, doc, usuarioActor)
+    } catch (err) {
+      console.error('No se pudo vincular el requerimiento al reporte de daño:', String(origenDano), err.message)
+    }
+  }
+
+  const financieros = await usuariosConPermiso('requerimientos:aprobar_financiero')
+  notificarUsuarios(financieros, {
+    title: 'Nuevo requerimiento pendiente',
+    body: `${usuarioActor.nombre_usuario} solicitó un requerimiento de ${tipo}`,
+    url: `/requerimientos/${doc._id}`,
+  }).catch((err) => console.error('Error notificando nuevo requerimiento:', err.message))
+
   return obtenerRequerimiento(doc._id)
 }
 
@@ -173,6 +203,14 @@ export async function aprobarComoFinanciero(id, body, usuarioActor) {
 
   await doc.save()
   await auditar(usuarioActor, 'aprobar_financiero', doc, 'Financiero aprobó el requerimiento (firma con reautenticación)')
+
+  const bodega = await usuariosConPermiso('requerimientos:gestionar_bodega')
+  notificarUsuarios(bodega, {
+    title: 'Requerimiento aprobado por Financiero',
+    body: `Pendiente de gestionar en Bodega (${doc.tipo})`,
+    url: `/requerimientos/${doc._id}`,
+  }).catch((err) => console.error('Error notificando aprobación financiera:', err.message))
+
   return obtenerRequerimiento(doc._id)
 }
 
@@ -201,6 +239,13 @@ export async function rechazarComoFinanciero(id, { motivoRechazo } = {}, usuario
   await auditar(usuarioActor, 'rechazar_financiero', doc, 'Financiero rechazó el requerimiento', {
     motivoRechazo: doc.financiero.motivoRechazo,
   })
+
+  notificarUsuarios([doc.solicitante], {
+    title: 'Requerimiento rechazado',
+    body: doc.financiero.motivoRechazo,
+    url: `/requerimientos/${doc._id}`,
+  }).catch((err) => console.error('Error notificando rechazo financiero:', err.message))
+
   return obtenerRequerimiento(doc._id)
 }
 
@@ -221,6 +266,17 @@ export async function marcarEstadoBodega(id, { estado, observacion } = {}, usuar
 
   await doc.save()
   await auditar(usuarioActor, 'marcar_estado_bodega', doc, `Bodega marcó el requerimiento como "${estado}"`)
+
+  // 'pendiente' es el estado de entrada (Bodega aún gestionando): no es una
+  // decisión que le interese al solicitante todavía.
+  if (estado === 'aprobada' || estado === 'no_aprobada') {
+    notificarUsuarios([doc.solicitante], {
+      title: estado === 'aprobada' ? 'Requerimiento aprobado en Bodega' : 'Requerimiento no aprobado en Bodega',
+      body: doc.bodega.observacion || `Tu requerimiento fue marcado como "${estado}"`,
+      url: `/requerimientos/${doc._id}`,
+    }).catch((err) => console.error('Error notificando decisión de bodega:', err.message))
+  }
+
   return obtenerRequerimiento(doc._id)
 }
 

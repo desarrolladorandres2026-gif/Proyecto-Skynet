@@ -29,10 +29,10 @@ async function seed() {
   const rolIdPorSlug = await sembrarCatalogoRBAC()
   const empresaDemo = await crearEmpresaDemoSiNoExiste()
 
-  // Los 6 usuarios seed conservan modulos:['mantenimiento','sigittn'] para
-  // poder probar en QA que el acceso a los módulos legados no se ve afectado
-  // por el rol nuevo asignado (ver plan de Fase 0: regresión legada).
-  const MODULOS_LEGADOS = ['mantenimiento', 'sigittn']
+  // Los usuarios seed conservan modulos:['mantenimiento'] para poder probar
+  // en QA que el acceso al módulo legado no se ve afectado por el rol nuevo
+  // asignado (ver plan de Fase 0: regresión legada).
+  const MODULOS_LEGADOS = ['mantenimiento']
 
   await crearSiNoExiste({
     nombre_usuario: 'admin',

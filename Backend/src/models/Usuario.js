@@ -21,13 +21,13 @@ const usuarioSchema = new mongoose.Schema(
     // snapshot del cargo al momento de firmarse, así que cambiarlo aquí
     // después no reescribe documentos ya firmados.
     cargo: { type: String, trim: true },
-    // Legado: gobierna el acceso a los módulos migrados (mantenimiento,
-    // sigittn), que aún no usan el RBAC granular de Rol/Permiso. Se deprecará
-    // formalmente cuando esos dos módulos migren a Permiso también.
+    // Legado: gobierna el acceso al módulo migrado mantenimiento, que aún no
+    // usa el RBAC granular de Rol/Permiso. Se deprecará formalmente cuando
+    // ese módulo migre a Permiso también.
     // El enum debe ir en el sub-schema del elemento: declararlo a nivel del
     // array (type:[String], enum:[...]) no valida cada item en Mongoose.
     modulos: {
-      type: [{ type: String, enum: ['mantenimiento', 'sigittn'] }],
+      type: [{ type: String, enum: ['mantenimiento'] }],
       default: [],
     },
     estado: { type: String, enum: ['activo', 'inactivo'], default: 'activo' },

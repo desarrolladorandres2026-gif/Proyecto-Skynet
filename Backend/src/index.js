@@ -8,6 +8,7 @@ import { connectDB } from './config/db.js'
 import routes from './routes/index.js'
 import { sincronizarCatalogoSistema } from './modules/sistema/sistema.service.js'
 import { sincronizarConfiguracionSLA } from './modules/mantenimiento/ordenes.service.js'
+import { iniciarWorkerNotificaciones } from './modules/notificaciones/notificaciones.worker.js'
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js'
 
 const app = express()
@@ -63,6 +64,12 @@ async function start() {
   // Crea las filas de SLA por defecto que falten (CMMS Fase 1); nunca pisa un
   // umbral ya ajustado a mano por un administrador.
   await sincronizarConfiguracionSLA()
+
+  // Cola de notificaciones (email/push): ver notificaciones.worker.js. Corre
+  // dentro de este mismo proceso — un solo temporizador, sin infraestructura
+  // adicional (ver docs/notificaciones/README.md para la decisión de no usar
+  // Redis/BullMQ a esta escala).
+  iniciarWorkerNotificaciones()
 
   const server = app.listen(env.PORT, () => {
     console.log(`\n🚀  Backend Skynet corriendo en http://localhost:${env.PORT}`)

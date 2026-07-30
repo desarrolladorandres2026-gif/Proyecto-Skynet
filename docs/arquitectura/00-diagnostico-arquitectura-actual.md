@@ -21,9 +21,9 @@ mismo shell de sesión y sidebar:
 - **ERP nuevo** (Empresas, Vehículos, Conductores, Plataformas, Rutas,
   Horarios, Despachos, Novedades, Objetos perdidos, Daños): gobernado por
   **RBAC dinámico** (Rol/Permiso en base de datos).
-- **Dos módulos legados** (Mantenimiento de equipos de TI, SIGITTN — mesa de
-  ayuda): gobernados por un esquema binario más simple
-  (`Usuario.modulos`), sin migrar todavía al RBAC granular.
+- **Un módulo legado** (Mantenimiento de equipos de TI): gobernado por un
+  esquema binario más simple (`Usuario.modulos`), sin migrar todavía al RBAC
+  granular.
 - **Servicios transversales de plataforma**, incipientes pero presentes:
   identidad/sesión, auditoría, y — recién incorporado — gobierno de
   activación de módulos.
@@ -100,11 +100,6 @@ exponer:
   atributo organizacional sin estructura (`dependencia: String` libre, sin
   validar, no reportable, no jerárquico). No existe hoy ninguna entidad
   "persona/empleado": el sistema tiene cuentas, no expedientes.
-- **Catálogos dispersos sin un patrón único.** `mantenimiento/Catalogos.js`
-  y `sigittn/Catalogos.js` resuelven el mismo problema (listas
-  configurables) cada uno a su manera. No es urgente unificarlos
-  retroactivamente, pero es una señal de que, sin un criterio explícito, un
-  tercer módulo probablemente inventaría una tercera forma.
 - **No hay gestión documental transversal.** La única integración con
   Cloudinary vive cableada dentro de `modules/danos` (multer memoryStorage →
   upload_stream, carpeta fija `skynet/danos`). Cualquier área nueva que
@@ -129,9 +124,6 @@ exponer:
   eventos, esas reacciones se implementan como llamadas directas en cadena,
   que es exactamente el acoplamiento que los principios obligatorios del
   proyecto prohíben.
-- **Notificaciones acopladas a un solo módulo.** La infraestructura Web Push
-  (VAPID, `PushSubscription`) vive dentro de `sigittn`, no como servicio
-  invocable por cualquier dominio.
 - **`Novedad` es hoy un concepto de flota, no un servicio transversal.**
   Registra incidentes/novedades operativas de vehículos y conductores. Es un
   candidato conceptual interesante a generalizar ("evento operativo con

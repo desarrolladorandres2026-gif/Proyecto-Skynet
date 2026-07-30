@@ -4,7 +4,7 @@ import Usuario from '../models/Usuario.js'
 import { COOKIE_NAME, clearAuthCookie } from '../utils/cookies.js'
 
 // No se apoya en asyncHandler/safeRouter: este middleware se monta con
-// router.use() en varios módulos (usuarios, mantenimiento, sigittn), y
+// router.use() en varios módulos (usuarios, mantenimiento), y
 // safeRouter solo envuelve router.get/post/put/patch/delete, NO router.use().
 // Como ahora hace una consulta async a la BD, captura sus propios errores y
 // los pasa a next(err) explícitamente; si no, un fallo de Mongo aquí dejaría
@@ -66,7 +66,7 @@ export async function verificarToken(req, res, next) {
       },
       esSuperAdmin: usuario.rol.esSuperAdmin === true,
       permisos: new Set(usuario.rol.permisos.map((p) => p.codigo)),
-      modulos: usuario.modulos, // legado: gobierna solo mantenimiento/sigittn
+      modulos: usuario.modulos, // legado: gobierna solo mantenimiento
       empresaId: usuario.empresa || null,
     }
     next()
@@ -75,7 +75,7 @@ export async function verificarToken(req, res, next) {
   }
 }
 
-// Se conserva tal cual para no tocar mantenimiento/sigittn/usuarios: ahora se
+// Se conserva tal cual para no tocar mantenimiento/usuarios: ahora se
 // apoya en esSuperAdmin (bypass de Rol) en vez del viejo rol==='admin'
 // string, con el mismo efecto para las rutas que ya lo usan.
 export function soloAdmin(req, res, next) {

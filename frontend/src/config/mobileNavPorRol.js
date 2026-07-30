@@ -1,7 +1,7 @@
 import {
   Home, Wrench, TriangleAlert, GraduationCap, Send, LayoutGrid,
   AlertTriangle, PackageSearch, CalendarClock, Bus, IdCard,
-  MessageCircle, FileText,
+  FileText,
 } from 'lucide-react'
 
 // Atajos curados a mano para la barra inferior de MobileShell (roles
@@ -22,7 +22,6 @@ export const MOBILE_NAV_POR_ROL = {
   ],
   usuario_comun: [
     { to: '/danos/reportar', label: 'Reportar', icon: TriangleAlert },
-    { to: '/soporte', label: 'Soporte', icon: MessageCircle },
     { to: '/requerimientos/nuevo', label: 'Requerimientos', icon: FileText },
     { to: '/induccion', label: 'Inducción', icon: GraduationCap },
   ],

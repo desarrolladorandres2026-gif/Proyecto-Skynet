@@ -1,12 +1,12 @@
 import {
-  Wrench, Ticket, Users, ShieldCheck, ScrollText, TriangleAlert,
-  Gauge, Bus, Send, SlidersHorizontal, FileText, MessageCircle,
+  Wrench, Users, ShieldCheck, ScrollText, TriangleAlert,
+  Gauge, Bus, Send, SlidersHorizontal, FileText, Bell,
 } from 'lucide-react'
 
 // Registro único de módulos para el sidebar (AppLayout.jsx) y para decidir
 // qué rutas existen (App.jsx). Cada entrada declara EXACTAMENTE una de:
 //  - legacyModulo: gobierna su visibilidad Usuario.modulos (esquema binario
-//    legado, sin tocar mantenimiento/sigittn en esta fase).
+//    legado, sin tocar mantenimiento en esta fase).
 //  - permiso: gobierna su visibilidad por el RBAC granular nuevo
 //    (Rol.permisos / usuario.esSuperAdmin vía tienePermiso()).
 // Los módulos de Fase 1+ (vehículos, conductores, rutas, ...) se agregan
@@ -48,11 +48,15 @@ export const MODULOS_REGISTRO = [
     ],
   },
   {
-    key: 'soporte',
-    label: 'Soporte',
-    icon: MessageCircle,
+    key: 'notificaciones',
+    label: 'Notificaciones',
+    icon: Bell,
+    // Página de cuenta, no un módulo de negocio: no lleva legacyModulo ni
+    // permiso — cada usuario administra sus propias preferencias, sin
+    // depender del gate de /sistema/modulos (nadie debería quedar sin poder
+    // ajustar cómo se le avisa solo porque un módulo de negocio esté apagado).
     publico: true,
-    items: [{ to: '/soporte', label: 'Soporte' }],
+    items: [{ to: '/notificaciones', label: 'Preferencias' }],
   },
   {
     key: 'flota',
@@ -101,16 +105,6 @@ export const MODULOS_REGISTRO = [
       { to: '/mantenimiento/ordenes', label: 'Órdenes de trabajo', end: true },
       { to: '/mantenimiento/seguimiento', label: 'Seguimiento en tiempo real', permiso: 'mantenimiento:ver_todas' },
       { to: '/mantenimiento/supervisor', label: 'Supervisor', permiso: 'mantenimiento:ver_todas' },
-    ],
-  },
-  {
-    key: 'sigittn',
-    label: 'SIGITTN',
-    icon: Ticket,
-    legacyModulo: 'sigittn',
-    items: [
-      { to: '/sigittn', label: 'Panel', end: true },
-      { to: '/sigittn/tickets', label: 'Tickets' },
     ],
   },
   {

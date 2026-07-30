@@ -19,7 +19,7 @@ export function ProtectedRoute({ children }) {
 
 // RBAC granular nuevo: reemplaza a AdminRoute para los módulos del ERP
 // (Usuarios, Roles, Auditoría, ...). ModuleRoute (abajo) se mantiene aparte
-// para las rutas legadas (mantenimiento/sigittn), que no cambian en esta fase.
+// para las rutas legadas (mantenimiento), que no cambian en esta fase.
 // `permiso` acepta un string o un array de alternativas (basta tener una).
 export function PermissionRoute({ permiso, children }) {
   const { tienePermiso } = useAuth()
@@ -38,7 +38,7 @@ export function PermissionRoute({ permiso, children }) {
 
 // Gate de módulo del sistema desactivado por el Super Admin (ModuloSistema).
 // Se antepone a PermissionRoute en App.jsx para los módulos desactivables del
-// ERP (danos, flota, operacion); mantenimiento/sigittn lo heredan vía
+// ERP (danos, flota, operacion); mantenimiento lo hereda vía
 // ModuleRoute. Es solo experiencia de usuario: la API del módulo apagado ya
 // responde 403 desde el backend (middleware requiereModuloActivo).
 export function ModuloActivoRoute({ modulo, children }) {

@@ -7,6 +7,9 @@ import {
   crearReporte,
   misReportes,
   listarReportes,
+  detalleReporte,
+  listarTecnicos,
+  asignarReporte,
   cambiarEstado,
   eliminarReporte,
 } from './danos.controller.js'
@@ -32,8 +35,21 @@ router.post('/', uploadFoto.single('foto'), crearReporte)
 router.get('/mios', misReportes)
 
 // Gestión: mantenimiento / administrador (super admin pasa por esSuperAdmin).
+// Las rutas literales van ANTES de '/:id' o Express haría match de "tecnicos"
+// como si fuera un id.
 router.get('/', requierePermiso('danos:gestionar'), listarReportes)
+router.get('/tecnicos', requierePermiso('danos:gestionar'), listarTecnicos)
+router.get('/:id', requierePermiso('danos:gestionar'), detalleReporte)
+
+// Asignar y cambiar estado comparten el permiso de entrada, pero el service
+// afina quién puede hacer qué: auto-asignarse lo puede cualquiera del equipo,
+// asignarle a OTRO exige mantenimiento:asignar, y el estado solo lo mueve el
+// técnico asignado o un supervisor.
+router.patch('/:id/asignar', requierePermiso('danos:gestionar'), asignarReporte)
 router.patch('/:id/estado', requierePermiso('danos:gestionar'), cambiarEstado)
-router.delete('/:id', requierePermiso('danos:gestionar'), eliminarReporte)
+
+// Borrar es irreversible (se lleva la foto de Cloudinary con él): se reserva a
+// quien supervisa. El personal de mantenimiento cancela en vez de eliminar.
+router.delete('/:id', requierePermiso('mantenimiento:asignar'), eliminarReporte)
 
 export default router

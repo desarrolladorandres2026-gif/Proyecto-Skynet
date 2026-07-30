@@ -244,10 +244,10 @@ export default function UsuariosPage() {
 
           <fieldset>
             <legend className="mb-1 text-sm font-medium text-slate-700 dark:text-slate-300">
-              Acceso a módulos legados (mantenimiento / sigittn)
+              Acceso a módulos legados (mantenimiento)
             </legend>
             <div className="flex gap-4">
-              {['mantenimiento', 'sigittn'].map((mod) => (
+              {['mantenimiento'].map((mod) => (
                 <label key={mod} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
                   <input type="checkbox" checked={form.modulos.includes(mod)} onChange={() => toggleModulo(mod)} />
                   {mod}

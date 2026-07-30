@@ -73,6 +73,11 @@ const requerimientoSchema = new mongoose.Schema(
     },
 
     solicitante: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
+    // Trazabilidad hacia atrás: si el requerimiento nació desde un reporte de
+    // daño ("necesito este repuesto para poder repararlo"), aquí queda cuál.
+    // La contraparte es ReporteDano.requerimientos — se guardan los dos lados
+    // para que ninguna de las dos vistas necesite consultar la otra colección.
+    origenDano: { type: mongoose.Schema.Types.ObjectId, ref: 'ReporteDano', default: null },
     // Snapshot: prellenado desde Usuario.cargo al crear pero editable, y no
     // se recalcula si el usuario cambia de cargo después.
     cargoSolicitante: { type: String, trim: true, required: true },
