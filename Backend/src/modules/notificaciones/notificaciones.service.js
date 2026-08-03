@@ -105,7 +105,17 @@ async function enviarPush(envio) {
   }
   await webpush.sendNotification(
     { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-    JSON.stringify({ title: envio.titulo, body: envio.cuerpo, url: envio.url, tag: envio.tipo })
+    // El "tag" de Notifications API NO es una etiqueta cosmética: si dos
+    // notificaciones comparten tag, el navegador reemplaza la anterior EN
+    // SILENCIO (sin sonido, sin volver a llamar la atención) salvo que se
+    // pida renotify:true. Antes se usaba envio.tipo, que casi ningún
+    // llamador fija explícitamente y por defecto cae a la categoría
+    // ('mantenimiento', 'danos'...) — eso hacía que TODAS las
+    // notificaciones de una misma categoría compartieran tag: la primera se
+    // veía, cada una después solo reemplazaba a la anterior sin avisar.
+    // envio._id es único por definición, así que cada notificación es
+    // siempre independiente.
+    JSON.stringify({ title: envio.titulo, body: envio.cuerpo, url: envio.url, tag: String(envio._id) })
   )
   sub.ultimoUsoEn = new Date()
   await sub.save()

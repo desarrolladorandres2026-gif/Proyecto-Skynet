@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react'
-import { Lock, ShieldCheck } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
+import { Lock, Plus, ShieldCheck } from 'lucide-react'
 import { roles as rolesApi } from '../../api/roles.js'
 import { permisos as permisosApi } from '../../api/permisos.js'
 import {
-  Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Select, Textarea, Modal,
-  TablaWrap, Th, Td, EmptyState,
+  Btn, Badge, ErrorMsg, Field, Input, Select, Textarea, Modal,
 } from '../../components/ui.jsx'
+import { DataTable } from '../../components/DataTable.jsx'
+import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
+import { CheckboxLabel } from '../../components/Checkbox.jsx'
 
 const FORM_VACIO = {
   nombre: '',
@@ -21,13 +24,15 @@ export default function RolesPage() {
   const [modulosPermisos, setModulosPermisos] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
-  const [ok, setOk] = useState('')
 
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editando, setEditando] = useState(null)
   const [form, setForm] = useState(FORM_VACIO)
   const [guardando, setGuardando] = useState(false)
   const [errorForm, setErrorForm] = useState('')
+
+  const [porEliminar, setPorEliminar] = useState(null)
+  const [eliminando, setEliminando] = useState(false)
 
   async function cargar() {
     setCargando(true)
@@ -87,10 +92,10 @@ export default function RolesPage() {
     try {
       if (editando) {
         await rolesApi.actualizar(editando._id, form)
-        setOk('Rol actualizado correctamente')
+        toast.success('Rol actualizado correctamente')
       } else {
         await rolesApi.crear(form)
-        setOk('Rol creado correctamente')
+        toast.success('Rol creado correctamente')
       }
       setModalAbierto(false)
       cargar()
@@ -101,73 +106,81 @@ export default function RolesPage() {
     }
   }
 
-  async function eliminar(rol) {
-    if (!window.confirm(`¿Eliminar el rol "${rol.nombre}"? Esta acción no se puede deshacer.`)) return
+  async function confirmarEliminar() {
+    setEliminando(true)
     try {
-      await rolesApi.eliminar(rol._id)
-      setOk('Rol eliminado')
+      await rolesApi.eliminar(porEliminar._id)
+      toast.success('Rol eliminado')
+      setPorEliminar(null)
       cargar()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
+    } finally {
+      setEliminando(false)
     }
   }
 
+  const columnas = useMemo(
+    () => [
+      {
+        accessorKey: 'nombre',
+        header: 'Rol',
+        cell: ({ row }) => (
+          <div>
+            <div className="flex items-center gap-2 font-medium text-slate-900 dark:text-white">
+              {row.original.esSistema && <Lock className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />}
+              {row.original.nombre}
+              {row.original.esSuperAdmin && (
+                <ShieldCheck className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" aria-hidden="true" />
+              )}
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">{row.original.descripcion}</div>
+          </div>
+        ),
+      },
+      { accessorKey: 'ambito', header: 'Ámbito', cell: (info) => <Badge valor={info.getValue()} /> },
+      {
+        id: 'permisos',
+        header: 'Permisos',
+        enableSorting: false,
+        cell: ({ row }) => (row.original.esSuperAdmin ? 'Todos (bypass)' : `${row.original.permisos.length} permiso(s)`),
+      },
+      { accessorKey: 'estado', header: 'Estado', cell: (info) => <Badge valor={info.getValue()} /> },
+      {
+        id: 'acciones',
+        header: '',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <div className="flex justify-end gap-1.5">
+            <Btn variante="fantasma" onClick={() => abrirEditar(row.original)}>Editar</Btn>
+            {!row.original.esSistema && (
+              <Btn variante="fantasma" className="!text-red-600 dark:!text-red-400" onClick={() => setPorEliminar(row.original)}>
+                Eliminar
+              </Btn>
+            )}
+          </div>
+        ),
+      },
+    ],
+    []
+  )
+
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Roles y permisos</h1>
-        <Btn onClick={abrirCrear}>+ Nuevo rol</Btn>
+      <div className="mb-5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <ShieldCheck className="h-5 w-5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Roles y permisos</h1>
+        </div>
+        <Btn onClick={abrirCrear}>
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          Nuevo rol
+        </Btn>
       </div>
 
       <ErrorMsg>{error}</ErrorMsg>
-      <OkMsg>{ok}</OkMsg>
 
-      {cargando ? (
-        <Card>Cargando…</Card>
-      ) : lista.length === 0 ? (
-        <EmptyState mensaje="No hay roles registrados" />
-      ) : (
-        <TablaWrap>
-          <thead>
-            <tr>
-              <Th>Rol</Th>
-              <Th>Ámbito</Th>
-              <Th>Permisos</Th>
-              <Th>Estado</Th>
-              <Th className="text-right">Acciones</Th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {lista.map((r) => (
-              <tr key={r._id}>
-                <Td className="font-medium">
-                  <div className="flex items-center gap-2">
-                    {r.esSistema && <Lock className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" aria-hidden="true" />}
-                    {r.nombre}
-                    {r.esSuperAdmin && (
-                      <ShieldCheck className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" aria-hidden="true" />
-                    )}
-                  </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">{r.descripcion}</div>
-                </Td>
-                <Td><Badge valor={r.ambito} /></Td>
-                <Td>{r.esSuperAdmin ? 'Todos (bypass)' : `${r.permisos.length} permiso(s)`}</Td>
-                <Td><Badge valor={r.estado} /></Td>
-                <Td className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Btn variante="fantasma" onClick={() => abrirEditar(r)}>Editar</Btn>
-                    {!r.esSistema && (
-                      <Btn variante="fantasma" className="!text-red-600 dark:!text-red-400" onClick={() => eliminar(r)}>
-                        Eliminar
-                      </Btn>
-                    )}
-                  </div>
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </TablaWrap>
-      )}
+      <DataTable columns={columnas} data={lista} cargando={cargando} vacio="No hay roles registrados" />
 
       <Modal
         abierto={modalAbierto}
@@ -204,37 +217,36 @@ export default function RolesPage() {
               </Select>
             </Field>
             <Field label="Nivel">
-              <label className="mt-2 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-                <input
-                  type="checkbox"
+              <div className="mt-2">
+                <CheckboxLabel
                   disabled={Boolean(editando?.esSistema)}
                   checked={form.esSuperAdmin}
-                  onChange={(e) => setForm({ ...form, esSuperAdmin: e.target.checked })}
-                />
-                Super Administrador (acceso total, ignora la lista de permisos)
-              </label>
+                  onCheckedChange={(checked) => setForm({ ...form, esSuperAdmin: checked === true })}
+                >
+                  Super Administrador (acceso total, ignora la lista de permisos)
+                </CheckboxLabel>
+              </div>
             </Field>
           </div>
 
           {!form.esSuperAdmin && (
             <fieldset>
               <legend className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Permisos</legend>
-              <div className="max-h-72 space-y-3 overflow-y-auto rounded-lg border border-cyan-600/15 p-3 dark:border-cyan-400/10">
+              <div className="max-h-72 space-y-3 overflow-y-auto rounded-lg border border-brand-600/15 p-3 dark:border-brand-400/10">
                 {modulosPermisos.map((grupo) => (
                   <div key={grupo.modulo}>
-                    <p className="panel-mono mb-1 text-[11px] font-semibold uppercase tracking-wide text-cyan-700/70 dark:text-cyan-400/70">
+                    <p className="panel-mono mb-1 text-[11px] font-semibold tracking-wide text-brand-700/70 uppercase dark:text-brand-400/70">
                       {grupo.modulo}
                     </p>
-                    <div className="grid gap-1 sm:grid-cols-2">
+                    <div className="grid gap-1.5 sm:grid-cols-2">
                       {grupo.permisos.map((p) => (
-                        <label key={p.codigo} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-                          <input
-                            type="checkbox"
-                            checked={form.permisos.includes(p.codigo)}
-                            onChange={() => togglePermiso(p.codigo)}
-                          />
+                        <CheckboxLabel
+                          key={p.codigo}
+                          checked={form.permisos.includes(p.codigo)}
+                          onCheckedChange={() => togglePermiso(p.codigo)}
+                        >
                           {p.nombre}
-                        </label>
+                        </CheckboxLabel>
                       ))}
                     </div>
                   </div>
@@ -245,16 +257,22 @@ export default function RolesPage() {
 
           <div className="flex justify-end gap-2 pt-2">
             <Btn variante="secundario" onClick={() => setModalAbierto(false)}>Cancelar</Btn>
-            <button
-              type="submit"
-              disabled={guardando}
-              className="rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-sky-700 disabled:opacity-60"
-            >
+            <Btn type="submit" disabled={guardando}>
               {guardando ? 'Guardando…' : 'Guardar'}
-            </button>
+            </Btn>
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        abierto={Boolean(porEliminar)}
+        onCancelar={() => setPorEliminar(null)}
+        onConfirmar={confirmarEliminar}
+        cargando={eliminando}
+        titulo={`¿Eliminar el rol "${porEliminar?.nombre}"?`}
+        descripcion="Esta acción no se puede deshacer."
+        confirmarLabel="Eliminar"
+      />
     </div>
   )
 }

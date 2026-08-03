@@ -1,55 +1,65 @@
-// Primitivas de UI compartidas por todas las páginas de módulos.
-// Mantienen el mismo lenguaje visual del login: tema HUD táctico oscuro,
-// acento cian único (ver layout/panel.css, importado desde AppLayout).
+// Primitivas de UI compartidas por todas las páginas de módulos, y también
+// por el shell móvil de los otros 6 roles (Field/Input/Select/Textarea/Btn,
+// reutilizados dentro de sus BottomSheet — ver components/mobileUi.jsx). Por
+// eso este archivo se refina in-place (misma API/props) en vez de
+// bifurcarse: el pulido visual beneficia a ambos shells sin duplicar
+// componentes de formulario.
 
+import * as Dialog from '@radix-ui/react-dialog'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
+import { cva } from 'class-variance-authority'
 import { X } from 'lucide-react'
+import { cn } from '../lib/cn.js'
 
 const inputBase = 'panel-input w-full rounded-lg px-3 py-2 text-sm'
 
 export function Field({ label, children, className = '' }) {
   return (
-    <label className={`block ${className}`}>
-      <span className="panel-mono mb-1.5 block text-[11px] tracking-[0.1em] text-cyan-700/80 uppercase dark:text-cyan-400/80">{label}</span>
+    <label className={cn('block', className)}>
+      <span className="panel-mono mb-1.5 block text-[11px] tracking-[0.1em] text-brand-700/80 uppercase dark:text-brand-300/80">
+        {label}
+      </span>
       {children}
     </label>
   )
 }
 
 export function Input(props) {
-  return <input {...props} className={`${inputBase} ${props.className || ''}`} />
+  return <input {...props} className={cn(inputBase, props.className)} />
 }
 
 export function Select({ children, ...props }) {
   return (
-    <select {...props} className={`${inputBase} ${props.className || ''}`}>
+    <select {...props} className={cn(inputBase, props.className)}>
       {children}
     </select>
   )
 }
 
 export function Textarea(props) {
-  return <textarea rows={3} {...props} className={`${inputBase} ${props.className || ''}`} />
+  return <textarea rows={3} {...props} className={cn(inputBase, props.className)} />
 }
 
-const BTN_VARIANTES = {
-  primario: 'panel-btn-primario disabled:opacity-60',
-  secundario: 'panel-btn-secundario disabled:opacity-60',
-  peligro: 'panel-btn-peligro disabled:opacity-60',
-  fantasma: 'panel-btn-fantasma',
-}
+const btnVariants = cva(
+  'inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--panel-bg)]',
+  {
+    variants: {
+      variante: {
+        primario: 'panel-btn-primario disabled:opacity-60 disabled:pointer-events-none',
+        secundario: 'panel-btn-secundario disabled:opacity-60 disabled:pointer-events-none',
+        peligro: 'panel-btn-peligro disabled:opacity-60 disabled:pointer-events-none',
+        fantasma: 'panel-btn-fantasma',
+      },
+    },
+    defaultVariants: { variante: 'primario' },
+  }
+)
 
 export function Btn({ variante = 'primario', className = '', ...props }) {
-  return (
-    <button
-      type="button"
-      {...props}
-      className={`rounded-lg px-3 py-2 text-sm font-medium transition ${BTN_VARIANTES[variante]} ${className}`}
-    />
-  )
+  return <button type="button" {...props} className={cn(btnVariants({ variante }), className)} />
 }
 
-// Toggle on/off con el acento cian del tema HUD (no existía ninguna
-// primitiva de este tipo en el proyecto — ver PreferenciasNotificacionesPage).
+// Toggle on/off con el acento de marca.
 export function Switch({ checked, onChange, disabled = false, label }) {
   return (
     <button
@@ -59,14 +69,17 @@ export function Switch({ checked, onChange, disabled = false, label }) {
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-        checked ? 'bg-cyan-600 dark:bg-cyan-500' : 'bg-slate-300 dark:bg-slate-700'
-      }`}
+      className={cn(
+        'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--panel-bg)]',
+        checked ? 'bg-brand-600 dark:bg-brand-500' : 'bg-slate-300 dark:bg-slate-700'
+      )}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+        className={cn(
+          'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
           checked ? 'translate-x-6' : 'translate-x-1'
-        }`}
+        )}
         aria-hidden="true"
       />
     </button>
@@ -76,10 +89,10 @@ export function Switch({ checked, onChange, disabled = false, label }) {
 const BADGE_COLORES = {
   // mantenimiento
   pendiente: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
-  programado: 'bg-cyan-400/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-inset ring-cyan-400/30',
+  programado: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   finalizado: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
   // tickets
-  Nuevo: 'bg-cyan-400/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-inset ring-cyan-400/30',
+  Nuevo: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   Asignado: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
   'En progreso': 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
   Resuelto: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
@@ -92,16 +105,16 @@ const BADGE_COLORES = {
   // flota y operación
   libre: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
   ocupada: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
-  despachado: 'bg-cyan-400/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-inset ring-cyan-400/30',
+  despachado: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   retrasado: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
   anulado: 'bg-slate-400/10 text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-400/30',
   abierta: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
   cerrada: 'bg-slate-400/10 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-400/30',
-  custodia: 'bg-cyan-400/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-inset ring-cyan-400/30',
+  custodia: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   entregado: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
   activa: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
   inactiva: 'bg-slate-400/10 text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-400/30',
-  operativa: 'bg-cyan-400/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-inset ring-cyan-400/30',
+  operativa: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   incidente: 'bg-rose-400/10 text-rose-700 dark:text-rose-300 ring-1 ring-inset ring-rose-400/30',
   baja: 'bg-slate-400/10 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-400/30',
   media: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
@@ -109,7 +122,7 @@ const BADGE_COLORES = {
   critica: 'bg-red-500/15 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-500/40',
   // Orden de Trabajo (CMMS, ver Backend/src/models/mantenimiento/Mantenimiento.js)
   reportado: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
-  programada: 'bg-cyan-400/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-inset ring-cyan-400/30',
+  programada: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   asignada: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
   en_progreso: 'bg-sky-400/10 text-sky-700 dark:text-sky-300 ring-1 ring-inset ring-sky-400/30',
   en_espera: 'bg-orange-400/10 text-orange-700 dark:text-orange-300 ring-1 ring-inset ring-orange-400/30',
@@ -121,20 +134,20 @@ const BADGE_COLORES = {
   inactivo: 'bg-slate-400/10 text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-400/30',
   // roles (slugs de Rol, ver Backend/src/seedData/rbac.data.js)
   super_admin: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
-  administrador: 'bg-cyan-400/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-inset ring-cyan-400/30',
+  administrador: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   empresa_transportadora: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
   despachador: 'bg-sky-400/10 text-sky-700 dark:text-sky-300 ring-1 ring-inset ring-sky-400/30',
   seguridad: 'bg-rose-400/10 text-rose-700 dark:text-rose-300 ring-1 ring-inset ring-rose-400/30',
   operador: 'bg-slate-400/10 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-400/30',
   // ambito de Rol
-  global: 'bg-cyan-400/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-inset ring-cyan-400/30',
+  global: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   empresa: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
   // auditoria
   exito: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
   error: 'bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-400/30',
   // requerimientos (estado raíz + bodega.estado, ver Backend/src/models/Requerimiento.js)
   pendiente_financiero: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
-  pendiente_bodega: 'bg-cyan-400/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-inset ring-cyan-400/30',
+  pendiente_bodega: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   rechazado: 'bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-400/30',
   aprobada: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
   no_aprobada: 'bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-400/30',
@@ -143,7 +156,7 @@ const BADGE_COLORES = {
   // ausencias: estado y tipo (ver Backend/src/models/Ausencia.js). 'pendiente',
   // 'aprobada' y 'cancelada' ya están arriba y se reutilizan tal cual.
   rechazada: 'bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-400/30',
-  vacaciones: 'bg-cyan-400/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-inset ring-cyan-400/30',
+  vacaciones: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   permiso_remunerado: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
   permiso_no_remunerado: 'bg-teal-400/10 text-teal-700 dark:text-teal-300 ring-1 ring-inset ring-teal-400/30',
   incapacidad: 'bg-orange-400/10 text-orange-700 dark:text-orange-300 ring-1 ring-inset ring-orange-400/30',
@@ -152,7 +165,7 @@ const BADGE_COLORES = {
 export function Badge({ valor }) {
   const color = BADGE_COLORES[valor] || 'bg-slate-400/10 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-400/30'
   return (
-    <span className={`panel-mono inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-wide ${color}`}>
+    <span className={cn('panel-mono inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-wide', color)}>
       {valor}
     </span>
   )
@@ -176,33 +189,41 @@ export function OkMsg({ children }) {
   )
 }
 
+// Reimplementado sobre Radix Dialog (focus trap, cierre con Escape y click
+// afuera, aria-* correctos — nada de esto lo tenía el modal a mano
+// anterior). La API externa no cambia: abierto/titulo/onCerrar/children/
+// ancho, así que ninguno de los ~39 call-sites necesita tocarse.
 export function Modal({ abierto, titulo, onCerrar, children, ancho = 'max-w-lg' }) {
-  if (!abierto) return null
   return (
-    <div
-      className="panel-modal-backdrop fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onCerrar()
-      }}
-    >
-      <div className={`panel-modal my-8 w-full ${ancho} rounded-2xl p-6`}>
-        <span className="panel-bracket panel-bracket--tl" aria-hidden="true" />
-        <span className="panel-bracket panel-bracket--tr" aria-hidden="true" />
-        <span className="panel-bracket panel-bracket--bl" aria-hidden="true" />
-        <span className="panel-bracket panel-bracket--br" aria-hidden="true" />
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="panel-mono text-base font-semibold tracking-wide text-slate-900 dark:text-white">{titulo}</h2>
-          <button
-            onClick={onCerrar}
-            className="rounded-lg px-2 py-1 text-slate-500 hover:bg-cyan-600/10 hover:text-cyan-700 dark:text-slate-400 dark:hover:bg-cyan-400/10 dark:hover:text-cyan-300"
-            aria-label="Cerrar"
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
+    <Dialog.Root open={abierto} onOpenChange={(open) => !open && onCerrar()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="panel-modal-backdrop fixed inset-0 z-50 data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out" />
+        <Dialog.Content
+          className={cn(
+            'panel-modal fixed top-1/2 left-1/2 z-50 max-h-[85svh] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl p-6 outline-none data-[state=open]:animate-zoom-in data-[state=closed]:animate-fade-out',
+            ancho
+          )}
+        >
+          <VisuallyHidden asChild>
+            <Dialog.Description>{titulo}</Dialog.Description>
+          </VisuallyHidden>
+          <div className="mb-4 flex items-center justify-between">
+            <Dialog.Title className="panel-mono text-base font-semibold tracking-wide text-slate-900 dark:text-white">
+              {titulo}
+            </Dialog.Title>
+            <Dialog.Close asChild>
+              <button
+                className="rounded-lg px-2 py-1 text-slate-500 hover:bg-brand-600/10 hover:text-brand-700 dark:text-slate-400 dark:hover:bg-brand-400/10 dark:hover:text-brand-300"
+                aria-label="Cerrar"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </Dialog.Close>
+          </div>
+          {children}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
 
@@ -225,34 +246,26 @@ export function Pager({ page, pages, onPage }) {
 
 export function EmptyState({ mensaje = 'Sin resultados' }) {
   return (
-    <div className="rounded-xl border border-dashed border-cyan-600/25 p-8 text-center text-sm text-slate-500 dark:border-cyan-400/20 dark:text-slate-400">
+    <div className="rounded-xl border border-dashed border-brand-600/25 p-8 text-center text-sm text-slate-500 dark:border-brand-400/20 dark:text-slate-400">
       {mensaje}
     </div>
   )
 }
 
 export function Card({ children, className = '' }) {
-  return (
-    <div className={`panel-card relative rounded-xl p-4 ${className}`}>
-      <span className="panel-bracket panel-bracket--tl" aria-hidden="true" />
-      <span className="panel-bracket panel-bracket--tr" aria-hidden="true" />
-      <span className="panel-bracket panel-bracket--bl" aria-hidden="true" />
-      <span className="panel-bracket panel-bracket--br" aria-hidden="true" />
-      {children}
-    </div>
-  )
+  return <div className={cn('panel-card relative rounded-xl p-4', className)}>{children}</div>
 }
 
 export function Th({ children, className = '' }) {
   return (
-    <th className={`panel-th panel-mono px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide ${className}`}>
+    <th className={cn('panel-th panel-mono px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide', className)}>
       {children}
     </th>
   )
 }
 
 export function Td({ children, className = '' }) {
-  return <td className={`panel-td px-3 py-2 text-sm ${className}`}>{children}</td>
+  return <td className={cn('panel-td px-3 py-2 text-sm', className)}>{children}</td>
 }
 
 export function TablaWrap({ children }) {

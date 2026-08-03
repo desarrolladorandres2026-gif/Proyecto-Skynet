@@ -7,13 +7,21 @@ import {
 import { useAuth, esRolAdmin } from '../../auth/AuthContext.jsx'
 import { useModulosVisibles } from '../../layout/AppLayout.jsx'
 import { dashboard } from '../../api/operacion.js'
-import { Card, ErrorMsg } from '../../components/ui.jsx'
+import { ErrorMsg } from '../../components/ui.jsx'
 import { ListRow, QuickAction, SectionHeader } from '../../components/mobileUi.jsx'
 import { MOBILE_NAV_POR_ROL } from '../../config/mobileNavPorRol.js'
+import { StatCard } from '../../components/dashboard/StatCard.jsx'
+import { TrendBadge } from '../../components/dashboard/TrendBadge.jsx'
+import { SkeletonStatCards } from '../../components/Skeleton.jsx'
 
 // Cada tarjeta declara su clave en la respuesta de /api/dashboard; solo se
 // pintan las claves que el backend devolvió (que a su vez dependen de los
-// permisos del rol). `to` la vuelve un acceso directo al módulo.
+// permisos del rol). `to` la vuelve un acceso directo al módulo. `trendKey`
+// (opcional) apunta a `tendencias[trendKey]` — solo despachosHoy tiene un
+// delta real hoy (ver dashboard.controller.js: es la única tarjeta que ya
+// es un conteo acotado a fecha, así que "hoy vs. ayer" es la MISMA métrica
+// en dos días; el resto son conteos del padrón actual, sin forma barata de
+// saber el valor de hace una semana sin inventar un número).
 const TARJETAS = [
   { clave: 'usuarios', label: 'Usuarios activos', icon: Users, to: '/usuarios' },
   { clave: 'empresas', label: 'Empresas activas', icon: Building2, to: '/flota/empresas' },
@@ -21,7 +29,7 @@ const TARJETAS = [
   { clave: 'conductoresActivos', label: 'Conductores activos', icon: IdCard, to: '/flota/conductores' },
   { clave: 'plataformasLibres', label: 'Plataformas libres', icon: LayoutGrid, to: '/flota/plataformas', tono: 'emerald' },
   { clave: 'plataformasOcupadas', label: 'Plataformas ocupadas', icon: LayoutGrid, to: '/flota/plataformas', tono: 'amber' },
-  { clave: 'despachosHoy', label: 'Despachos hoy', icon: Send, to: '/operacion/despachos' },
+  { clave: 'despachosHoy', label: 'Despachos hoy', icon: Send, to: '/operacion/despachos', trendKey: 'despachosHoy', incrementoEsBueno: true },
   { clave: 'despachosEnViaje', label: 'En viaje', icon: Bus, to: '/operacion/despachos' },
   { clave: 'despachosRetrasados', label: 'Retrasados', icon: AlertTriangle, to: '/operacion/despachos', tono: 'amber' },
   { clave: 'novedadesAbiertas', label: 'Novedades abiertas', icon: AlertTriangle, to: '/operacion/novedades', tono: 'amber' },
@@ -30,14 +38,8 @@ const TARJETAS = [
   { clave: 'misDanosReportados', label: 'Mis daños sin resolver', icon: Wrench, to: '/danos/reportar' },
 ]
 
-const TONOS = {
-  cyan: 'text-cyan-700 dark:text-cyan-300',
-  emerald: 'text-emerald-700 dark:text-emerald-300',
-  amber: 'text-amber-700 dark:text-amber-300',
-}
-
 const TONOS_MOVIL = {
-  cyan: 'text-[var(--mobile-accent)]',
+  brand: 'text-[var(--mobile-accent)]',
   emerald: 'text-emerald-600 dark:text-emerald-400',
   amber: 'text-amber-600 dark:text-amber-400',
 }
@@ -97,32 +99,46 @@ function HomeFeed({ usuario, visibles, tarjetas }) {
   )
 }
 
-function PanelDenso({ usuario, visibles, tarjetas }) {
+function PanelDenso({ usuario, visibles, tarjetas, tendencias }) {
   return (
     <div className="mx-auto max-w-6xl">
       <div className="mb-6">
-        <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-          <Gauge className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <Gauge className="h-6 w-6 text-brand-600 dark:text-brand-400" aria-hidden="true" />
           Panel de control
         </h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          {usuario?.nombre} · <span className="text-cyan-700/80 dark:text-cyan-400/80">{usuario?.rol?.nombre}</span>
+        <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+          {usuario?.nombre} · <span className="text-brand-700/80 dark:text-brand-400/80">{usuario?.rol?.nombre}</span>
         </p>
       </div>
 
       {!tarjetas ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400">Cargando…</p>
+        <SkeletonStatCards cantidad={8} />
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {visibles.map((t) => (
-            <Link key={t.clave} to={t.to} className="group">
-              <Card className="transition group-hover:!border-cyan-400/40">
-                <t.icon className={`mb-2 h-5 w-5 ${TONOS[t.tono] || TONOS.cyan}`} aria-hidden="true" />
-                <p className={`text-3xl font-bold ${TONOS[t.tono] || 'text-slate-900 dark:text-white'}`}>{tarjetas[t.clave]}</p>
-                <p className="panel-mono mt-1 text-[11px] uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">{t.label}</p>
-              </Card>
-            </Link>
-          ))}
+          {visibles.map((t) => {
+            const delta = t.trendKey ? tendencias?.[t.trendKey] : null
+            return (
+              <Link key={t.clave} to={t.to}>
+                <StatCard
+                  icon={t.icon}
+                  label={t.label}
+                  valor={tarjetas[t.clave]}
+                  tono={t.tono || 'brand'}
+                  trend={
+                    delta && (
+                      <TrendBadge
+                        actual={delta.actual}
+                        anterior={delta.anterior}
+                        incrementoEsBueno={t.incrementoEsBueno ?? true}
+                        titulo="vs. ayer"
+                      />
+                    )
+                  }
+                />
+              </Link>
+            )
+          })}
         </div>
       )}
     </div>
@@ -132,12 +148,16 @@ function PanelDenso({ usuario, visibles, tarjetas }) {
 export default function DashboardPage() {
   const { usuario } = useAuth()
   const [tarjetas, setTarjetas] = useState(null)
+  const [tendencias, setTendencias] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
     dashboard
       .resumen()
-      .then((data) => setTarjetas(data.tarjetas))
+      .then((data) => {
+        setTarjetas(data.tarjetas)
+        setTendencias(data.tendencias)
+      })
       .catch((err) => setError(err.message))
   }, [])
 
@@ -147,7 +167,7 @@ export default function DashboardPage() {
     <>
       <ErrorMsg>{error}</ErrorMsg>
       {esRolAdmin(usuario) ? (
-        <PanelDenso usuario={usuario} visibles={visibles} tarjetas={tarjetas} />
+        <PanelDenso usuario={usuario} visibles={visibles} tarjetas={tarjetas} tendencias={tendencias} />
       ) : (
         <HomeFeed usuario={usuario} visibles={visibles} tarjetas={tarjetas} />
       )}

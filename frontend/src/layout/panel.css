@@ -1,81 +1,96 @@
-/* Tema visual del panel admin: extiende el HUD táctico del login
-   (login.css) a todo el panel protegido. Se importa una sola vez desde
-   AppLayout, así envuelve cualquier módulo que se renderice en <Outlet/>. */
+/* Tema visual del panel admin: extiende la identidad cian de Skynet a todo
+   el panel protegido. Se importa una sola vez desde index.css, así envuelve
+   cualquier módulo que se renderice en <Outlet/>.
 
-/* Tokens de tema: claro (por defecto, :root) y oscuro (:root.dark, el HUD
-   nocturno original — mismos valores que antes, ahora extraídos a variables).
+   Todo el archivo vive dentro de @layer components — la misma capa que
+   "@import tailwindcss" declara por debajo de "utilities". Antes este CSS
+   no tenía capa (ganaba SIEMPRE a cualquier utilidad de Tailwind por fuera
+   de las reglas normales de cascada, sin importar especificidad), así que
+   cualquier <Td className="text-rose-300"> sobre un elemento panel-td
+   necesitaba el prefijo "!" para pintar — ver memoria
+   feedback-panel-css-cascade-layers. Con la capa correcta, las utilidades
+   de Tailwind vuelven a ganar de forma normal y el "!" deja de ser
+   necesario para código nuevo (el código viejo que ya lo usa sigue
+   funcionando igual: "!" gana en cualquier capa). */
+@layer components {
+
+/* Tokens de tema: claro (por defecto, :root) y oscuro (:root.dark).
    AppLayout alterna la clase "dark" en <html> (persistida en localStorage),
    la misma clase que ya activa las variantes dark: de Tailwind en las
    páginas de módulo — un solo interruptor para todo el sistema de diseño.
-   El claro es una variante "blueprint diurno": mismo acento cian/teal y las
-   mismas brackets/grid como firma visual, sobre papel claro en vez de negro. */
+   Los tonos sólidos (acento, texto de header de tabla, indicador activo...)
+   ahora referencian la rampa --color-brand-* de index.css en vez de un hex
+   suelto, para que un solo lugar controle el tono de marca en todo el
+   panel. Los tintes con transparencia se quedan en rgba() porque son el
+   mismo color de la rampa con alpha — más simple y con mejor soporte de
+   navegador que la sintaxis rgb(from ...). */
 :root {
-  --panel-bg: #eef3f6;
+  --panel-bg: #f8fafc;
   --panel-fg: #1e293b;
 
-  --panel-grid-line: rgba(8, 145, 178, 0.07);
+  --panel-grid-line: rgba(8, 145, 178, 0.06);
   --panel-bracket-border: rgba(8, 145, 178, 0.55);
 
-  --panel-sidebar-g1: rgba(255, 255, 255, 0.9);
-  --panel-sidebar-g2: rgba(238, 243, 246, 0.95);
-  --panel-sidebar-border: rgba(8, 145, 178, 0.16);
+  --panel-sidebar-g1: rgba(255, 255, 255, 0.96);
+  --panel-sidebar-g2: rgba(248, 250, 252, 0.98);
+  --panel-sidebar-border: rgba(15, 23, 42, 0.06);
 
   --panel-brand-color: #0e2a35;
-  --panel-brand-glow: rgba(8, 145, 178, 0.3);
+  --panel-brand-glow: rgba(8, 145, 178, 0.25);
 
   --panel-navlink-color: rgba(30, 41, 59, 0.65);
-  --panel-navlink-hover-bg: rgba(8, 145, 178, 0.08);
+  --panel-navlink-hover-bg: rgba(8, 145, 178, 0.07);
   --panel-navlink-hover-color: #0f2733;
-  --panel-navlink-active-bg: rgba(8, 145, 178, 0.12);
-  --panel-navlink-active-color: #0e7490;
-  --panel-navlink-active-shadow: #0891b2;
+  --panel-navlink-active-bg: rgba(8, 145, 178, 0.1);
+  --panel-navlink-active-color: var(--color-brand-700);
+  --panel-navlink-active-shadow: var(--color-brand-600);
 
-  --panel-card-g1: rgba(255, 255, 255, 0.92);
-  --panel-card-g2: rgba(240, 245, 248, 0.88);
-  --panel-card-border: rgba(8, 145, 178, 0.16);
-  --panel-card-shadow-1: rgba(8, 145, 178, 0.05);
-  --panel-card-shadow-2: rgba(15, 23, 42, 0.1);
+  --panel-card-g1: #ffffff;
+  --panel-card-g2: #fbfcfd;
+  --panel-card-border: rgba(15, 23, 42, 0.07);
+  --panel-card-border-hover: rgba(8, 145, 178, 0.3);
 
-  --panel-accent-bg: #0891b2;
+  --panel-accent-bg: var(--color-brand-600);
   --panel-accent-fg: #ffffff;
-  --panel-btn-primario-glow: rgba(8, 145, 178, 0.28);
-  --panel-btn-primario-glow-hover: rgba(8, 145, 178, 0.4);
+  --panel-btn-primario-glow: rgba(8, 145, 178, 0.22);
+  --panel-btn-primario-glow-hover: rgba(8, 145, 178, 0.32);
 
-  --panel-btn-sec-border: rgba(8, 145, 178, 0.35);
-  --panel-btn-sec-color: #0e7490;
-  --panel-btn-sec-hover-bg: rgba(8, 145, 178, 0.08);
-  --panel-btn-sec-hover-border: rgba(8, 145, 178, 0.5);
+  --panel-btn-sec-border: rgba(8, 145, 178, 0.3);
+  --panel-btn-sec-color: var(--color-brand-700);
+  --panel-btn-sec-hover-bg: rgba(8, 145, 178, 0.07);
+  --panel-btn-sec-hover-border: rgba(8, 145, 178, 0.45);
 
-  --panel-btn-fantasma-color: #0e7490;
-  --panel-btn-fantasma-hover-bg: rgba(8, 145, 178, 0.08);
+  --panel-btn-fantasma-color: var(--color-brand-700);
+  --panel-btn-fantasma-hover-bg: rgba(8, 145, 178, 0.07);
 
-  --panel-input-bg: rgba(15, 23, 42, 0.02);
-  --panel-input-border: rgba(100, 116, 139, 0.3);
+  --panel-input-bg: #ffffff;
+  --panel-input-border: rgba(100, 116, 139, 0.28);
   --panel-input-color: #0f172a;
   --panel-input-placeholder: rgba(100, 116, 139, 0.5);
   --panel-input-focus-border: rgba(8, 145, 178, 0.6);
-  --panel-input-focus-bg: rgba(8, 145, 178, 0.05);
+  --panel-input-focus-bg: rgba(8, 145, 178, 0.04);
   --panel-input-focus-ring: rgba(8, 145, 178, 0.15);
   --panel-input-autofill-bg: #eef6f8;
   /* Fondo SÓLIDO exclusivo del <select>: ver el comentario junto a
      "select.panel-input" más abajo — el popup nativo de opciones no puede
-     usar el fondo translúcido de --panel-input-bg. */
+     usar un fondo translúcido. */
   --panel-select-bg: #f8fafc;
 
-  --panel-table-bg: rgba(255, 255, 255, 0.75);
-  --panel-table-border: rgba(8, 145, 178, 0.16);
-  --panel-th-color: #0e7490;
-  --panel-th-border: rgba(8, 145, 178, 0.16);
+  --panel-table-bg: #ffffff;
+  --panel-table-border: rgba(15, 23, 42, 0.07);
+  --panel-th-color: var(--color-brand-700);
+  --panel-th-border: rgba(15, 23, 42, 0.07);
   --panel-td-color: #334155;
-  --panel-td-border: rgba(100, 116, 139, 0.14);
-  --panel-row-hover-bg: rgba(8, 145, 178, 0.05);
+  --panel-td-border: rgba(100, 116, 139, 0.12);
+  --panel-row-hover-bg: rgba(8, 145, 178, 0.04);
 
-  --panel-modal-backdrop-bg: rgba(15, 23, 42, 0.35);
-  --panel-modal-g1: rgba(255, 255, 255, 0.98);
-  --panel-modal-g2: rgba(240, 245, 248, 0.98);
-  --panel-modal-border: rgba(8, 145, 178, 0.2);
-  --panel-modal-shadow-1: rgba(15, 23, 42, 0.18);
-  --panel-modal-shadow-2: rgba(8, 145, 178, 0.1);
+  --panel-navbar-bg: rgba(248, 250, 252, 0.78);
+  --panel-navbar-border: rgba(15, 23, 42, 0.06);
+
+  --panel-modal-backdrop-bg: rgba(15, 23, 42, 0.4);
+  --panel-modal-g1: #ffffff;
+  --panel-modal-g2: #fbfcfd;
+  --panel-modal-border: rgba(15, 23, 42, 0.08);
 }
 
 :root.dark {
@@ -83,65 +98,68 @@
   --panel-fg: #e2e8f0;
 
   --panel-grid-line: rgba(0, 229, 255, 0.05);
-  --panel-bracket-border: rgba(0, 229, 255, 0.5);
+  --panel-bracket-border: rgba(34, 211, 238, 0.5);
 
   --panel-sidebar-g1: rgba(13, 18, 26, 0.95);
   --panel-sidebar-g2: rgba(6, 9, 14, 0.98);
-  --panel-sidebar-border: rgba(0, 229, 255, 0.12);
+  --panel-sidebar-border: rgba(34, 211, 238, 0.12);
 
   --panel-brand-color: #ffffff;
-  --panel-brand-glow: rgba(0, 229, 255, 0.45);
+  --panel-brand-glow: rgba(34, 211, 238, 0.4);
 
   --panel-navlink-color: rgba(226, 232, 240, 0.65);
-  --panel-navlink-hover-bg: rgba(0, 229, 255, 0.06);
+  --panel-navlink-hover-bg: rgba(34, 211, 238, 0.06);
   --panel-navlink-hover-color: #e2e8f0;
-  --panel-navlink-active-bg: rgba(0, 229, 255, 0.1);
-  --panel-navlink-active-color: #67e8f9;
-  --panel-navlink-active-shadow: #00e5ff;
+  --panel-navlink-active-bg: rgba(34, 211, 238, 0.1);
+  --panel-navlink-active-color: var(--color-brand-300);
+  --panel-navlink-active-shadow: var(--color-brand-400);
 
   --panel-card-g1: rgba(13, 18, 26, 0.85);
   --panel-card-g2: rgba(8, 11, 16, 0.9);
-  --panel-card-border: rgba(0, 229, 255, 0.12);
-  --panel-card-shadow-1: rgba(0, 229, 255, 0.02);
-  --panel-card-shadow-2: rgba(0, 0, 0, 0.8);
+  --panel-card-border: rgba(34, 211, 238, 0.12);
+  --panel-card-border-hover: rgba(34, 211, 238, 0.35);
 
-  --panel-accent-bg: #00e5ff;
+  /* El acento oscuro pasa de un neón crudo (#00e5ff) a brand-400: mismo
+     cian, pero calibrado dentro de la rampa en vez de un tono aparte —
+     menos "RGB de gamer", más "producto premium". */
+  --panel-accent-bg: var(--color-brand-400);
   --panel-accent-fg: #05070a;
-  --panel-btn-primario-glow: rgba(0, 229, 255, 0.6);
-  --panel-btn-primario-glow-hover: rgba(0, 229, 255, 0.8);
+  --panel-btn-primario-glow: rgba(34, 211, 238, 0.5);
+  --panel-btn-primario-glow-hover: rgba(34, 211, 238, 0.7);
 
-  --panel-btn-sec-border: rgba(0, 229, 255, 0.25);
-  --panel-btn-sec-color: #a5f3fc;
-  --panel-btn-sec-hover-bg: rgba(0, 229, 255, 0.08);
-  --panel-btn-sec-hover-border: rgba(0, 229, 255, 0.4);
+  --panel-btn-sec-border: rgba(34, 211, 238, 0.25);
+  --panel-btn-sec-color: var(--color-brand-200);
+  --panel-btn-sec-hover-bg: rgba(34, 211, 238, 0.08);
+  --panel-btn-sec-hover-border: rgba(34, 211, 238, 0.4);
 
-  --panel-btn-fantasma-color: #67e8f9;
-  --panel-btn-fantasma-hover-bg: rgba(0, 229, 255, 0.08);
+  --panel-btn-fantasma-color: var(--color-brand-300);
+  --panel-btn-fantasma-hover-bg: rgba(34, 211, 238, 0.08);
 
   --panel-input-bg: rgba(255, 255, 255, 0.03);
   --panel-input-border: rgba(148, 163, 184, 0.2);
   --panel-input-color: #f1f5f9;
   --panel-input-placeholder: rgba(148, 163, 184, 0.4);
-  --panel-input-focus-border: rgba(0, 229, 255, 0.6);
-  --panel-input-focus-bg: rgba(0, 229, 255, 0.04);
-  --panel-input-focus-ring: rgba(0, 229, 255, 0.1);
+  --panel-input-focus-border: rgba(34, 211, 238, 0.6);
+  --panel-input-focus-bg: rgba(34, 211, 238, 0.04);
+  --panel-input-focus-ring: rgba(34, 211, 238, 0.1);
   --panel-input-autofill-bg: #0b0f16;
   --panel-select-bg: #0b0f16;
 
   --panel-table-bg: rgba(13, 18, 26, 0.6);
-  --panel-table-border: rgba(0, 229, 255, 0.12);
-  --panel-th-color: rgba(103, 232, 249, 0.7);
-  --panel-th-border: rgba(0, 229, 255, 0.12);
+  --panel-table-border: rgba(34, 211, 238, 0.12);
+  --panel-th-color: var(--color-brand-300);
+  --panel-th-border: rgba(34, 211, 238, 0.12);
   --panel-td-color: #cbd5e1;
   --panel-td-border: rgba(148, 163, 184, 0.08);
-  --panel-row-hover-bg: rgba(0, 229, 255, 0.04);
+  --panel-row-hover-bg: rgba(34, 211, 238, 0.04);
+
+  --panel-navbar-bg: rgba(6, 9, 14, 0.72);
+  --panel-navbar-border: rgba(34, 211, 238, 0.1);
 
   --panel-modal-backdrop-bg: rgba(2, 4, 7, 0.75);
   --panel-modal-g1: rgba(15, 20, 28, 0.98);
   --panel-modal-g2: rgba(7, 10, 15, 0.98);
-  --panel-modal-border: rgba(0, 229, 255, 0.15);
-  --panel-modal-shadow-1: rgba(0, 0, 0, 0.9);
-  --panel-modal-shadow-2: rgba(0, 229, 255, 0.08);
+  --panel-modal-border: rgba(34, 211, 238, 0.15);
 }
 
 .panel-shell {
@@ -151,7 +169,7 @@
 }
 
 .panel-mono {
-  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 /* Grid táctico de fondo, igual que el login pero más tenue: aquí convive
@@ -164,8 +182,9 @@
   mask-image: radial-gradient(ellipse 120% 100% at 0% 0%, black 30%, transparent 85%);
 }
 
-/* Corner brackets reutilizados del login como firma visual del panel:
-   marcan tarjetas y el bloque activo del sidebar como "visor" de HUD. */
+/* Corner brackets: firma HUD original. Ya no se aplican por defecto en
+   Card/Modal (ver ui.jsx) — quedan disponibles como utilidad opcional para
+   quien quiera conservarlas a propósito en una pantalla puntual. */
 .panel-bracket {
   position: absolute;
   width: 14px;
@@ -184,6 +203,19 @@
   border-color: var(--panel-sidebar-border);
 }
 
+/* Navbar superior (nueva): único lugar con glassmorphism real del panel —
+   flota sobre el contenido al hacer scroll, así que necesita distinguirse
+   incluso cuando hay una card justo debajo. El resto de superficies
+   (sidebar, cards, tabla) se quedan opacas con sombra suave: glassmorphism
+   en todos lados a la vez es el error clásico que hace lucir "genérico",
+   no premium. */
+.panel-navbar {
+  background: var(--panel-navbar-bg);
+  border-color: var(--panel-navbar-border);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+}
+
 .panel-brand {
   color: var(--panel-brand-color);
   text-shadow: 0 0 12px var(--panel-brand-glow);
@@ -197,29 +229,38 @@
   background: var(--panel-navlink-hover-bg);
   color: var(--panel-navlink-hover-color);
 }
+/* El fondo del activo ya NO va aquí: AppLayout.jsx lo pinta con un
+   motion.span (layoutId compartido entre los NavLink) para que se deslice
+   de un ítem al siguiente en vez de aparecer/desaparecer de golpe — el
+   "sliding highlight" característico de Linear/Vercel. Si además pintara
+   background aquí, competiría con esa animación (un fade instantáneo justo
+   cuando la pastilla todavía está llegando). El color de texto sí cambia
+   al instante vía transition, eso no compite con nada. */
 .panel-nav-link.is-active {
-  background: var(--panel-navlink-active-bg);
   color: var(--panel-navlink-active-color);
-  box-shadow: inset 2px 0 0 0 var(--panel-navlink-active-shadow);
 }
 
-/* Tarjeta base: fondo casi negro, borde cian tenue, glow al hover */
+/* Tarjeta base: superficie limpia + sombra suave de elevación en vez del
+   glow por defecto de antes (el glow ahora es acento puntual: botón
+   primario, indicador activo). border-hover queda disponible para quien
+   envuelva la Card en un <Link>/<button> (ver DashboardPage.jsx). */
 .panel-card {
   position: relative;
   background: linear-gradient(180deg, var(--panel-card-g1), var(--panel-card-g2));
   border: 1px solid var(--panel-card-border);
-  box-shadow: 0 0 0 1px var(--panel-card-shadow-1), 0 12px 30px -16px var(--panel-card-shadow-2);
+  box-shadow: var(--shadow-soft-sm);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
-/* Botón primario: mismo cian sólido del botón de login */
+/* Botón primario: acento sólido de marca */
 .panel-btn-primario {
   background: var(--panel-accent-bg);
   color: var(--panel-accent-fg);
-  box-shadow: 0 0 18px -6px var(--panel-btn-primario-glow);
+  box-shadow: var(--shadow-soft-xs), 0 0 16px -6px var(--panel-btn-primario-glow);
   transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
 }
 .panel-btn-primario:hover:not(:disabled) {
-  box-shadow: 0 0 26px -4px var(--panel-btn-primario-glow-hover);
+  box-shadow: var(--shadow-soft-sm), 0 0 22px -4px var(--panel-btn-primario-glow-hover);
   transform: translateY(-1px);
 }
 .panel-btn-primario:active:not(:disabled) {
@@ -239,10 +280,10 @@
 .panel-btn-peligro {
   background: #dc2626;
   color: white;
-  box-shadow: 0 0 18px -8px rgba(220, 38, 38, 0.7);
+  box-shadow: var(--shadow-soft-xs);
 }
 .panel-btn-peligro:hover:not(:disabled) {
-  box-shadow: 0 0 26px -6px rgba(220, 38, 38, 0.9);
+  box-shadow: var(--shadow-soft-sm), 0 0 18px -8px rgba(220, 38, 38, 0.6);
 }
 
 .panel-btn-fantasma {
@@ -253,7 +294,7 @@
   background: var(--panel-btn-fantasma-hover-bg);
 }
 
-/* Inputs: mismo fondo casi negro del login + foco cian */
+/* Inputs */
 .panel-input {
   background: var(--panel-input-bg);
   border: 1px solid var(--panel-input-border);
@@ -270,18 +311,16 @@
   box-shadow: 0 0 0 3px var(--panel-input-focus-ring);
 }
 
-/* El <select> cerrado se ve bien con el fondo casi transparente de
-   --panel-input-bg porque el navegador lo compone sobre el fondo oscuro real
-   de la página. El listado de opciones desplegado NO: el sistema operativo lo
-   pinta en una superficie propia, sin ese fondo oscuro detrás, así que ese
-   mismo ~3% de blanco translúcido queda casi blanco puro — con el texto casi
-   blanco de --panel-input-color encima, invisible salvo donde el navegador
-   resalta la opción bajo el cursor con su propio color de acento (por eso
-   "solo se ve al pasar el mouse"). El <select> necesita un fondo SÓLIDO, no
-   translúcido; inputs y textareas no tienen este problema y no se tocan.
-   El bloque `option` es redundante en Chromium/Edge (el popup es nativo y
-   ellos ignoran esto) pero SÍ lo respeta Firefox, que sí permite estilizar
-   cada <option>. */
+/* El <select> cerrado se ve bien con el fondo de --panel-input-bg porque el
+   navegador lo compone sobre el fondo real de la página. El listado de
+   opciones desplegado NO: el sistema operativo lo pinta en una superficie
+   propia, sin ese fondo detrás, así que un fondo translúcido queda casi
+   blanco puro — con el texto de --panel-input-color encima, invisible
+   salvo donde el navegador resalta la opción bajo el cursor con su propio
+   color de acento (por eso "solo se ve al pasar el mouse"). El <select>
+   necesita un fondo SÓLIDO; inputs y textareas no tienen este problema y no
+   se tocan. El bloque `option` es redundante en Chromium/Edge (el popup es
+   nativo y ellos ignoran esto) pero SÍ lo respeta Firefox. */
 select.panel-input {
   background-color: var(--panel-select-bg);
 }
@@ -305,6 +344,7 @@ select.panel-input option {
 .panel-table-wrap {
   background: var(--panel-table-bg);
   border: 1px solid var(--panel-table-border);
+  box-shadow: var(--shadow-soft-xs);
 }
 .panel-th {
   color: var(--panel-th-color);
@@ -330,17 +370,17 @@ select.panel-input option {
   position: relative;
   background: linear-gradient(180deg, var(--panel-modal-g1), var(--panel-modal-g2));
   border: 1px solid var(--panel-modal-border);
-  box-shadow: 0 25px 60px -20px var(--panel-modal-shadow-1), 0 0 40px -10px var(--panel-modal-shadow-2);
-  animation: panel-modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  box-shadow: var(--shadow-soft-lg);
 }
 
-@keyframes panel-modal-in {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
+/* prefers-reduced-motion: los componentes nuevos (Radix Dialog/Popover/
+   Tooltip/DropdownMenu, CommandPalette) usan las utilidades .animate-* de
+   index.css, que ya tienen su propio bloque @media — este solo cubre las
+   animaciones que quedan definidas aquí mismo, en panel.css. */
 @media (prefers-reduced-motion: reduce) {
-  .panel-modal {
-    animation: none !important;
+  .panel-btn-primario:hover:not(:disabled) {
+    transform: none;
   }
 }
+
+} /* @layer components */

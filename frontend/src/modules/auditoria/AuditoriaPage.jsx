@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { ScrollText } from 'lucide-react'
 import { auditoria as auditoriaApi } from '../../api/auditoria.js'
-import {
-  Badge, Card, ErrorMsg, Field, Input, TablaWrap, Th, Td, EmptyState, Pager, fmtFechaHora,
-} from '../../components/ui.jsx'
+import { Badge, Btn, ErrorMsg, Field, Input, fmtFechaHora } from '../../components/ui.jsx'
+import { DataTable } from '../../components/DataTable.jsx'
+import { Toolbar, ToolbarReset } from '../../components/Toolbar.jsx'
 
 export default function AuditoriaPage() {
   const [registros, setRegistros] = useState([])
@@ -13,10 +14,17 @@ export default function AuditoriaPage() {
   const [modulo, setModulo] = useState('')
   const [accion, setAccion] = useState('')
 
-  async function cargar() {
+  // Acepta overrides explícitos (no lee siempre el state por closure) para
+  // que "Limpiar" pueda refetchear con los filtros ya vacíos sin depender
+  // de que el próximo render ya haya aplicado el setModulo/setAccion.
+  async function cargar(override = {}) {
     setCargando(true)
     try {
-      const data = await auditoriaApi.listar({ page, modulo: modulo || undefined, accion: accion || undefined })
+      const data = await auditoriaApi.listar({
+        page: override.page ?? page,
+        modulo: (override.modulo ?? modulo) || undefined,
+        accion: (override.accion ?? accion) || undefined,
+      })
       setRegistros(data.registros)
       setPages(data.pages)
       setError('')
@@ -35,67 +43,58 @@ export default function AuditoriaPage() {
   function buscar(e) {
     e.preventDefault()
     setPage(1)
-    cargar()
+    cargar({ page: 1 })
   }
+
+  function limpiar() {
+    setModulo('')
+    setAccion('')
+    setPage(1)
+    cargar({ modulo: '', accion: '', page: 1 })
+  }
+
+  const columnas = useMemo(
+    () => [
+      { accessorKey: 'creadoEn', header: 'Fecha', cell: (info) => fmtFechaHora(info.getValue()) },
+      { accessorKey: 'usuarioNombre', header: 'Usuario' },
+      { accessorKey: 'rolSlug', header: 'Rol' },
+      { accessorKey: 'modulo', header: 'Módulo' },
+      { accessorKey: 'accion', header: 'Acción' },
+      { accessorKey: 'descripcion', header: 'Descripción', enableSorting: false },
+      { accessorKey: 'resultado', header: 'Resultado', enableSorting: false, cell: (info) => <Badge valor={info.getValue()} /> },
+    ],
+    []
+  )
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Auditoría</h1>
+      <div className="mb-5 flex items-center gap-2.5">
+        <ScrollText className="h-5 w-5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Auditoría</h1>
       </div>
 
       <ErrorMsg>{error}</ErrorMsg>
 
-      <form onSubmit={buscar} className="mb-4 flex flex-wrap items-end gap-3">
-        <Field label="Módulo" className="w-40">
-          <Input value={modulo} onChange={(e) => setModulo(e.target.value)} placeholder="roles" />
-        </Field>
-        <Field label="Acción" className="w-40">
-          <Input value={accion} onChange={(e) => setAccion(e.target.value)} placeholder="actualizar" />
-        </Field>
-        <button
-          type="submit"
-          className="rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-sky-700"
-        >
-          Filtrar
-        </button>
+      <form onSubmit={buscar}>
+        <Toolbar>
+          <Field label="Módulo" className="w-40">
+            <Input value={modulo} onChange={(e) => setModulo(e.target.value)} placeholder="roles" />
+          </Field>
+          <Field label="Acción" className="w-40">
+            <Input value={accion} onChange={(e) => setAccion(e.target.value)} placeholder="actualizar" />
+          </Field>
+          <Btn type="submit">Filtrar</Btn>
+          <ToolbarReset visible={Boolean(modulo || accion)} onClick={limpiar} />
+        </Toolbar>
       </form>
 
-      {cargando ? (
-        <Card>Cargando…</Card>
-      ) : registros.length === 0 ? (
-        <EmptyState mensaje="No hay registros de auditoría" />
-      ) : (
-        <>
-          <TablaWrap>
-            <thead>
-              <tr>
-                <Th>Fecha</Th>
-                <Th>Usuario</Th>
-                <Th>Rol</Th>
-                <Th>Módulo</Th>
-                <Th>Acción</Th>
-                <Th>Descripción</Th>
-                <Th>Resultado</Th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {registros.map((r) => (
-                <tr key={r._id}>
-                  <Td>{fmtFechaHora(r.creadoEn)}</Td>
-                  <Td>{r.usuarioNombre}</Td>
-                  <Td>{r.rolSlug}</Td>
-                  <Td>{r.modulo}</Td>
-                  <Td>{r.accion}</Td>
-                  <Td>{r.descripcion}</Td>
-                  <Td><Badge valor={r.resultado} /></Td>
-                </tr>
-              ))}
-            </tbody>
-          </TablaWrap>
-          <Pager page={page} pages={pages} onPage={setPage} />
-        </>
-      )}
+      <DataTable
+        columns={columnas}
+        data={registros}
+        cargando={cargando}
+        vacio="No hay registros de auditoría"
+        paginacionServidor={{ page, pages, onPage: setPage }}
+      />
     </div>
   )
 }

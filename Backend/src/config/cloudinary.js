@@ -12,12 +12,33 @@ export function cloudinaryConfigurado() {
   return Boolean(env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET)
 }
 
+// Límite de lado para fotos subidas desde celular: las cámaras modernas
+// entregan 3000-4000px, muy por encima de lo que cualquier pantalla necesita
+// para ver un reporte de daño. 'limit' solo achica si excede — nunca agranda
+// una foto más pequeña ni distorsiona el aspect ratio.
+const LADO_MAXIMO_FOTO = 1600
+
 // Sube un buffer (multer memoryStorage) vía stream: el SDK solo acepta rutas
 // de archivo o streams, no buffers directos.
+// La transformación es "incoming" (va en el upload, no en la URL de entrega):
+// Cloudinary comprime y redimensiona antes de guardar, así que lo que queda
+// almacenado —y lo que cuenta contra el plan— ya es la versión liviana.
 export function subirImagen(buffer, carpeta) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder: carpeta, resource_type: 'image' },
+      {
+        folder: carpeta,
+        resource_type: 'image',
+        transformation: [
+          {
+            width: LADO_MAXIMO_FOTO,
+            height: LADO_MAXIMO_FOTO,
+            crop: 'limit',
+            quality: 'auto:good',
+            fetch_format: 'auto',
+          },
+        ],
+      },
       (err, result) => (err ? reject(err) : resolve(result))
     )
     stream.end(buffer)

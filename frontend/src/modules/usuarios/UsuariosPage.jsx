@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
+import { Plus, Users } from 'lucide-react'
 import { usuarios as usuariosApi } from '../../api/usuarios.js'
 import { roles as rolesApi } from '../../api/roles.js'
-import {
-  Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Select, Modal,
-  TablaWrap, Th, Td, EmptyState,
-} from '../../components/ui.jsx'
+import { Btn, Badge, ErrorMsg, Field, Input, Select, Modal } from '../../components/ui.jsx'
+import { DataTable } from '../../components/DataTable.jsx'
+import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
+import { CheckboxLabel } from '../../components/Checkbox.jsx'
 
 const FORM_VACIO = {
   nombre_usuario: '',
@@ -24,13 +26,15 @@ export default function UsuariosPage() {
   const [rolesDisponibles, setRolesDisponibles] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
-  const [ok, setOk] = useState('')
 
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
   const [form, setForm] = useState(FORM_VACIO)
   const [guardando, setGuardando] = useState(false)
   const [errorForm, setErrorForm] = useState('')
+
+  const [porEliminar, setPorEliminar] = useState(null)
+  const [eliminando, setEliminando] = useState(false)
 
   async function cargar() {
     setCargando(true)
@@ -99,10 +103,10 @@ export default function UsuariosPage() {
         const datos = { ...form }
         if (!datos.password) delete datos.password
         await usuariosApi.actualizar(editandoId, datos)
-        setOk('Usuario actualizado correctamente')
+        toast.success('Usuario actualizado correctamente')
       } else {
         await usuariosApi.crear(form)
-        setOk('Usuario creado correctamente')
+        toast.success('Usuario creado correctamente')
       }
       setModalAbierto(false)
       cargar()
@@ -113,74 +117,74 @@ export default function UsuariosPage() {
     }
   }
 
-  async function eliminar(u) {
-    if (!window.confirm(`¿Eliminar al usuario "${u.nombre_usuario}"? Esta acción no se puede deshacer.`)) return
+  async function confirmarEliminar() {
+    setEliminando(true)
     try {
-      await usuariosApi.eliminar(u._id)
-      setOk('Usuario eliminado')
+      await usuariosApi.eliminar(porEliminar._id)
+      toast.success('Usuario eliminado')
+      setPorEliminar(null)
       cargar()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
+    } finally {
+      setEliminando(false)
     }
   }
 
+  const columnas = useMemo(
+    () => [
+      { accessorKey: 'nombre_usuario', header: 'Usuario', cell: (info) => <span className="font-medium">{info.getValue()}</span> },
+      { accessorKey: 'nombre', header: 'Nombre' },
+      { accessorKey: 'email', header: 'Email' },
+      { id: 'rol', header: 'Rol', accessorFn: (u) => u.rol?.slug, cell: (info) => <Badge valor={info.getValue()} /> },
+      {
+        id: 'modulos',
+        header: 'Módulos',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <div className="flex flex-wrap gap-1">
+            {(row.original.modulos || []).map((m) => (
+              <span key={m} className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                {m}
+              </span>
+            ))}
+          </div>
+        ),
+      },
+      { accessorKey: 'estado', header: 'Estado', cell: (info) => <Badge valor={info.getValue()} /> },
+      {
+        id: 'acciones',
+        header: '',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <div className="flex justify-end gap-1.5">
+            <Btn variante="fantasma" onClick={() => abrirEditar(row.original)}>Editar</Btn>
+            <Btn variante="fantasma" className="!text-red-600 dark:!text-red-400" onClick={() => setPorEliminar(row.original)}>
+              Eliminar
+            </Btn>
+          </div>
+        ),
+      },
+    ],
+    []
+  )
+
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Usuarios</h1>
-        <Btn onClick={abrirCrear}>+ Nuevo usuario</Btn>
+      <div className="mb-5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <Users className="h-5 w-5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Usuarios</h1>
+        </div>
+        <Btn onClick={abrirCrear}>
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          Nuevo usuario
+        </Btn>
       </div>
 
       <ErrorMsg>{error}</ErrorMsg>
-      <OkMsg>{ok}</OkMsg>
 
-      {cargando ? (
-        <Card>Cargando…</Card>
-      ) : lista.length === 0 ? (
-        <EmptyState mensaje="No hay usuarios registrados" />
-      ) : (
-        <TablaWrap>
-          <thead>
-            <tr>
-              <Th>Usuario</Th>
-              <Th>Nombre</Th>
-              <Th>Email</Th>
-              <Th>Rol</Th>
-              <Th>Módulos</Th>
-              <Th>Estado</Th>
-              <Th className="text-right">Acciones</Th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {lista.map((u) => (
-              <tr key={u._id}>
-                <Td className="font-medium">{u.nombre_usuario}</Td>
-                <Td>{u.nombre}</Td>
-                <Td>{u.email}</Td>
-                <Td><Badge valor={u.rol?.slug} /></Td>
-                <Td>
-                  <div className="flex flex-wrap gap-1">
-                    {(u.modulos || []).map((m) => (
-                      <span key={m} className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                        {m}
-                      </span>
-                    ))}
-                  </div>
-                </Td>
-                <Td><Badge valor={u.estado} /></Td>
-                <Td className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Btn variante="fantasma" onClick={() => abrirEditar(u)}>Editar</Btn>
-                    <Btn variante="fantasma" className="!text-red-600 dark:!text-red-400" onClick={() => eliminar(u)}>
-                      Eliminar
-                    </Btn>
-                  </div>
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </TablaWrap>
-      )}
+      <DataTable columns={columnas} data={lista} cargando={cargando} vacio="No hay usuarios registrados" />
 
       <Modal
         abierto={modalAbierto}
@@ -251,26 +255,31 @@ export default function UsuariosPage() {
             </legend>
             <div className="flex gap-4">
               {['mantenimiento'].map((mod) => (
-                <label key={mod} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-                  <input type="checkbox" checked={form.modulos.includes(mod)} onChange={() => toggleModulo(mod)} />
+                <CheckboxLabel key={mod} checked={form.modulos.includes(mod)} onCheckedChange={() => toggleModulo(mod)}>
                   {mod}
-                </label>
+                </CheckboxLabel>
               ))}
             </div>
           </fieldset>
 
           <div className="flex justify-end gap-2 pt-2">
             <Btn variante="secundario" onClick={() => setModalAbierto(false)}>Cancelar</Btn>
-            <button
-              type="submit"
-              disabled={guardando}
-              className="rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-sky-700 disabled:opacity-60"
-            >
+            <Btn type="submit" disabled={guardando}>
               {guardando ? 'Guardando…' : 'Guardar'}
-            </button>
+            </Btn>
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        abierto={Boolean(porEliminar)}
+        onCancelar={() => setPorEliminar(null)}
+        onConfirmar={confirmarEliminar}
+        cargando={eliminando}
+        titulo={`¿Eliminar al usuario "${porEliminar?.nombre_usuario}"?`}
+        descripcion="Esta acción no se puede deshacer."
+        confirmarLabel="Eliminar"
+      />
     </div>
   )
 }

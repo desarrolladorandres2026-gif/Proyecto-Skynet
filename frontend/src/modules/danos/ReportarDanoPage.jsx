@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, Send } from 'lucide-react'
+import { Camera, Images, Send, X } from 'lucide-react'
 import { danos as danosApi } from '../../api/danos.js'
+import { normalizarFoto } from '../../utils/normalizarFoto.js'
 import {
   Btn, Badge, ErrorMsg, OkMsg, Field, Input, Textarea,
   EmptyState, fmtFechaHora,
@@ -33,10 +34,12 @@ export default function ReportarDanoPage() {
   const [descripcion, setDescripcion] = useState('')
   const [foto, setFoto] = useState(null)
   const [preview, setPreview] = useState(null)
+  const [procesandoFoto, setProcesandoFoto] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
-  const inputFotoRef = useRef(null)
+  const inputCamaraRef = useRef(null)
+  const inputGaleriaRef = useRef(null)
   const fotoObligatoria = tipo === 'dano'
 
   const [misReportes, setMisReportes] = useState([])
@@ -68,6 +71,16 @@ export default function ReportarDanoPage() {
     return () => URL.revokeObjectURL(url)
   }, [foto])
 
+  async function elegirFoto(archivo) {
+    if (!archivo) return
+    setProcesandoFoto(true)
+    try {
+      setFoto(await normalizarFoto(archivo))
+    } finally {
+      setProcesandoFoto(false)
+    }
+  }
+
   async function enviar(e) {
     e.preventDefault()
     setError('')
@@ -92,7 +105,8 @@ export default function ReportarDanoPage() {
       setDescripcion('')
       setFoto(null)
       setFecha(ahoraLocal())
-      if (inputFotoRef.current) inputFotoRef.current.value = ''
+      if (inputCamaraRef.current) inputCamaraRef.current.value = ''
+      if (inputGaleriaRef.current) inputGaleriaRef.current.value = ''
       cargarMios()
     } catch (err) {
       setError(err.message)
@@ -128,15 +142,48 @@ export default function ReportarDanoPage() {
           </Field>
 
           <Field label={fotoObligatoria ? 'Foto del daño' : 'Foto (opcional)'}>
+            {/* sr-only en vez de display:none: en iOS/Android, un input de
+                cámara con display:none puede hacer que el navegador pierda el
+                estado de la página al volver de la app de cámara nativa
+                (recarga en blanco, la foto tomada no llega a React). */}
             <input
-              ref={inputFotoRef}
+              ref={inputCamaraRef}
               type="file"
               accept="image/*"
               capture="environment"
-              onChange={(e) => setFoto(e.target.files?.[0] || null)}
-              className="panel-input w-full rounded-lg px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-cyan-600/10 file:px-3 file:py-1 file:text-cyan-700 dark:file:bg-cyan-400/10 dark:file:text-cyan-300"
-              required={fotoObligatoria}
+              onChange={(e) => elegirFoto(e.target.files?.[0])}
+              className="sr-only"
             />
+            <input
+              ref={inputGaleriaRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => elegirFoto(e.target.files?.[0])}
+              className="sr-only"
+            />
+            <div className="flex gap-2">
+              <Btn
+                type="button"
+                variante="secundario"
+                disabled={procesandoFoto}
+                onClick={() => inputCamaraRef.current?.click()}
+                className="flex flex-1 items-center justify-center gap-2"
+              >
+                <Camera className="h-4 w-4" aria-hidden="true" /> Cámara
+              </Btn>
+              <Btn
+                type="button"
+                variante="secundario"
+                disabled={procesandoFoto}
+                onClick={() => inputGaleriaRef.current?.click()}
+                className="flex flex-1 items-center justify-center gap-2"
+              >
+                <Images className="h-4 w-4" aria-hidden="true" /> Galería
+              </Btn>
+            </div>
+            {procesandoFoto && (
+              <p className="mt-1.5 text-xs text-[var(--mobile-text-dim)]">Procesando foto…</p>
+            )}
           </Field>
 
           <Field label="Descripción" className="md:col-span-2">
@@ -153,17 +200,29 @@ export default function ReportarDanoPage() {
           </Field>
 
           {preview && (
-            <div className="md:col-span-2">
+            <div className="relative md:col-span-2">
               <img
                 src={preview}
                 alt="Vista previa de la foto del daño"
                 className="max-h-64 w-full rounded-2xl border border-cyan-600/25 object-contain dark:border-cyan-400/20"
               />
+              <button
+                type="button"
+                onClick={() => {
+                  setFoto(null)
+                  if (inputCamaraRef.current) inputCamaraRef.current.value = ''
+                  if (inputGaleriaRef.current) inputGaleriaRef.current.value = ''
+                }}
+                aria-label="Quitar foto"
+                className="absolute top-2 right-2 rounded-full bg-black/60 p-1.5 text-white transition hover:bg-black/80"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
             </div>
           )}
 
           <div className="md:col-span-2">
-            <Btn type="submit" disabled={enviando} className="flex w-full items-center justify-center gap-2 rounded-2xl py-3">
+            <Btn type="submit" disabled={enviando || procesandoFoto} className="flex w-full items-center justify-center gap-2 rounded-2xl py-3">
               {enviando ? 'Enviando…' : (<><Send className="h-4 w-4" aria-hidden="true" /> Enviar</>)}
             </Btn>
           </div>

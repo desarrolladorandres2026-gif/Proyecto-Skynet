@@ -23,6 +23,17 @@ export async function resumenDashboard(req, res) {
 
   const tareas = []
   const tarjetas = {}
+  // Deltas reales para TrendBadge (frontend): solo se calcula donde la
+  // propia tarjeta ya es un conteo acotado a un rango de fecha (despachosHoy
+  // usa horaSalida) — comparar hoy vs. ayer ahí es la MISMA métrica en dos
+  // días. El resto de tarjetas (usuarios activos, vehículos activos,
+  // novedades abiertas...) son conteos del estado ACTUAL de un padrón, no
+  // eventos con fecha propia: no hay forma barata de saber "cuántos había
+  // hace una semana" sin una foto histórica que no existe, y aproximarlo con
+  // createdAt daría un número de una métrica distinta (altas nuevas, no el
+  // tamaño del padrón) — se dejan sin tendencia en vez de mostrar un delta
+  // que mide otra cosa.
+  const tendencias = {}
 
   if (puede('usuarios:gestionar')) {
     tareas.push(async () => {
@@ -56,15 +67,20 @@ export async function resumenDashboard(req, res) {
   }
   if (puede('despachos:registrar_salida', 'despachos:registrar_llegada', 'reportes:ver', 'empresas:ver_estadisticas')) {
     tareas.push(async () => {
-      const base = filtroScoped(req, { horaSalida: { $gte: inicioDia } })
-      const [hoy, enViaje, retrasados] = await Promise.all([
-        Despacho.countDocuments({ ...base, estado: { $ne: 'anulado' } }),
+      const inicioAyer = new Date(inicioDia)
+      inicioAyer.setDate(inicioAyer.getDate() - 1)
+      const baseHoy = filtroScoped(req, { horaSalida: { $gte: inicioDia }, estado: { $ne: 'anulado' } })
+      const baseAyer = filtroScoped(req, { horaSalida: { $gte: inicioAyer, $lt: inicioDia }, estado: { $ne: 'anulado' } })
+      const [hoy, ayer, enViaje, retrasados] = await Promise.all([
+        Despacho.countDocuments(baseHoy),
+        Despacho.countDocuments(baseAyer),
         Despacho.countDocuments(filtroScoped(req, { estado: 'despachado' })),
         Despacho.countDocuments(filtroScoped(req, { estado: 'retrasado' })),
       ])
       tarjetas.despachosHoy = hoy
       tarjetas.despachosEnViaje = enViaje
       tarjetas.despachosRetrasados = retrasados
+      tendencias.despachosHoy = { actual: hoy, anterior: ayer }
     })
   }
   if (puede('novedades:registrar', 'novedades:registrar_incidente', 'novedades:consultar_historial')) {
@@ -98,5 +114,5 @@ export async function resumenDashboard(req, res) {
 
   await Promise.all(tareas.map((t) => t()))
 
-  res.json({ tarjetas })
+  res.json({ tarjetas, tendencias })
 }

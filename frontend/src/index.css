@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+/* Tipografía self-hosted (@fontsource*): esta app es una PWA instalable
+   (vite-plugin-pwa, ver vite.config.js) — un <link> a Google Fonts/Fontshare
+   pelea contra el objetivo offline-first y agrega una petición de terceros
+   en cada carga. Cada @font-face trae su propio unicode-range: el navegador
+   solo descarga el archivo del subset que realmente aparece en la página
+   (aquí, latin/latin-ext), así que importar el index.css completo de cada
+   paquete (todos los pesos) no cuesta más en la práctica que importar solo
+   pesos puntuales — ninguna @font-face sin uso dispara una descarga.
+   JetBrains Mono ya se usaba como panel-mono en toda la app (no solo este
+   panel) pero nunca se cargó su archivo: sin @font-face en ningún lado, todo
+   ese texto renderizaba en la mono del sistema operativo. Esto lo corrige
+   gratis para toda la app, login incluido. */
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource-variable/inter";
+@import "@fontsource/jetbrains-mono";
+
 /* Los dos temas de shell (panel denso admin y shell móvil no-admin, ver
    layout/AppShell.jsx) se cargan SIEMPRE, sin importar cuál esté montado:
    páginas "universales" como Reportar daño (permiso `publico: true`) son
@@ -9,6 +25,54 @@
    shell las envuelva. Los prefijos de clase no colisionan entre sí. */
 @import "./layout/panel.css";
 @import "./layout/mobileShell.css";
+
+/* Tokens del sistema de diseño: Tailwind v4 lee este bloque @theme y genera
+   las utilidades correspondientes (bg-brand-500, font-display, rounded-xl,
+   shadow-soft-md...). panel.css deriva sus variables --panel-* (theming
+   claro/oscuro) de esta misma rampa --color-brand-* en vez de valores
+   sueltos, para que un solo lugar controle el tono de marca. */
+@theme {
+  /* display = títulos con personalidad, sans = cuerpo/UI densa (la mayoría
+     de esta app: tablas y formularios), mono = datos/labels (panel-mono) —
+     mismo rol que cumplían antes, ahora con el archivo realmente cargado. */
+  --font-display: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  /* Rampa de marca (cian) — la identidad corporativa se mantiene, pero
+     como escala real (50-950) en vez de 2-3 tonos sueltos hardcodeados. */
+  --color-brand-50: #ecfeff;
+  --color-brand-100: #cffafe;
+  --color-brand-200: #a5f3fc;
+  --color-brand-300: #67e8f9;
+  --color-brand-400: #22d3ee;
+  --color-brand-500: #06b6d4;
+  --color-brand-600: #0891b2;
+  --color-brand-700: #0e7490;
+  --color-brand-800: #155e75;
+  --color-brand-900: #164e63;
+  --color-brand-950: #083344;
+
+  /* Radios consistentes en todo el sistema nuevo */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.5rem;
+
+  /* Sombras suaves de elevación — reemplazan el glow-por-defecto del HUD
+     táctico anterior. El glow cian se conserva como acento puntual (botón
+     primario, estado activo), no como sombra base de cada card: eso era lo
+     que hacía sentir "táctico" en vez de premium a cada superficie. */
+  --shadow-soft-xs: 0 1px 2px 0 rgb(15 23 42 / 0.04);
+  --shadow-soft-sm: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.06);
+  --shadow-soft-md: 0 4px 12px -2px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.05);
+  --shadow-soft-lg: 0 16px 32px -12px rgb(15 23 42 / 0.16), 0 4px 8px -4px rgb(15 23 42 / 0.06);
+
+  /* Curva de easing compartida por las animaciones nuevas (Framer Motion y
+     CSS) — misma sensación "asentada" en todos lados. */
+  --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
+}
 
 /* El panel admin controla su propio tema claro/oscuro con un toggle
    persistido (ver layout/panel.css y AppLayout.jsx), en vez de depender de
@@ -31,8 +95,63 @@
 
 body {
   margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
   min-height: 100svh;
+}
+
+/* Encabezados con personalidad propia (pedido explícito: "que cada título
+   tenga personalidad") sin tener que repetir font-display en cada <h1-4> de
+   las 39 páginas de módulo. */
+@layer base {
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Keyframes propios para los componentes nuevos (Radix Dialog/Popover/
+   Tooltip/DropdownMenu, CommandPalette): en vez del paquete tailwindcss-
+   animate (pensado para Tailwind v3), en v4 CSS-first alcanza con declarar
+   a mano los ~5 que realmente se usan. Los primitivos de Radix exponen
+   data-state (open/closed) y data-side en el propio elemento, por eso las
+   variantes van con el selector [data-state=...] en vez de una clase. */
+@layer utilities {
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+  @keyframes zoom-in-soft {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes slide-in-from-top {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slide-in-from-bottom {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in { animation: fade-in 0.15s var(--ease-soft) both; }
+  .animate-fade-out { animation: fade-out 0.1s ease-in both; }
+  .animate-zoom-in { animation: zoom-in-soft 0.15s var(--ease-soft) both; }
+  .animate-slide-in-top { animation: slide-in-from-top 0.15s var(--ease-soft) both; }
+  .animate-slide-in-bottom { animation: slide-in-from-bottom 0.15s var(--ease-soft) both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-in, .animate-fade-out, .animate-zoom-in,
+    .animate-slide-in-top, .animate-slide-in-bottom {
+      animation: none !important;
+    }
+  }
 }
