@@ -28,6 +28,19 @@ export function eliminarImagen(publicId) {
   return cloudinary.uploader.destroy(publicId)
 }
 
+// Para soportes de ausencias (incapacidad médica): puede llegar como foto o
+// como PDF, y a diferencia de subirImagen/subirVideo no vale la pena separar
+// por tipo — 'auto' deja que Cloudinary lo detecte.
+export function subirArchivo(buffer, carpeta) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: carpeta, resource_type: 'auto' },
+      (err, result) => (err ? reject(err) : resolve(result))
+    )
+    stream.end(buffer)
+  })
+}
+
 export function subirVideo(buffer, carpeta) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(

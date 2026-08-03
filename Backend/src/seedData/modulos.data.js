@@ -71,6 +71,13 @@ export const MODULOS_SISTEMA = [
     orden: 13,
   },
   {
+    key: 'ausencias',
+    nombre: 'Ausencias',
+    descripcion: 'Vacaciones, permisos e incapacidades: solicitud, aprobación, saldos y calendario del personal.',
+    esNucleo: false,
+    orden: 14,
+  },
+  {
     key: 'mantenimiento',
     nombre: 'Mantenimiento TI (legado)',
     descripcion: 'Equipos de TI y sus mantenimientos programados.',

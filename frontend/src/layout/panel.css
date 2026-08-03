@@ -57,6 +57,10 @@
   --panel-input-focus-bg: rgba(8, 145, 178, 0.05);
   --panel-input-focus-ring: rgba(8, 145, 178, 0.15);
   --panel-input-autofill-bg: #eef6f8;
+  /* Fondo SÓLIDO exclusivo del <select>: ver el comentario junto a
+     "select.panel-input" más abajo — el popup nativo de opciones no puede
+     usar el fondo translúcido de --panel-input-bg. */
+  --panel-select-bg: #f8fafc;
 
   --panel-table-bg: rgba(255, 255, 255, 0.75);
   --panel-table-border: rgba(8, 145, 178, 0.16);
@@ -122,6 +126,7 @@
   --panel-input-focus-bg: rgba(0, 229, 255, 0.04);
   --panel-input-focus-ring: rgba(0, 229, 255, 0.1);
   --panel-input-autofill-bg: #0b0f16;
+  --panel-select-bg: #0b0f16;
 
   --panel-table-bg: rgba(13, 18, 26, 0.6);
   --panel-table-border: rgba(0, 229, 255, 0.12);
@@ -263,6 +268,26 @@
   border-color: var(--panel-input-focus-border);
   background: var(--panel-input-focus-bg);
   box-shadow: 0 0 0 3px var(--panel-input-focus-ring);
+}
+
+/* El <select> cerrado se ve bien con el fondo casi transparente de
+   --panel-input-bg porque el navegador lo compone sobre el fondo oscuro real
+   de la página. El listado de opciones desplegado NO: el sistema operativo lo
+   pinta en una superficie propia, sin ese fondo oscuro detrás, así que ese
+   mismo ~3% de blanco translúcido queda casi blanco puro — con el texto casi
+   blanco de --panel-input-color encima, invisible salvo donde el navegador
+   resalta la opción bajo el cursor con su propio color de acento (por eso
+   "solo se ve al pasar el mouse"). El <select> necesita un fondo SÓLIDO, no
+   translúcido; inputs y textareas no tienen este problema y no se tocan.
+   El bloque `option` es redundante en Chromium/Edge (el popup es nativo y
+   ellos ignoran esto) pero SÍ lo respeta Firefox, que sí permite estilizar
+   cada <option>. */
+select.panel-input {
+  background-color: var(--panel-select-bg);
+}
+select.panel-input option {
+  background-color: var(--panel-select-bg);
+  color: var(--panel-input-color);
 }
 
 /* Autofill: mismo fix que login.css, necesario en cualquier <input> del panel */

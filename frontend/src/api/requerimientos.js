@@ -36,10 +36,11 @@ export const requerimientos = {
       body: JSON.stringify({ motivoRechazo }),
     })
   },
-  marcarEstadoBodega(id, estado, observacion) {
+  // password solo es obligatorio cuando estado === 'aprobada' (es la "firma").
+  marcarEstadoBodega(id, estado, observacion, password) {
     return request(`/requerimientos/${id}/bodega/estado`, {
       method: 'PATCH',
-      body: JSON.stringify({ estado, observacion }),
+      body: JSON.stringify({ estado, observacion, password }),
     })
   },
   marcarControlRecibido(id, itemId, recibido, observacion) {

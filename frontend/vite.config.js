@@ -76,6 +76,7 @@ export default defineConfig({
     }),
   ],
   server: {
+    host: true, // escucha en 0.0.0.0: accesible desde otros dispositivos en la misma red (celular, etc.)
     proxy: {
       '/api': {
         target: process.env.VITE_BACKEND_URL || 'http://localhost:3001',

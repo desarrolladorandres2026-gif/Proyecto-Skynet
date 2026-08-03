@@ -24,6 +24,20 @@ async function crearPermiso(codigo) {
   )
 }
 
+// Las notificaciones se disparan sin await a propósito (ver
+// requerimientos.service.js: el solicitante no debe esperar a que salga el
+// correo). Consultarlas inmediatamente después de la llamada al service es una
+// carrera: hay que esperarlas activamente o la prueba falla de forma
+// intermitente.
+async function esperarNotificaciones(filtro, intentos = 50) {
+  for (let i = 0; i < intentos; i += 1) {
+    const encontradas = await EnvioNotificacion.find(filtro)
+    if (encontradas.length > 0) return encontradas
+    await new Promise((r) => setTimeout(r, 20))
+  }
+  return []
+}
+
 // Reproduce la forma de req.usuario que construye middleware/auth.js, sin
 // pasar por HTTP: estos tests ejercitan la integración real entre el
 // service de Requerimientos y el motor de notificaciones (vía Mongo en
@@ -61,25 +75,26 @@ describe('flujo de Requerimientos con notificaciones', () => {
     const { actor: actorSolicitante, usuario: solicitante } = await crearUsuarioConPermiso(null)
     const { actor: actorFinanciero, usuario: financiero, passwordPlano: passFinanciero } =
       await crearUsuarioConPermiso('requerimientos:aprobar_financiero')
-    const { actor: actorBodega, usuario: bodega } = await crearUsuarioConPermiso('requerimientos:gestionar_bodega')
+    const { actor: actorBodega, usuario: bodega, passwordPlano: passBodega } =
+      await crearUsuarioConPermiso('requerimientos:gestionar_bodega')
 
     const req = await crearRequerimiento(
       { tipo: 'compra', itemsCompra: [{ descripcionProducto: 'Resma papel', cantidad: 2, fechaSolicitud: new Date() }] },
       actorSolicitante
     )
 
-    const aviosFinanciero = await EnvioNotificacion.find({ usuario: financiero._id })
+    const aviosFinanciero = await esperarNotificaciones({ usuario: financiero._id })
     expect(aviosFinanciero.length).toBeGreaterThan(0)
     expect(aviosFinanciero[0].categoria).toBe('requerimientos')
 
     await aprobarComoFinanciero(req._id, { password: passFinanciero }, actorFinanciero)
 
-    const avisosBodega = await EnvioNotificacion.find({ usuario: bodega._id })
+    const avisosBodega = await esperarNotificaciones({ usuario: bodega._id })
     expect(avisosBodega.length).toBeGreaterThan(0)
 
-    await marcarEstadoBodega(req._id, { estado: 'aprobada' }, actorBodega)
+    await marcarEstadoBodega(req._id, { estado: 'aprobada', password: passBodega }, actorBodega)
 
-    const avisosSolicitante = await EnvioNotificacion.find({ usuario: solicitante._id })
+    const avisosSolicitante = await esperarNotificaciones({ usuario: solicitante._id })
     expect(avisosSolicitante.length).toBeGreaterThan(0)
     expect(avisosSolicitante.some((e) => e.titulo.includes('aprobado'))).toBe(true)
   })
@@ -113,7 +128,7 @@ describe('flujo de Requerimientos con notificaciones', () => {
 
     await rechazarComoFinanciero(req._id, { motivoRechazo: 'Presupuesto no disponible' }, actorFinanciero)
 
-    const avisos = await EnvioNotificacion.find({ usuario: solicitante._id })
+    const avisos = await esperarNotificaciones({ usuario: solicitante._id })
     expect(avisos.some((e) => e.cuerpo === 'Presupuesto no disponible')).toBe(true)
   })
 })

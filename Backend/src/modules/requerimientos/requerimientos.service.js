@@ -249,7 +249,7 @@ export async function rechazarComoFinanciero(id, { motivoRechazo } = {}, usuario
   return obtenerRequerimiento(doc._id)
 }
 
-export async function marcarEstadoBodega(id, { estado, observacion } = {}, usuarioActor) {
+export async function marcarEstadoBodega(id, { estado, observacion, password } = {}, usuarioActor) {
   const doc = await obtenerParaMutar(id)
   if (doc.estado !== 'pendiente_bodega') {
     throw new ErrorConflicto('Solo se puede gestionar en Bodega un requerimiento ya aprobado por Financiero')
@@ -258,9 +258,18 @@ export async function marcarEstadoBodega(id, { estado, observacion } = {}, usuar
     throw new ErrorValidacion(`estado debe ser uno de: ${ESTADOS_BODEGA.join(', ')}`)
   }
 
+  // Firma digital solo para la decisión afirmativa, mismo criterio que
+  // aprobarComoFinanciero: "no aprobada" y "pendiente" no exigen reautenticación.
+  if (estado === 'aprobada') {
+    await reautenticar(usuarioActor.id_usuario, password)
+  }
+
+  const revisor = await Usuario.findById(usuarioActor.id_usuario).select('nombre cargo')
+
   doc.bodega.estado = estado
   doc.bodega.revisadoPor = usuarioActor.id_usuario
-  doc.bodega.nombreRevisor = usuarioActor.nombre_usuario
+  doc.bodega.nombreRevisor = revisor?.nombre || usuarioActor.nombre_usuario
+  doc.bodega.cargoRevisor = revisor?.cargo || ''
   doc.bodega.fecha = new Date()
   if (observacion !== undefined) doc.bodega.observacion = String(observacion).trim()
 

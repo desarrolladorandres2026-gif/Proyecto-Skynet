@@ -89,6 +89,14 @@ export const PERMISOS = [
   permiso('requerimientos', 'gestionar_bodega', 'Gestionar requerimientos aprobados: estado, control de recibido e impresión (Bodega)'),
   permiso('requerimientos', 'ver_todos', 'Ver todos los requerimientos de todos los solicitantes (supervisión)'),
 
+  // Ausencias (vacaciones, permisos e incapacidades). Solicitar la propia y
+  // ver las propias NO son permisos: son universales para cualquier persona
+  // autenticada, mismo principio que reportar un daño o crear un
+  // requerimiento. Lo que se gobierna por RBAC es decidir sobre la ausencia
+  // de otra persona y ver las de todo el mundo.
+  permiso('ausencias', 'aprobar', 'Aprobar o rechazar solicitudes de vacaciones, permisos e incapacidades'),
+  permiso('ausencias', 'ver_todas', 'Ver todas las ausencias del personal (supervisión y calendario)'),
+
   // Genéricos del rol Operador, redactados igual de amplio que en la
   // especificación original ("Registrar información", "Actualizar datos");
   // se recomienda partirlos en permisos concretos por módulo cuando cada
@@ -146,6 +154,10 @@ export const ROLES = [
       // Bodega) para las acciones de gestión, así que Administrador NO
       // recibe aprobar_financiero ni gestionar_bodega.
       'requerimientos:ver_todos',
+      // Mismo criterio que en Requerimientos: supervisión de solo lectura.
+      // Aprobar ausencias es de Talento Humano (rol dedicado abajo), no del
+      // Administrador de la operación.
+      'ausencias:ver_todas',
     ],
   },
   {
@@ -251,5 +263,16 @@ export const ROLES = [
     ambito: 'global',
     esSistema: true,
     permisos: ['requerimientos:gestionar_bodega'],
+  },
+  {
+    nombre: 'Talento Humano',
+    slug: 'talento_humano',
+    descripcion: 'Decide sobre las solicitudes de vacaciones, permisos e incapacidades del personal y consulta el calendario de ausencias.',
+    esSuperAdmin: false,
+    ambito: 'global',
+    // No es esSistema: no viene de la especificación original de 6 roles, así
+    // que sí puede renombrarse o eliminarse desde la pantalla de Roles.
+    esSistema: false,
+    permisos: ['ausencias:aprobar', 'ausencias:ver_todas'],
   },
 ]

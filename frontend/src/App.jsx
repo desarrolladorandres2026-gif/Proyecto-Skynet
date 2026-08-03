@@ -22,6 +22,9 @@ import RequerimientoDetallePage from './modules/requerimientos/RequerimientoDeta
 import BandejaFinancieroPage from './modules/requerimientos/BandejaFinancieroPage.jsx'
 import BandejaBodegaPage from './modules/requerimientos/BandejaBodegaPage.jsx'
 import TodosRequerimientosPage from './modules/requerimientos/TodosRequerimientosPage.jsx'
+import MisAusenciasPage from './modules/ausencias/MisAusenciasPage.jsx'
+import BandejaAusenciasPage from './modules/ausencias/BandejaAusenciasPage.jsx'
+import CalendarioAusenciasPage from './modules/ausencias/CalendarioAusenciasPage.jsx'
 import DashboardPage from './modules/operacion/DashboardPage.jsx'
 import EmpresasPage from './modules/flota/EmpresasPage.jsx'
 import VehiculosPage from './modules/flota/VehiculosPage.jsx'
@@ -120,6 +123,13 @@ export default function App() {
             <Route path="requerimientos/bodega" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:gestionar_bodega"><BandejaBodegaPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/todos" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:ver_todos"><TodosRequerimientosPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/:id" element={<ModuloActivoRoute modulo="requerimientos"><RequerimientoDetallePage /></ModuloActivoRoute>} />
+
+            {/* Ausencias: pedir vacaciones y ver las propias son universales
+                (como "Reportar daño"); decidir y ver el calendario del
+                personal exigen permiso. */}
+            <Route path="ausencias/mias" element={<ModuloActivoRoute modulo="ausencias"><MisAusenciasPage /></ModuloActivoRoute>} />
+            <Route path="ausencias/bandeja" element={<ModuloActivoRoute modulo="ausencias"><PermissionRoute permiso="ausencias:aprobar"><BandejaAusenciasPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="ausencias/calendario" element={<ModuloActivoRoute modulo="ausencias"><PermissionRoute permiso={['ausencias:aprobar', 'ausencias:ver_todas']}><CalendarioAusenciasPage /></PermissionRoute></ModuloActivoRoute>} />
 
             <Route path="flota/empresas" element={<ModuloActivoRoute modulo="flota"><PermissionRoute permiso="empresas:gestionar"><EmpresasPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="flota/vehiculos" element={<ModuloActivoRoute modulo="flota"><PermissionRoute permiso={['vehiculos:gestionar', 'vehiculos:consultar']}><VehiculosPage /></PermissionRoute></ModuloActivoRoute>} />

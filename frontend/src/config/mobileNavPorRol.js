@@ -1,6 +1,6 @@
 import {
   Home, Wrench, TriangleAlert, GraduationCap, Send, LayoutGrid,
-  AlertTriangle, PackageSearch, CalendarClock, Bus, IdCard,
+  AlertTriangle, PackageSearch, CalendarClock, CalendarDays, Bus, IdCard,
   FileText,
 } from 'lucide-react'
 
@@ -23,6 +23,7 @@ export const MOBILE_NAV_POR_ROL = {
   usuario_comun: [
     { to: '/danos/reportar', label: 'Reportar', icon: TriangleAlert },
     { to: '/requerimientos/nuevo', label: 'Requerimientos', icon: FileText },
+    { to: '/ausencias/mias', label: 'Vacaciones', icon: CalendarDays },
     { to: '/induccion', label: 'Inducción', icon: GraduationCap },
   ],
   despachador: [

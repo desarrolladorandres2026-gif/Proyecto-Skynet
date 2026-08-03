@@ -215,28 +215,49 @@ function dibujarCuerpoServicio(pdf, req, yInicial) {
   return y
 }
 
-function dibujarBloqueFirma(pdf, req, yInicial) {
+// Dos bloques de firma lado a lado: Financiero (izquierda) siempre presente,
+// Bodega (derecha) solo tiene contenido "firmado" cuando estado === 'aprobada'
+// (mismo criterio de negocio que aprobarComoFinanciero — la reautenticación,
+// es decir la firma, solo se exige en la decisión afirmativa).
+function dibujarBloquesFirma(pdf, req, yInicial) {
   let y = yInicial + 6
   if (y > ALTO_PAGINA - 40) {
     pdf.addPage()
     y = MARGIN
   }
+  const anchoBloque = 75
+  const xFinanciero = MARGIN
+  const xBodega = ANCHO_PAGINA - MARGIN - anchoBloque
+
   pdf.setDrawColor(15, 23, 42)
   pdf.setLineWidth(0.3)
-  pdf.line(MARGIN, y, MARGIN + 75, y)
+  pdf.line(xFinanciero, y, xFinanciero + anchoBloque, y)
+  pdf.line(xBodega, y, xBodega + anchoBloque, y)
 
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(8)
-  pdf.text('Financiero', MARGIN, y + 5)
+  pdf.text('Financiero', xFinanciero, y + 5)
+  pdf.text('Bodega', xBodega, y + 5)
   pdf.setFont('helvetica', 'normal')
 
   if (req.financiero?.fechaDecision) {
     const estadoTexto = req.estado === 'rechazado' ? 'RECHAZADO' : 'APROBADO'
-    pdf.text(`${estadoTexto}: ${req.financiero.nombreAprobador || '—'}`, MARGIN, y + 10)
-    if (req.financiero.cargoAprobador) pdf.text(req.financiero.cargoAprobador, MARGIN, y + 14)
-    pdf.text(`Fecha: ${fmtFechaPdf(req.financiero.fechaDecision)}`, MARGIN, y + 18)
+    pdf.text(`${estadoTexto}: ${req.financiero.nombreAprobador || '—'}`, xFinanciero, y + 10)
+    if (req.financiero.cargoAprobador) pdf.text(req.financiero.cargoAprobador, xFinanciero, y + 14)
+    pdf.text(`Fecha: ${fmtFechaPdf(req.financiero.fechaDecision)}`, xFinanciero, y + 18)
   } else {
-    pdf.text('Pendiente de aprobación', MARGIN, y + 10)
+    pdf.text('Pendiente de aprobación', xFinanciero, y + 10)
+  }
+
+  if (req.bodega?.estado === 'aprobada' && req.bodega.fecha) {
+    pdf.text(`APROBADO: ${req.bodega.nombreRevisor || '—'}`, xBodega, y + 10)
+    if (req.bodega.cargoRevisor) pdf.text(req.bodega.cargoRevisor, xBodega, y + 14)
+    pdf.text(`Fecha: ${fmtFechaPdf(req.bodega.fecha)}`, xBodega, y + 18)
+  } else if (req.bodega?.estado === 'no_aprobada' && req.bodega.fecha) {
+    pdf.text(`NO APROBADO: ${req.bodega.nombreRevisor || '—'}`, xBodega, y + 10)
+    pdf.text(`Fecha: ${fmtFechaPdf(req.bodega.fecha)}`, xBodega, y + 14)
+  } else {
+    pdf.text('Pendiente de gestión', xBodega, y + 10)
   }
 }
 
@@ -254,7 +275,7 @@ export async function generarPdfRequerimiento(req) {
     y = dibujarCuerpoServicio(pdf, req, y)
   }
 
-  dibujarBloqueFirma(pdf, req, y)
+  dibujarBloquesFirma(pdf, req, y)
 
   const codigo = FORMATOS[req.tipo].codigo
   pdf.save(`${codigo}_${String(req._id || '').slice(-6)}.pdf`)

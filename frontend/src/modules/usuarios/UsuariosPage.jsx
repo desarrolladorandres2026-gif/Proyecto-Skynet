@@ -207,7 +207,10 @@ export default function UsuariosPage() {
             <Input
               type="password"
               required={!editandoId}
-              minLength={6}
+              // Debe coincidir con PASSWORD_MIN de Backend/src/utils/password.js:
+              // con un mínimo menor, el navegador deja enviar el formulario y el
+              // rechazo llega como error 400 del servidor en vez de validarse aquí.
+              minLength={12}
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
             />

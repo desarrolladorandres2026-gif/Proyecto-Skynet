@@ -1,6 +1,6 @@
 import {
   Wrench, Users, ShieldCheck, ScrollText, TriangleAlert,
-  Gauge, Bus, Send, SlidersHorizontal, FileText, Bell,
+  Gauge, Bus, Send, SlidersHorizontal, FileText, Bell, CalendarDays,
 } from 'lucide-react'
 
 // Registro único de módulos para el sidebar (AppLayout.jsx) y para decidir
@@ -45,6 +45,19 @@ export const MODULOS_REGISTRO = [
       { to: '/requerimientos/financiero', label: 'Bandeja Financiero', permiso: 'requerimientos:aprobar_financiero' },
       { to: '/requerimientos/bodega', label: 'Bandeja Bodega', permiso: 'requerimientos:gestionar_bodega' },
       { to: '/requerimientos/todos', label: 'Todos (supervisión)', permiso: 'requerimientos:ver_todos' },
+    ],
+  },
+  {
+    key: 'ausencias',
+    label: 'Vacaciones',
+    icon: CalendarDays,
+    // publico: solicitar las propias no depende de ningún permiso; los items
+    // de gestión sí declaran el suyo y desaparecen para quien no lo tenga.
+    publico: true,
+    items: [
+      { to: '/ausencias/mias', label: 'Mis ausencias' },
+      { to: '/ausencias/bandeja', label: 'Por decidir', permiso: 'ausencias:aprobar' },
+      { to: '/ausencias/calendario', label: 'Calendario', permiso: ['ausencias:aprobar', 'ausencias:ver_todas'] },
     ],
   },
   {

@@ -116,6 +116,9 @@ const requerimientoSchema = new mongoose.Schema(
       estado: { type: String, enum: ['pendiente', 'aprobada', 'no_aprobada'], default: 'pendiente' },
       revisadoPor: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
       nombreRevisor: { type: String, trim: true },
+      // Snapshot igual que financiero.cargoAprobador: no se recalcula si el
+      // revisor cambia de cargo después.
+      cargoRevisor: { type: String, trim: true },
       fecha: { type: Date },
       observacion: { type: String, trim: true },
     },

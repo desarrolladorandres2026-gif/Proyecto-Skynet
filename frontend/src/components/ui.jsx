@@ -140,6 +140,13 @@ const BADGE_COLORES = {
   no_aprobada: 'bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-400/30',
   financiero: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
   bodega: 'bg-sky-400/10 text-sky-700 dark:text-sky-300 ring-1 ring-inset ring-sky-400/30',
+  // ausencias: estado y tipo (ver Backend/src/models/Ausencia.js). 'pendiente',
+  // 'aprobada' y 'cancelada' ya están arriba y se reutilizan tal cual.
+  rechazada: 'bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-400/30',
+  vacaciones: 'bg-cyan-400/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-inset ring-cyan-400/30',
+  permiso_remunerado: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
+  permiso_no_remunerado: 'bg-teal-400/10 text-teal-700 dark:text-teal-300 ring-1 ring-inset ring-teal-400/30',
+  incapacidad: 'bg-orange-400/10 text-orange-700 dark:text-orange-300 ring-1 ring-inset ring-orange-400/30',
 }
 
 export function Badge({ valor }) {

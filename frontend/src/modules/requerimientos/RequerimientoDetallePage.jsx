@@ -43,6 +43,7 @@ export default function RequerimientoDetallePage() {
   const [modalFirma, setModalFirma] = useState(false)
   const [modalRechazo, setModalRechazo] = useState(false)
   const [motivoRechazo, setMotivoRechazo] = useState('')
+  const [modalFirmaBodega, setModalFirmaBodega] = useState(false)
 
   async function cargar() {
     setCargando(true)
@@ -120,6 +121,15 @@ export default function RequerimientoDetallePage() {
     }
   }
 
+  // "Aprobada" exige firma (reautenticación); las demás transiciones no.
+  function onCambiarEstadoBodega(estado) {
+    if (estado === 'aprobada') {
+      setModalFirmaBodega(true)
+      return
+    }
+    cambiarEstadoBodega(estado)
+  }
+
   async function cambiarEstadoBodega(estado) {
     setError('')
     setOk('')
@@ -130,6 +140,12 @@ export default function RequerimientoDetallePage() {
     } catch (err) {
       setError(err.message)
     }
+  }
+
+  async function aprobarBodega(password) {
+    const { requerimiento } = await requerimientosApi.marcarEstadoBodega(id, 'aprobada', undefined, password)
+    setReq(requerimiento)
+    setOk('Requerimiento aprobado en Bodega y firmado')
   }
 
   async function marcarRecibido(itemId, recibido) {
@@ -316,7 +332,7 @@ export default function RequerimientoDetallePage() {
           <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-cyan-700/80 dark:text-cyan-400/80">Bodega</p>
           {puedeGestionarBodega ? (
             <Field label="Estado">
-              <Select value={req.bodega?.estado || 'pendiente'} onChange={(e) => cambiarEstadoBodega(e.target.value)}>
+              <Select value={req.bodega?.estado || 'pendiente'} onChange={(e) => onCambiarEstadoBodega(e.target.value)}>
                 {ESTADOS_BODEGA.map((o) => (
                   <option key={o.valor} value={o.valor}>{o.label}</option>
                 ))}
@@ -325,7 +341,8 @@ export default function RequerimientoDetallePage() {
           ) : (
             req.bodega?.nombreRevisor && (
               <p className="text-sm text-slate-600 dark:text-slate-300">
-                Revisado por <strong>{req.bodega.nombreRevisor}</strong> el {fmtFechaHora(req.bodega.fecha)}
+                Revisado por <strong>{req.bodega.nombreRevisor}</strong>
+                {req.bodega.cargoRevisor ? ` (${req.bodega.cargoRevisor})` : ''} el {fmtFechaHora(req.bodega.fecha)}
               </p>
             )
           )}
@@ -344,6 +361,14 @@ export default function RequerimientoDetallePage() {
         descripcion="Reingresa tu contraseña para confirmar la aprobación de este requerimiento como Financiero."
         onConfirmar={aprobar}
         onCerrar={() => setModalFirma(false)}
+      />
+
+      <ReautenticacionModal
+        abierto={modalFirmaBodega}
+        titulo="Firmar aprobación de Bodega"
+        descripcion="Reingresa tu contraseña para confirmar la aprobación de este requerimiento en Bodega."
+        onConfirmar={aprobarBodega}
+        onCerrar={() => setModalFirmaBodega(false)}
       />
 
       <Modal abierto={modalRechazo} titulo="Rechazar requerimiento" onCerrar={() => setModalRechazo(false)}>
