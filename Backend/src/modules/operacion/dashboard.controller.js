@@ -8,15 +8,38 @@ import Novedad from '../../models/Novedad.js'
 import ObjetoPerdido from '../../models/ObjetoPerdido.js'
 import ReporteDano from '../../models/ReporteDano.js'
 import { filtroScoped } from '../../utils/scope.js'
+import { estaModuloActivo } from '../sistema/sistema.service.js'
+
+// Mapeo: cada tarjeta solo se calcula si su módulo está activo.
+// Las tarjetas sin módulo (ej: misDanosReportados) siempre se incluyen.
+const TARJETA_A_MODULO = {
+  empresas: 'flota',
+  vehiculosActivos: 'flota',
+  conductoresActivos: 'flota',
+  plataformasLibres: 'flota',
+  plataformasOcupadas: 'flota',
+  despachosHoy: 'operacion',
+  despachosEnViaje: 'operacion',
+  despachosRetrasados: 'operacion',
+  novedadesAbiertas: 'operacion',
+  objetosEnCustodia: 'operacion',
+  danosPendientes: 'danos',
+}
 
 // Dashboard único para todos los roles: cada tarjeta se calcula SOLO si el
-// usuario tiene el permiso correspondiente (el frontend pinta lo que llegue).
+// usuario tiene el permiso correspondiente Y el módulo está activo.
 // Así un rol nuevo con otra mezcla de permisos obtiene su dashboard sin tocar
-// este código.
+// este código, y una tarjeta desactivada se excluye automáticamente.
 export async function resumenDashboard(req, res) {
   const { usuario } = req
   const puede = (...codigos) =>
     usuario.esSuperAdmin || codigos.some((c) => usuario.permisos.has(c))
+
+  const puedeMostrarTarjeta = async (clave) => {
+    const moduloRequerido = TARJETA_A_MODULO[clave]
+    if (!moduloRequerido) return true // Sin módulo asociado, siempre se muestra
+    return estaModuloActivo(moduloRequerido)
+  }
 
   const inicioDia = new Date()
   inicioDia.setHours(0, 0, 0, 0)
@@ -40,22 +63,22 @@ export async function resumenDashboard(req, res) {
       tarjetas.usuarios = await Usuario.countDocuments({ estado: 'activo' })
     })
   }
-  if (puede('empresas:gestionar')) {
+  if (puede('empresas:gestionar') && (await puedeMostrarTarjeta('empresas'))) {
     tareas.push(async () => {
       tarjetas.empresas = await Empresa.countDocuments({ estado: 'activo' })
     })
   }
-  if (puede('vehiculos:gestionar', 'vehiculos:consultar')) {
+  if (puede('vehiculos:gestionar', 'vehiculos:consultar') && (await puedeMostrarTarjeta('vehiculosActivos'))) {
     tareas.push(async () => {
       tarjetas.vehiculosActivos = await Vehiculo.countDocuments(filtroScoped(req, { estado: 'activo' }))
     })
   }
-  if (puede('conductores:gestionar', 'conductores:consultar')) {
+  if (puede('conductores:gestionar', 'conductores:consultar') && (await puedeMostrarTarjeta('conductoresActivos'))) {
     tareas.push(async () => {
       tarjetas.conductoresActivos = await Conductor.countDocuments(filtroScoped(req, { estado: 'activo' }))
     })
   }
-  if (puede('plataformas:gestionar', 'plataformas:cambiar')) {
+  if (puede('plataformas:gestionar', 'plataformas:cambiar') && (await puedeMostrarTarjeta('plataformasLibres'))) {
     tareas.push(async () => {
       const [libres, ocupadas] = await Promise.all([
         Plataforma.countDocuments({ estado: 'libre' }),
@@ -65,7 +88,7 @@ export async function resumenDashboard(req, res) {
       tarjetas.plataformasOcupadas = ocupadas
     })
   }
-  if (puede('despachos:registrar_salida', 'despachos:registrar_llegada', 'reportes:ver', 'empresas:ver_estadisticas')) {
+  if (puede('despachos:registrar_salida', 'despachos:registrar_llegada', 'reportes:ver', 'empresas:ver_estadisticas') && (await puedeMostrarTarjeta('despachosHoy'))) {
     tareas.push(async () => {
       const inicioAyer = new Date(inicioDia)
       inicioAyer.setDate(inicioAyer.getDate() - 1)
@@ -83,17 +106,17 @@ export async function resumenDashboard(req, res) {
       tendencias.despachosHoy = { actual: hoy, anterior: ayer }
     })
   }
-  if (puede('novedades:registrar', 'novedades:registrar_incidente', 'novedades:consultar_historial')) {
+  if (puede('novedades:registrar', 'novedades:registrar_incidente', 'novedades:consultar_historial') && (await puedeMostrarTarjeta('novedadesAbiertas'))) {
     tareas.push(async () => {
       tarjetas.novedadesAbiertas = await Novedad.countDocuments({ estado: 'abierta' })
     })
   }
-  if (puede('objetos_perdidos:registrar', 'objetos_perdidos:gestionar')) {
+  if (puede('objetos_perdidos:registrar', 'objetos_perdidos:gestionar') && (await puedeMostrarTarjeta('objetosEnCustodia'))) {
     tareas.push(async () => {
       tarjetas.objetosEnCustodia = await ObjetoPerdido.countDocuments({ estado: 'custodia' })
     })
   }
-  if (puede('danos:gestionar')) {
+  if (puede('danos:gestionar') && (await puedeMostrarTarjeta('danosPendientes'))) {
     tareas.push(async () => {
       // "Pendientes" = todo lo que sigue abierto, no solo lo que aún nadie
       // tomó: desde que existen los estados asignado/en_proceso/en_espera,
