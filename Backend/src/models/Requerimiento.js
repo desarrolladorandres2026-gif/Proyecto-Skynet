@@ -106,8 +106,23 @@ const requerimientoSchema = new mongoose.Schema(
       // perfil después.
       nombreAprobador: { type: String, trim: true },
       cargoAprobador: { type: String, trim: true },
+      // Copia de Usuario.firma tomada en el instante de aprobar, por el mismo
+      // motivo que nombreAprobador/cargoAprobador: un documento ya firmado no
+      // puede cambiar de rúbrica porque después el aprobador registre otra.
+      // El publicId viaja para que perfil.controller.js sepa que este asset
+      // está en uso y no lo destruya al reemplazar la firma del usuario.
+      firma: {
+        url: { type: String, trim: true },
+        urlOriginal: { type: String, trim: true },
+        publicId: { type: String, trim: true },
+      },
       fechaDecision: { type: Date },
       motivoRechazo: { type: String, trim: true },
+      // Nota opcional del aprobador (Dir. Administrativo y Gestión / Admin) al
+      // aprobar — no es obligatoria como analisisTecnico, solo un espacio para
+      // aclaraciones puntuales ("se aprueba solo por 2 unidades", etc.).
+      // Mismo espíritu que bodega.observacion, pero esa es de Bodega.
+      observacion: { type: String, trim: true },
       historialEdiciones: { type: [historialEdicionSchema], default: [] },
     },
 

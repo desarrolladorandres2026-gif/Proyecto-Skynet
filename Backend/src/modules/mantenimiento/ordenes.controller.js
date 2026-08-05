@@ -54,7 +54,7 @@ export async function reanudar(req, res) {
 }
 
 export async function resolver(req, res) {
-  const orden = await service.resolverOrden(req.params.id, req.body, req.usuario)
+  const orden = await service.resolverOrden(req.params.id, req.body, req.usuario, req.file)
   res.json({ orden })
 }
 

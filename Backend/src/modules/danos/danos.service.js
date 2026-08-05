@@ -2,7 +2,7 @@ import ReporteDano from '../../models/ReporteDano.js'
 import Usuario from '../../models/Usuario.js'
 import Rol from '../../models/Rol.js'
 import Permiso from '../../models/Permiso.js'
-import { ErrorNoEncontrado, ErrorValidacion, ErrorConflicto } from '../../utils/errores.js'
+import { ErrorNoEncontrado, ErrorValidacion, ErrorConflicto, ErrorAutorizacion } from '../../utils/errores.js'
 import { notificarUsuarios as _notificarUsuarios } from '../../utils/sendPush.js'
 
 // Categoría fija para todo este módulo (ver notificaciones.catalogo.js):
@@ -20,6 +20,14 @@ export const ESTADOS = ['pendiente', 'asignado', 'en_proceso', 'en_espera', 'res
 export const TIPOS = ['dano', 'novedad', 'sugerencia', 'otro']
 export const PRIORIDADES = ['baja', 'media', 'alta', 'critica']
 export const MOTIVOS_ESPERA = ['repuestos', 'aprobacion', 'informacion', 'apoyo']
+// Dónde se hizo la reparación física — específico del Terminal, se pide al
+// marcar 'resuelto' (ver validarReparacion).
+export const MODULOS_TRABAJO = ['regional', 'centenario', 'modulo_mixto']
+
+// Regla de negocio del Terminal: un técnico nunca debe acumular más de esta
+// cantidad de órdenes activas sin que un supervisor lo autorice a mano
+// (ver asignarAutomaticamente y asignarReporte -> parámetro `forzar`).
+export const MAX_ACTIVAS_TECNICO = 5
 
 // Un reporte "ocupa" a su técnico mientras esté en alguno de estos estados.
 export const ESTADOS_ACTIVOS = ['asignado', 'en_proceso', 'en_espera']
@@ -67,6 +75,15 @@ function idDe(refOPoblado) {
 
 function esSupervisor(actor) {
   return actor.esSuperAdmin === true || actor.permisos?.has(PERMISO_SUPERVISOR) === true
+}
+
+// Quién ve la cola completa (todos los reportes, de cualquier técnico) en vez
+// de solo lo suyo. Es justo el permiso que el rol Mantenimiento YA NO tiene:
+// un técnico raso solo entra a este módulo con mantenimiento:ejecutar, así
+// que esta función es la que traza la línea de "visualización" de la regla
+// de negocio (nunca ver órdenes de otros).
+function puedeVerTodo(actor) {
+  return actor.esSuperAdmin === true || actor.permisos?.has('danos:gestionar') === true
 }
 
 function esElAsignado(reporte, actor) {
@@ -184,15 +201,17 @@ export async function listarTecnicosConCarga() {
  * Decide a QUIÉN se le asigna solo un daño recién reportado, sin intervención
  * del administrador.
  *
- * Regla del Terminal: se reparte solo entre los DESOCUPADOS, y desocupado
- * significa no tener trabajo pendiente — ni ninguna tarea, o solo tareas de
- * baja prioridad (ese es el flag `libre`, ver listarTecnicosConCarga).
- * Si nadie está desocupado devuelve `null`, y entonces el reporte se queda
- * 'pendiente' esperando que el administrador lo asigne a mano.
+ * Regla del Terminal (la única que gobierna el reparto automático): un
+ * técnico con MENOS de MAX_ACTIVAS_TECNICO órdenes activas es candidato a
+ * recibir la nueva automáticamente. `libre` (sin trabajo pendiente, o solo de
+ * baja prioridad — ver listarTecnicosConCarga) ya NO es un requisito para
+ * entrar al reparto: es solo una señal de UI para que el supervisor vea quién
+ * está más disponible al asignar a mano. Si nadie tiene cupo devuelve `null`,
+ * y el reporte se queda 'pendiente' esperando que el administrador lo asigne.
  *
- * Desempate entre varios desocupados:
- *  1. el que menos trabajo tenga encima (`activos`, contando también las de
- *     baja prioridad: entre dos libres, preferimos al que está más suelto),
+ * Desempate entre varios con cupo:
+ *  1. el que menos trabajo tenga encima (`activos`: preferimos al más
+ *     suelto, se acerca menos al tope),
  *  2. y si siguen empatados, el que lleve más tiempo sin recibir nada
  *     (`ultimaAsignacion`) — reparto round-robin, para que no le caiga siempre
  *     todo al primero de la lista. `null` (nunca recibió una asignación) pasa
@@ -203,12 +222,31 @@ export async function listarTecnicosConCarga() {
  * @returns {object|null} el técnico elegido, o null para dejarlo pendiente
  */
 export function elegirTecnicoDisponible(candidatos, reporte) {
-  const disponibles = candidatos.filter((t) => t.libre)
+  const disponibles = candidatos.filter((t) => t.activos < MAX_ACTIVAS_TECNICO)
   if (!disponibles.length) return null
 
-  const desdeCuandoLibre = (t) => (t.ultimaAsignacion ? new Date(t.ultimaAsignacion).getTime() : 0)
-  disponibles.sort((a, b) => a.activos - b.activos || desdeCuandoLibre(a) - desdeCuandoLibre(b))
+  const desdeUltimaAsignacion = (t) => (t.ultimaAsignacion ? new Date(t.ultimaAsignacion).getTime() : 0)
+  disponibles.sort((a, b) => a.activos - b.activos || desdeUltimaAsignacion(a) - desdeUltimaAsignacion(b))
   return disponibles[0]
+}
+
+// Mutación compartida por asignarAutomaticamente (un reporte nuevo) y
+// redistribuirPendientes (uno que ya estaba pendiente y ahora encontró cupo):
+// deja el reporte 'asignado' al elegido y avisa. No hace `save()` de más ni
+// duplica el registro de evento entre los dos casos.
+async function aplicarAsignacionAutomatica(reporte, elegido, nota) {
+  reporte.asignadoA = elegido._id
+  reporte.asignadoPor = null
+  reporte.asignadoEn = new Date()
+  reporte.asignacionAutomatica = true
+  reporte.estado = 'asignado'
+  registrarEvento(reporte, { accion: 'asignado', de: 'pendiente', a: 'asignado', actor: null, nota })
+  await reporte.save()
+
+  await notificarUsuarios([elegido._id], {
+    titulo: 'Nuevo daño asignado automáticamente',
+    cuerpo: `Prioridad ${reporte.prioridad}: ${reporte.descripcion.slice(0, 120)}`,
+  })
 }
 
 // Best-effort: se llama al crear el reporte y NUNCA debe hacer fallar esa
@@ -230,30 +268,44 @@ export async function asignarAutomaticamente(reporte) {
       return reporte
     }
 
-    reporte.asignadoA = elegido._id
-    reporte.asignadoPor = null
-    reporte.asignadoEn = new Date()
-    reporte.asignacionAutomatica = true
-    reporte.estado = 'asignado'
-    registrarEvento(reporte, {
-      accion: 'asignado',
-      de: 'pendiente',
-      a: 'asignado',
-      actor: null,
-      nota: `Asignación automática a ${elegido.nombre} (estaba disponible).`,
-    })
-    await reporte.save()
-
-    await notificarUsuarios([elegido._id], {
-      titulo: 'Nuevo daño asignado automáticamente',
-      cuerpo: `Prioridad ${reporte.prioridad}: ${reporte.descripcion.slice(0, 120)}`,
-    })
+    await aplicarAsignacionAutomatica(reporte, elegido, `Asignación automática a ${elegido.nombre} (estaba disponible).`)
   } catch (err) {
     // El reporte ya está creado y visible; que el reparto falle solo significa
     // que se queda pendiente de asignación manual.
     console.error('Falló la asignación automática del reporte', String(reporte._id), err.message)
   }
   return reporte
+}
+
+// Se llama cada vez que alguien libera cupo (resuelve/cancela una tarea) o
+// libera un reporte (vuelve a 'pendiente'): sin esto, un daño solo se
+// repartía en el instante en que se CREABA, y uno que se hubiera quedado
+// pendiente por falta de cupo podía quedarse ahí para siempre aunque un
+// técnico terminara trabajo después y le sobrara espacio. Recorre los
+// pendientes más urgentes primero y les busca cupo con el mismo criterio de
+// elegirTecnicoDisponible, actualizando la carga en memoria en cada vuelta
+// para no mandarle de golpe más de MAX_ACTIVAS_TECNICO al mismo técnico.
+export async function redistribuirPendientes() {
+  try {
+    const pendientes = await ReporteDano.find({ estado: 'pendiente', tipo: { $in: TIPOS_AUTOASIGNABLES } })
+    if (!pendientes.length) return
+    ordenarPorUrgencia(pendientes)
+
+    const candidatos = await listarTecnicosConCarga()
+    if (!candidatos.length) return
+
+    for (const reporte of pendientes) {
+      const elegido = elegirTecnicoDisponible(candidatos, reporte)
+      if (!elegido) continue // nadie con cupo todavía; sigue pendiente
+
+      await aplicarAsignacionAutomatica(reporte, elegido, `Asignación automática a ${elegido.nombre} (se liberó cupo).`)
+      // Refleja de inmediato la nueva carga del elegido para que el siguiente
+      // pendiente en la lista no se le vuelva a ofrecer si ya llegó al tope.
+      elegido.activos += 1
+    }
+  } catch (err) {
+    console.error('Falló la redistribución automática de pendientes', err.message)
+  }
 }
 
 // ── Consulta ─────────────────────────────────────────────────────────────
@@ -289,8 +341,14 @@ export async function listarReportes({ estado, tipo, asignado, prioridad } = {},
     if (!PRIORIDADES.includes(prioridad)) throw new ErrorValidacion(`prioridad debe ser una de: ${PRIORIDADES.join(', ')}`)
     filtro.prioridad = prioridad
   }
-  // 'mi' = mi cola de trabajo; 'sin' = lo que nadie ha tomado todavía.
-  if (asignado === 'mi') filtro.asignadoA = actor.id_usuario
+
+  // Un técnico raso (sin danos:gestionar) SOLO puede ver lo suyo — nunca la
+  // cola completa ni el trabajo de un compañero. Se fuerza el filtro y se
+  // ignora cualquier `asignado` que haya mandado el cliente: no es un detalle
+  // de UI, es la regla de negocio ("nunca visualizar órdenes de otros").
+  if (!puedeVerTodo(actor)) {
+    filtro.asignadoA = actor.id_usuario
+  } else if (asignado === 'mi') filtro.asignadoA = actor.id_usuario
   else if (asignado === 'sin') filtro.asignadoA = null
   else if (asignado) filtro.asignadoA = asignado
 
@@ -302,21 +360,27 @@ export async function listarReportes({ estado, tipo, asignado, prioridad } = {},
 
   ordenarPorUrgencia(reportes)
 
-  const porEstado = await ReporteDano.aggregate([{ $group: { _id: '$estado', n: { $sum: 1 } } }])
+  // El resumen de contadores respeta el mismo alcance que la lista: un
+  // técnico ve cuántas de LAS SUYAS están en cada estado, no el total del
+  // Terminal (eso es información de supervisión).
+  const porEstado = await ReporteDano.aggregate([
+    { $match: puedeVerTodo(actor) ? {} : { asignadoA: actor.id_usuario } },
+    { $group: { _id: '$estado', n: { $sum: 1 } } },
+  ])
   const resumen = Object.fromEntries(ESTADOS.map((e) => [e, 0]))
   for (const fila of porEstado) resumen[fila._id] = fila.n
   // sinAsignar responde "¿cuánto está esperando que yo lo reparta?", que es la
   // cifra que le importa al administrador y no se deduce de resumen.pendiente
   // (un reporte cancelado o reabierto también puede quedar sin responsable).
-  resumen.sinAsignar = await ReporteDano.countDocuments({
-    asignadoA: null,
-    estado: { $nin: ['resuelto', 'cancelado'] },
-  })
+  // No aplica a un técnico: él no reparte trabajo, así que se deja en 0.
+  resumen.sinAsignar = puedeVerTodo(actor)
+    ? await ReporteDano.countDocuments({ asignadoA: null, estado: { $nin: ['resuelto', 'cancelado'] } })
+    : 0
 
   return { reportes, resumen }
 }
 
-export async function obtenerReporte(id) {
+export async function obtenerReporte(id, actor) {
   const reporte = await ReporteDano.findById(id)
     .populate(POPULATE_REPORTANTE)
     .populate(POPULATE_ASIGNADO)
@@ -324,6 +388,12 @@ export async function obtenerReporte(id) {
     .populate({ path: 'asignadoPor', select: 'nombre nombre_usuario' })
     .populate({ path: 'requerimientos', select: 'tipo estado createdAt bodega.estado' })
   if (!reporte) throw new ErrorNoEncontrado('Reporte no encontrado')
+  // `actor` es opcional porque también se llama internamente (p. ej. al
+  // final de asignarReporte/cambiarEstadoReporte) donde el permiso ya se
+  // verificó antes de llegar aquí.
+  if (actor && !puedeVerTodo(actor) && !esElAsignado(reporte, actor)) {
+    throw new ErrorAutorizacion('No puedes consultar un reporte que no tienes asignado')
+  }
   return reporte
 }
 
@@ -340,7 +410,7 @@ async function validarTecnico(tecnicoId) {
   return usuario
 }
 
-export async function asignarReporte(id, { tecnicoId, nota }, actor) {
+export async function asignarReporte(id, { tecnicoId, nota, forzar }, actor) {
   if (!tecnicoId) throw new ErrorValidacion('tecnicoId es obligatorio')
 
   const reporte = await ReporteDano.findById(id)
@@ -361,6 +431,20 @@ export async function asignarReporte(id, { tecnicoId, nota }, actor) {
   const anterior = reporte.asignadoA ? String(idDe(reporte.asignadoA)) : null
   if (anterior === String(tecnico._id)) {
     throw new ErrorConflicto(`El reporte ya está asignado a ${tecnico.nombre}`)
+  }
+
+  // Tope de carga (regla del Terminal): nadie cruza las MAX_ACTIVAS_TECNICO
+  // sin que un supervisor lo autorice explícitamente con `forzar`. El reparto
+  // automático (asignarAutomaticamente) ya respeta este techo sin necesidad
+  // de override porque simplemente no elige a alguien saturado.
+  const activasDelTecnico = await ReporteDano.countDocuments({
+    asignadoA: tecnico._id,
+    estado: { $in: ESTADOS_QUE_OCUPAN },
+  })
+  if (activasDelTecnico >= MAX_ACTIVAS_TECNICO && !forzar) {
+    throw new ErrorConflicto(
+      `${tecnico.nombre} ya tiene ${activasDelTecnico} órdenes activas (máximo ${MAX_ACTIVAS_TECNICO} sin autorización). Confirma para asignar de todas formas.`
+    )
   }
 
   const estadoAnterior = reporte.estado
@@ -407,7 +491,7 @@ export async function asignarReporte(id, { tecnicoId, nota }, actor) {
 
 // ── Cambio de estado ─────────────────────────────────────────────────────
 
-export async function cambiarEstadoReporte(id, { estado, nota, motivoEspera, prioridad }, actor) {
+export async function cambiarEstadoReporte(id, { estado, nota, motivoEspera, prioridad, reparacion }, actor) {
   if (!ESTADOS.includes(estado)) {
     throw new ErrorValidacion(`estado debe ser uno de: ${ESTADOS.join(', ')}`)
   }
@@ -425,6 +509,13 @@ export async function cambiarEstadoReporte(id, { estado, nota, motivoEspera, pri
   // puede intervenir cualquier reporte (destrabar, cancelar, reabrir).
   if (!esSupervisor(actor) && !esElAsignado(reporte, actor)) {
     throw new ErrorConflicto('Solo el técnico asignado o un supervisor pueden cambiar el estado de este reporte')
+  }
+
+  // Volver a 'pendiente' es "liberar": suelta el reporte de su responsable y
+  // lo devuelve a la cola. Es, en el fondo, una reasignación — el técnico no
+  // puede reasignar ni liberar su propio trabajo, solo un supervisor.
+  if (estado === 'pendiente' && !esSupervisor(actor)) {
+    throw new ErrorConflicto('Solo un supervisor puede liberar o reasignar este reporte')
   }
 
   if (estado === 'en_espera') {
@@ -446,6 +537,24 @@ export async function cambiarEstadoReporte(id, { estado, nota, motivoEspera, pri
   if (prioridad) {
     if (!PRIORIDADES.includes(prioridad)) throw new ErrorValidacion(`prioridad debe ser una de: ${PRIORIDADES.join(', ')}`)
     reporte.prioridad = prioridad
+  }
+
+  // Marcar "Reparado" exige la prueba completa: sin fecha, sin módulo o sin
+  // al menos una foto, la orden NO puede finalizarse (regla de negocio
+  // explícita del Terminal, no solo una recomendación de UI).
+  if (estado === 'resuelto') {
+    const fecha = reparacion?.fecha ? new Date(reparacion.fecha) : null
+    if (!fecha || Number.isNaN(fecha.getTime())) {
+      throw new ErrorValidacion('La fecha de la reparación es obligatoria')
+    }
+    if (!MODULOS_TRABAJO.includes(reparacion?.modulo)) {
+      throw new ErrorValidacion(`El módulo donde se hizo el trabajo debe ser uno de: ${MODULOS_TRABAJO.join(', ')}`)
+    }
+    const evidencias = reparacion?.evidenciasNuevas || []
+    if (evidencias.length === 0) {
+      throw new ErrorValidacion('Debes adjuntar al menos una foto de evidencia de la reparación')
+    }
+    reporte.reparacion = { fecha, modulo: reparacion.modulo, evidencias }
   }
 
   // Se guarda ANTES de limpiarlo: al liberar, el técnico al que se le quita el
@@ -476,10 +585,24 @@ export async function cambiarEstadoReporte(id, { estado, nota, motivoEspera, pri
 
   await auditar(actor, 'cambiar_estado', reporte, `Reporte de ${estadoAnterior} a ${estado}`, {
     antes: { estado: estadoAnterior },
-    despues: { estado, motivoEspera: reporte.motivoEspera },
+    despues: {
+      estado,
+      motivoEspera: reporte.motivoEspera,
+      ...(estado === 'resuelto' ? { reparacion: { fecha: reporte.reparacion.fecha, modulo: reporte.reparacion.modulo, evidencias: reporte.reparacion.evidencias.length } } : {}),
+    },
   })
 
   await notificarCambioEstado(reporte, estadoAnterior, estado, nota, actor, responsablePrevio)
+
+  // Resolver o cancelar libera un cupo del técnico; volver a 'pendiente' pone
+  // un reporte de vuelta en la cola. En los tres casos puede haber (este u
+  // otro) daño pendiente esperando espacio — se intenta repartir de una vez
+  // en lugar de esperar a que llegue un reporte nuevo (ver
+  // redistribuirPendientes). Best-effort: nunca debe tumbar esta respuesta.
+  if (['resuelto', 'cancelado', 'pendiente'].includes(estado)) {
+    await redistribuirPendientes()
+  }
+
   return obtenerReporte(reporte._id)
 }
 

@@ -37,12 +37,14 @@ export async function estaModuloActivo(key) {
 // Upserta los módulos declarados en modulos.data.js y los permisos que falten
 // de rbac.data.js: un módulo o permiso nuevo en código aparece en la BD al
 // primer arranque, sin reejecutar seeds. Nunca pisa el estado `activo` ni los
-// permisos ya asignados a los roles.
+// permisos ya asignados a los roles. También borra de ModuloSistema los que
+// ya no estén en MODULOS_SISTEMA (p. ej. módulos eliminados del código).
 export async function sincronizarCatalogoSistema() {
   try {
     for (const modulo of MODULOS_SISTEMA) {
       await repo.upsertCatalogo(modulo)
     }
+    await repo.eliminarNoListados(MODULOS_SISTEMA.map((m) => m.key))
     for (const p of PERMISOS) {
       await Permiso.updateOne({ codigo: p.codigo }, { $setOnInsert: p }, { upsert: true })
     }

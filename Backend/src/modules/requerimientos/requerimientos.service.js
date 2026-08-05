@@ -1,13 +1,32 @@
 import Requerimiento from '../../models/Requerimiento.js'
 import Usuario from '../../models/Usuario.js'
+import Rol from '../../models/Rol.js'
 import { ErrorNoEncontrado, ErrorValidacion, ErrorConflicto } from '../../utils/errores.js'
 import { reautenticar } from '../../utils/reautenticacion.js'
+import { registrarAuditoria } from '../../utils/auditoria.js'
 import { vincularRequerimiento } from '../danos/danos.service.js'
 import { usuariosConPermiso } from '../mantenimiento/comun.js'
 import { notificarUsuarios as _notificarUsuarios } from '../../utils/sendPush.js'
 import { obtenerRequerimiento, puedeVer, auditar } from './comun.js'
 
+// pendiente = "pendiente por despachar" (recién llega de Financiero),
+// aprobada = "despachado", no_aprobada = "no se puede despachar" (exige
+// observacion, ver marcarEstadoBodega). Nombres internos sin tocar para no
+// migrar datos existentes — el frontend traduce las etiquetas (ver
+// RequerimientoDetallePage.jsx/BandejaBodegaPage.jsx).
 const ESTADOS_BODEGA = ['pendiente', 'aprobada', 'no_aprobada']
+
+// Cuando Bodega marca "no se puede despachar", además del solicitante se
+// avisa a quien puede actuar sobre el bloqueo: Financiero (que aprobó la
+// compra) y Admin/Super Admin (supervisión de toda la operación).
+async function usuariosAdminYFinanciero() {
+  const [rolesAdmin, financieros] = await Promise.all([
+    Rol.find({ $or: [{ esSuperAdmin: true }, { slug: 'administrador' }] }).select('_id'),
+    usuariosConPermiso('requerimientos:aprobar_financiero'),
+  ])
+  const admins = await Usuario.find({ rol: { $in: rolesAdmin.map((r) => r._id) }, estado: 'activo' }).select('_id')
+  return [...admins.map((u) => u._id), ...financieros]
+}
 
 // Categoría fija para todo este módulo (ver notificaciones.catalogo.js).
 // Requerimientos es el primer flujo conectado end-to-end al motor nuevo de
@@ -189,25 +208,50 @@ export async function aprobarComoFinanciero(id, body, usuarioActor) {
   // si falla, no debe quedar ningún efecto secundario a medias.
   await reautenticar(usuarioActor.id_usuario, body?.password)
 
-  aplicarEdicionFinanciero(doc, body || {}, usuarioActor)
+  const aprobador = await Usuario.findById(usuarioActor.id_usuario).select('nombre cargo firma')
 
-  const aprobador = await Usuario.findById(usuarioActor.id_usuario).select('nombre cargo')
+  // Aprobar sin rúbrica registrada dejaría el bloque de firma del PDF vacío:
+  // el documento quedaría aprobado pero visualmente sin firmar, que es
+  // justamente lo que este flujo debe garantizar. Se corta antes de mutar
+  // nada, igual que la reautenticación.
+  if (!aprobador?.firma?.url) {
+    throw new ErrorValidacion(
+      'No tienes una firma registrada. Regístrala en Requerimientos → Mi firma antes de aprobar.'
+    )
+  }
+
+  aplicarEdicionFinanciero(doc, body || {}, usuarioActor)
 
   doc.financiero.aprobadoPor = usuarioActor.id_usuario
   doc.financiero.nombreAprobador = aprobador?.nombre || usuarioActor.nombre_usuario
   doc.financiero.cargoAprobador = aprobador?.cargo || ''
+  // Snapshot, no referencia: si mañana el aprobador cambia su firma, este
+  // documento conserva la rúbrica con la que realmente se firmó.
+  doc.financiero.firma = {
+    url: aprobador.firma.url,
+    urlOriginal: aprobador.firma.urlOriginal,
+    publicId: aprobador.firma.publicId,
+  }
   doc.financiero.fechaDecision = new Date()
   doc.financiero.motivoRechazo = undefined
+  // Opcional: "de ser necesario". No confundir con analisisTecnico (campo
+  // formal del formato, editable desde antes de aprobar) — esto es una
+  // aclaración puntual que el aprobador puede dejar justo al firmar.
+  if (body?.observacion !== undefined) doc.financiero.observacion = String(body.observacion).trim()
   doc.estado = 'pendiente_bodega'
   doc.bodega.estado = 'pendiente'
 
   await doc.save()
-  await auditar(usuarioActor, 'aprobar_financiero', doc, 'Financiero aprobó el requerimiento (firma con reautenticación)')
+  await auditar(usuarioActor, 'aprobar_financiero', doc, 'Financiero aprobó el requerimiento (firma con reautenticación)', {
+    observacion: doc.financiero.observacion || undefined,
+  })
 
   const bodega = await usuariosConPermiso('requerimientos:gestionar_bodega')
   notificarUsuarios(bodega, {
     title: 'Requerimiento aprobado por Financiero',
-    body: `Pendiente de gestionar en Bodega (${doc.tipo})`,
+    // Si el aprobador dejó una nota, Bodega la ve de una vez en la
+    // notificación (es la principal destinataria de esa aclaración).
+    body: doc.financiero.observacion || `Pendiente de gestionar en Bodega (${doc.tipo})`,
     url: `/requerimientos/${doc._id}`,
   }).catch((err) => console.error('Error notificando aprobación financiera:', err.message))
 
@@ -257,9 +301,17 @@ export async function marcarEstadoBodega(id, { estado, observacion, password } =
   if (!ESTADOS_BODEGA.includes(estado)) {
     throw new ErrorValidacion(`estado debe ser uno de: ${ESTADOS_BODEGA.join(', ')}`)
   }
+  // "No se puede despachar" sin motivo deja al solicitante (y a quien deba
+  // resolver el bloqueo) sin ninguna pista de qué pasó.
+  if (estado === 'no_aprobada' && !observacion?.trim()) {
+    throw new ErrorValidacion('Debes indicar el motivo por el cual no se puede despachar')
+  }
 
-  // Firma digital solo para la decisión afirmativa, mismo criterio que
-  // aprobarComoFinanciero: "no aprobada" y "pendiente" no exigen reautenticación.
+  // Reautenticación solo para la decisión afirmativa, mismo criterio que
+  // aprobarComoFinanciero: "no aprobada" y "pendiente" no exigen
+  // reautenticación. A diferencia de Financiero, esto NO es una firma
+  // digital (Bodega no tiene rúbrica): solo confirma identidad antes de
+  // registrar el despacho — ver dibujarBloquesFirma en requerimientoPdf.js.
   if (estado === 'aprobada') {
     await reautenticar(usuarioActor.id_usuario, password)
   }
@@ -277,13 +329,22 @@ export async function marcarEstadoBodega(id, { estado, observacion, password } =
   await auditar(usuarioActor, 'marcar_estado_bodega', doc, `Bodega marcó el requerimiento como "${estado}"`)
 
   // 'pendiente' es el estado de entrada (Bodega aún gestionando): no es una
-  // decisión que le interese al solicitante todavía.
-  if (estado === 'aprobada' || estado === 'no_aprobada') {
+  // decisión que le interese a nadie todavía.
+  if (estado === 'aprobada') {
     notificarUsuarios([doc.solicitante], {
-      title: estado === 'aprobada' ? 'Requerimiento aprobado en Bodega' : 'Requerimiento no aprobado en Bodega',
-      body: doc.bodega.observacion || `Tu requerimiento fue marcado como "${estado}"`,
+      title: 'Requerimiento despachado',
+      body: doc.bodega.observacion || 'Tu requerimiento fue despachado por Bodega',
       url: `/requerimientos/${doc._id}`,
-    }).catch((err) => console.error('Error notificando decisión de bodega:', err.message))
+    }).catch((err) => console.error('Error notificando despacho de bodega:', err.message))
+  } else if (estado === 'no_aprobada') {
+    // No se puede despachar: además del solicitante, se avisa a quien puede
+    // actuar sobre el bloqueo (Financiero y Admin/Super Admin).
+    const destinatarios = await usuariosAdminYFinanciero()
+    notificarUsuarios([doc.solicitante, ...destinatarios], {
+      title: 'Requerimiento no se pudo despachar',
+      body: doc.bodega.observacion,
+      url: `/requerimientos/${doc._id}`,
+    }).catch((err) => console.error('Error notificando bloqueo de despacho:', err.message))
   }
 
   return obtenerRequerimiento(doc._id)
@@ -349,6 +410,140 @@ export function listarTodos({ estado, tipo } = {}) {
     .populate('financiero.aprobadoPor', 'nombre nombre_usuario')
     .populate('bodega.revisadoPor', 'nombre nombre_usuario')
     .sort({ createdAt: -1 })
+}
+
+// ── Exportar / purgar por rango de fechas ──────────────────────────────────
+// Ambas comparten el mismo filtro (fechaSolicitud entre desde y hasta, ambos
+// límites inclusive): es el campo que la UI ya muestra como "Fecha" en cada
+// bandeja, así que exportar/borrar "del 1 al 31" se corresponde con lo que
+// el usuario ve en pantalla, no con createdAt (metadato técnico).
+function rangoFechas({ desde, hasta } = {}) {
+  if (!desde || !hasta) throw new ErrorValidacion('Debes indicar fecha de inicio y fecha de fin')
+  // Todo en UTC explícito (T00:00:00.000Z), nunca vía setHours(): setHours
+  // opera en la zona horaria LOCAL del proceso Node, así que sobre un Date
+  // parseado como UTC ("2026-01-25" → medianoche UTC) el límite de "hasta"
+  // se corría varias horas dependiendo de dónde corra el servidor — en
+  // UTC-5 llegaba a excluir todo el día. $lt del día siguiente evita
+  // depender de la zona horaria del host por completo.
+  const inicio = new Date(`${desde}T00:00:00.000Z`)
+  const finExclusivo = new Date(`${hasta}T00:00:00.000Z`)
+  if (Number.isNaN(inicio.getTime()) || Number.isNaN(finExclusivo.getTime())) {
+    throw new ErrorValidacion('Las fechas no son válidas')
+  }
+  finExclusivo.setUTCDate(finExclusivo.getUTCDate() + 1)
+  if (inicio >= finExclusivo) throw new ErrorValidacion('La fecha de inicio no puede ser posterior a la de fin')
+  return { $gte: inicio, $lt: finExclusivo }
+}
+
+// "CSV Formula Injection": si una celda empieza con =, +, -, @, tab o CR,
+// Excel/Sheets la interpreta como fórmula al abrir el archivo — un
+// descripcionProducto tipo "=cmd|'/c calc'!A1" (dato de usuario, no
+// controlado) ejecutaría código en la máquina de quien abre el export. El
+// apóstrofe inicial fuerza a leerlo como texto plano en ambos programas.
+function csvEscapar(valor) {
+  let texto = valor === null || valor === undefined ? '' : String(valor)
+  if (/^[=+\-@\t\r]/.test(texto)) texto = `'${texto}`
+  return /[",\n\r]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto
+}
+
+const ENCABEZADOS_CSV = [
+  'ID', 'Fecha solicitud', 'Tipo', 'Solicitante', 'Cargo solicitante', 'Área/Proceso',
+  'Estado', 'Estado Bodega', 'Aprobado/Rechazado por (Financiero)', 'Fecha decisión Financiero',
+  'Motivo rechazo', 'Revisado por (Bodega)', 'Fecha Bodega', 'Observación Bodega',
+  'Ítems (compra)', 'Detalle (servicio)',
+]
+
+function filaCsv(r) {
+  const items = r.tipo === 'compra'
+    ? (r.itemsCompra || []).map((it) => `${it.descripcionProducto} x${it.cantidad}${it.destino ? ` (${it.destino})` : ''}`).join(' | ')
+    : ''
+  const detalleServicio = r.tipo === 'servicio'
+    ? [r.detalleServicio?.descripcionTipoServicio, r.detalleServicio?.competencia, r.detalleServicio?.laboresADesarrollar, r.detalleServicio?.requisitosSST]
+        .filter(Boolean)
+        .join(' | ')
+    : ''
+  const campos = [
+    r._id,
+    fmtFechaCsv(r.fechaSolicitud),
+    r.tipo,
+    r.solicitante?.nombre || '',
+    r.cargoSolicitante || '',
+    r.areaOProceso || '',
+    r.estado,
+    r.estado === 'pendiente_bodega' ? r.bodega?.estado || '' : '',
+    r.financiero?.nombreAprobador || '',
+    fmtFechaCsv(r.financiero?.fechaDecision),
+    r.financiero?.motivoRechazo || '',
+    r.bodega?.nombreRevisor || '',
+    fmtFechaCsv(r.bodega?.fecha),
+    r.bodega?.observacion || '',
+    items,
+    detalleServicio,
+  ]
+  return campos.map(csvEscapar).join(',')
+}
+
+function fmtFechaCsv(valor) {
+  if (!valor) return ''
+  const d = new Date(valor)
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10)
+}
+
+// Mismo alcance que cada bandeja ya aplica en su listado (listarBandejaFinanciero/
+// listarBandejaBodega/listarTodos) — exportar es una lectura más de lo que
+// ese rol ya puede ver, NUNCA una vía para leer lo que su bandeja no
+// muestra. Sin esto, un Financiero (sin ver_todos) podía exportar
+// requerimientos ya rechazados o en Bodega de cualquier solicitante, no solo
+// los que tiene pendientes de aprobar.
+function filtroAlcanceExport(usuarioActor) {
+  if (usuarioActor.esSuperAdmin || usuarioActor.permisos?.has('requerimientos:ver_todos')) {
+    return {}
+  }
+  const or = []
+  if (usuarioActor.permisos?.has('requerimientos:aprobar_financiero')) or.push({ estado: 'pendiente_financiero' })
+  if (usuarioActor.permisos?.has('requerimientos:gestionar_bodega')) or.push({ estado: 'pendiente_bodega' })
+  if (or.length === 0) throw new ErrorConflicto('No tienes acceso a exportar requerimientos')
+  return or.length === 1 ? or[0] : { $or: or }
+}
+
+export async function exportarCsv({ desde, hasta } = {}, usuarioActor) {
+  const filtro = { fechaSolicitud: rangoFechas({ desde, hasta }), ...filtroAlcanceExport(usuarioActor) }
+  const lista = await Requerimiento.find(filtro)
+    .populate('solicitante', 'nombre nombre_usuario')
+    .populate('financiero.aprobadoPor', 'nombre')
+    .populate('bodega.revisadoPor', 'nombre')
+    .sort({ fechaSolicitud: 1 })
+    .lean()
+
+  // BOM al inicio: sin esto, Excel en Windows (el consumidor esperado de
+  // este CSV) interpreta acentos/ñ como caracteres corruptos al abrir el
+  // archivo por doble clic en vez de detectar UTF-8.
+  const bom = '﻿'
+  const filas = [ENCABEZADOS_CSV.join(','), ...lista.map(filaCsv)]
+  return { csv: bom + filas.join('\r\n'), total: lista.length }
+}
+
+// SuperAdmin únicamente (ver requerimientos.routes.js: soloAdmin). Exige
+// reautenticación por el mismo motivo que aprobar/despachar: es la única
+// operación de todo el módulo que borra datos en vez de mutar estado, y no
+// hay "deshacer".
+export async function eliminarPorRangoFecha({ desde, hasta, password } = {}, usuarioActor) {
+  await reautenticar(usuarioActor.id_usuario, password)
+  const filtro = { fechaSolicitud: rangoFechas({ desde, hasta }) }
+
+  const total = await Requerimiento.countDocuments(filtro)
+  const resultado = await Requerimiento.deleteMany(filtro)
+
+  await registrarAuditoria({
+    usuario: usuarioActor,
+    accion: 'eliminar_masivo',
+    modulo: 'requerimientos',
+    entidad: 'Requerimiento',
+    descripcion: `Eliminó ${resultado.deletedCount} requerimiento(s) con fecha entre ${desde} y ${hasta}`,
+    cambios: { desde, hasta, total },
+  })
+
+  return { eliminados: resultado.deletedCount }
 }
 
 export async function obtenerDetalle(id, usuarioActor) {

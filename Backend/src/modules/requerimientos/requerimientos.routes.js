@@ -1,10 +1,11 @@
-import { verificarToken } from '../../middleware/auth.js'
+import { verificarToken, soloAdmin } from '../../middleware/auth.js'
 import { requierePermiso } from '../../middleware/permisos.js'
 import { requiereModuloActivo } from '../../middleware/moduloActivo.js'
 import { safeRouter } from '../../middleware/safeRouter.js'
 import {
   crear, misRequerimientos, bandejaFinanciero, bandejaBodega, listarTodos, detalle,
   editarFinanciero, aprobarFinanciero, rechazarFinanciero, marcarEstadoBodega, marcarControlRecibido,
+  exportar, eliminarPorRango,
 } from './requerimientos.controller.js'
 
 // Crear un requerimiento y ver los propios son capacidad universal (igual
@@ -21,6 +22,18 @@ router.get('/', requierePermiso('requerimientos:ver_todos'), listarTodos)
 router.get('/mios', misRequerimientos)
 router.get('/financiero', requierePermiso('requerimientos:aprobar_financiero'), bandejaFinanciero)
 router.get('/bodega', requierePermiso('requerimientos:gestionar_bodega'), bandejaBodega)
+// Mismos 3 permisos que gobiernan las bandejas de Bodega/Financiero y la
+// vista de supervisión — exportar un rango de fechas no es una acción de
+// gestión nueva, es una lectura más de lo que cada uno ya puede ver.
+router.get(
+  '/exportar',
+  requierePermiso('requerimientos:aprobar_financiero', 'requerimientos:gestionar_bodega', 'requerimientos:ver_todos'),
+  exportar
+)
+// Purga masiva por rango de fechas: exclusiva de Super Admin (no hay
+// permiso RBAC para esto — es una operación de mantenimiento de la
+// plataforma, no de negocio). soloAdmin ya cubre el bypass de esSuperAdmin.
+router.delete('/', soloAdmin, eliminarPorRango)
 router.get('/:id', detalle)
 
 router.patch('/:id/financiero', requierePermiso('requerimientos:aprobar_financiero'), editarFinanciero)

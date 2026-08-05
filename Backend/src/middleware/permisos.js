@@ -14,7 +14,7 @@ export function requierePermiso(...codigos) {
 
 // Complementa a requierePermiso para el scoping multi-tenant de "Empresa
 // Transportadora" (y cualquier rol futuro con ambito:'empresa'). Los módulos
-// de Fase 1+ (vehículos, conductores, rutas, horarios) lo montan tras
+// de Fase 1+ (vehículos, rutas, horarios) lo montan tras
 // verificarToken y usan req.scope en su repository para filtrar/forzar la
 // empresa del usuario. El Service de cada módulo debe ignorar/sobrescribir
 // cualquier empresaId que venga en el body — nunca confiar en el cliente

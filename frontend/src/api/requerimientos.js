@@ -26,7 +26,7 @@ export const requerimientos = {
   editarFinanciero(id, cambios) {
     return request(`/requerimientos/${id}/financiero`, { method: 'PATCH', body: JSON.stringify(cambios) })
   },
-  // body: { password, comentario?, areaOProceso?, itemsCompra?, detalleServicio?, analisisTecnico? }
+  // body: { password, comentario?, areaOProceso?, itemsCompra?, detalleServicio?, analisisTecnico?, observacion? }
   aprobarFinanciero(id, body) {
     return request(`/requerimientos/${id}/financiero/aprobar`, { method: 'POST', body: JSON.stringify(body) })
   },
@@ -36,7 +36,8 @@ export const requerimientos = {
       body: JSON.stringify({ motivoRechazo }),
     })
   },
-  // password solo es obligatorio cuando estado === 'aprobada' (es la "firma").
+  // password solo es obligatorio cuando estado === 'aprobada' (reautenticación
+  // de identidad — Bodega no firma digitalmente el documento).
   marcarEstadoBodega(id, estado, observacion, password) {
     return request(`/requerimientos/${id}/bodega/estado`, {
       method: 'PATCH',
@@ -47,6 +48,28 @@ export const requerimientos = {
     return request(`/requerimientos/${id}/bodega/items/${itemId}/recibido`, {
       method: 'PATCH',
       body: JSON.stringify({ recibido, observacion }),
+    })
+  },
+  // No usa request() de client.js: esa función siempre espera JSON
+  // (`res.json()`), y esto es una descarga de archivo binario/texto plano
+  // con su propio Content-Disposition. Comparte igual credentials:'include'
+  // porque la sesión es la misma cookie httpOnly.
+  async exportar(desde, hasta) {
+    const BASE = import.meta.env.VITE_API_URL || '/api'
+    const params = new URLSearchParams({ desde, hasta })
+    const res = await fetch(`${BASE}/requerimientos/exportar?${params}`, { credentials: 'include' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      throw new Error(data?.error || `Error ${res.status}`)
+    }
+    const blob = await res.blob()
+    const nombreCabecera = res.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1]
+    return { blob, nombre: nombreCabecera || `requerimientos_${desde}_a_${hasta}.csv` }
+  },
+  eliminarPorRango(desde, hasta, password) {
+    return request('/requerimientos', {
+      method: 'DELETE',
+      body: JSON.stringify({ desde, hasta, password }),
     })
   },
 }

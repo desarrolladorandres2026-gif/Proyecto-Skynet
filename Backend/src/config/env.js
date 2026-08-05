@@ -37,4 +37,9 @@ export const env = {
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+  // Copiloto (IA): API key gratuita de Google AI Studio. Opcional a
+  // propósito (no está en `required`) — sin ella el módulo "copiloto" sigue
+  // activable pero /copiloto/chat responde un error claro en vez de tumbar
+  // el arranque del servidor, igual que Cloudinary.
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
 }

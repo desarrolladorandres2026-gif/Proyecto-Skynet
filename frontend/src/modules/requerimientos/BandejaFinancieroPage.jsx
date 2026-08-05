@@ -1,28 +1,50 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Landmark } from 'lucide-react'
+import { Landmark, Download } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
-import { Card, ErrorMsg, TablaWrap, Th, Td, EmptyState, fmtFechaHora } from '../../components/ui.jsx'
+import { Btn, Card, ErrorMsg, TablaWrap, Th, Td, EmptyState, fmtFechaHora } from '../../components/ui.jsx'
+import ExportarRequerimientosModal from './ExportarRequerimientosModal.jsx'
+import { useAutoRefresh } from '../../hooks/useAutoRefresh.js'
 
 export default function BandejaFinancieroPage() {
   const [lista, setLista] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
+  const [modalExportar, setModalExportar] = useState(false)
+
+  const cargar = useCallback((silencioso = false) => {
+    if (!silencioso) setCargando(true)
+    return requerimientosApi
+      .bandejaFinanciero()
+      .then((data) => {
+        setLista(data.requerimientos)
+        if (!silencioso) setError('')
+      })
+      .catch((err) => {
+        if (!silencioso) setError(err.message)
+      })
+      .finally(() => {
+        if (!silencioso) setCargando(false)
+      })
+  }, [])
 
   useEffect(() => {
-    requerimientosApi
-      .bandejaFinanciero()
-      .then((data) => setLista(data.requerimientos))
-      .catch((err) => setError(err.message))
-      .finally(() => setCargando(false))
-  }, [])
+    cargar()
+  }, [cargar])
+
+  useAutoRefresh(() => cargar(true))
 
   return (
     <div className="mx-auto max-w-5xl">
-      <h1 className="panel-mono mb-4 flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-        <Landmark className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
-        Bandeja Financiero — pendientes de aprobación
-      </h1>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
+          <Landmark className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+          Bandeja Financiero — pendientes de aprobación
+        </h1>
+        <Btn variante="secundario" onClick={() => setModalExportar(true)} className="flex items-center gap-1.5">
+          <Download className="h-4 w-4" aria-hidden="true" /> Exportar
+        </Btn>
+      </div>
 
       <ErrorMsg>{error}</ErrorMsg>
 
@@ -61,6 +83,8 @@ export default function BandejaFinancieroPage() {
           </tbody>
         </TablaWrap>
       )}
+
+      <ExportarRequerimientosModal abierto={modalExportar} onCerrar={() => setModalExportar(false)} />
     </div>
   )
 }

@@ -17,6 +17,10 @@ export function actualizarActivo(key, activo) {
   return ModuloSistema.findOneAndUpdate({ key }, { activo }, { new: true })
 }
 
+export function eliminarNoListados(keys) {
+  return ModuloSistema.deleteMany({ key: { $nin: keys } })
+}
+
 export function upsertCatalogo(modulo) {
   return ModuloSistema.updateOne(
     { key: modulo.key },

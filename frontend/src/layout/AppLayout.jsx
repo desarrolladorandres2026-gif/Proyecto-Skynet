@@ -63,13 +63,18 @@ export function ToggleTema({ tema, onToggle }) {
         type="button"
         onClick={onToggle}
         aria-label={esOscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-        className="panel-btn-fantasma shrink-0 rounded-lg p-1.5"
+        className="group relative flex shrink-0 items-center justify-center rounded-xl p-2 transition-all duration-300 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-cyan-500/30 text-slate-700 dark:text-cyan-300 hover:border-cyan-400 dark:hover:border-cyan-400 dark:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:scale-105 active:scale-95"
       >
-        {esOscuro ? <Sun className="h-4 w-4" aria-hidden="true" /> : <Moon className="h-4 w-4" aria-hidden="true" />}
+        {esOscuro ? (
+          <Sun className="h-4 w-4 text-amber-400 group-hover:rotate-45 transition-transform duration-300" aria-hidden="true" />
+        ) : (
+          <Moon className="h-4 w-4 text-cyan-600 group-hover:-rotate-12 transition-transform duration-300" aria-hidden="true" />
+        )}
       </button>
     </Tooltip>
   )
 }
+
 
 function EnlaceNav({ to, label, end, onNavigate, sub = false }) {
   return (
@@ -79,27 +84,32 @@ function EnlaceNav({ to, label, end, onNavigate, sub = false }) {
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          'panel-nav-link relative flex items-center gap-3 rounded-lg py-2 text-sm font-medium',
+          'panel-nav-link group relative flex items-center gap-3 rounded-xl py-2 text-sm font-medium transition-all duration-300',
           sub ? 'pl-9 pr-3' : 'px-3',
-          isActive && 'is-active'
+          isActive
+            ? 'is-active text-cyan-700 dark:text-cyan-300 font-semibold shadow-sm'
+            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-cyan-500/10 dark:hover:bg-cyan-400/10'
         )
       }
     >
       {({ isActive }) => (
         <>
-          {/* layoutId compartido entre todos los EnlaceNav activos en el
-              árbol: al cambiar de ruta, Framer Motion anima ESTE elemento
-              deslizándose desde la posición del anterior en vez de aparecer
-              de golpe (solo existe una instancia con este layoutId a la vez,
-              porque solo un NavLink puede estar activo). */}
+          {/* Pastilla activa animada con resplandor neón estilo Copiloto */}
           {isActive && (
             <motion.span
               layoutId="sidebar-active-pill"
-              className="absolute inset-0 rounded-lg bg-[var(--panel-navlink-active-bg)]"
-              transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+              className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/15 to-sky-500/10 dark:from-cyan-500/25 dark:to-sky-500/15 border border-cyan-500/30 dark:border-cyan-400/40 shadow-[0_0_20px_rgba(6,182,212,0.25)] backdrop-blur-sm"
+              transition={{ type: 'spring', stiffness: 500, damping: 35 }}
             />
           )}
-          <span className="relative z-10 truncate">{label}</span>
+          <span className="relative z-10 truncate flex-1">{label}</span>
+
+          {isActive && (
+            <span className="relative z-10 flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
+            </span>
+          )}
         </>
       )}
     </NavLink>
@@ -107,10 +117,7 @@ function EnlaceNav({ to, label, end, onNavigate, sub = false }) {
 }
 
 // Colapsado: el grupo se reduce a un ícono con un DropdownMenu al hacer
-// click (los items sub no tienen ícono propio en MODULOS_REGISTRO, así que
-// un rail de solo-íconos no puede mostrarlos directamente — el flyout
-// resuelve eso sin tener que inventarle un ícono a cada uno de los ~35
-// items). Expandido: el acordeón de siempre.
+// click. Expandido: el acordeón con estilo cibernético neón.
 function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, activo }) {
   const idGrupo = `grupo-${idPrefix}-${modulo.key}`
 
@@ -124,13 +131,34 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
                 type="button"
                 aria-label={modulo.label}
                 className={cn(
-                  'flex h-10 w-10 items-center justify-center rounded-lg transition-colors',
+                  'relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 group',
                   activo
-                    ? 'bg-[var(--panel-navlink-active-bg)] text-[var(--panel-navlink-active-color)]'
-                    : 'text-slate-500 hover:bg-brand-600/8 dark:text-slate-400 dark:hover:bg-brand-400/8'
+                    ? 'bg-gradient-to-br from-cyan-500/20 to-sky-600/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/40 shadow-[0_0_18px_rgba(6,182,212,0.35)]'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-cyan-200 hover:bg-cyan-500/10 dark:hover:bg-cyan-400/10'
                 )}
               >
-                <modulo.icon className="h-5 w-5" aria-hidden="true" />
+                {/* Resplandor Neón flotante */}
+                <span
+                  className={cn(
+                    'absolute inset-0 rounded-xl transition-all duration-500 opacity-0 group-hover:opacity-100 pointer-events-none',
+                    'bg-cyan-500/10 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+                  )}
+                />
+
+                <modulo.icon
+                  className={cn(
+                    'h-5 w-5 relative z-10 transition-transform duration-300 group-hover:scale-110',
+                    activo && 'animate-[copilot-pulse_3s_ease-in-out_infinite]'
+                  )}
+                  aria-hidden="true"
+                />
+
+                {activo && (
+                  <span className="absolute top-1 right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
+                  </span>
+                )}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" align="start" sideOffset={12}>
@@ -156,20 +184,45 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
         onClick={onToggle}
         aria-expanded={abierto}
         aria-controls={idGrupo}
-        className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-slate-500 transition hover:bg-brand-600/5 hover:text-slate-700 dark:hover:bg-brand-400/5 dark:hover:text-slate-300"
+        className={cn(
+          'group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-all duration-300',
+          activo
+            ? 'bg-cyan-500/10 dark:bg-cyan-400/15 text-cyan-700 dark:text-cyan-300 font-semibold border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
+            : 'text-slate-500 hover:text-slate-900 dark:hover:text-cyan-200 hover:bg-cyan-500/8 dark:hover:bg-cyan-400/8'
+        )}
       >
-        <modulo.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        <span className="panel-mono flex-1 text-[11px] font-semibold uppercase tracking-[0.15em]">
+        {/* Contenedor del ícono con resplandor neón estilo Copiloto */}
+        <div
+          className={cn(
+            'relative flex h-6 w-6 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110',
+            activo
+              ? 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+              : 'bg-slate-200/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 group-hover:text-cyan-500'
+          )}
+        >
+          <modulo.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        </div>
+
+        <span className="panel-mono flex-1 text-[11px] font-bold uppercase tracking-[0.15em]">
           {modulo.label}
         </span>
+
+        {activo && (
+          <span className="flex h-2 w-2 relative mr-1">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
+          </span>
+        )}
+
         <ChevronDown
-          className={cn('h-3.5 w-3.5 shrink-0 transition-transform duration-150', !abierto && '-rotate-90')}
+          className={cn(
+            'h-3.5 w-3.5 shrink-0 transition-transform duration-200 text-slate-400 group-hover:text-cyan-400',
+            !abierto && '-rotate-90'
+          )}
           aria-hidden="true"
         />
       </button>
-      {/* hidden (no desmontar) para que aria-controls siempre apunte a un id
-          que existe en el DOM, aunque el grupo esté colapsado. */}
-      <div id={idGrupo} className="flex flex-col gap-1" hidden={!abierto}>
+      <div id={idGrupo} className="flex flex-col gap-1 mt-1 pl-1" hidden={!abierto}>
         {modulo.items.map((item) => (
           <EnlaceNav key={item.to} {...item} sub onNavigate={onNavigate} />
         ))}
@@ -279,13 +332,32 @@ function EstadoConexion() {
   }, [])
 
   return (
-    <Tooltip label={enLinea ? 'Conectado' : 'Sin conexión — algunos datos pueden estar desactualizados'} side="bottom">
-      <span className={cn('flex items-center rounded-lg p-2', enLinea ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
-        {enLinea ? <Wifi className="h-4 w-4" aria-hidden="true" /> : <WifiOff className="h-4 w-4" aria-hidden="true" />}
+    <Tooltip label={enLinea ? 'Conectado al servidor' : 'Sin conexión — algunos datos pueden estar desactualizados'} side="bottom">
+      <span
+        className={cn(
+          'relative flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-mono border transition-all duration-300',
+          enLinea
+            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 animate-pulse'
+        )}
+      >
+        <span className="flex h-2 w-2 relative">
+          {enLinea && (
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          )}
+          <span
+            className={cn(
+              'relative inline-flex rounded-full h-2 w-2',
+              enLinea ? 'bg-emerald-400' : 'bg-rose-500'
+            )}
+          ></span>
+        </span>
+        {enLinea ? <Wifi className="h-3.5 w-3.5" aria-hidden="true" /> : <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />}
       </span>
     </Tooltip>
   )
 }
+
 
 export default function AppLayout() {
   const { usuario, logout, tienePermiso } = useAuth()
@@ -423,32 +495,42 @@ export default function AppLayout() {
               suelto dentro de <main>. Único lugar del panel con
               glassmorphism real (panel-navbar en panel.css): flota sobre el
               contenido al hacer scroll. */}
-          <header className="panel-navbar sticky top-0 z-30 hidden items-center justify-between gap-4 border-b px-6 py-3 md:flex">
+          <header className="panel-navbar sticky top-0 z-30 hidden items-center justify-between gap-4 border-b border-slate-200/80 dark:border-cyan-500/25 px-6 py-3 md:flex backdrop-blur-xl bg-white/80 dark:bg-slate-950/80 shadow-[0_4px_25px_rgba(6,182,212,0.08)] transition-colors duration-300">
             <Breadcrumb items={breadcrumbItems} />
-            <div className="flex shrink-0 items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-2">
+              {/* Botón de Búsqueda (Buscar, Ctrl K) con resplandor cibernético neón */}
               <button
                 type="button"
                 onClick={() => setPaletaAbierta(true)}
-                className="panel-mono mr-1 flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-400 transition hover:border-brand-400/50 hover:text-slate-600 dark:border-white/10 dark:hover:border-brand-400/40 dark:hover:text-slate-300"
+                className="panel-mono group relative flex items-center gap-2.5 rounded-xl border border-slate-200 dark:border-cyan-500/30 bg-slate-100/80 dark:bg-slate-900/80 px-3.5 py-1.5 text-xs text-slate-600 dark:text-cyan-300/90 transition-all duration-300 hover:border-cyan-400 dark:hover:border-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-200 dark:shadow-[0_0_15px_rgba(6,182,212,0.25)] hover:shadow-[0_0_22px_rgba(34,211,238,0.4)]"
               >
-                <Search className="h-3.5 w-3.5" aria-hidden="true" />
-                Buscar
-                <kbd className="rounded border border-slate-300 px-1 text-[10px] dark:border-white/15">Ctrl K</kbd>
+                <Search className="h-3.5 w-3.5 text-cyan-500 dark:text-cyan-400 transition-transform duration-300 group-hover:scale-110" aria-hidden="true" />
+                <span className="font-semibold">Buscar</span>
+                <kbd className="rounded-md border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600 dark:text-cyan-300 shadow-xs">
+                  Ctrl K
+                </kbd>
               </button>
+
               <EstadoConexion />
+
               {tienePermiso('sistema:gestionar_modulos') && modulosApagados > 0 && (
                 <Tooltip label="Módulos desactivados por el Super Admin" side="bottom">
                   <Link
                     to="/sistema/modulos"
-                    className="panel-mono flex items-center gap-1 rounded-full bg-amber-400/10 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300"
+                    className="panel-mono flex items-center gap-1 rounded-full bg-amber-400/10 border border-amber-500/30 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]"
                   >
                     {modulosApagados} apagado{modulosApagados === 1 ? '' : 's'}
                   </Link>
                 </Tooltip>
               )}
+
+              {/* Botón de Notificaciones con efecto flotante neón */}
               <Tooltip label="Notificaciones" side="bottom">
-                <Link to="/notificaciones" className="panel-btn-fantasma rounded-lg p-2">
-                  <Bell className="h-4 w-4" aria-hidden="true" />
+                <Link
+                  to="/notificaciones"
+                  className="group relative flex shrink-0 items-center justify-center rounded-xl p-2 transition-all duration-300 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-cyan-500/30 text-slate-700 dark:text-cyan-300 hover:border-cyan-400 dark:hover:border-cyan-400 dark:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:scale-105 active:scale-95"
+                >
+                  <Bell className="h-4 w-4 text-cyan-600 dark:text-cyan-400 group-hover:rotate-12 transition-transform duration-300" aria-hidden="true" />
                 </Link>
               </Tooltip>
               <ToggleTema tema={tema} onToggle={alternarTema} />

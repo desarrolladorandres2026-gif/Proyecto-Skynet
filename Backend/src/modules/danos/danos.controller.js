@@ -7,7 +7,23 @@ import * as servicio from './danos.service.js'
 
 const POPULATE_REPORTANTE = { path: 'reportadoPor', select: 'nombre nombre_usuario dependencia' }
 
+// Un técnico "puro" (mantenimiento:ejecutar sin danos:gestionar, y sin ser
+// Super Admin) solo ejecuta lo que le asignan — no reporta. Se mira la
+// combinación de permisos, no el slug del rol, por el mismo motivo que el
+// resto del módulo: el RBAC es dinámico (ver PERMISO_TECNICO en el service).
+function esTecnicoPuro(usuario) {
+  return (
+    usuario.permisos?.has('mantenimiento:ejecutar') === true &&
+    !usuario.esSuperAdmin &&
+    !usuario.permisos?.has('danos:gestionar')
+  )
+}
+
 export async function crearReporte(req, res) {
+  if (esTecnicoPuro(req.usuario)) {
+    return res.status(403).json({ error: 'El personal de mantenimiento no puede crear reportes' })
+  }
+
   const { fecha, descripcion } = req.body
   const tipo = servicio.TIPOS.includes(req.body.tipo) ? req.body.tipo : 'dano'
 
@@ -85,7 +101,7 @@ export async function listarReportes(req, res) {
 // Ficha completa con historial y requerimientos vinculados: es lo que responde
 // "¿en qué va el daño y quién lo tiene?".
 export async function detalleReporte(req, res) {
-  const reporte = await servicio.obtenerReporte(req.params.id)
+  const reporte = await servicio.obtenerReporte(req.params.id, req.usuario)
   res.json({ reporte })
 }
 
@@ -97,18 +113,37 @@ export async function listarTecnicos(req, res) {
 }
 
 export async function asignarReporte(req, res) {
-  const { tecnicoId, nota } = req.body
-  const reporte = await servicio.asignarReporte(req.params.id, { tecnicoId, nota }, req.usuario)
+  const { tecnicoId, nota, forzar } = req.body
+  const reporte = await servicio.asignarReporte(req.params.id, { tecnicoId, nota, forzar: forzar === true || forzar === 'true' }, req.usuario)
   res.json({ reporte })
 }
 
 export async function cambiarEstado(req, res) {
-  const { estado, nota, observacion, motivoEspera, prioridad } = req.body
+  const { estado, nota, observacion, motivoEspera, prioridad, reparacionFecha, reparacionModulo } = req.body
+
+  let reparacion
+  if (estado === 'resuelto') {
+    let evidenciasNuevas = []
+    if (req.files?.length) {
+      if (!cloudinaryConfigurado()) {
+        return res.status(503).json({ error: 'El almacenamiento de imágenes no está configurado (Cloudinary)' })
+      }
+      try {
+        const subidas = await Promise.all(req.files.map((f) => subirImagen(f.buffer, 'skynet/danos_reparacion')))
+        evidenciasNuevas = subidas.map((s) => ({ url: s.secure_url, publicId: s.public_id }))
+      } catch (err) {
+        console.error('Error subiendo evidencia de reparación a Cloudinary:', err)
+        return res.status(502).json({ error: 'No se pudo subir la evidencia, inténtalo de nuevo' })
+      }
+    }
+    reparacion = { fecha: reparacionFecha, modulo: reparacionModulo, evidenciasNuevas }
+  }
+
   const reporte = await servicio.cambiarEstadoReporte(
     req.params.id,
     // `observacion` es el nombre que usaba el cliente anterior; se acepta como
     // alias para no romper nada que todavía lo mande.
-    { estado, nota: nota ?? observacion, motivoEspera, prioridad },
+    { estado, nota: nota ?? observacion, motivoEspera, prioridad, reparacion },
     req.usuario
   )
   res.json({ reporte })

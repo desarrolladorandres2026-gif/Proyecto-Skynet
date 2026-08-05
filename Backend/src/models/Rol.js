@@ -9,10 +9,13 @@ const rolSchema = new mongoose.Schema(
     // todos los módulos" sincronizado a mano con cada módulo nuevo del ERP.
     esSuperAdmin: { type: Boolean, default: false },
     permisos: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Permiso' }],
-    // 'empresa' activa el scoping multi-tenant en cargarScopeEmpresa(): todo
-    // usuario con un rol ambito:'empresa' queda restringido a su propio
-    // Usuario.empresa en los módulos que apliquen el scope.
-    ambito: { type: String, enum: ['global', 'empresa'], default: 'global' },
+    // Solo 'global' desde que se retiró el módulo flota/Empresa: el scoping
+    // multi-tenant ambito:'empresa' (Usuario.empresa, cargarScopeEmpresa())
+    // no tiene ya ningún dato al cual restringir. El campo se conserva
+    // (en vez de borrarlo) porque middleware/permisos.js todavía lo lee de
+    // forma segura (produce un scope vacío) y reintroducir un ámbito
+    // no-global en el futuro no debería exigir una migración de esquema.
+    ambito: { type: String, enum: ['global'], default: 'global' },
     estado: { type: String, enum: ['activo', 'inactivo'], default: 'activo' },
     // Protege los 6 roles semilla de la especificación original de
     // borrado/renombrado de slug accidental desde RolesPage; sus permisos sí

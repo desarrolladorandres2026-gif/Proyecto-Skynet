@@ -54,3 +54,22 @@ export async function marcarControlRecibido(req, res) {
   const requerimiento = await service.marcarControlRecibidoItem(req.params.id, req.params.itemId, req.body, req.usuario)
   res.json({ requerimiento })
 }
+
+export async function exportar(req, res) {
+  const { csv, total } = await service.exportarCsv({ desde: req.query.desde, hasta: req.query.hasta }, req.usuario)
+  const nombre = `requerimientos_${req.query.desde}_a_${req.query.hasta}.csv`
+  res.set({
+    'Content-Type': 'text/csv; charset=utf-8',
+    'Content-Disposition': `attachment; filename="${nombre}"`,
+    // Para que el frontend pueda leer el total exportado desde la respuesta
+    // sin tener que parsear el CSV de vuelta.
+    'X-Total-Exportado': String(total),
+    'Access-Control-Expose-Headers': 'X-Total-Exportado, Content-Disposition',
+  })
+  res.send(csv)
+}
+
+export async function eliminarPorRango(req, res) {
+  const resultado = await service.eliminarPorRangoFecha(req.body, req.usuario)
+  res.json(resultado)
+}

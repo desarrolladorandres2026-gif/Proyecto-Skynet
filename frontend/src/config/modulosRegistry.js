@@ -1,6 +1,6 @@
 import {
   Wrench, Users, ShieldCheck, ScrollText, TriangleAlert,
-  Gauge, Bus, Send, SlidersHorizontal, FileText, Bell, CalendarDays,
+  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays,
 } from 'lucide-react'
 
 // Registro único de módulos para el sidebar (AppLayout.jsx) y para decidir
@@ -9,7 +9,7 @@ import {
 //    legado, sin tocar mantenimiento en esta fase).
 //  - permiso: gobierna su visibilidad por el RBAC granular nuevo
 //    (Rol.permisos / usuario.esSuperAdmin vía tienePermiso()).
-// Los módulos de Fase 1+ (vehículos, conductores, rutas, ...) se agregan
+// Los módulos de Fase 1+ (vehículos, rutas, ...) se agregan
 // aquí mismo cuando se construyan, siguiendo el mismo patrón.
 // Un módulo con `publico: true` se muestra a todo usuario autenticado (como
 // "Reportar daño": capacidad universal, no gobernada por RBAC).
@@ -32,6 +32,9 @@ export const MODULOS_REGISTRO = [
     items: [
       { to: '/danos/reportar', label: 'Reportar' },
       { to: '/danos/tareas', label: 'Tareas pendientes', permiso: 'danos:gestionar' },
+      // Mantenimiento (mantenimiento:ejecutar SIN danos:gestionar): su propia
+      // cola, recortada a lo suyo por el backend — ver MisTareasPage.jsx.
+      { to: '/danos/mis-tareas', label: 'Mis tareas', permiso: 'mantenimiento:ejecutar' },
     ],
   },
   {
@@ -42,6 +45,10 @@ export const MODULOS_REGISTRO = [
     items: [
       { to: '/requerimientos/nuevo', label: 'Nuevo requerimiento' },
       { to: '/requerimientos/mios', label: 'Mis requerimientos' },
+      // Solo tiene sentido para quien puede aprobar/firmar (Administrativo y
+      // Financiero) — Administrador y el resto de roles solo solicitan/ven
+      // lo propio, no necesitan registrar una rúbrica que nunca van a usar.
+      { to: '/requerimientos/mi-firma', label: 'Mi firma', permiso: 'requerimientos:aprobar_financiero' },
       { to: '/requerimientos/financiero', label: 'Bandeja Financiero', permiso: 'requerimientos:aprobar_financiero' },
       { to: '/requerimientos/bodega', label: 'Bandeja Bodega', permiso: 'requerimientos:gestionar_bodega' },
       { to: '/requerimientos/todos', label: 'Todos (supervisión)', permiso: 'requerimientos:ver_todos' },
@@ -70,28 +77,6 @@ export const MODULOS_REGISTRO = [
     // ajustar cómo se le avisa solo porque un módulo de negocio esté apagado).
     publico: true,
     items: [{ to: '/notificaciones', label: 'Preferencias' }],
-  },
-  {
-    key: 'flota',
-    label: 'Flota',
-    icon: Bus,
-    items: [
-      { to: '/flota/empresas', label: 'Empresas', permiso: 'empresas:gestionar' },
-      { to: '/flota/vehiculos', label: 'Vehículos', permiso: ['vehiculos:gestionar', 'vehiculos:consultar'] },
-      { to: '/flota/conductores', label: 'Conductores', permiso: ['conductores:gestionar', 'conductores:consultar'] },
-      { to: '/flota/plataformas', label: 'Plataformas', permiso: ['plataformas:gestionar', 'plataformas:cambiar'] },
-    ],
-  },
-  {
-    key: 'operacion',
-    label: 'Operación',
-    icon: Send,
-    items: [
-      { to: '/operacion/rutas', label: 'Rutas y horarios', permiso: ['rutas:gestionar', 'horarios:gestionar', 'horarios:ver_programacion'] },
-      { to: '/operacion/despachos', label: 'Despachos', permiso: ['despachos:registrar_salida', 'despachos:registrar_llegada', 'reportes:ver', 'empresas:ver_estadisticas'] },
-      { to: '/operacion/novedades', label: 'Novedades', permiso: ['novedades:registrar', 'novedades:registrar_incidente', 'novedades:consultar_historial'] },
-      { to: '/operacion/objetos-perdidos', label: 'Objetos perdidos', permiso: ['objetos_perdidos:registrar', 'objetos_perdidos:gestionar'] },
-    ],
   },
   {
     key: 'mantenimiento',

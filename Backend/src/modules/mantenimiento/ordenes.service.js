@@ -295,7 +295,7 @@ export async function reanudarOrden(id, usuarioActor) {
   return ot
 }
 
-export async function resolverOrden(id, { descripcion_solucion }, usuarioActor) {
+export async function resolverOrden(id, { descripcion_solucion }, usuarioActor, foto) {
   const ot = await obtenerOT(id)
   if (!ot) throw new ErrorNoEncontrado('Orden de trabajo no encontrada')
   if (ot.estado !== 'en_progreso') throw new ErrorConflicto(`No se puede resolver una orden en estado "${ot.estado}"`)
@@ -308,6 +308,18 @@ export async function resolverOrden(id, { descripcion_solucion }, usuarioActor) 
   }
 
   ot.descripcion_solucion = descripcion_solucion.trim()
+  // La foto es opcional a propósito: esta OT también cubre equipos donde una
+  // foto no aplica (p. ej. una falla de software). Si el técnico la adjunta,
+  // queda en el mismo arreglo de evidencias que usa el resto de la Fase 3.
+  if (foto) {
+    ot.evidencias.push({
+      tipo: 'foto',
+      momento: 'despues',
+      archivo: foto.filename,
+      comentario: 'Evidencia de la solución',
+      subidoPor: usuarioActor.id_usuario,
+    })
+  }
 
   // Evaluación automática (Fase 1, transición 11): por prioridad. El criterio
   // de costo se conecta cuando exista el registro de materiales (Fase 3).

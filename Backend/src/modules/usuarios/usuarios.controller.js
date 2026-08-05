@@ -6,7 +6,6 @@ import { hashPassword, validarPassword } from '../../utils/password.js'
 
 const CAMPOS_PUBLICOS = '-password'
 const POPULATE_ROL = { path: 'rol', select: 'nombre slug ambito esSuperAdmin' }
-const POPULATE_EMPRESA = { path: 'empresa', select: 'nombre' }
 
 // `rol` ahora es un ObjectId (ver models/Usuario.js): valida el formato antes
 // de tocar Mongo (un id malformado lanzaría un CastError 500 sin este check)
@@ -17,14 +16,6 @@ async function validarRol(rolId) {
   }
   const existe = await Rol.exists({ _id: rolId })
   if (!existe) return 'El rol indicado no existe'
-  return null
-}
-
-function validarEmpresa(empresaId) {
-  if (empresaId === undefined || empresaId === null || empresaId === '') return null
-  if (typeof empresaId !== 'string' || !mongoose.Types.ObjectId.isValid(empresaId)) {
-    return 'La empresa indicada no es válida'
-  }
   return null
 }
 
@@ -39,7 +30,6 @@ export async function buscarUsuarios(req, res) {
   })
     .select(CAMPOS_PUBLICOS)
     .populate(POPULATE_ROL)
-    .populate(POPULATE_EMPRESA)
     .limit(10)
 
   res.json({ usuarios })
@@ -49,13 +39,12 @@ export async function listarUsuarios(_req, res) {
   const usuarios = await Usuario.find()
     .select(CAMPOS_PUBLICOS)
     .populate(POPULATE_ROL)
-    .populate(POPULATE_EMPRESA)
     .sort({ _id: 1 })
   res.json({ usuarios })
 }
 
 export async function crearUsuario(req, res) {
-  const { nombre_usuario, password, nombre, rol, empresa, dependencia, cargo, modulos, email, estado } = req.body
+  const { nombre_usuario, password, nombre, rol, dependencia, cargo, modulos, email, estado } = req.body
 
   if (!nombre_usuario || !password || !nombre || !email) {
     return res.status(400).json({ error: 'nombre_usuario, password, nombre y email son obligatorios' })
@@ -72,9 +61,6 @@ export async function crearUsuario(req, res) {
 
   const errorRol = await validarRol(rol)
   if (errorRol) return res.status(400).json({ error: errorRol })
-
-  const errorEmpresa = validarEmpresa(empresa)
-  if (errorEmpresa) return res.status(400).json({ error: errorEmpresa })
 
   const existenteNombre = await Usuario.findOne({ nombre_usuario: nombre_usuario.trim() })
   if (existenteNombre) {
@@ -94,7 +80,6 @@ export async function crearUsuario(req, res) {
     nombre,
     email: email.trim().toLowerCase(),
     rol,
-    empresa: empresa || null,
     dependencia,
     cargo,
     modulos: modulos || [],
@@ -107,16 +92,15 @@ export async function crearUsuario(req, res) {
 
 export async function actualizarUsuario(req, res) {
   const { id } = req.params
-  const { nombre_usuario, password, nombre, rol, empresa, dependencia, cargo, modulos, email, estado } = req.body
+  const { nombre_usuario, password, nombre, rol, dependencia, cargo, modulos, email, estado } = req.body
 
   const usuario = await Usuario.findById(id)
   if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' })
 
   // Cualquier cambio que afecte a lo que un token ya emitido "puede hacer"
-  // (contraseña, rol, empresa, módulos o pasar a inactivo) invalida sus
-  // sesiones abiertas: sin esto, un admin podría degradar/desactivar a
-  // alguien y esa persona seguiría con acceso completo hasta que su JWT
-  // expire (hasta 8h).
+  // (contraseña, rol, módulos o pasar a inactivo) invalida sus sesiones
+  // abiertas: sin esto, un admin podría degradar/desactivar a alguien y esa
+  // persona seguiría con acceso completo hasta que su JWT expire (hasta 8h).
   let invalidarSesiones = false
 
   if (email !== undefined) {
@@ -137,15 +121,6 @@ export async function actualizarUsuario(req, res) {
     if (errorRol) return res.status(400).json({ error: errorRol })
     usuario.rol = rol
     invalidarSesiones = true
-  }
-  if (empresa !== undefined) {
-    const errorEmpresa = validarEmpresa(empresa)
-    if (errorEmpresa) return res.status(400).json({ error: errorEmpresa })
-    const empresaNueva = empresa || null
-    if (empresaNueva !== (usuario.empresa ? usuario.empresa.toString() : null)) {
-      usuario.empresa = empresaNueva
-      invalidarSesiones = true
-    }
   }
   if (dependencia !== undefined) usuario.dependencia = dependencia
   if (cargo !== undefined) usuario.cargo = cargo

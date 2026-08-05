@@ -135,8 +135,6 @@ const BADGE_COLORES = {
   // roles (slugs de Rol, ver Backend/src/seedData/rbac.data.js)
   super_admin: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
   administrador: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
-  empresa_transportadora: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
-  despachador: 'bg-sky-400/10 text-sky-700 dark:text-sky-300 ring-1 ring-inset ring-sky-400/30',
   seguridad: 'bg-rose-400/10 text-rose-700 dark:text-rose-300 ring-1 ring-inset ring-rose-400/30',
   operador: 'bg-slate-400/10 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-400/30',
   // ambito de Rol
@@ -162,11 +160,15 @@ const BADGE_COLORES = {
   incapacidad: 'bg-orange-400/10 text-orange-700 dark:text-orange-300 ring-1 ring-inset ring-orange-400/30',
 }
 
-export function Badge({ valor }) {
+// `label` es opcional: por defecto pinta `valor` tal cual (el enum crudo del
+// backend), pero un llamador puede pasar un texto traducido para el usuario
+// (ver ESTADOS_BODEGA en RequerimientoDetallePage.jsx) sin perder el color,
+// que sigue mapeado por `valor`.
+export function Badge({ valor, label }) {
   const color = BADGE_COLORES[valor] || 'bg-slate-400/10 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-400/30'
   return (
     <span className={cn('panel-mono inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-wide', color)}>
-      {valor}
+      {label ?? valor}
     </span>
   )
 }

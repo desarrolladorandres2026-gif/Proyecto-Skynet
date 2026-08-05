@@ -19,6 +19,12 @@ export class ErrorConflicto extends ErrorAplicacion {
   }
 }
 
+export class ErrorAutorizacion extends ErrorAplicacion {
+  constructor(mensaje = 'No tienes autorización para esto') {
+    super(mensaje, 403)
+  }
+}
+
 export class ErrorValidacion extends ErrorAplicacion {
   constructor(mensaje = 'Datos inválidos') {
     super(mensaje, 400)

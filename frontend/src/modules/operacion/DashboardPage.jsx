@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  Users, Building2, Bus, IdCard, LayoutGrid, Send, AlertTriangle,
-  PackageSearch, Wrench, Gauge,
-} from 'lucide-react'
-import { useAuth, esRolAdmin } from '../../auth/AuthContext.jsx'
+import { Users, Wrench, Gauge, FileText, CalendarDays, ShieldCheck, ScrollText } from 'lucide-react'
+import { useAuth, usaPanelDenso } from '../../auth/AuthContext.jsx'
+import { useEsMovil } from '../../layout/useEsMovil.js'
 import { useModulosVisibles } from '../../layout/AppLayout.jsx'
 import { dashboard } from '../../api/operacion.js'
 import { ErrorMsg } from '../../components/ui.jsx'
@@ -17,25 +15,20 @@ import { SkeletonStatCards } from '../../components/Skeleton.jsx'
 // Cada tarjeta declara su clave en la respuesta de /api/dashboard; solo se
 // pintan las claves que el backend devolvió (que a su vez dependen de los
 // permisos del rol). `to` la vuelve un acceso directo al módulo. `trendKey`
-// (opcional) apunta a `tendencias[trendKey]` — solo despachosHoy tiene un
-// delta real hoy (ver dashboard.controller.js: es la única tarjeta que ya
-// es un conteo acotado a fecha, así que "hoy vs. ayer" es la MISMA métrica
-// en dos días; el resto son conteos del padrón actual, sin forma barata de
-// saber el valor de hace una semana sin inventar un número).
+// (opcional) apunta a `tendencias[trendKey]` — ninguna tarjeta actual tiene
+// un delta real (la única que lo tenía, despachosHoy, se retiró junto con
+// el módulo flota/operación de despachos).
 const TARJETAS = [
   { clave: 'usuarios', label: 'Usuarios activos', icon: Users, to: '/usuarios' },
-  { clave: 'empresas', label: 'Empresas activas', icon: Building2, to: '/flota/empresas' },
-  { clave: 'vehiculosActivos', label: 'Vehículos activos', icon: Bus, to: '/flota/vehiculos' },
-  { clave: 'conductoresActivos', label: 'Conductores activos', icon: IdCard, to: '/flota/conductores' },
-  { clave: 'plataformasLibres', label: 'Plataformas libres', icon: LayoutGrid, to: '/flota/plataformas', tono: 'emerald' },
-  { clave: 'plataformasOcupadas', label: 'Plataformas ocupadas', icon: LayoutGrid, to: '/flota/plataformas', tono: 'amber' },
-  { clave: 'despachosHoy', label: 'Despachos hoy', icon: Send, to: '/operacion/despachos', trendKey: 'despachosHoy', incrementoEsBueno: true },
-  { clave: 'despachosEnViaje', label: 'En viaje', icon: Bus, to: '/operacion/despachos' },
-  { clave: 'despachosRetrasados', label: 'Retrasados', icon: AlertTriangle, to: '/operacion/despachos', tono: 'amber' },
-  { clave: 'novedadesAbiertas', label: 'Novedades abiertas', icon: AlertTriangle, to: '/operacion/novedades', tono: 'amber' },
-  { clave: 'objetosEnCustodia', label: 'Objetos en custodia', icon: PackageSearch, to: '/operacion/objetos-perdidos' },
   { clave: 'danosPendientes', label: 'Daños pendientes', icon: Wrench, to: '/danos/tareas', tono: 'amber' },
+  { clave: 'requerimientosPendientes', label: 'Requerimientos pendientes', icon: FileText, to: '/requerimientos/todos', tono: 'amber' },
+  { clave: 'requerimientosPorDespachar', label: 'Requerimientos por despachar', icon: FileText, to: '/requerimientos/bodega', tono: 'amber' },
+  { clave: 'ausenciasPendientes', label: 'Ausencias por decidir', icon: CalendarDays, to: '/ausencias/bandeja', tono: 'amber' },
+  { clave: 'mantenimientoAbiertas', label: 'Órdenes de trabajo abiertas', icon: Wrench, to: '/mantenimiento/ordenes', tono: 'amber' },
+  { clave: 'rolesActivos', label: 'Roles activos', icon: ShieldCheck, to: '/roles' },
+  { clave: 'auditoriaHoy', label: 'Eventos de auditoría hoy', icon: ScrollText, to: '/auditoria' },
   { clave: 'misDanosReportados', label: 'Mis daños sin resolver', icon: Wrench, to: '/danos/reportar' },
+  { clave: 'misTareasMantenimiento', label: 'Mis tareas pendientes', icon: Wrench, to: '/danos/mis-tareas', tono: 'amber' },
 ]
 
 const TONOS_MOVIL = {
@@ -147,6 +140,7 @@ function PanelDenso({ usuario, visibles, tarjetas, tendencias }) {
 
 export default function DashboardPage() {
   const { usuario } = useAuth()
+  const esMovil = useEsMovil()
   const [tarjetas, setTarjetas] = useState(null)
   const [tendencias, setTendencias] = useState(null)
   const [error, setError] = useState('')
@@ -166,7 +160,7 @@ export default function DashboardPage() {
   return (
     <>
       <ErrorMsg>{error}</ErrorMsg>
-      {esRolAdmin(usuario) ? (
+      {usaPanelDenso(usuario) && !esMovil ? (
         <PanelDenso usuario={usuario} visibles={visibles} tarjetas={tarjetas} tendencias={tendencias} />
       ) : (
         <HomeFeed usuario={usuario} visibles={visibles} tarjetas={tarjetas} />

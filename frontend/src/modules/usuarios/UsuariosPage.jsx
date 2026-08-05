@@ -14,7 +14,6 @@ const FORM_VACIO = {
   email: '',
   password: '',
   rol: '',
-  empresa: '',
   dependencia: '',
   cargo: '',
   modulos: [],
@@ -69,7 +68,6 @@ export default function UsuariosPage() {
       email: u.email,
       password: '',
       rol: u.rol?._id || u.rol || '',
-      empresa: u.empresa?._id || u.empresa || '',
       dependencia: u.dependencia || '',
       cargo: u.cargo || '',
       modulos: u.modulos || [],
@@ -78,14 +76,6 @@ export default function UsuariosPage() {
     setErrorForm('')
     setModalAbierto(true)
   }
-
-  // El rol "Empresa Transportadora" (ambito:'empresa') necesita una empresa
-  // asignada para que el scoping multi-tenant funcione (ver
-  // middleware/permisos.js#cargarScopeEmpresa). El módulo real "Empresas
-  // transportadoras" (Fase 1) reemplazará este campo de texto por un
-  // selector poblado desde /api/empresas.
-  const rolSeleccionado = rolesDisponibles.find((r) => r._id === form.rol)
-  const requiereEmpresa = rolSeleccionado?.ambito === 'empresa'
 
   function toggleModulo(mod) {
     setForm((f) => ({
@@ -242,12 +232,6 @@ export default function UsuariosPage() {
               </Select>
             </Field>
           </div>
-
-          {requiereEmpresa && (
-            <Field label="Empresa (ID) — el rol Empresa Transportadora necesita una empresa asignada">
-              <Input value={form.empresa} onChange={(e) => setForm({ ...form, empresa: e.target.value })} />
-            </Field>
-          )}
 
           <fieldset>
             <legend className="mb-1 text-sm font-medium text-slate-700 dark:text-slate-300">

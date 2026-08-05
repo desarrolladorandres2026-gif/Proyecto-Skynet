@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Wrench } from 'lucide-react'
+import { Plus, Wrench, Camera, Images, X } from 'lucide-react'
 import { ordenesApi, mantenimientoApi, indicadoresApi } from '../../api/mantenimiento.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
+import { normalizarFoto } from '../../utils/normalizarFoto.js'
 import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Select, Textarea,
   TablaWrap, Th, Td, EmptyState, Pager, fmtFechaHora,
@@ -50,7 +51,7 @@ const ESTADOS_ACTIVOS = [
 const CONFIG_MOTIVO = {
   rechazar: { titulo: 'Rechazar asignación', label: 'Motivo del rechazo', requerido: true, tipo: 'texto', fn: (id, v) => ordenesApi.rechazar(id, v) },
   pausar: { titulo: 'Poner en espera', label: 'Motivo de la espera', requerido: true, tipo: 'select', opciones: MOTIVOS_ESPERA, fn: (id, v) => ordenesApi.pausar(id, v) },
-  resolver: { titulo: 'Marcar como solucionada', label: 'Descripción de la solución', requerido: true, tipo: 'textarea', fn: (id, v) => ordenesApi.resolver(id, v) },
+  resolver: { titulo: 'Marcar como solucionada', label: 'Descripción de la solución', requerido: true, tipo: 'textarea', conFoto: true, fn: (id, v, foto) => ordenesApi.resolver(id, v, foto) },
   aprobar: { titulo: 'Aprobar y cerrar', label: 'Comentario (opcional)', requerido: false, tipo: 'textarea', fn: (id, v) => ordenesApi.aprobar(id, v) },
   rechazar_cierre: { titulo: 'Rechazar cierre', label: 'Motivo del rechazo', requerido: true, tipo: 'textarea', fn: (id, v) => ordenesApi.rechazarCierre(id, v) },
   reabrir: { titulo: 'Reabrir orden', label: 'Motivo de la reapertura', requerido: true, tipo: 'textarea', fn: (id, v) => ordenesApi.reabrir(id, v) },
@@ -192,8 +193,12 @@ export default function OrdenesTrabajoPage() {
   const [tecnicoElegido, setTecnicoElegido] = useState('')
   const [modalMotivo, setModalMotivo] = useState(null)
   const [valorMotivo, setValorMotivo] = useState('')
+  const [fotoMotivo, setFotoMotivo] = useState(null)
+  const [procesandoFoto, setProcesandoFoto] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [errorForm, setErrorForm] = useState('')
+  const inputCamaraRef = useRef(null)
+  const inputGaleriaRef = useRef(null)
 
   const puedeAsignar = tienePermiso('mantenimiento:asignar')
 
@@ -248,7 +253,18 @@ export default function OrdenesTrabajoPage() {
       return
     }
     setValorMotivo(CONFIG_MOTIVO[tipo].tipo === 'select' ? MOTIVOS_ESPERA[0].value : '')
+    setFotoMotivo(null)
     setModalMotivo({ tipo, orden })
+  }
+
+  async function elegirFotoMotivo(archivo) {
+    if (!archivo) return
+    setProcesandoFoto(true)
+    try {
+      setFotoMotivo(await normalizarFoto(archivo))
+    } finally {
+      setProcesandoFoto(false)
+    }
   }
 
   async function confirmarReportar(e) {
@@ -311,9 +327,10 @@ export default function OrdenesTrabajoPage() {
     setGuardando(true)
     setErrorForm('')
     try {
-      await cfg.fn(modalMotivo.orden._id, valorMotivo)
+      await cfg.fn(modalMotivo.orden._id, valorMotivo, fotoMotivo)
       setOk(`${cfg.titulo}: hecho`)
       setModalMotivo(null)
+      setFotoMotivo(null)
       cargar()
     } catch (err) {
       setErrorForm(err.message)
@@ -544,6 +561,36 @@ export default function OrdenesTrabajoPage() {
                 />
               )}
             </Field>
+
+            {CONFIG_MOTIVO[modalMotivo.tipo].conFoto && (
+              <Field label="Foto de evidencia (opcional)">
+                <input ref={inputCamaraRef} type="file" accept="image/*" capture="environment"
+                  onChange={(e) => { elegirFotoMotivo(e.target.files?.[0]); e.target.value = '' }} className="sr-only" />
+                <input ref={inputGaleriaRef} type="file" accept="image/*"
+                  onChange={(e) => { elegirFotoMotivo(e.target.files?.[0]); e.target.value = '' }} className="sr-only" />
+                <div className="flex gap-2">
+                  <Btn type="button" variante="secundario" disabled={procesandoFoto}
+                    onClick={() => inputCamaraRef.current?.click()} className="flex flex-1 items-center justify-center gap-2">
+                    <Camera className="h-4 w-4" aria-hidden="true" /> Cámara
+                  </Btn>
+                  <Btn type="button" variante="secundario" disabled={procesandoFoto}
+                    onClick={() => inputGaleriaRef.current?.click()} className="flex flex-1 items-center justify-center gap-2">
+                    <Images className="h-4 w-4" aria-hidden="true" /> Galería
+                  </Btn>
+                </div>
+                {procesandoFoto && <p className="mt-1.5 text-xs text-[var(--mobile-text-dim)]">Procesando foto…</p>}
+                {fotoMotivo && (
+                  <div className="relative mt-2 inline-block">
+                    <img src={URL.createObjectURL(fotoMotivo)} alt="Evidencia de la solución" className="h-20 w-20 rounded-lg object-cover" />
+                    <button type="button" onClick={() => setFotoMotivo(null)} aria-label="Quitar foto"
+                      className="absolute -top-1.5 -right-1.5 rounded-full bg-black/60 p-1 text-white">
+                      <X className="h-3 w-3" aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+              </Field>
+            )}
+
             <div className="flex justify-end gap-2 pt-2">
               <Btn variante="secundario" onClick={() => setModalMotivo(null)}>Cancelar</Btn>
               <button type="submit" disabled={guardando} className="panel-btn-primario rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacity-60">

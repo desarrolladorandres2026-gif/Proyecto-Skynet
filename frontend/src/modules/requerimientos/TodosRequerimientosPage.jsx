@@ -1,15 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { LayoutList } from 'lucide-react'
+import { LayoutList, Download, Trash2 } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
-import { Badge, Card, ErrorMsg, Select, TablaWrap, Th, Td, EmptyState, fmtFechaHora } from '../../components/ui.jsx'
+import { useAuth } from '../../auth/AuthContext.jsx'
+import { Badge, Btn, Card, ErrorMsg, OkMsg, Select, TablaWrap, Th, Td, EmptyState, fmtFechaHora } from '../../components/ui.jsx'
+import ExportarRequerimientosModal from './ExportarRequerimientosModal.jsx'
+import EliminarRequerimientosModal from './EliminarRequerimientosModal.jsx'
+import { useAutoRefresh } from '../../hooks/useAutoRefresh.js'
 
 const ESTADOS = [
   { valor: '', label: 'Todos los estados' },
   { valor: 'pendiente_financiero', label: 'Pendiente Financiero' },
-  { valor: 'pendiente_bodega', label: 'Pendiente Bodega' },
+  { valor: 'pendiente_bodega', label: 'Aprobado (en Bodega)' },
   { valor: 'rechazado', label: 'Rechazado' },
 ]
+// Mismos valores que Backend/src/models/Requerimiento.js (estado raíz +
+// bodega.estado) — ver mismo mapa en RequerimientoDetallePage.jsx.
+const LABEL_ESTADO = {
+  pendiente_financiero: 'Pendiente Financiero',
+  pendiente_bodega: 'Aprobado',
+  rechazado: 'Rechazado',
+}
+const LABEL_ESTADO_BODEGA = {
+  pendiente: 'Pendiente por despachar',
+  aprobada: 'Despachado',
+  no_aprobada: 'No se puede despachar',
+}
 const TIPOS = [
   { valor: '', label: 'Todos los tipos' },
   { valor: 'compra', label: 'Compra' },
@@ -17,29 +33,40 @@ const TIPOS = [
 ]
 
 export default function TodosRequerimientosPage() {
+  const { usuario } = useAuth()
   const [lista, setLista] = useState([])
   const [estado, setEstado] = useState('')
   const [tipo, setTipo] = useState('')
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
+  const [ok, setOk] = useState('')
+  const [modalExportar, setModalExportar] = useState(false)
+  const [modalEliminar, setModalEliminar] = useState(false)
 
-  async function cargar() {
-    setCargando(true)
-    try {
-      const data = await requerimientosApi.listarTodos({ estado: estado || undefined, tipo: tipo || undefined })
-      setLista(data.requerimientos)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
+  // `silencioso` evita tocar los estados de carga/error en los refrescos
+  // automáticos de fondo (ver useAutoRefresh) — solo la carga inicial o un
+  // cambio de filtro muestran "Cargando…" o un error visible.
+  const cargar = useCallback(
+    async (silencioso = false) => {
+      if (!silencioso) setCargando(true)
+      try {
+        const data = await requerimientosApi.listarTodos({ estado: estado || undefined, tipo: tipo || undefined })
+        setLista(data.requerimientos)
+        if (!silencioso) setError('')
+      } catch (err) {
+        if (!silencioso) setError(err.message)
+      } finally {
+        if (!silencioso) setCargando(false)
+      }
+    },
+    [estado, tipo]
+  )
 
   useEffect(() => {
     cargar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [estado, tipo])
+  }, [cargar])
+
+  useAutoRefresh(() => cargar(true))
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -48,7 +75,7 @@ export default function TodosRequerimientosPage() {
           <LayoutList className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
           Todos los requerimientos
         </h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Select value={tipo} onChange={(e) => setTipo(e.target.value)} className="w-40">
             {TIPOS.map((o) => (
               <option key={o.valor} value={o.valor}>{o.label}</option>
@@ -59,10 +86,22 @@ export default function TodosRequerimientosPage() {
               <option key={o.valor} value={o.valor}>{o.label}</option>
             ))}
           </Select>
+          <Btn variante="secundario" onClick={() => setModalExportar(true)} className="flex items-center gap-1.5">
+            <Download className="h-4 w-4" aria-hidden="true" /> Exportar
+          </Btn>
+          {/* Purgar por fecha es exclusivo de Super Admin — es mantenimiento
+              de plataforma, no una acción de negocio con permiso RBAC propio
+              (ver requerimientos.routes.js: soloAdmin). */}
+          {usuario?.esSuperAdmin && (
+            <Btn variante="peligro" onClick={() => setModalEliminar(true)} className="flex items-center gap-1.5">
+              <Trash2 className="h-4 w-4" aria-hidden="true" /> Eliminar por fecha
+            </Btn>
+          )}
         </div>
       </div>
 
       <ErrorMsg>{error}</ErrorMsg>
+      <OkMsg>{ok}</OkMsg>
 
       {cargando ? (
         <Card>Cargando…</Card>
@@ -87,8 +126,10 @@ export default function TodosRequerimientosPage() {
                 <Td>{r.solicitante?.nombre}</Td>
                 <Td>
                   <div className="flex gap-1.5">
-                    <Badge valor={r.estado} />
-                    {r.estado === 'pendiente_bodega' && <Badge valor={r.bodega?.estado} />}
+                    <Badge valor={r.estado} label={LABEL_ESTADO[r.estado] || r.estado} />
+                    {r.estado === 'pendiente_bodega' && (
+                      <Badge valor={r.bodega?.estado} label={LABEL_ESTADO_BODEGA[r.bodega?.estado] || r.bodega?.estado} />
+                    )}
                   </div>
                 </Td>
                 <Td>
@@ -101,6 +142,16 @@ export default function TodosRequerimientosPage() {
           </tbody>
         </TablaWrap>
       )}
+
+      <ExportarRequerimientosModal abierto={modalExportar} onCerrar={() => setModalExportar(false)} />
+      <EliminarRequerimientosModal
+        abierto={modalEliminar}
+        onCerrar={() => setModalEliminar(false)}
+        onEliminado={(eliminados) => {
+          setOk(`Se eliminaron ${eliminados} requerimiento(s)`)
+          cargar()
+        }}
+      />
     </div>
   )
 }

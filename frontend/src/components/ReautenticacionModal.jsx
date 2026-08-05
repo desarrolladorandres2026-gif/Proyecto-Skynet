@@ -12,6 +12,7 @@ export default function ReautenticacionModal({
   descripcion,
   onConfirmar,
   onCerrar,
+  children,
 }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -43,6 +44,7 @@ export default function ReautenticacionModal({
       <form onSubmit={confirmar} className="space-y-4">
         {descripcion && <p className="text-sm text-slate-600 dark:text-slate-300">{descripcion}</p>}
         <ErrorMsg>{error}</ErrorMsg>
+        {children}
         <Field label="Tu contraseña">
           <Input
             type="password"

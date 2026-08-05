@@ -50,20 +50,6 @@ export const MODULOS_SISTEMA = [
     orden: 10,
   },
   {
-    key: 'flota',
-    nombre: 'Flota',
-    descripcion: 'Empresas transportadoras, vehículos, conductores y plataformas.',
-    esNucleo: false,
-    orden: 11,
-  },
-  {
-    key: 'operacion',
-    nombre: 'Operación',
-    descripcion: 'Rutas, horarios, despachos, novedades y objetos perdidos. No incluye el Dashboard (núcleo).',
-    esNucleo: false,
-    orden: 12,
-  },
-  {
     key: 'requerimientos',
     nombre: 'Requerimientos',
     descripcion: 'Solicitud y aprobación de requerimientos de compra y servicio (Financiero + Bodega).',
@@ -83,5 +69,13 @@ export const MODULOS_SISTEMA = [
     descripcion: 'Equipos de TI y sus mantenimientos programados.',
     esNucleo: false,
     orden: 20,
+  },
+  {
+    key: 'copiloto',
+    nombre: 'Skynet',
+    descripcion:
+      'Asistente conversacional (Google Gemini) que responde preguntas sobre tus propios requerimientos, reportes de daño y ausencias. Solo lectura: no aprueba ni modifica nada.',
+    esNucleo: false,
+    orden: 15,
   },
 ]

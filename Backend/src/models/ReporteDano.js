@@ -88,6 +88,19 @@ const reporteDanoSchema = new mongoose.Schema(
     observacionAtencion: { type: String, trim: true },
     fechaResolucion: { type: Date, default: null },
 
+    // Datos obligatorios para marcar un daño como 'resuelto' (ver
+    // cambiarEstadoReporte en danos.service.js): sin los tres, la orden no
+    // puede finalizarse. `evidencias` es aparte de `foto` (la del reporte
+    // original) — esta es la prueba de que SE REPARÓ, no de que se rompió.
+    reparacion: {
+      fecha: { type: Date, default: null },
+      modulo: { type: String, enum: ['regional', 'centenario', 'modulo_mixto', null], default: null },
+      evidencias: {
+        type: [{ url: { type: String, required: true }, publicId: { type: String } }],
+        default: [],
+      },
+    },
+
     historial: { type: [eventoDanoSchema], default: [] },
   },
   { timestamps: true }

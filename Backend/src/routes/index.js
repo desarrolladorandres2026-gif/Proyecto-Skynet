@@ -9,10 +9,11 @@ import auditoriaRoutes from '../modules/auditoria/auditoria.routes.js'
 import danosRoutes from '../modules/danos/danos.routes.js'
 import requerimientosRoutes from '../modules/requerimientos/requerimientos.routes.js'
 import ausenciasRoutes from '../modules/ausencias/ausencias.routes.js'
-import flotaRoutes from '../modules/flota/flota.routes.js'
 import operacionRoutes from '../modules/operacion/operacion.routes.js'
 import sistemaRoutes from '../modules/sistema/sistema.routes.js'
 import notificacionesRoutes from '../modules/notificaciones/notificaciones.routes.js'
+import perfilRoutes from '../modules/perfil/perfil.routes.js'
+import copilotoRoutes from '../modules/copiloto/copiloto.routes.js'
 
 const router = Router()
 
@@ -32,10 +33,10 @@ router.use('/requerimientos', requerimientosRoutes)
 router.use('/ausencias', ausenciasRoutes)
 router.use('/sistema', sistemaRoutes)
 router.use('/notificaciones', notificacionesRoutes)
-// flota expone /empresas, /vehiculos, /conductores, /plataformas;
-// operacion expone /rutas, /horarios, /despachos, /novedades,
-// /objetos-perdidos y /dashboard — por eso van montados en la raíz.
-router.use('/', flotaRoutes)
+router.use('/perfil', perfilRoutes)
+router.use('/copiloto', copilotoRoutes)
+// operacion ahora solo expone /dashboard (núcleo, universal para todo rol);
+// se monta en la raíz por eso.
 router.use('/', operacionRoutes)
 
 export default router

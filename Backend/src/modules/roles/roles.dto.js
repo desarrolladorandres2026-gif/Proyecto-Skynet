@@ -9,7 +9,9 @@ const crearRolSchema = z.object({
     .toLowerCase()
     .regex(/^[a-z0-9_]+$/, 'El slug solo admite minúsculas, números y guion bajo'),
   descripcion: z.string().trim().optional(),
-  ambito: z.enum(['global', 'empresa']).default('global'),
+  // Solo 'global' (ver models/Rol.js): el ámbito 'empresa' se retiró junto
+  // con el módulo flota/Empresa.
+  ambito: z.enum(['global']).default('global'),
   esSuperAdmin: z.boolean().default(false),
   // Códigos de Permiso (p. ej. "vehiculos:gestionar"); el Service los resuelve
   // a ObjectId contra el catálogo antes de guardar.

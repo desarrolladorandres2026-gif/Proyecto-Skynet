@@ -47,13 +47,21 @@ async function seed() {
 
   const rolIdPorSlug = await sembrarCatalogoRBAC()
 
+  // El rol dedicado 'Financiero' se eliminó (2026-08-05): esta cuenta demo
+  // ahora usa 'Dir. Administrativo y Gestión' (slug 'administrativo_financiero'
+  // sin cambios — ver rbac.data.js). OJO: si este seed se vuelve a correr
+  // desde cero, el paso de abajo que aprueba un requerimiento fallará porque
+  // aprobarComoFinanciero exige firma.url registrada — este usuario demo no
+  // tiene una (no se genera una firma falsa aquí; regístrala manualmente en
+  // /requerimientos/mi-firma si necesitas que este script corra la
+  // aprobación de nuevo).
   const financiero = await crearUsuarioSiNoExiste({
     nombre_usuario: 'financiero',
     nombre: 'Jefe Financiero de Prueba',
     email: 'financiero@skynet.local',
     password: FINANCIERO_PASSWORD,
-    rolId: rolIdPorSlug.get('financiero'),
-    rolNombre: 'Financiero',
+    rolId: rolIdPorSlug.get('administrativo_financiero'),
+    rolNombre: 'Dir. Administrativo y Gestión',
     cargo: 'Jefe Financiero y Administrativo',
     modulos: [],
     estado: 'activo',

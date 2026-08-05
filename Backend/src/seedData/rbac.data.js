@@ -19,31 +19,6 @@ export const PERMISOS = [
   permiso('auditoria', 'leer', 'Auditoría y registros'),
   permiso('sistema', 'gestionar_modulos', 'Activar/desactivar módulos del sistema'),
 
-  // Catálogos maestros (Fase 1)
-  permiso('empresas', 'gestionar', 'Gestionar empresas transportadoras'),
-  permiso('empresas', 'ver_estadisticas', 'Ver estadísticas de su empresa'),
-  permiso('vehiculos', 'gestionar', 'Gestionar vehículos'),
-  permiso('vehiculos', 'consultar', 'Consultar vehículos'),
-  permiso('conductores', 'gestionar', 'Gestionar conductores'),
-  permiso('conductores', 'consultar', 'Consultar conductores'),
-  permiso('plataformas', 'gestionar', 'Gestionar plataformas'),
-  permiso('plataformas', 'cambiar', 'Cambiar plataforma'),
-
-  // Planeación operativa (Fase 2)
-  permiso('rutas', 'gestionar', 'Gestionar rutas'),
-  permiso('horarios', 'gestionar', 'Gestionar horarios'),
-  permiso('horarios', 'ver_programacion', 'Ver programación'),
-
-  // Operación diaria (Fase 3)
-  permiso('despachos', 'registrar_salida', 'Registrar salidas'),
-  permiso('despachos', 'registrar_llegada', 'Registrar llegadas'),
-  permiso('despachos', 'registrar_retraso', 'Registrar retrasos'),
-  permiso('novedades', 'registrar', 'Registrar novedades'),
-  permiso('novedades', 'registrar_incidente', 'Registrar incidentes'),
-  permiso('novedades', 'consultar_historial', 'Consultar historial'),
-  permiso('objetos_perdidos', 'registrar', 'Registrar objetos perdidos'),
-  permiso('objetos_perdidos', 'gestionar', 'Gestionar objetos perdidos'),
-
   // Atención al ciudadano / contenido (Fase 4)
   permiso('pqrs', 'gestionar', 'Gestionar PQRS'),
   permiso('noticias', 'gestionar', 'Administrar noticias'),
@@ -105,6 +80,52 @@ export const PERMISOS = [
   permiso('general', 'actualizar_datos', 'Actualizar datos'),
 ]
 
+// Base compartida entre Administrador y 'Dir. Administrativo y Gestión': NO
+// incluye NADA de Requerimientos — ni aprobar/firmar ni la supervisión de
+// "ver todos". Corrección explícita del usuario (2026-08-05): "el
+// administrador SOLO puede solicitar requerimientos" (la capacidad
+// universal de cualquier autenticado, ver modules/requerimientos), sin
+// bandeja de supervisión ni acceso a registrar firma — eso es exclusivo de
+// 'Dir. Administrativo y Gestión' (ver PERMISOS_DIR_ADMINISTRATIVO_GESTION).
+const PERMISOS_ADMINISTRADOR_BASE = [
+  'noticias:gestionar',
+  'eventos:gestionar',
+  'pqrs:gestionar',
+  'reportes:ver',
+  'danos:gestionar',
+  // Actúa como Supervisor de Mantenimiento hasta que la Fase 4 (módulo
+  // del Supervisor) justifique un rol dedicado separado de Administrador.
+  'mantenimiento:asignar',
+  'mantenimiento:ver_todas',
+  'mantenimiento:aprobar_cerrar',
+  'mantenimiento:escalar',
+  'mantenimiento:cancelar',
+  'mantenimiento:reabrir',
+  'mantenimiento:gestionar_equipos',
+  'mantenimiento:gestionar_catalogos',
+  'mantenimiento:aprobar_repuestos',
+  'mantenimiento:gestionar_plantillas',
+  'mantenimiento:gestionar_inventario',
+  'mantenimiento:gestionar_conocimiento',
+  'mantenimiento:gestionar_activos_criticidad',
+  // Mismo criterio que en Requerimientos: supervisión de solo lectura.
+  // Aprobar ausencias es de Talento Humano (rol dedicado abajo), no del
+  // Administrador de la operación.
+  'ausencias:ver_todas',
+]
+
+// Administrador + las 2 capacidades de Requerimientos que NO comparte con
+// él: aprobar/firmar Y la supervisión "ver todos". Ambas exclusivas de este
+// rol — ni Administrador ni Super Admin-por-diseño-de-negocio deben tener
+// vista de supervisión ni firmar en su lugar (Super Admin sigue pudiendo
+// técnicamente por el bypass de esSuperAdmin, pero la intención de negocio
+// es que solo quien tenga este rol lo haga).
+const PERMISOS_DIR_ADMINISTRATIVO_GESTION = [
+  ...PERMISOS_ADMINISTRADOR_BASE,
+  'requerimientos:ver_todos',
+  'requerimientos:aprobar_financiero',
+]
+
 export const ROLES = [
   {
     nombre: 'Super Administrador',
@@ -122,95 +143,16 @@ export const ROLES = [
     esSuperAdmin: false,
     ambito: 'global',
     esSistema: true,
-    permisos: [
-      'empresas:gestionar',
-      'vehiculos:gestionar',
-      'conductores:gestionar',
-      'rutas:gestionar',
-      'horarios:gestionar',
-      'plataformas:gestionar',
-      'noticias:gestionar',
-      'eventos:gestionar',
-      'pqrs:gestionar',
-      'reportes:ver',
-      'danos:gestionar',
-      // Actúa como Supervisor de Mantenimiento hasta que la Fase 4 (módulo
-      // del Supervisor) justifique un rol dedicado separado de Administrador.
-      'mantenimiento:asignar',
-      'mantenimiento:ver_todas',
-      'mantenimiento:aprobar_cerrar',
-      'mantenimiento:escalar',
-      'mantenimiento:cancelar',
-      'mantenimiento:reabrir',
-      'mantenimiento:gestionar_equipos',
-      'mantenimiento:gestionar_catalogos',
-      'mantenimiento:aprobar_repuestos',
-      'mantenimiento:gestionar_plantillas',
-      'mantenimiento:gestionar_inventario',
-      'mantenimiento:gestionar_conocimiento',
-      'mantenimiento:gestionar_activos_criticidad',
-      // Supervisión de solo-lectura sobre Requerimientos — a diferencia de
-      // Mantenimiento, aquí sí se pidieron 2 roles dedicados (Financiero,
-      // Bodega) para las acciones de gestión, así que Administrador NO
-      // recibe aprobar_financiero ni gestionar_bodega.
-      'requerimientos:ver_todos',
-      // Mismo criterio que en Requerimientos: supervisión de solo lectura.
-      // Aprobar ausencias es de Talento Humano (rol dedicado abajo), no del
-      // Administrador de la operación.
-      'ausencias:ver_todas',
-    ],
-  },
-  {
-    nombre: 'Empresa Transportadora',
-    slug: 'empresa_transportadora',
-    descripcion: 'Cada empresa solo administra su propia información.',
-    esSuperAdmin: false,
-    // ambito:'empresa' activa el scoping multi-tenant en cargarScopeEmpresa()
-    // (middleware/permisos.js): todo usuario con este rol queda restringido
-    // a su propio Usuario.empresa en los módulos que lo apliquen.
-    ambito: 'empresa',
-    esSistema: true,
-    permisos: [
-      'vehiculos:gestionar',
-      'conductores:gestionar',
-      'rutas:gestionar',
-      'horarios:gestionar',
-      'empresas:ver_estadisticas',
-      'novedades:registrar',
-    ],
-  },
-  {
-    nombre: 'Despachador',
-    slug: 'despachador',
-    descripcion: 'Es quien controla la salida de los vehículos.',
-    esSuperAdmin: false,
-    ambito: 'global',
-    esSistema: true,
-    permisos: [
-      'despachos:registrar_salida',
-      'despachos:registrar_llegada',
-      'plataformas:cambiar',
-      'horarios:ver_programacion',
-      'despachos:registrar_retraso',
-      'novedades:registrar',
-      'vehiculos:consultar',
-    ],
+    permisos: PERMISOS_ADMINISTRADOR_BASE,
   },
   {
     nombre: 'Seguridad',
     slug: 'seguridad',
-    descripcion: 'Control de acceso y novedades.',
+    descripcion: 'Control de acceso del terminal.',
     esSuperAdmin: false,
     ambito: 'global',
     esSistema: true,
-    permisos: [
-      'vehiculos:consultar',
-      'conductores:consultar',
-      'novedades:registrar_incidente',
-      'objetos_perdidos:registrar',
-      'novedades:registrar',
-      'novedades:consultar_historial',
-    ],
+    permisos: [],
   },
   {
     nombre: 'Operador',
@@ -223,37 +165,43 @@ export const ROLES = [
       'general:registrar_informacion',
       'general:actualizar_datos',
       'pqrs:gestionar',
-      'objetos_perdidos:gestionar',
       'publicaciones:gestionar',
       'reportes:ver_basicos',
     ],
   },
   {
-    nombre: 'Usuario Común',
-    slug: 'usuario_comun',
-    descripcion: 'Usuario general del terminal. Puede reportar daños y consultar sus propios reportes.',
-    esSuperAdmin: false,
-    ambito: 'global',
-    esSistema: true,
-    permisos: [],
-  },
-  {
     nombre: 'Mantenimiento',
     slug: 'mantenimiento',
-    descripcion: 'Personal de mantenimiento. Atiende los reportes de daños como tareas pendientes.',
+    descripcion: 'Ejecuta las órdenes de reparación que le fueron asignadas. No crea, asigna ni elimina reportes.',
     esSuperAdmin: false,
     ambito: 'global',
     esSistema: true,
-    permisos: ['danos:gestionar', 'mantenimiento:ejecutar'],
+    // Solo mantenimiento:ejecutar (ver y avanzar SOLO lo que tiene asignado).
+    // danos:gestionar (ver todos, asignar/reasignar, eliminar) es exclusivo de
+    // supervisión — hoy Administrador — para que un técnico nunca pueda
+    // repartirse trabajo a sí mismo ni ver la cola de sus compañeros
+    // (ver danos.service.js: puedeVerTodo()).
+    permisos: ['mantenimiento:ejecutar'],
   },
   {
-    nombre: 'Financiero',
-    slug: 'financiero',
-    descripcion: 'Revisa, edita y aprueba o rechaza los requerimientos de compra y servicio antes de pasar a Bodega.',
+    // Reemplaza al rol dedicado 'Financiero' (eliminado 2026-08-05): la firma
+    // que se estampa al aprobar un requerimiento es un dato delicado (ver
+    // Requerimiento.financiero.firma), así que en vez de un rol angosto que
+    // cualquiera pudiera recibir, esta identidad agrupa a quien el Super
+    // Admin designe explícitamente para firmar — con las mismas capacidades
+    // de supervisión que Administrador (es su unión, no un rol distinto en
+    // permisos). Renombrado de 'Administrativo y Financiero' a 'Dir.
+    // Administrativo y Gestión' (2026-08-05) — mismo rol, mismo slug (el
+    // slug es un identificador interno estable, como un código de permiso;
+    // no se renombra solo porque cambie la etiqueta visible), solo cambia
+    // el nombre que ve el usuario.
+    nombre: 'Dir. Administrativo y Gestión',
+    slug: 'administrativo_financiero',
+    descripcion: 'Une las capacidades de Administrador con la aprobación, firma y supervisión de requerimientos de compra y servicio antes de pasar a Bodega. Único rol autorizado a aprobar/firmar y a ver todos los requerimientos.',
     esSuperAdmin: false,
     ambito: 'global',
     esSistema: true,
-    permisos: ['requerimientos:aprobar_financiero'],
+    permisos: PERMISOS_DIR_ADMINISTRATIVO_GESTION,
   },
   {
     nombre: 'Bodega',

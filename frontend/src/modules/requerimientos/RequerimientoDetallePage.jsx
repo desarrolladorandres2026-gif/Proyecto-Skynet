@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { FileText, ShieldCheck, Ban, Save, Printer } from 'lucide-react'
+import { useParams, Link } from 'react-router-dom'
+import { FileText, ShieldCheck, Ban, Save, Printer, TriangleAlert } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
+import { perfil as perfilApi } from '../../api/perfil.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
+import { useAutoRefresh } from '../../hooks/useAutoRefresh.js'
 import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Select, Textarea, Modal,
   TablaWrap, Th, Td, fmtFecha, fmtFechaHora, aInputFecha,
@@ -11,11 +13,27 @@ import ReautenticacionModal from '../../components/ReautenticacionModal.jsx'
 import { generarPdfRequerimiento } from '../../pdf/requerimientoPdf.js'
 import FormularioCompra from './FormularioCompra.jsx'
 
+// Mismos valores que Backend/src/models/Requerimiento.js (bodega.estado) —
+// solo cambian las etiquetas que ve Bodega, ver también Badge (ui.jsx).
 const ESTADOS_BODEGA = [
-  { valor: 'pendiente', label: 'Pendiente' },
-  { valor: 'aprobada', label: 'Aprobada' },
-  { valor: 'no_aprobada', label: 'No aprobada' },
+  { valor: 'pendiente', label: 'Pendiente por despachar' },
+  { valor: 'aprobada', label: 'Despachado' },
+  { valor: 'no_aprobada', label: 'No se puede despachar' },
 ]
+
+function labelEstadoBodega(valor) {
+  return ESTADOS_BODEGA.find((o) => o.valor === valor)?.label || valor
+}
+
+// Estado raíz (Requerimiento.js: `estado`). 'pendiente_bodega' se traduce
+// como "Aprobado": para quien lo ve en ese momento (Bodega, solicitante,
+// supervisión) ya pasó la aprobación de Financiero — el detalle de si Bodega
+// ya lo despachó vive aparte, en el badge de bodega.estado de más abajo.
+const LABEL_ESTADO = {
+  pendiente_financiero: 'Pendiente Financiero',
+  pendiente_bodega: 'Aprobado',
+  rechazado: 'Rechazado',
+}
 
 const CAMPOS_SERVICIO = [
   ['Descripción del tipo de servicio', 'descripcionTipoServicio'],
@@ -27,6 +45,7 @@ const CAMPOS_SERVICIO = [
 export default function RequerimientoDetallePage() {
   const { id } = useParams()
   const { tienePermiso } = useAuth()
+  const esFinanciero = tienePermiso('requerimientos:aprobar_financiero')
 
   const [req, setReq] = useState(null)
   const [cargando, setCargando] = useState(true)
@@ -41,24 +60,39 @@ export default function RequerimientoDetallePage() {
 
   const [guardando, setGuardando] = useState(false)
   const [modalFirma, setModalFirma] = useState(false)
+  const [notaAprobacion, setNotaAprobacion] = useState('')
   const [modalRechazo, setModalRechazo] = useState(false)
   const [motivoRechazo, setMotivoRechazo] = useState('')
   const [modalFirmaBodega, setModalFirmaBodega] = useState(false)
+  const [modalNoDespacho, setModalNoDespacho] = useState(false)
+  const [motivoNoDespacho, setMotivoNoDespacho] = useState('')
+  // null = todavía no se sabe (evita el parpadeo del aviso mientras carga).
+  const [tieneFirma, setTieneFirma] = useState(null)
 
-  async function cargar() {
-    setCargando(true)
+  // `silencioso` (usado por useAutoRefresh) SOLO actualiza `req` — los
+  // campos de edición de Financiero (areaOProceso, items, detalle,
+  // analisisTecnico) no se re-hidratan en el refresco de fondo para no
+  // pisar lo que el usuario esté escribiendo en ese momento. Si mientras
+  // tanto el estado cambia (por ejemplo otro Financiero ya lo aprobó),
+  // `puedeEditarFinanciero` se recalcula en cada render y el formulario de
+  // edición desaparece solo, mostrando la vista de solo lectura con los
+  // datos ya actualizados desde `req`.
+  async function cargar(silencioso = false) {
+    if (!silencioso) setCargando(true)
     try {
       const { requerimiento } = await requerimientosApi.detalle(id)
       setReq(requerimiento)
-      setAreaOProceso(requerimiento.areaOProceso || '')
-      setItems((requerimiento.itemsCompra || []).map((it) => ({ ...it, fechaSolicitud: aInputFecha(it.fechaSolicitud) })))
-      setDetalle(requerimiento.detalleServicio || { descripcionTipoServicio: '', competencia: '', laboresADesarrollar: '', requisitosSST: '' })
-      setAnalisisTecnico(requerimiento.financiero?.analisisTecnico || '')
-      setError('')
+      if (!silencioso) {
+        setAreaOProceso(requerimiento.areaOProceso || '')
+        setItems((requerimiento.itemsCompra || []).map((it) => ({ ...it, fechaSolicitud: aInputFecha(it.fechaSolicitud) })))
+        setDetalle(requerimiento.detalleServicio || { descripcionTipoServicio: '', competencia: '', laboresADesarrollar: '', requisitosSST: '' })
+        setAnalisisTecnico(requerimiento.financiero?.analisisTecnico || '')
+        setError('')
+      }
     } catch (err) {
-      setError(err.message)
+      if (!silencioso) setError(err.message)
     } finally {
-      setCargando(false)
+      if (!silencioso) setCargando(false)
     }
   }
 
@@ -67,11 +101,23 @@ export default function RequerimientoDetallePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
+  useAutoRefresh(() => cargar(true), { intervalMs: 15000 })
+
+  // Solo le interesa a quien puede aprobar: se avisa ANTES de que intente
+  // aprobar y choque con el error 400 del backend (ver aprobarComoFinanciero,
+  // que ahora exige usuario.firma.url).
+  useEffect(() => {
+    if (!esFinanciero) return
+    perfilApi
+      .firma()
+      .then((data) => setTieneFirma(Boolean(data.firma)))
+      .catch(() => setTieneFirma(null))
+  }, [esFinanciero])
+
   if (cargando) return <Card>Cargando…</Card>
   if (error && !req) return <ErrorMsg>{error}</ErrorMsg>
   if (!req) return null
 
-  const esFinanciero = tienePermiso('requerimientos:aprobar_financiero')
   const esBodega = tienePermiso('requerimientos:gestionar_bodega')
   const puedeEditarFinanciero = esFinanciero && req.estado === 'pendiente_financiero'
   const puedeGestionarBodega = esBodega && req.estado === 'pendiente_bodega'
@@ -101,7 +147,10 @@ export default function RequerimientoDetallePage() {
   }
 
   async function aprobar(password) {
-    const { requerimiento } = await requerimientosApi.aprobarFinanciero(id, cambiosFinanciero({ password }))
+    const { requerimiento } = await requerimientosApi.aprobarFinanciero(
+      id,
+      cambiosFinanciero({ password, observacion: notaAprobacion })
+    )
     setReq(requerimiento)
     setOk('Requerimiento aprobado y firmado')
   }
@@ -121,22 +170,30 @@ export default function RequerimientoDetallePage() {
     }
   }
 
-  // "Aprobada" exige firma (reautenticación); las demás transiciones no.
+  // "Despachado" exige reautenticación (confirma identidad, NO es una firma
+  // digital — Bodega no firma, ver dibujarBloquesFirma en requerimientoPdf.js);
+  // "No se puede despachar" exige un motivo (lo valida también el backend);
+  // "Pendiente por despachar" no exige nada extra.
   function onCambiarEstadoBodega(estado) {
     if (estado === 'aprobada') {
       setModalFirmaBodega(true)
       return
     }
+    if (estado === 'no_aprobada') {
+      setMotivoNoDespacho('')
+      setModalNoDespacho(true)
+      return
+    }
     cambiarEstadoBodega(estado)
   }
 
-  async function cambiarEstadoBodega(estado) {
+  async function cambiarEstadoBodega(estado, observacion) {
     setError('')
     setOk('')
     try {
-      const { requerimiento } = await requerimientosApi.marcarEstadoBodega(id, estado)
+      const { requerimiento } = await requerimientosApi.marcarEstadoBodega(id, estado, observacion)
       setReq(requerimiento)
-      setOk(`Requerimiento marcado como "${estado}"`)
+      setOk(`Requerimiento marcado como "${labelEstadoBodega(estado)}"`)
     } catch (err) {
       setError(err.message)
     }
@@ -145,7 +202,23 @@ export default function RequerimientoDetallePage() {
   async function aprobarBodega(password) {
     const { requerimiento } = await requerimientosApi.marcarEstadoBodega(id, 'aprobada', undefined, password)
     setReq(requerimiento)
-    setOk('Requerimiento aprobado en Bodega y firmado')
+    setOk('Requerimiento despachado')
+  }
+
+  async function confirmarNoDespacho() {
+    if (!motivoNoDespacho.trim()) return
+    setGuardando(true)
+    setError('')
+    try {
+      const { requerimiento } = await requerimientosApi.marcarEstadoBodega(id, 'no_aprobada', motivoNoDespacho)
+      setReq(requerimiento)
+      setModalNoDespacho(false)
+      setOk('Requerimiento marcado como "No se puede despachar" — se notificó al solicitante, Financiero y Admin')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setGuardando(false)
+    }
   }
 
   async function marcarRecibido(itemId, recibido) {
@@ -166,8 +239,10 @@ export default function RequerimientoDetallePage() {
           Requerimiento de {req.tipo}
         </h1>
         <div className="flex items-center gap-2">
-          <Badge valor={req.estado} />
-          {req.estado === 'pendiente_bodega' && <Badge valor={req.bodega?.estado} />}
+          <Badge valor={req.estado} label={LABEL_ESTADO[req.estado] || req.estado} />
+          {req.estado === 'pendiente_bodega' && (
+            <Badge valor={req.bodega?.estado} label={labelEstadoBodega(req.bodega?.estado)} />
+          )}
         </div>
       </div>
 
@@ -289,12 +364,27 @@ export default function RequerimientoDetallePage() {
         )}
 
         {req.financiero?.fechaDecision && (
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            {req.estado === 'rechazado' ? 'Rechazado' : 'Aprobado'} por <strong>{req.financiero.nombreAprobador}</strong>
-            {req.financiero.cargoAprobador ? ` (${req.financiero.cargoAprobador})` : ''} el {fmtFechaHora(req.financiero.fechaDecision)}
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              {req.estado === 'rechazado' ? 'Rechazado' : 'Aprobado'} por <strong>{req.financiero.nombreAprobador}</strong>
+              {req.financiero.cargoAprobador ? ` (${req.financiero.cargoAprobador})` : ''} el {fmtFechaHora(req.financiero.fechaDecision)}
+            </p>
+            {req.financiero.firma?.url && (
+              <img
+                src={req.financiero.firma.url}
+                alt={`Firma de ${req.financiero.nombreAprobador}`}
+                className="h-20 max-w-[14rem] object-contain"
+              />
+            )}
+          </div>
         )}
         {req.estado === 'rechazado' && req.financiero?.motivoRechazo && <ErrorMsg>{req.financiero.motivoRechazo}</ErrorMsg>}
+        {req.estado !== 'rechazado' && req.financiero?.observacion && (
+          <div>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Nota del aprobador</p>
+            <p className="whitespace-pre-wrap text-sm text-slate-800 dark:text-slate-100">{req.financiero.observacion}</p>
+          </div>
+        )}
 
         {req.financiero?.historialEdiciones?.length > 0 && (
           <details className="text-sm text-slate-600 dark:text-slate-300">
@@ -313,17 +403,33 @@ export default function RequerimientoDetallePage() {
         )}
 
         {puedeEditarFinanciero && (
-          <div className="flex flex-wrap justify-end gap-2 pt-2">
-            <Btn variante="secundario" onClick={guardarEdicion} disabled={guardando} className="flex items-center gap-1.5">
-              <Save className="h-4 w-4" aria-hidden="true" /> Guardar cambios
-            </Btn>
-            <Btn variante="peligro" onClick={() => setModalRechazo(true)} className="flex items-center gap-1.5">
-              <Ban className="h-4 w-4" aria-hidden="true" /> Rechazar
-            </Btn>
-            <Btn onClick={() => setModalFirma(true)} className="flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4" aria-hidden="true" /> Aprobar y firmar
-            </Btn>
-          </div>
+          <>
+            {tieneFirma === false && (
+              <p className="flex items-center gap-1.5 text-sm text-amber-700 dark:text-amber-400">
+                <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+                No tienes una firma registrada.{' '}
+                <Link to="/requerimientos/mi-firma" className="underline underline-offset-2">
+                  Regístrala aquí
+                </Link>{' '}
+                antes de aprobar.
+              </p>
+            )}
+            <div className="flex flex-wrap justify-end gap-2 pt-2">
+              <Btn variante="secundario" onClick={guardarEdicion} disabled={guardando} className="flex items-center gap-1.5">
+                <Save className="h-4 w-4" aria-hidden="true" /> Guardar cambios
+              </Btn>
+              <Btn variante="peligro" onClick={() => setModalRechazo(true)} className="flex items-center gap-1.5">
+                <Ban className="h-4 w-4" aria-hidden="true" /> Rechazar
+              </Btn>
+              <Btn
+                onClick={() => setModalFirma(true)}
+                disabled={tieneFirma === false}
+                className="flex items-center gap-1.5"
+              >
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" /> Aprobar y firmar
+              </Btn>
+            </div>
+          </>
         )}
       </Card>
 
@@ -360,16 +466,44 @@ export default function RequerimientoDetallePage() {
         titulo="Firmar aprobación"
         descripcion="Reingresa tu contraseña para confirmar la aprobación de este requerimiento como Financiero."
         onConfirmar={aprobar}
-        onCerrar={() => setModalFirma(false)}
-      />
+        onCerrar={() => {
+          setModalFirma(false)
+          setNotaAprobacion('')
+        }}
+      >
+        <Field label="Nota para Bodega (opcional)">
+          <Textarea
+            value={notaAprobacion}
+            onChange={(e) => setNotaAprobacion(e.target.value)}
+            placeholder="Ej: se aprueba solo por 2 unidades, el resto queda pendiente…"
+          />
+        </Field>
+      </ReautenticacionModal>
 
       <ReautenticacionModal
         abierto={modalFirmaBodega}
-        titulo="Firmar aprobación de Bodega"
-        descripcion="Reingresa tu contraseña para confirmar la aprobación de este requerimiento en Bodega."
+        titulo="Confirmar despacho"
+        descripcion="Reingresa tu contraseña para confirmar el despacho de este requerimiento. Bodega no firma el documento — esto solo registra quién despachó y cuándo."
         onConfirmar={aprobarBodega}
         onCerrar={() => setModalFirmaBodega(false)}
       />
+
+      <Modal abierto={modalNoDespacho} titulo="No se puede despachar" onCerrar={() => setModalNoDespacho(false)}>
+        <div className="space-y-4">
+          <Field label="Motivo por el cual no se puede despachar">
+            <Textarea required value={motivoNoDespacho} onChange={(e) => setMotivoNoDespacho(e.target.value)} />
+          </Field>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Se notificará al solicitante, a Financiero y a Admin/Super Admin.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Btn variante="secundario" onClick={() => setModalNoDespacho(false)}>Cancelar</Btn>
+            <Btn variante="peligro" onClick={confirmarNoDespacho} disabled={guardando || !motivoNoDespacho.trim()}>
+              Confirmar
+            </Btn>
+          </div>
+        </div>
+      </Modal>
 
       <Modal abierto={modalRechazo} titulo="Rechazar requerimiento" onCerrar={() => setModalRechazo(false)}>
         <div className="space-y-4">

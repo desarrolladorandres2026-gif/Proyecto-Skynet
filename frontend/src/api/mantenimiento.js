@@ -134,7 +134,14 @@ export const ordenesApi = {
   reanudar(id) {
     return request(`/mantenimiento/ordenes/${id}/reanudar`, { method: 'POST' })
   },
-  resolver(id, descripcion_solucion) {
+  // foto (File) es opcional: si viene, se manda multipart; si no, JSON plano.
+  resolver(id, descripcion_solucion, foto) {
+    if (foto) {
+      const fd = new FormData()
+      fd.append('descripcion_solucion', descripcion_solucion)
+      fd.append('foto', foto)
+      return request(`/mantenimiento/ordenes/${id}/resolver`, { method: 'POST', body: fd })
+    }
     return request(`/mantenimiento/ordenes/${id}/resolver`, { method: 'POST', body: JSON.stringify({ descripcion_solucion }) })
   },
   aprobar(id, comentario) {

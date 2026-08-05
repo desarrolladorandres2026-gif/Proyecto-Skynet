@@ -10,10 +10,6 @@ const usuarioSchema = new mongoose.Schema(
     // models/Rol.js). Reemplaza el enum fijo de 2 valores que tenía antes;
     // scripts/migrate-rbac-roles.js migra los documentos legados.
     rol: { type: mongoose.Schema.Types.ObjectId, ref: 'Rol', required: true },
-    // Solo aplica a usuarios con un Rol de ambito:'empresa' (Empresa
-    // Transportadora): cargarScopeEmpresa() lo usa para restringir cada
-    // consulta/mutación a los datos de esta empresa.
-    empresa: { type: mongoose.Schema.Types.ObjectId, ref: 'Empresa', default: null },
     dependencia: { type: String, trim: true },
     // Cargo/puesto del empleado. Se usa para prellenar el campo "Cargo" de
     // formularios institucionales (p. ej. Requerimientos) y para el bloque
@@ -31,6 +27,22 @@ const usuarioSchema = new mongoose.Schema(
       default: [],
     },
     estado: { type: String, enum: ['activo', 'inactivo'], default: 'activo' },
+
+    // Rúbrica manuscrita del usuario, registrada una sola vez desde su perfil
+    // ("Mi firma") y reutilizada cada vez que firma un documento. Vive en
+    // Usuario y no en cada módulo porque es un dato de la persona: hoy la
+    // estampa Requerimientos al aprobar, mañana puede hacerlo otro flujo.
+    //   url        versión procesada (fondo transparente) — la que se estampa
+    //   urlOriginal foto tal como se subió; respaldo si la transformación de
+    //              Cloudinary no está disponible en el plan de la cuenta
+    //   publicId   asset en Cloudinary; se conserva para poder reprocesar o
+    //              borrar, y para saber si algún documento ya firmado lo usa
+    firma: {
+      url: { type: String, trim: true },
+      urlOriginal: { type: String, trim: true },
+      publicId: { type: String, trim: true },
+      actualizadaEn: { type: Date },
+    },
 
     // Se incrementa cada vez que se invalida una "generación" de tokens (reset
     // de contraseña, cambio de rol/módulos/estado por un admin). El JWT lleva

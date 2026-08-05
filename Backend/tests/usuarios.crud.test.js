@@ -10,7 +10,6 @@ import Rol from '../src/models/Rol.js'
 // Registra el modelo en Mongoose (efecto secundario del import): verificarToken
 // hace populate de rol.permisos y sin esto falla con MissingSchemaError.
 import '../src/models/Permiso.js'
-import '../src/models/Empresa.js'
 import usuariosRoutes from '../src/modules/usuarios/usuarios.routes.js'
 import { notFoundHandler, errorHandler } from '../src/middleware/errorHandler.js'
 import { hashPassword } from '../src/utils/password.js'

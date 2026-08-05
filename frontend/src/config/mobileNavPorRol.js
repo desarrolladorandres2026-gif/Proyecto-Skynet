@@ -1,7 +1,6 @@
 import {
-  Home, Wrench, TriangleAlert, GraduationCap, Send, LayoutGrid,
-  AlertTriangle, PackageSearch, CalendarClock, CalendarDays, Bus, IdCard,
-  FileText,
+  Home, Wrench, TriangleAlert, GraduationCap, CalendarDays,
+  FileText, ClipboardList,
 } from 'lucide-react'
 
 // Atajos curados a mano para la barra inferior de MobileShell (roles
@@ -15,32 +14,27 @@ import {
 // MobileShell filtra cada entrada contra useModulosVisibles() antes de
 // pintarla, así un atajo nunca apunta a una ruta que el rol no tiene permiso
 // de ver.
+//
+// Los roles "Despachador" y "Empresa Transportadora" se retiraron del RBAC
+// junto con el módulo flota/despachos/horarios/novedades — sus atajos
+// (despachos, plataformas, vehículos) ya no tienen ruta a la que apuntar.
+//
+// "Usuario Común" se eliminó del catálogo RBAC (2026-08-05): no otorgaba
+// ningún permiso propio, así que sus usuarios se reasignaron a "Operador"
+// (scripts/eliminar-roles-obsoletos.js) y sus atajos se heredan aquí.
 export const MOBILE_NAV_POR_ROL = {
   mantenimiento: [
     { to: '/mantenimiento/ordenes', label: 'Órdenes', icon: Wrench },
-    { to: '/danos/reportar', label: 'Reportar', icon: TriangleAlert },
+    // No 'Reportar': el técnico no crea reportes, solo ejecuta lo asignado
+    // (ver rol Mantenimiento en seedData/rbac.data.js).
+    { to: '/danos/mis-tareas', label: 'Mis tareas', icon: ClipboardList },
   ],
-  usuario_comun: [
+  seguridad: [],
+  operador: [
     { to: '/danos/reportar', label: 'Reportar', icon: TriangleAlert },
     { to: '/requerimientos/nuevo', label: 'Requerimientos', icon: FileText },
     { to: '/ausencias/mias', label: 'Vacaciones', icon: CalendarDays },
     { to: '/induccion', label: 'Inducción', icon: GraduationCap },
-  ],
-  despachador: [
-    { to: '/operacion/despachos', label: 'Despachos', icon: Send },
-    { to: '/flota/plataformas', label: 'Plataformas', icon: LayoutGrid },
-  ],
-  seguridad: [
-    { to: '/operacion/novedades', label: 'Novedades', icon: AlertTriangle },
-    { to: '/operacion/objetos-perdidos', label: 'Objetos', icon: PackageSearch },
-  ],
-  operador: [
-    { to: '/operacion/rutas', label: 'Rutas', icon: CalendarClock },
-    { to: '/operacion/novedades', label: 'Novedades', icon: AlertTriangle },
-  ],
-  empresa_transportadora: [
-    { to: '/flota/vehiculos', label: 'Vehículos', icon: Bus },
-    { to: '/flota/conductores', label: 'Conductores', icon: IdCard },
   ],
 }
 

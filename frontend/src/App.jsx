@@ -16,8 +16,10 @@ import SupervisorPage from './modules/mantenimiento/SupervisorPage.jsx'
 import UsuariosPage from './modules/usuarios/UsuariosPage.jsx'
 import ReportarDanoPage from './modules/danos/ReportarDanoPage.jsx'
 import TareasDanosPage from './modules/danos/TareasDanosPage.jsx'
+import MisTareasPage from './modules/danos/MisTareasPage.jsx'
 import NuevoRequerimientoPage from './modules/requerimientos/NuevoRequerimientoPage.jsx'
 import MisRequerimientosPage from './modules/requerimientos/MisRequerimientosPage.jsx'
+import MiFirmaPage from './modules/requerimientos/MiFirmaPage.jsx'
 import RequerimientoDetallePage from './modules/requerimientos/RequerimientoDetallePage.jsx'
 import BandejaFinancieroPage from './modules/requerimientos/BandejaFinancieroPage.jsx'
 import BandejaBodegaPage from './modules/requerimientos/BandejaBodegaPage.jsx'
@@ -26,14 +28,6 @@ import MisAusenciasPage from './modules/ausencias/MisAusenciasPage.jsx'
 import BandejaAusenciasPage from './modules/ausencias/BandejaAusenciasPage.jsx'
 import CalendarioAusenciasPage from './modules/ausencias/CalendarioAusenciasPage.jsx'
 import DashboardPage from './modules/operacion/DashboardPage.jsx'
-import EmpresasPage from './modules/flota/EmpresasPage.jsx'
-import VehiculosPage from './modules/flota/VehiculosPage.jsx'
-import ConductoresPage from './modules/flota/ConductoresPage.jsx'
-import PlataformasPage from './modules/flota/PlataformasPage.jsx'
-import RutasHorariosPage from './modules/operacion/RutasHorariosPage.jsx'
-import DespachosPage from './modules/operacion/DespachosPage.jsx'
-import NovedadesPage from './modules/operacion/NovedadesPage.jsx'
-import ObjetosPerdidosPage from './modules/operacion/ObjetosPerdidosPage.jsx'
 import RolesPage from './modules/roles/RolesPage.jsx'
 import AuditoriaPage from './modules/auditoria/AuditoriaPage.jsx'
 import ModulosSistemaPage from './modules/sistema/ModulosSistemaPage.jsx'
@@ -114,11 +108,17 @@ export default function App() {
             <Route path="notificaciones" element={<PreferenciasNotificacionesPage />} />
             <Route path="danos/reportar" element={<ModuloActivoRoute modulo="danos"><ReportarDanoPage /></ModuloActivoRoute>} />
             <Route path="danos/tareas" element={<ModuloActivoRoute modulo="danos"><PermissionRoute permiso="danos:gestionar"><TareasDanosPage /></PermissionRoute></ModuloActivoRoute>} />
+            {/* Mantenimiento (mantenimiento:ejecutar sin danos:gestionar): solo ve y
+                avanza lo que tiene asignado — el backend recorta el listado. */}
+            <Route path="danos/mis-tareas" element={<ModuloActivoRoute modulo="danos"><PermissionRoute permiso="mantenimiento:ejecutar"><MisTareasPage /></PermissionRoute></ModuloActivoRoute>} />
 
             {/* Requerimientos: crear + ver los propios son universales (como
-                "Reportar daño"); las bandejas de gestión exigen su permiso. */}
+                "Reportar daño"); las bandejas de gestión y "Mi firma" (solo
+                tiene sentido para quien puede aprobar/firmar) exigen su
+                permiso. */}
             <Route path="requerimientos/nuevo" element={<ModuloActivoRoute modulo="requerimientos"><NuevoRequerimientoPage /></ModuloActivoRoute>} />
             <Route path="requerimientos/mios" element={<ModuloActivoRoute modulo="requerimientos"><MisRequerimientosPage /></ModuloActivoRoute>} />
+            <Route path="requerimientos/mi-firma" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:aprobar_financiero"><MiFirmaPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/financiero" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:aprobar_financiero"><BandejaFinancieroPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/bodega" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:gestionar_bodega"><BandejaBodegaPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/todos" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:ver_todos"><TodosRequerimientosPage /></PermissionRoute></ModuloActivoRoute>} />
@@ -130,16 +130,6 @@ export default function App() {
             <Route path="ausencias/mias" element={<ModuloActivoRoute modulo="ausencias"><MisAusenciasPage /></ModuloActivoRoute>} />
             <Route path="ausencias/bandeja" element={<ModuloActivoRoute modulo="ausencias"><PermissionRoute permiso="ausencias:aprobar"><BandejaAusenciasPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="ausencias/calendario" element={<ModuloActivoRoute modulo="ausencias"><PermissionRoute permiso={['ausencias:aprobar', 'ausencias:ver_todas']}><CalendarioAusenciasPage /></PermissionRoute></ModuloActivoRoute>} />
-
-            <Route path="flota/empresas" element={<ModuloActivoRoute modulo="flota"><PermissionRoute permiso="empresas:gestionar"><EmpresasPage /></PermissionRoute></ModuloActivoRoute>} />
-            <Route path="flota/vehiculos" element={<ModuloActivoRoute modulo="flota"><PermissionRoute permiso={['vehiculos:gestionar', 'vehiculos:consultar']}><VehiculosPage /></PermissionRoute></ModuloActivoRoute>} />
-            <Route path="flota/conductores" element={<ModuloActivoRoute modulo="flota"><PermissionRoute permiso={['conductores:gestionar', 'conductores:consultar']}><ConductoresPage /></PermissionRoute></ModuloActivoRoute>} />
-            <Route path="flota/plataformas" element={<ModuloActivoRoute modulo="flota"><PermissionRoute permiso={['plataformas:gestionar', 'plataformas:cambiar']}><PlataformasPage /></PermissionRoute></ModuloActivoRoute>} />
-
-            <Route path="operacion/rutas" element={<ModuloActivoRoute modulo="operacion"><PermissionRoute permiso={['rutas:gestionar', 'horarios:gestionar', 'horarios:ver_programacion']}><RutasHorariosPage /></PermissionRoute></ModuloActivoRoute>} />
-            <Route path="operacion/despachos" element={<ModuloActivoRoute modulo="operacion"><PermissionRoute permiso={['despachos:registrar_salida', 'despachos:registrar_llegada', 'reportes:ver', 'empresas:ver_estadisticas']}><DespachosPage /></PermissionRoute></ModuloActivoRoute>} />
-            <Route path="operacion/novedades" element={<ModuloActivoRoute modulo="operacion"><PermissionRoute permiso={['novedades:registrar', 'novedades:registrar_incidente', 'novedades:consultar_historial']}><NovedadesPage /></PermissionRoute></ModuloActivoRoute>} />
-            <Route path="operacion/objetos-perdidos" element={<ModuloActivoRoute modulo="operacion"><PermissionRoute permiso={['objetos_perdidos:registrar', 'objetos_perdidos:gestionar']}><ObjetosPerdidosPage /></PermissionRoute></ModuloActivoRoute>} />
 
             <Route path="usuarios" element={<PermissionRoute permiso="usuarios:gestionar"><UsuariosPage /></PermissionRoute>} />
             <Route path="roles" element={<PermissionRoute permiso="roles:gestionar"><RolesPage /></PermissionRoute>} />

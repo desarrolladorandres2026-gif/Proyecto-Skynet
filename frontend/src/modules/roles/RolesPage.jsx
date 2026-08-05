@@ -211,9 +211,12 @@ export default function RolesPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Ámbito">
+              {/* Único valor posible desde que se retiró el módulo flota/Empresa
+                  (ver Backend/src/models/Rol.js) — se deja el campo (no un
+                  literal fijo) porque el backend sigue siendo la fuente de
+                  verdad del enum, no esta página. */}
               <Select value={form.ambito} onChange={(e) => setForm({ ...form, ambito: e.target.value })}>
                 <option value="global">Global</option>
-                <option value="empresa">Solo su empresa (multi-tenant)</option>
               </Select>
             </Field>
             <Field label="Nivel">

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, Images, Send, X } from 'lucide-react'
+import { Camera, Images, Send, X, ShieldOff } from 'lucide-react'
 import { danos as danosApi } from '../../api/danos.js'
 import { normalizarFoto } from '../../utils/normalizarFoto.js'
+import { useAuth } from '../../auth/AuthContext.jsx'
 import {
   Btn, Badge, ErrorMsg, OkMsg, Field, Input, Textarea,
   EmptyState, fmtFechaHora,
@@ -29,6 +30,12 @@ const TIPOS = [
 const TIPO_LABELS = Object.fromEntries(TIPOS.map((t) => [t.value, t.label]))
 
 export default function ReportarDanoPage() {
+  const { tienePermiso } = useAuth()
+  // Un técnico "puro" (ejecuta, no gestiona) no reporta daños — su función es
+  // reparar lo que le asignan. Se detecta por permisos, no por slug de rol
+  // (mismo criterio que el backend, ver esTecnicoPuro en danos.controller.js).
+  const tecnicoPuro = tienePermiso('mantenimiento:ejecutar') && !tienePermiso('danos:gestionar')
+
   const [tipo, setTipo] = useState('dano')
   const [fecha, setFecha] = useState(ahoraLocal())
   const [descripcion, setDescripcion] = useState('')
@@ -113,6 +120,21 @@ export default function ReportarDanoPage() {
     } finally {
       setEnviando(false)
     }
+  }
+
+  if (tecnicoPuro) {
+    return (
+      <div className="mx-auto max-w-md md:max-w-2xl">
+        <div className="m-card flex flex-col items-center gap-3 rounded-3xl p-8 text-center">
+          <ShieldOff className="h-8 w-8 text-[var(--mobile-text-dim)]" aria-hidden="true" />
+          <h1 className="text-lg font-bold text-[var(--mobile-text)]">Mantenimiento no reporta daños</h1>
+          <p className="text-sm text-[var(--mobile-text-dim)]">
+            Tu función es ejecutar las órdenes que te asignen. Ve a <strong>Mis tareas</strong> para ver y
+            actualizar lo que tienes pendiente.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (

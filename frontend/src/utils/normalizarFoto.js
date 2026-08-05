@@ -38,13 +38,16 @@ export async function normalizarFoto(file) {
   }
 }
 
-// TODO(usuario): calcula el ancho/alto de salida preservando la proporción
-// original, de forma que ni el ancho ni el alto superen `ladoMaximo`. Si la
-// imagen ya es más chica que ladoMaximo en ambas dimensiones, no la agrandes
-// (subir la resolución no gana nitidez, solo peso).
-//
-// Parámetros: anchoOriginal, altoOriginal, ladoMaximo (todos en px, > 0)
-// Retorna: { width, height } — enteros, redondeados.
+// Preserva la proporción original; solo achica (nunca agranda: subir la
+// resolución no gana nitidez, solo peso). El lado más largo queda en
+// ladoMaximo y el otro se escala en proporción.
 function calcularDimensiones(anchoOriginal, altoOriginal, ladoMaximo) {
-  // ...
+  if (anchoOriginal <= ladoMaximo && altoOriginal <= ladoMaximo) {
+    return { width: anchoOriginal, height: altoOriginal }
+  }
+  const escala = ladoMaximo / Math.max(anchoOriginal, altoOriginal)
+  return {
+    width: Math.round(anchoOriginal * escala),
+    height: Math.round(altoOriginal * escala),
+  }
 }

@@ -162,16 +162,22 @@ function PanelEquipo({ tecnicos, cargando }) {
 function ModalAsignar({ reporte, tecnicos, puedeAsignarAOtros, miId, onCerrar, onConfirmar }) {
   const [tecnicoId, setTecnicoId] = useState('')
   const [nota, setNota] = useState('')
+  const [forzar, setForzar] = useState(false)
   const [enviando, setEnviando] = useState(false)
 
   if (!reporte) return null
   const actual = reporte.asignadoA?._id
+  const elegido = tecnicos.find((t) => t._id === tecnicoId)
+  // Espejo de MAX_ACTIVAS_TECNICO en danos.service.js: solo es informativo,
+  // el backend es quien realmente bloquea sin `forzar` (ver el mensaje de
+  // error que sube confirmarAsignacion si se intenta sin marcar la casilla).
+  const superaTope = elegido && elegido.activos >= 5
 
   async function confirmar() {
     if (!tecnicoId) return
     setEnviando(true)
     try {
-      await onConfirmar(reporte, tecnicoId, nota)
+      await onConfirmar(reporte, tecnicoId, nota, forzar)
     } finally {
       setEnviando(false)
     }
@@ -231,6 +237,16 @@ function ModalAsignar({ reporte, tecnicos, puedeAsignarAOtros, miId, onCerrar, o
       <Field label="Nota (opcional)" className="mt-4">
         <Textarea rows={2} value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Instrucciones para quien repara…" />
       </Field>
+
+      {superaTope && (
+        <label className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-slate-600 dark:text-slate-300">
+          <input type="checkbox" checked={forzar} onChange={(e) => setForzar(e.target.checked)} className="mt-0.5 accent-cyan-600" />
+          <span>
+            {elegido.nombre} ya tiene {elegido.activos} órdenes activas (máximo 5 sin autorización). Marca esto
+            para asignarle de todas formas.
+          </span>
+        </label>
+      )}
 
       <div className="mt-4 flex justify-end gap-2">
         <Btn variante="secundario" onClick={onCerrar}>Cancelar</Btn>
@@ -376,6 +392,27 @@ function ModalDetalle({ reporte, onCerrar, onSolicitarRepuesto }) {
         </a>
       )}
 
+      {reporte.reparacion?.fecha && (
+        <div className="mt-4 rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-3">
+          <p className="panel-mono text-[11px] uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+            Reparación registrada
+          </p>
+          <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
+            {fmtFechaHora(reporte.reparacion.fecha)} ·{' '}
+            {{ regional: 'Regional', centenario: 'Centenario', modulo_mixto: 'Módulo Mixto' }[reporte.reparacion.modulo] || reporte.reparacion.modulo}
+          </p>
+          {reporte.reparacion.evidencias?.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {reporte.reparacion.evidencias.map((ev, i) => (
+                <a key={i} href={ev.url} target="_blank" rel="noreferrer">
+                  <img src={ev.url} alt="Evidencia de la reparación" className="h-16 w-16 rounded object-cover" />
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="mt-5 flex items-center justify-between gap-2">
         <p className="panel-mono flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-cyan-700/80 dark:text-cyan-400/80">
           <PackagePlus className="h-3.5 w-3.5" aria-hidden="true" />
@@ -482,10 +519,10 @@ export default function TareasDanosPage() {
     setFiltros((f) => ({ ...f, [clave]: valor }))
   }
 
-  async function confirmarAsignacion(reporte, tecnicoId, nota) {
+  async function confirmarAsignacion(reporte, tecnicoId, nota, forzar) {
     setOk(''); setError('')
     try {
-      const { reporte: actualizado } = await danosApi.asignar(reporte._id, tecnicoId, nota)
+      const { reporte: actualizado } = await danosApi.asignar(reporte._id, tecnicoId, nota, forzar)
       setOk(`Reporte asignado a ${actualizado.asignadoA?.nombre}. Se le envió una notificación.`)
       setAsignando(null)
       await Promise.all([cargar(), cargarTecnicos()])

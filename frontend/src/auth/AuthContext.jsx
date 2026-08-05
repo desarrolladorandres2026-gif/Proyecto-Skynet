@@ -106,7 +106,19 @@ export function useAuth() {
 
 // Único criterio de "es admin" para decidir shell (AppShell.jsx) y home
 // feed (DashboardPage.jsx): Super Admin y Administrador conservan el panel
-// denso de escritorio; los otros 6 roles ven el shell móvil tipo app social.
+// denso de escritorio; los otros roles ven el shell móvil tipo app social.
 export function esRolAdmin(usuario) {
   return Boolean(usuario?.esSuperAdmin || usuario?.rol?.slug === 'administrador')
+}
+
+// Bodega gestiona requerimientos aprobados (estado, control de recibido,
+// impresión) desde una bandeja tabular — la misma tarea que hace
+// Administrativo y Financiero en el panel denso. Por eso, aunque no sean
+// "admin", usan el mismo shell de escritorio que Admin en vez del feed móvil
+// tipo app social (ver AppShell.jsx y DashboardPage.jsx).
+// 'administrativo_financiero' (Dir. Administrativo y Gestión) se agregó
+// 2026-08-05 a pedido explícito del usuario: quien tenga ese rol trabaja
+// desde computador, con las mismas bandejas y tablas densas que Admin.
+export function usaPanelDenso(usuario) {
+  return esRolAdmin(usuario) || ['bodega', 'administrativo_financiero'].includes(usuario?.rol?.slug)
 }

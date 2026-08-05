@@ -1,29 +1,60 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Warehouse, Printer } from 'lucide-react'
+import { Warehouse, Printer, Download } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
 import { Badge, Btn, Card, ErrorMsg, TablaWrap, Th, Td, EmptyState, fmtFechaHora } from '../../components/ui.jsx'
+import ExportarRequerimientosModal from './ExportarRequerimientosModal.jsx'
+import { useAutoRefresh } from '../../hooks/useAutoRefresh.js'
+
+// Mismos valores que Backend/src/models/Requerimiento.js (bodega.estado) y
+// RequerimientoDetallePage.jsx — mantenidos en sync manualmente porque son
+// solo 3 y no vale la pena un módulo compartido para esto.
+const LABEL_ESTADO_BODEGA = {
+  pendiente: 'Pendiente por despachar',
+  aprobada: 'Despachado',
+  no_aprobada: 'No se puede despachar',
+}
 import { generarPdfRequerimiento } from '../../pdf/requerimientoPdf.js'
 
 export default function BandejaBodegaPage() {
   const [lista, setLista] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
+  const [modalExportar, setModalExportar] = useState(false)
+
+  const cargar = useCallback((silencioso = false) => {
+    if (!silencioso) setCargando(true)
+    return requerimientosApi
+      .bandejaBodega()
+      .then((data) => {
+        setLista(data.requerimientos)
+        if (!silencioso) setError('')
+      })
+      .catch((err) => {
+        if (!silencioso) setError(err.message)
+      })
+      .finally(() => {
+        if (!silencioso) setCargando(false)
+      })
+  }, [])
 
   useEffect(() => {
-    requerimientosApi
-      .bandejaBodega()
-      .then((data) => setLista(data.requerimientos))
-      .catch((err) => setError(err.message))
-      .finally(() => setCargando(false))
-  }, [])
+    cargar()
+  }, [cargar])
+
+  useAutoRefresh(() => cargar(true))
 
   return (
     <div className="mx-auto max-w-5xl">
-      <h1 className="panel-mono mb-4 flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-        <Warehouse className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
-        Bandeja Bodega — aprobados por Financiero
-      </h1>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
+          <Warehouse className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+          Bandeja Bodega — aprobados por Financiero
+        </h1>
+        <Btn variante="secundario" onClick={() => setModalExportar(true)} className="flex items-center gap-1.5">
+          <Download className="h-4 w-4" aria-hidden="true" /> Exportar
+        </Btn>
+      </div>
 
       <ErrorMsg>{error}</ErrorMsg>
 
@@ -48,7 +79,7 @@ export default function BandejaBodegaPage() {
                 <Td className="whitespace-nowrap">{fmtFechaHora(r.fechaSolicitud || r.createdAt)}</Td>
                 <Td className="capitalize">{r.tipo}</Td>
                 <Td>{r.solicitante?.nombre}</Td>
-                <Td><Badge valor={r.bodega?.estado} /></Td>
+                <Td><Badge valor={r.bodega?.estado} label={LABEL_ESTADO_BODEGA[r.bodega?.estado] || r.bodega?.estado} /></Td>
                 <Td>
                   <div className="flex items-center justify-end gap-2">
                     <Btn variante="fantasma" onClick={() => generarPdfRequerimiento(r)} className="flex items-center gap-1.5 !px-2.5" title="Generar PDF">
@@ -64,6 +95,8 @@ export default function BandejaBodegaPage() {
           </tbody>
         </TablaWrap>
       )}
+
+      <ExportarRequerimientosModal abierto={modalExportar} onCerrar={() => setModalExportar(false)} />
     </div>
   )
 }

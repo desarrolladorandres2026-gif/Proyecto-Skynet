@@ -10,16 +10,48 @@ import { BottomSheet } from '../components/mobileUi.jsx'
 // rediseño móvil siguen usando Card/Btn/Input/TablaWrap de components/ui.jsx
 // (variables --panel-*), y este shell necesita sus propias --mobile-*.
 
+import { cn } from '../lib/cn.js'
+
 function TabItem({ to, end, icon: Icon, label }) {
   return (
     <NavLink
       to={to}
       end={end}
-      className={({ isActive }) => `m-navitem flex flex-1 flex-col items-center justify-center gap-1 py-2 ${isActive ? 'is-active' : ''}`}
+      className={({ isActive }) =>
+        cn(
+          'm-navitem relative flex flex-1 flex-col items-center justify-center gap-1 py-1.5 transition-all duration-300',
+          isActive && 'is-active scale-105'
+        )
+      }
     >
-      <Icon className="h-5 w-5" aria-hidden="true" />
-      <span className="text-[10px] font-medium">{label}</span>
-      <span className="m-navdot h-1 w-1 rounded-full" aria-hidden="true" />
+      {({ isActive }) => (
+        <>
+          <div
+            className={cn(
+              'relative flex items-center justify-center p-2 rounded-2xl transition-all duration-300',
+              isActive
+                ? 'bg-gradient-to-br from-cyan-500/20 to-sky-600/20 text-cyan-400 border border-cyan-400/40 shadow-[0_0_20px_rgba(34,211,238,0.4)] backdrop-blur-md'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-cyan-500/10'
+            )}
+          >
+            <Icon className="h-5 w-5" aria-hidden="true" />
+            {isActive && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400 border border-slate-900"></span>
+              </span>
+            )}
+          </div>
+          <span
+            className={cn(
+              'text-[10px] font-medium transition-colors',
+              isActive ? 'text-cyan-400 font-bold' : 'text-slate-400'
+            )}
+          >
+            {label}
+          </span>
+        </>
+      )}
     </NavLink>
   )
 }

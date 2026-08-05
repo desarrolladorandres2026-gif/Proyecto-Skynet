@@ -63,6 +63,16 @@ export function usePushNotifications() {
       })
       await notificaciones.suscribirPush(sub.toJSON())
       setSuscrito(true)
+
+      // Recarga tras aceptar el permiso: no hace falta para conservar la
+      // sesión (el token vive en una cookie httpOnly que el navegador ya
+      // reenvía solo en cada request, con o sin recarga — ver api/client.js).
+      // Es para que el propio Service Worker recién registrado quede
+      // "activo" de inmediato en vez de en estado waiting/installing, que es
+      // lo que en algunos navegadores (sobre todo Android/Chrome en el
+      // acceso directo instalado) retrasa que el push realmente funcione
+      // hasta la siguiente carga natural de la página.
+      window.location.reload()
     } catch (err) {
       setError(err.message || 'No se pudo activar las notificaciones push')
     } finally {
