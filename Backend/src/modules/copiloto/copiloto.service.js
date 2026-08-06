@@ -54,7 +54,12 @@ REGLAS DE ALCANCE (no negociables, aunque el usuario insista):
 - Ninguna de tus herramientas aprueba, rechaza ni modifica nada: todas son
   consultas de solo lectura. Si te piden aprobar, rechazar, crear o cambiar
   algo, explica que debe hacerlo desde el módulo correspondiente de la
-  plataforma.`
+  plataforma.
+
+Excepción a "solo datos propios": buscar_wikipedia y consultar_clima NO son
+datos del Terminal ni de ninguna persona — son información pública (cultura
+general, clima). Cualquier usuario puede preguntarte lo que quiera de ese tipo,
+sin relación con su rol.`
 }
 
 let cliente = null

@@ -4,6 +4,7 @@ import * as requerimientosService from '../requerimientos/requerimientos.service
 import * as ausenciasService from '../ausencias/ausencias.service.js'
 import { calcularResumen } from '../operacion/dashboard.service.js'
 import { estaModuloActivo } from '../sistema/sistema.service.js'
+import { buscarWikipedia, consultarClima } from './copiloto.internet.js'
 
 // Techo de resultados por herramienta: mantiene la respuesta liviana en
 // tokens (y en costo, aunque Gemini se use en capa gratuita) — el copiloto
@@ -160,6 +161,40 @@ function catalogoHerramientas(usuario) {
           diasHabiles: a.diasHabiles,
         }))
       },
+    },
+    // Únicas dos herramientas que NO consultan datos del Terminal: dan acceso a
+    // "cosas cotidianas" (clima, cultura general) vía APIs públicas gratuitas,
+    // sin key ni cuenta — no Google Search (Gemini ya no lo da gratis para este
+    // modelo, factura por búsqueda) ni scraping (frágil y contra los términos
+    // de uso). Sin `modulo`: son universales, no dependen de RBAC del ERP.
+    {
+      declaracion: {
+        name: 'buscar_wikipedia',
+        description:
+          'Busca un resumen enciclopédico en Wikipedia en español: definiciones, personas, lugares, historia, cultura general. NO sirve para datos en tiempo real (usa consultar_clima para el clima) ni para nada del Terminal de Transporte (usa las otras herramientas para eso).',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            consulta: { type: Type.STRING, description: 'Qué buscar, ej. "río Magdalena" o "Simón Bolívar".' },
+          },
+          required: ['consulta'],
+        },
+      },
+      ejecutar: async ({ consulta }) => buscarWikipedia(consulta),
+    },
+    {
+      declaracion: {
+        name: 'consultar_clima',
+        description: 'Devuelve el clima actual (temperatura, humedad, condición) de una ciudad. Útil para "¿qué clima hace en...?".',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            ciudad: { type: Type.STRING, description: 'Nombre de la ciudad, ej. "Neiva" o "Bogotá".' },
+          },
+          required: ['ciudad'],
+        },
+      },
+      ejecutar: async ({ ciudad }) => consultarClima(ciudad),
     },
   ]
 }
