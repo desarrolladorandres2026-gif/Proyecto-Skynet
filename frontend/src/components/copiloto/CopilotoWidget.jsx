@@ -5,61 +5,107 @@ import { useAuth } from '../../auth/AuthContext.jsx'
 import { copiloto } from '../../api/copiloto.js'
 import { CopilotoButton } from './CopilotoButton.jsx'
 import { CopilotoChatCard } from './CopilotoChatCard.jsx'
-import { useHablar } from './useHablar.js'
-import { useReconocimientoVoz } from './useReconocimientoVoz.js'
+import { CopilotoDispersionOverlay } from './CopilotoDispersionOverlay.jsx'
+import { useVoiceAssistant } from './useVoiceAssistant.js'
+
+// Comando de interfaz que se resuelve en el navegador, sin ir al servidor: es
+// una acción sobre la propia pantalla, así que mandarla a un modelo para que
+// decida sería pagar ~800 ms y una petición de cuota por algo que aquí se
+// decide en microsegundos.
+function normalizarComando(texto) {
+  return texto
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(new RegExp('[\\u0300-\\u036f]', 'g'), '')
+    .replace(/[.,;:!?¡¿]/g, '')
+    .trim()
+}
+const PATRON_ABRIR_CHAT = /\b(abre|abrir|muestra|mostrar)\s+(skynet|chat|copiloto)\b/i
 
 // Burbuja flotante y movible disponible en cualquier pantalla (montada una sola vez en AppShell.jsx).
-// Permite arrastrar el botón a cualquier posición de la pantalla (mouse + touch).
+// Permite interactuar mediante Voz Inteligente estilo Siri (con el chat cerrado por defecto)
+// o abrir el Modo Chat completo por clic o por comando explícito "Abre Skynet".
 export default function CopilotoWidget() {
   const { moduloActivo } = useAuth()
-  // `dragListener={false}` + dragControls: por defecto framer-motion arma el
-  // drag sobre TODO el elemento con `drag`, así que cualquier intento de
-  // seleccionar texto dentro del chat term arrastrando la ventana en vez de
-  // marcar el texto. Con dragControls el arrastre solo arranca donde se llame
-  // a dragControls.start(evento) a propósito: el encabezado de la tarjeta y el
-  // botón flotante (ver más abajo), nunca el cuerpo de mensajes ni el input.
   const dragControls = useDragControls()
   const [abierto, setAbierto] = useState(false)
   const [mensajes, setMensajes] = useState([])
   const [entrada, setEntrada] = useState('')
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
+  const [borrador, setBorrador] = useState(null)
+  const [enviandoBorrador, setEnviandoBorrador] = useState(false)
+  const [errorBorrador, setErrorBorrador] = useState('')
 
-  // Espejo síncrono de `mensajes`. Hace falta porque enviarTexto se invoca
-  // también desde el callback de voz (fuera del ciclo de render): leer el
-  // estado por clausura daría una versión vieja, y leerlo dentro del updater
-  // de setMensajes tampoco sirve — ese callback corre en el render siguiente,
-  // cuando la petición ya se mandó.
+  // Estado para disparar el efecto visual de dispersión cuántica a pantalla completa al abrir el chat
+  const [dispersionKey, setDispersionKey] = useState(0)
+  const [dispersionOrigin, setDispersionOrigin] = useState({
+    x: window.innerWidth - 60,
+    y: window.innerHeight - 60,
+  })
+
+  const abrirConEfecto = useCallback((pos) => {
+    if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+      setDispersionOrigin(pos)
+    } else {
+      setDispersionOrigin({
+        x: window.innerWidth - 60,
+        y: window.innerHeight - 60,
+      })
+    }
+    setDispersionKey((k) => k + 1)
+    setAbierto(true)
+  }, [])
+
   const mensajesRef = useRef([])
   const aplicarMensajes = useCallback((siguiente) => {
     mensajesRef.current = typeof siguiente === 'function' ? siguiente(mensajesRef.current) : siguiente
     setMensajes(mensajesRef.current)
   }, [])
 
-  const voz = useHablar()
+  // Identificador del hilo en el servidor. Sustituye al historial completo que
+  // antes viajaba en cada petición (ver api/copiloto.js): el backend es ahora
+  // la única fuente de verdad de lo que el modelo recuerda, y este componente
+  // mantiene `mensajes` solo para pintarlos.
+  const conversacionIdRef = useRef(null)
 
-  // Envía una pregunta y transmite la respuesta. `porVoz` indica CÓMO entró la
-  // pregunta (micrófono/"Oye Skynet" o teclado); si además se lee en voz alta
-  // lo decide la preferencia del usuario, no este dato —  ver debeHablar() en
-  // useHablar.js.
+  // Cancela la petición en vuelo cuando llega otra encima. Sin esto, preguntar
+  // algo nuevo mientras la respuesta anterior seguía llegando dejaba las dos
+  // corriendo: los trozos de ambas se intercalaban en la misma burbuja y en la
+  // misma cola de voz, y se oían dos respuestas mezcladas.
+  const peticionRef = useRef(null)
+
   const enviarTexto = useCallback(
     async (texto, { porVoz = false } = {}) => {
       const limpio = texto?.trim()
       if (!limpio) return
-      const hablar = voz.debeHablar(porVoz)
 
-      const historialPrevio = mensajesRef.current
-      // El turno del usuario + un turno vacío del modelo que se va rellenando
-      // con cada trozo que llega (efecto "escribiendo"). `streaming` marca cuál
-      // es la burbuja en curso para que la UI no muestre además el indicador de
-      // "Pensando…" cuando el texto ya empezó a aparecer.
-      aplicarMensajes([...historialPrevio, { rol: 'user', texto: limpio }, { rol: 'model', texto: '', streaming: true }])
+      peticionRef.current?.abort()
+      const controlador = new AbortController()
+      peticionRef.current = controlador
+
+      const hablar = vozRef.current.debeHablar(porVoz)
+
+      // Cierra lo que hubiera quedado a medias de una respuesta cancelada: su
+      // burbuja seguiría marcada como `streaming` y pintando el cursor
+      // parpadeante para siempre, porque el camino de cancelación sale sin
+      // pasar por el cierre normal. Lo que alcanzó a decir se conserva (es
+      // información real que el usuario ya leyó); lo que no llegó a nada se
+      // descarta para no dejar una burbuja vacía.
+      const previos = mensajesRef.current
+        .filter((m) => !(m.streaming && !m.texto))
+        .map((m) => (m.streaming ? { rol: m.rol, texto: m.texto } : m))
+
+      aplicarMensajes([...previos, { rol: 'user', texto: limpio }, { rol: 'model', texto: '', streaming: true }])
       setError('')
       setCargando(true)
-      if (hablar) voz.reiniciar()
+      setBorrador(null)
+      setErrorBorrador('')
+      if (hablar) vozRef.current.reiniciar()
 
       try {
-        const resultado = await copiloto.chat(limpio, historialPrevio, {
+        const resultado = await copiloto.chat(limpio, conversacionIdRef.current, {
+          signal: controlador.signal,
           onDelta: (trozo) => {
             aplicarMensajes((prev) => {
               const copia = [...prev]
@@ -67,45 +113,66 @@ export default function CopilotoWidget() {
               copia[copia.length - 1] = { ...ultimo, texto: ultimo.texto + trozo }
               return copia
             })
-            // Se va hablando por oraciones completas mientras el resto sigue
-            // generándose (ver useHablar): esperar la respuesta entera
-            // desperdiciaría la ventaja del streaming.
-            if (hablar) voz.encolarTexto(trozo)
+            if (hablar) vozRef.current.encolarTexto(trozo)
+          },
+          onAccion: (evento) => {
+            if (evento.accion === 'requerimiento_compra_borrador') setBorrador(evento.datos)
           },
         })
-        // El historial del backend es la fuente de verdad (ya viene recortado y
-        // sin la marca `streaming`).
-        aplicarMensajes(resultado.historial)
-        if (hablar) voz.finalizar()
+        conversacionIdRef.current = resultado.conversacionId
+        // Cierra la burbuja: quitar `streaming` es lo único que hace falta,
+        // porque el texto ya se fue acumulando trozo a trozo. Antes aquí se
+        // reemplazaban TODOS los mensajes por el historial del servidor, que
+        // es lo que hacía parpadear la conversación entera al terminar cada
+        // respuesta.
+        aplicarMensajes((prev) => {
+          const copia = [...prev]
+          const ultimo = copia[copia.length - 1]
+          if (ultimo?.streaming) copia[copia.length - 1] = { rol: ultimo.rol, texto: ultimo.texto }
+          return copia
+        })
+        if (hablar) vozRef.current.finalizar()
       } catch (err) {
-        // Descarta la burbuja vacía del modelo: el error se muestra en su banner.
-        aplicarMensajes([...historialPrevio, { rol: 'user', texto: limpio }])
+        // Cancelada por otra pregunta: no es un error que mostrar, y la
+        // interfaz ya está pintando la petición nueva.
+        if (err.name === 'AbortError') return
+        aplicarMensajes([...previos, { rol: 'user', texto: limpio }])
         setError(err.message || 'No se pudo consultar a Skynet')
-        if (hablar) voz.detener()
+        if (hablar) vozRef.current.detener()
+        throw err // el asistente de voz lo necesita para pasar a estado ERROR
       } finally {
-        setCargando(false)
+        if (peticionRef.current === controlador) {
+          peticionRef.current = null
+          setCargando(false)
+        }
       }
     },
-    [aplicarMensajes, voz]
+    [aplicarMensajes]
   )
 
-  // Al detectar "Oye Skynet" (o al terminar de hablar con el botón de
-  // micrófono) llega aquí la transcripción. Se abre el panel para que la
-  // persona VEA la respuesta además de oírla.
-  const alRecibirPregunta = useCallback(
-    (pregunta) => {
-      setAbierto(true)
-      enviarTexto(pregunta, { porVoz: true })
+  // Camino de las preguntas dictadas. Además de enviarlas, atiende el único
+  // comando de interfaz que se resuelve sin red: "abre Skynet" abre el chat en
+  // el acto, sin esperar a que el servidor conteste nada.
+  const enviarPorVoz = useCallback(
+    (texto, opciones) => {
+      if (PATRON_ABRIR_CHAT.test(normalizarComando(texto))) abrirConEfecto()
+      return enviarTexto(texto, { ...opciones, porVoz: true })
     },
-    [enviarTexto]
+    [abrirConEfecto, enviarTexto]
   )
 
-  // Mientras Skynet habla o está generando, el micrófono se suspende: si no,
-  // captaría su propia voz por el altavoz y se reactivaría en bucle.
-  const microfono = useReconocimientoVoz({
-    onPregunta: alRecibirPregunta,
-    pausado: voz.hablando || cargando,
-  })
+  // El asistente de voz recibe `enviarPorVoz` y ya no hace su propia petición
+  // (antes mantenía un historial paralelo que divergía del de este widget).
+  const asistenteVoz = useVoiceAssistant({ onPregunta: enviarPorVoz })
+  const { voz, microfono } = asistenteVoz
+
+  // `enviarTexto` no puede depender de `voz`: el hook que produce `voz` recibe
+  // a `enviarTexto` como argumento, así que depender de él cerraría un ciclo.
+  // El espejo por ref le da acceso al valor vigente sin entrar en la lista de
+  // dependencias. Se asigna durante el render (no en un efecto) para que nunca
+  // vaya un render por detrás.
+  const vozRef = useRef(voz)
+  vozRef.current = voz
 
   if (!moduloActivo('copiloto')) return null
 
@@ -115,81 +182,117 @@ export default function CopilotoWidget() {
     const texto = entrada.trim()
     if (!texto) return
     setEntrada('')
-    enviarTexto(texto)
+    // enviarTexto relanza el error para que el asistente de voz pueda pasar a
+    // estado ERROR; por la ruta de texto el error ya quedó en el banner del
+    // chat, así que aquí solo hay que evitar la promesa rechazada suelta.
+    enviarTexto(texto).catch(() => {})
   }
 
   const limpiarHistorial = () => {
     aplicarMensajes([])
     setError('')
+    setBorrador(null)
+    setErrorBorrador('')
+    // Suelta también el hilo del servidor: "limpiar" tiene que borrar lo que
+    // el modelo recuerda, no solo lo que se ve en pantalla. Sin esto, el chat
+    // aparecía vacío pero el asistente seguía respondiendo con el contexto de
+    // la conversación anterior. El siguiente mensaje abre un hilo nuevo.
+    conversacionIdRef.current = null
+    peticionRef.current?.abort()
     voz.detener()
   }
 
+  const descartarBorrador = () => {
+    setBorrador(null)
+    setErrorBorrador('')
+  }
+
+  async function confirmarBorrador() {
+    setEnviandoBorrador(true)
+    setErrorBorrador('')
+    try {
+      await copiloto.crearRequerimientoCompra(borrador)
+      setBorrador(null)
+      aplicarMensajes((prev) => [
+        ...prev,
+        { rol: 'model', texto: 'Listo, tu requerimiento de compra quedó registrado y notificado a Financiero.' },
+      ])
+    } catch (err) {
+      setErrorBorrador(err.message || 'No se pudo guardar el requerimiento')
+    } finally {
+      setEnviandoBorrador(false)
+    }
+  }
+
   const alternarWake = () => {
-    if (microfono.escuchandoWake) microfono.desactivarWake()
-    else microfono.activarWake()
+    asistenteVoz.alternarWake()
   }
 
   const cerrar = () => {
     setAbierto(false)
-    voz.detener()
-    // El modo "Oye Skynet" sobrevive a cerrar el panel a propósito: su razón de
-    // ser es poder invocarlo sin tocar la pantalla. Solo se corta la captura en
-    // curso; el bucle de escucha sigue si el usuario lo dejó encendido.
-    if (!microfono.escuchandoWake) microfono.detener()
+    asistenteVoz.cancelarVoz()
   }
 
   return (
-    <motion.div
-      drag
-      dragListener={false}
-      dragControls={dragControls}
-      dragMomentum={false}
-      dragElastic={0.05}
-      className="fixed right-4 bottom-20 z-40 sm:right-6 sm:bottom-6"
-    >
-      <CopilotoChatCard
-        isOpen={abierto}
-        onClose={cerrar}
-        mensajes={mensajes}
-        entrada={entrada}
-        setEntrada={setEntrada}
-        onEnviar={enviar}
-        cargando={cargando}
-        error={error || microfono.error}
-        onLimpiarHistorial={limpiarHistorial}
-        vozSoportada={microfono.soportado}
-        escuchando={microfono.capturandoPregunta}
-        pidiendoPermisoMicrofono={microfono.pidiendoPermiso}
-        parcialVoz={microfono.parcial}
-        onMicrofono={microfono.escucharUnaVez}
-        wakeActivo={microfono.escuchandoWake}
-        onAlternarWake={alternarWake}
-        hablando={voz.hablando}
-        onCallar={voz.detener}
-        onIniciarArrastre={(e) => dragControls.start(e)}
-        voces={voz.vocesDisponibles}
-        vozElegidaURI={voz.vozElegidaURI}
-        onElegirVoz={voz.elegirVoz}
-        onProbarVoz={voz.probarVoz}
-        sintesisSoportada={voz.soportado}
-        modoRespuesta={voz.modoRespuesta}
-        onElegirModoRespuesta={voz.elegirModoRespuesta}
-        vozActiva={voz.vozActiva}
-        onAlternarVoz={voz.alternarVoz}
-      />
+    <>
+      {/* Overlay de Dispersión Cuántica a Pantalla Completa */}
+      <CopilotoDispersionOverlay triggerKey={dispersionKey} origin={dispersionOrigin} />
 
-      {/* Único punto de arrastre cuando la tarjeta está cerrada: el propio
-          botón flotante. touch-none aquí (y no en el contenedor completo)
-          para no bloquear la selección de texto del chat en pantallas
-          táctiles. */}
-      <div className="flex justify-end touch-none" onPointerDown={(e) => dragControls.start(e)}>
-        <CopilotoButton
+      <motion.div
+        drag
+        dragListener={false}
+        dragControls={dragControls}
+        dragMomentum={false}
+        dragElastic={0.05}
+        className="fixed right-4 bottom-20 z-40 sm:right-6 sm:bottom-6"
+      >
+        <CopilotoChatCard
           isOpen={abierto}
-          onClick={() => (abierto ? cerrar() : setAbierto(true))}
-          badgeText="Skynet • Arrastra para mover"
-          size={70}
+          onClose={cerrar}
+          mensajes={mensajes}
+          entrada={entrada}
+          setEntrada={setEntrada}
+          onEnviar={enviar}
+          cargando={cargando}
+          error={error || asistenteVoz.errorMensaje}
+          onLimpiarHistorial={limpiarHistorial}
+          vozSoportada={microfono.soportado}
+          escuchando={microfono.capturandoPregunta}
+          pidiendoPermisoMicrofono={microfono.pidiendoPermiso}
+          parcialVoz={microfono.parcial}
+          onMicrofono={asistenteVoz.activarMicrofono}
+          wakeActivo={microfono.escuchandoWake}
+          onAlternarWake={alternarWake}
+          hablando={voz.hablando}
+          onCallar={voz.detener}
+          onIniciarArrastre={(e) => dragControls.start(e)}
+          voces={voz.vocesDisponibles}
+          vozElegidaURI={voz.vozElegidaURI}
+          onElegirVoz={voz.elegirVoz}
+          onProbarVoz={voz.probarVoz}
+          sintesisSoportada={voz.soportado}
+          modoRespuesta={voz.modoRespuesta}
+          onElegirModoRespuesta={voz.elegirModoRespuesta}
+          vozActiva={voz.vozActiva}
+          onAlternarVoz={voz.alternarVoz}
+          borrador={borrador}
+          onConfirmarBorrador={confirmarBorrador}
+          onDescartarBorrador={descartarBorrador}
+          enviandoBorrador={enviandoBorrador}
+          errorBorrador={errorBorrador}
         />
-      </div>
-    </motion.div>
+
+        <div className="flex justify-end touch-none" onPointerDown={(e) => dragControls.start(e)}>
+          <CopilotoButton
+            isOpen={abierto}
+            onClick={(pos) => (abierto ? cerrar() : abrirConEfecto(pos))}
+            state={asistenteVoz.estadoVoz}
+            rmsRef={asistenteVoz.rmsRef}
+            badgeText="Skynet • Arrastra para mover"
+            size={70}
+          />
+        </div>
+      </motion.div>
+    </>
   )
 }

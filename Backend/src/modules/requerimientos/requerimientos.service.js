@@ -34,7 +34,11 @@ async function usuariosAdminYFinanciero() {
 // real para las pruebas de integración del sistema.
 const notificarUsuarios = (userIds, payload) => _notificarUsuarios(userIds, payload, 'requerimientos')
 
-function validarItemsCompra(items) {
+// Exportadas para que copiloto.herramientas.js valide el borrador que arma
+// la IA con EXACTAMENTE las mismas reglas que exige crearRequerimiento — así
+// lo que el usuario ve en el resumen del chat es garantizado aceptado al
+// confirmar, sin una segunda copia de estas reglas que pueda desincronizarse.
+export function validarItemsCompra(items) {
   if (!Array.isArray(items) || items.length === 0) {
     throw new ErrorValidacion('Debes agregar al menos un producto')
   }
@@ -51,7 +55,7 @@ function validarItemsCompra(items) {
   }
 }
 
-function normalizarItemsCompra(items) {
+export function normalizarItemsCompra(items) {
   return items.map((item) => ({
     fechaSolicitud: new Date(item.fechaSolicitud),
     descripcionProducto: String(item.descripcionProducto).trim(),

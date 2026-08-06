@@ -1,4 +1,5 @@
 import * as service from './copiloto.service.js'
+import * as requerimientosService from '../requerimientos/requerimientos.service.js'
 
 // Server-Sent Events en vez de un JSON al final: el usuario ve la respuesta
 // escribiéndose desde el primer token (~1.1 s) en lugar de mirar un "Pensando…"
@@ -6,7 +7,7 @@ import * as service from './copiloto.service.js'
 // solo hace GET; el frontend lee el cuerpo del POST como stream (ver
 // api/copiloto.js).
 export async function chat(req, res) {
-  const { mensaje, historial } = req.body
+  const { mensaje, conversacionId } = req.body
 
   res.set({
     'Content-Type': 'text/event-stream; charset=utf-8',
@@ -18,10 +19,29 @@ export async function chat(req, res) {
   })
   res.flushHeaders?.()
 
+  // Si el usuario cierra el chat, navega a otra pantalla o pregunta otra cosa
+  // encima, el navegador corta la conexión pero el servidor seguía leyendo el
+  // stream de Gemini hasta el final y escribiendo en un socket muerto. Con
+  // esto se corta la lectura y se libera el proceso.
+  //
+  // Lo que NO hace, para no venderlo de más: la generación sigue corriendo del
+  // lado de Google y la cuota se consume igual (es una limitación explícita
+  // del SDK, documentada en copiloto.service.js). El ahorro es de recursos
+  // locales y de tiempo de proceso, no de cuota.
+  const controlador = new AbortController()
+  let terminado = false
+  // 'close' también salta en el cierre normal, después de res.end(): sin la
+  // bandera, cada respuesta exitosa terminaría llamando abort() sobre un
+  // stream ya consumido.
+  res.on('close', () => {
+    if (!terminado) controlador.abort()
+  })
+
   const enviar = (evento) => res.write(`data: ${JSON.stringify(evento)}\n\n`)
 
   try {
-    for await (const evento of service.responderStream({ mensaje, historial }, req.usuario)) {
+    const entrada = { mensaje, conversacionId, signal: controlador.signal }
+    for await (const evento of service.responderStream(entrada, req.usuario)) {
       enviar(evento)
     }
   } catch (err) {
@@ -30,6 +50,23 @@ export async function chat(req, res) {
     // frontend lo pinta en el banner de error del chat.
     enviar({ tipo: 'error', error: err.status < 500 ? err.message : 'Error interno del servidor' })
   } finally {
+    terminado = true
     res.end()
   }
+}
+
+// El único punto por el que un requerimiento sugerido por el copiloto puede
+// llegar a guardarse. Nunca lo invoca el modelo: lo llama el botón "Confirmar
+// y enviar" que el frontend dibuja a partir del evento {tipo:'accion'} del
+// chat (ver responderStream). Reutiliza crearRequerimiento tal cual —MISMA
+// validación, MISMA notificación a Financiero, MISMO registro de auditoría—
+// que si el usuario hubiera llenado el formulario a mano; lo único que
+// cambia es de dónde vinieron los datos.
+export async function confirmarRequerimientoCompra(req, res) {
+  const { areaOProceso, items } = req.body
+  const requerimiento = await requerimientosService.crearRequerimiento(
+    { tipo: 'compra', areaOProceso, itemsCompra: items },
+    req.usuario
+  )
+  res.status(201).json({ requerimiento })
 }

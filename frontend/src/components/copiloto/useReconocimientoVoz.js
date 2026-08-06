@@ -26,7 +26,7 @@ function normalizar(texto) {
   return texto
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '') // diacríticos separados por NFD
+    .replace(new RegExp('[\\u0300-\\u036f]', 'g'), '') // diacríticos separados por NFD
     .replace(/[.,;:!?¡¿]/g, '')
     .trim()
 }
@@ -42,13 +42,20 @@ function normalizar(texto) {
 const DISPARADORES = 'oye|hey|hei|ey|oiga|ola|hola|epa'
 const VARIANTES_SKYNET =
   'skynet|sky\\s*net|s\\s*ki\\s*net|es\\s*ki\\s*net|es\\s*kai\\s*net|es\\s*quai\\s*net|esquinet|escainet|eskinet|skinet|escuinet|iskinet|iskaynet|iskainet'
-const PATRON_ACTIVACION = new RegExp(`\\b(${DISPARADORES})\\W*(${VARIANTES_SKYNET})\\b`)
-// Respaldo sin disparador: si el transcriptor devuelve solo "skynet" (se
-// comió el "oye" por ruido, o la persona lo omitió), igual activa. Se exige
-// que la variante de "skynet" esté cerca del INICIO del turno para no
-// disparar cuando la palabra aparece a mitad de una frase sobre otra cosa
-// ("el requerimiento de skynet quedó listo").
-const PATRON_ACTIVACION_LAXO = new RegExp(`^(${VARIANTES_SKYNET})\\b`)
+// "Asistente" es una palabra española normal (no un nombre inglés difícil de
+// transcribir), así que no necesita variantes fonéticas — se suma como una
+// forma más corta y natural de llamar a Skynet ("Oye asistente" / "Asistente,
+// dime mis pendientes"), sin perder ninguna de las variantes de "Skynet".
+const VARIANTES_NOMBRE = `${VARIANTES_SKYNET}|asistente`
+const PATRON_ACTIVACION = new RegExp(`\\b(${DISPARADORES})\\W*(${VARIANTES_NOMBRE})\\b`)
+// Respaldo sin disparador: si el transcriptor devuelve solo "Skynet" o solo
+// "asistente" (se comió el "oye" por ruido, o la persona lo omitió), igual
+// activa. Se exige que esté cerca del INICIO del turno para no disparar
+// cuando la palabra aparece a mitad de una frase sobre otra cosa ("el
+// requerimiento de skynet quedó listo" / "necesito un asistente de bodega") —
+// "asistente" es palabra de uso común, así que esta ancla es la que evita que
+// cualquier mención casual dispare la activación sin querer.
+const PATRON_ACTIVACION_LAXO = new RegExp(`^(${VARIANTES_NOMBRE})\\b`)
 
 // Exportada aparte de la clausura del hook para poder probarla sin navegador
 // (es la pieza más frágil de todo esto: depende de cómo el transcriptor en
@@ -58,6 +65,21 @@ const PATRON_ACTIVACION_LAXO = new RegExp(`^(${VARIANTES_SKYNET})\\b`)
 export function detectarActivacion(texto) {
   const normalizado = normalizar(texto)
   const coincidencia = normalizado.match(PATRON_ACTIVACION) || normalizado.match(PATRON_ACTIVACION_LAXO)
+  if (!coincidencia) return null
+  return { resto: normalizado.slice(coincidencia.index + coincidencia[0].length).trim() }
+}
+
+// Variante SOLO para interrumpir a Skynet mientras habla. Exige la frase
+// completa (disparador + nombre) y nunca acepta el respaldo laxo.
+//
+// La diferencia importa: durante la respuesta el micrófono está oyendo el
+// propio altavoz. Con el patrón laxo bastaría que el sintetizador dijera la
+// palabra "asistente" —o "Skynet", que es como se presenta— para que el
+// asistente se interrumpiera a sí mismo en bucle. Exigir el disparador lo
+// evita, porque ninguna respuesta empieza con "oye Skynet".
+export function detectarInterrupcion(texto) {
+  const normalizado = normalizar(texto)
+  const coincidencia = normalizado.match(PATRON_ACTIVACION)
   if (!coincidencia) return null
   return { resto: normalizado.slice(coincidencia.index + coincidencia[0].length).trim() }
 }
@@ -102,7 +124,16 @@ export async function pedirPermisoMicrofono() {
   }
 }
 
-export function useReconocimientoVoz({ onPregunta, pausado = false } = {}) {
+export function useReconocimientoVoz({
+  onPregunta,
+  pausado = false,
+  // Mantiene el micrófono abierto DURANTE la pausa, escuchando únicamente la
+  // frase completa de activación, para poder cortar una respuesta larga sin
+  // buscar el botón. Solo tiene efecto si "Oye Skynet" ya está encendido: si
+  // la persona no abrió el micrófono a conciencia, esto no lo abre por ella.
+  permitirInterrupcion = false,
+  onInterrupcion,
+} = {}) {
   const [escuchandoWake, setEscuchandoWake] = useState(false)
   const [capturandoPregunta, setCapturandoPregunta] = useState(false)
   const [parcial, setParcial] = useState('')
@@ -110,23 +141,39 @@ export function useReconocimientoVoz({ onPregunta, pausado = false } = {}) {
   const [pidiendoPermiso, setPidiendoPermiso] = useState(false)
 
   const reconocedorRef = useRef(null)
-  const modoRef = useRef(null) // 'wake' | 'pregunta' | null
+  const modoRef = useRef(null) // 'wake' | 'pregunta' | 'interrupcion' | null
   const wakeActivoRef = useRef(false)
   const pausadoRef = useRef(pausado)
   const onPreguntaRef = useRef(onPregunta)
+  const onInterrupcionRef = useRef(onInterrupcion)
 
   useEffect(() => {
     onPreguntaRef.current = onPregunta
-  }, [onPregunta])
+    onInterrupcionRef.current = onInterrupcion
+  }, [onPregunta, onInterrupcion])
 
   // Mientras Skynet habla se suspende la escucha: si no, el micrófono capta la
   // propia respuesta por el altavoz y puede volver a autoactivarse en bucle.
+  // La única excepción es el modo interrupción, que sigue oyendo pero solo
+  // acepta la frase completa "oye Skynet" (ver detectarInterrupcion).
   useEffect(() => {
     pausadoRef.current = pausado
-    if (pausado) detenerReconocedor()
-    else if (wakeActivoRef.current) arrancar('wake')
+    if (pausado) {
+      detenerReconocedor()
+      if (permitirInterrupcion && wakeActivoRef.current) {
+        // Un respiro antes de abrir el micrófono: si arranca en el mismo
+        // instante en que empieza a hablar, lo primero que capta es la cola de
+        // lo que acababa de decir la persona, que suele contener el "oye
+        // Skynet" con el que activó — y se auto-interrumpiría en el acto.
+        const t = setTimeout(() => arrancar('interrupcion'), 700)
+        return () => clearTimeout(t)
+      }
+    } else if (wakeActivoRef.current) {
+      arrancar('wake')
+    }
+    return undefined
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pausado])
+  }, [pausado, permitirInterrupcion])
 
   // Vigilante: bug conocido de Chrome en modo `continuous` — el reconocedor a
   // veces se queda "vivo" pero deja de emitir resultados y NUNCA dispara
@@ -165,15 +212,18 @@ export function useReconocimientoVoz({ onPregunta, pausado = false } = {}) {
   }
 
   function arrancar(modo) {
-    if (!SpeechRecognition || pausadoRef.current) return
+    // El modo interrupción es el único que puede correr con la escucha
+    // pausada: existe justamente para oír mientras Skynet habla.
+    if (!SpeechRecognition) return
+    if (pausadoRef.current && modo !== 'interrupcion') return
     detenerReconocedor()
 
     const r = new SpeechRecognition()
     r.lang = 'es-CO'
     r.interimResults = true
-    // En modo pregunta se corta solo al terminar de hablar; en wake se mantiene
-    // abierto buscando la frase de activación.
-    r.continuous = modo === 'wake'
+    // En modo pregunta se corta solo al terminar de hablar; en wake e
+    // interrupción se mantiene abierto buscando la frase de activación.
+    r.continuous = modo === 'wake' || modo === 'interrupcion'
     r.maxAlternatives = 1
 
     r.onresult = (evento) => {
@@ -187,6 +237,32 @@ export function useReconocimientoVoz({ onPregunta, pausado = false } = {}) {
       setParcial(textoParcial)
 
       if (!textoFinal.trim()) return
+
+      if (modoRef.current === 'interrupcion') {
+        const corte = detectarInterrupcion(textoFinal)
+        console.debug(
+          `[Skynet interrupción] escuchó: "${textoFinal.trim()}" ${corte ? '→ CORTA' : '→ ignorado'}`
+        )
+        if (!corte) return
+        // Callar PRIMERO y avisar después: quien interrumpe espera silencio
+        // inmediato, no que termine la frase en curso.
+        onInterrupcionRef.current?.()
+        // La pausa la causaba `voz.hablando`, que el callback de arriba acaba
+        // de apagar — pero el `pausado` que llega por props no se actualiza
+        // hasta el siguiente render de React. Sin adelantar la bandera aquí,
+        // el arrancar('pregunta') de más abajo saldría por su guarda temprana
+        // y quedaría `capturandoPregunta` en true sin ningún reconocedor
+        // detrás: el orbe se queda "escuchando" para siempre.
+        pausadoRef.current = false
+        if (corte.resto) {
+          onPreguntaRef.current?.(corte.resto)
+          return
+        }
+        setCapturandoPregunta(true)
+        modoRef.current = 'pregunta'
+        arrancar('pregunta')
+        return
+      }
 
       if (modoRef.current === 'wake') {
         const activacion = detectarActivacion(textoFinal)
@@ -247,6 +323,9 @@ export function useReconocimientoVoz({ onPregunta, pausado = false } = {}) {
       // a levantar solo si el usuario sigue con "Oye Skynet" encendido.
       if (modoRef.current === 'wake' && wakeActivoRef.current && !pausadoRef.current) {
         arrancar('wake')
+      } else if (modoRef.current === 'interrupcion' && wakeActivoRef.current && pausadoRef.current) {
+        // Sigue hablando y el corte por voz sigue disponible: se relevanta.
+        arrancar('interrupcion')
       } else if (modoRef.current === 'pregunta') {
         setCapturandoPregunta(false)
       }

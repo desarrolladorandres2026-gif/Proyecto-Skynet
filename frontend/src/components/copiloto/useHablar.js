@@ -15,7 +15,60 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 // Corta en el signo de puntuación final, incluidos los de cierre del español.
 // El salto de línea también cierra oración: el modelo suele usar viñetas.
-const FIN_DE_ORACION = /([.!?…:;\n]+)\s*/
+const FIN_DE_ORACION = /([.!?…:;\n]+)\s*/g
+
+// El modelo suele responder con listas del tipo "- **Etiqueta:** valor" — los
+// dos puntos que cierran "Etiqueta" quedan DENTRO de la negrita, antes de su
+// "**" de cierre. Cortar ahí (como hacía la versión anterior) le pasaba a
+// limpiarParaVoz un fragmento con un "**" suelto sin pareja, que su regex
+// balanceada no puede quitar, y el sintetizador terminaba leyendo "asterisco
+// asterisco" en voz alta. La cuenta de "**" debe ser PAR en todo lo hablado
+// hasta ese punto: si es impar, se está a mitad de una negrita y hay que
+// esperar el siguiente punto de corte (normalmente el salto de línea que
+// cierra la viñeta) en vez de cortar ahí.
+function contarAsteriscosDobles(texto) {
+  return (texto.match(/\*\*/g) || []).length
+}
+
+function buscarCorteSeguro(texto) {
+  FIN_DE_ORACION.lastIndex = 0
+  let match
+  while ((match = FIN_DE_ORACION.exec(texto))) {
+    const hasta = match.index + match[0].length
+    if (contarAsteriscosDobles(texto.slice(0, hasta)) % 2 === 0) return hasta
+  }
+  return -1
+}
+
+// Corte de emergencia para EMPEZAR A HABLAR ANTES.
+//
+// El corte normal espera un punto. Cuando la respuesta abre con una frase
+// larga ("Tienes tres requerimientos pendientes de aprobación de Financiero y
+// dos en Bodega desde el martes, además de…"), esperar el punto son varios
+// cientos de milisegundos de silencio con el texto ya en pantalla: se ve
+// escribiéndose pero no se oye nada, que es exactamente la sensación de
+// lentitud que se quiere eliminar.
+//
+// A partir de cierta longitud se acepta cortar en una coma, que en español es
+// una pausa prosódica legítima: la frase suena natural igual. Solo se aplica
+// mientras no se haya dicho nada todavía; una vez el sintetizador arrancó, la
+// cola ya lo mantiene ocupado y cortar fino no aporta.
+const LONGITUD_PARA_CORTE_TEMPRANO = 70
+const PAUSA_INTERMEDIA = /([,—])\s+/g
+
+function buscarCorteTemprano(texto) {
+  if (texto.length < LONGITUD_PARA_CORTE_TEMPRANO) return -1
+  PAUSA_INTERMEDIA.lastIndex = 0
+  let match
+  let ultimo = -1
+  while ((match = PAUSA_INTERMEDIA.exec(texto))) {
+    const hasta = match.index + match[0].length
+    // Mismo cuidado que el corte normal: no partir una negrita a la mitad, o
+    // se lee "asterisco asterisco" en voz alta.
+    if (contarAsteriscosDobles(texto.slice(0, hasta)) % 2 === 0) ultimo = hasta
+  }
+  return ultimo
+}
 
 // El modelo responde en Markdown (**negrita**, listas con - o *). Sin limpiar,
 // el sintetizador lee "asterisco asterisco siete asterisco asterisco".
@@ -99,6 +152,10 @@ export function useHablar() {
   })
 
   const pendienteRef = useRef('') // texto recibido que aún no forma una oración
+  // Si ya salió algo por el altavoz en ESTA respuesta. Solo lo usa el corte
+  // temprano por coma, que únicamente tiene sentido antes de la primera
+  // palabra (ver buscarCorteTemprano).
+  const yaHabloRef = useRef(false)
   const cancelarRef = useRef(false)
   const vocesListasRef = useRef(false)
   // Espejo por ref: `decir()` es un useCallback con deps [] (no debe
@@ -229,6 +286,34 @@ export function useHablar() {
     window.speechSynthesis.speak(mensaje)
   }, [])
 
+  // Arranca el motor de síntesis sin que se oiga nada.
+  //
+  // La primera llamada real a speak() en Chrome tarda bastante más que las
+  // siguientes: hay que resolver la lista de voces, levantar el motor del
+  // sistema y abrir la salida de audio. Si eso ocurre cuando ya llegó el
+  // primer trozo de la respuesta, se suma entero al tiempo hasta la primera
+  // palabra — justo el número que se intenta bajar.
+  //
+  // Se llama desde el gesto del usuario (pulsar el micrófono, encender "Oye
+  // Skynet"), que además es cuando los navegadores permiten iniciar audio, así
+  // que para cuando haya algo que decir el motor ya está caliente.
+  //
+  // El texto es un espacio y no una cadena vacía: con '' varios navegadores
+  // descartan la locución sin llegar a inicializar nada, que es precisamente
+  // lo que se busca provocar. `volume = 0` garantiza que no se oiga.
+  const precalentarRef = useRef(false)
+  const precalentar = useCallback(() => {
+    if (!soportado || precalentarRef.current) return
+    precalentarRef.current = true
+    try {
+      const mudo = new SpeechSynthesisUtterance(' ')
+      mudo.volume = 0
+      window.speechSynthesis.speak(mudo)
+    } catch {
+      /* si el navegador lo rechaza, se paga la demora en la primera respuesta */
+    }
+  }, [soportado])
+
   // Deja oír una voz específica sin afectar la que está elegida ni la cola en
   // curso — para el botón "probar" del selector, antes de decidirse por ella.
   const probarVoz = useCallback(
@@ -254,13 +339,24 @@ export function useHablar() {
       if (!vocesListasRef.current) await cargarVoces()
       pendienteRef.current += trozo
 
-      let corte = pendienteRef.current.search(FIN_DE_ORACION)
-      while (corte !== -1) {
-        const match = pendienteRef.current.match(FIN_DE_ORACION)
-        const hasta = corte + match[0].length
+      let hasta = buscarCorteSeguro(pendienteRef.current)
+      while (hasta !== -1) {
         decir(pendienteRef.current.slice(0, hasta))
+        yaHabloRef.current = true
         pendienteRef.current = pendienteRef.current.slice(hasta)
-        corte = pendienteRef.current.search(FIN_DE_ORACION)
+        hasta = buscarCorteSeguro(pendienteRef.current)
+      }
+
+      // Nada cerró oración todavía. Si aún no ha salido ni una palabra y ya se
+      // acumuló una frase larga, se corta en una coma para empezar a hablar
+      // (ver buscarCorteTemprano).
+      if (!yaHabloRef.current) {
+        const temprano = buscarCorteTemprano(pendienteRef.current)
+        if (temprano !== -1) {
+          decir(pendienteRef.current.slice(0, temprano))
+          yaHabloRef.current = true
+          pendienteRef.current = pendienteRef.current.slice(temprano)
+        }
       }
     },
     [decir, soportado]
@@ -276,6 +372,7 @@ export function useHablar() {
 
   const detener = useCallback(() => {
     pendienteRef.current = ''
+    yaHabloRef.current = false
     if (soportado) window.speechSynthesis.cancel()
     setHablando(false)
   }, [soportado])
@@ -284,6 +381,8 @@ export function useHablar() {
   const reiniciar = useCallback(() => {
     cancelarRef.current = false
     pendienteRef.current = ''
+    // Cada respuesta vuelve a tener derecho a su corte temprano por coma.
+    yaHabloRef.current = false
     if (soportado) window.speechSynthesis.cancel()
   }, [soportado])
 
@@ -305,5 +404,6 @@ export function useHablar() {
     debeHablar,
     elegirVoz,
     probarVoz,
+    precalentar,
   }
 }

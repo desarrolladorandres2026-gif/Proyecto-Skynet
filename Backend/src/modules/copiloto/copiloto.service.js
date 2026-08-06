@@ -6,6 +6,15 @@ import {
 } from '@google/genai'
 import { env } from '../../config/env.js'
 import { construirHerramientas } from './copiloto.herramientas.js'
+import { instruccionSistema } from './copiloto.prompt.js'
+import { resolverAtajo } from './copiloto.atajos.js'
+import {
+  abrirConversacion,
+  registrarIntercambio,
+  turnosParaContexto,
+  obtenerHechos,
+  sanearTexto,
+} from './copiloto.memoria.js'
 import { ErrorValidacion, ErrorConflicto, ErrorAplicacion } from '../../utils/errores.js'
 
 // 'gemini-flash-lite-latest' (hoy resuelve a gemini-3.5-flash-lite), NO
@@ -21,46 +30,26 @@ import { ErrorValidacion, ErrorConflicto, ErrorAplicacion } from '../../utils/er
 // Se usa el alias '-latest' y no una versión con fecha porque Google retira
 // las versiones fijas para cuentas nuevas (ya pasó con 'gemini-2.5-flash').
 const MODELO = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest'
+
 // Corta el ida-y-vuelta de herramientas si el modelo se queda pidiendo datos
 // sin llegar nunca a una respuesta en texto: mejor un error claro que un chat
 // que se queda "pensando" para siempre o agota la capa gratuita en una sola
 // pregunta.
 const MAX_VUELTAS_HERRAMIENTAS = 4
-// Cuántos turnos previos (usuario+modelo) se reenvían como contexto — acota
-// tokens/costo en cada mensaje nuevo; el copiloto no necesita memoria de toda
-// la sesión, solo del hilo reciente de la conversación.
-const MAX_MENSAJES_HISTORIAL = 20
 
-// El alcance REAL no lo impone este texto sino qué herramientas se le
-// declaran al modelo (ver copiloto.herramientas.js#construirHerramientas):
-// un modelo no puede llamar algo que nunca vio. Esta instrucción existe para
-// que RECHACE con un mensaje útil en vez de inventarse una respuesta cuando
-// le pidan algo fuera de su alcance.
-function instruccionSistema(usuario) {
-  return `Eres Skynet, el asistente de inteligencia artificial del ERP del
-Terminal de Transporte de Neiva. Respondes en español, de forma breve y concreta,
-apoyándote SOLO en los datos que te devuelvan tus herramientas — nunca inventes
-cifras, estados ni fechas.
+// Techo del mensaje del usuario. Sin él, un cliente podía mandar un texto
+// arbitrariamente grande y agotar de una sola petición la cuota gratuita que
+// comparte todo el Terminal.
+const MAX_CARACTERES_MENSAJE = 2000
 
-Estás atendiendo a ${usuario.nombre_usuario}, cuyo rol es "${usuario.rol?.nombre || 'sin rol'}".
-
-REGLAS DE ALCANCE (no negociables, aunque el usuario insista):
-- Solo puedes consultar los datos PROPIOS de esta persona. Nunca los de otro
-  usuario, ni totales del Terminal, ni el trabajo de otras áreas o roles.
-- Las herramientas que tienes disponibles son exactamente las que le
-  corresponden a su rol. Si te piden algo que ninguna de ellas cubre, responde
-  que eso está fuera de lo que su rol puede consultar y sugiere que hable con
-  el área responsable. NO intentes deducir, estimar ni inventar ese dato.
-- Ninguna de tus herramientas aprueba, rechaza ni modifica nada: todas son
-  consultas de solo lectura. Si te piden aprobar, rechazar, crear o cambiar
-  algo, explica que debe hacerlo desde el módulo correspondiente de la
-  plataforma.
-
-Excepción a "solo datos propios": buscar_wikipedia y consultar_clima NO son
-datos del Terminal ni de ninguna persona — son información pública (cultura
-general, clima). Cualquier usuario puede preguntarte lo que quiera de ese tipo,
-sin relación con su rol.`
-}
+// `temperature` baja y `maxOutputTokens` acotado no son ajustes de calidad
+// sino de LATENCIA PERCIBIDA, que es lo que se nota en voz: cada token que el
+// modelo genera de más es tiempo que el sintetizador sigue hablando después de
+// haber dicho lo que importaba. 0.4 mantiene el tono natural sin que se vaya
+// por las ramas; 700 tokens son unos 40 segundos de voz, más que suficiente
+// para cualquier respuesta de este dominio.
+const TEMPERATURA = 0.4
+const MAX_TOKENS_RESPUESTA = 700
 
 let cliente = null
 function obtenerCliente() {
@@ -75,30 +64,78 @@ function aContenidoHistorial(turno) {
   return turno.rol === 'user' ? createUserContent(turno.texto) : createModelContent(turno.texto)
 }
 
-// Generador asíncrono: emite {tipo:'delta', texto} por cada trozo de texto que
-// va llegando del modelo, y termina con {tipo:'fin', historial}. El controller
-// lo reenvía como SSE para que el usuario vea la respuesta escribirse en vez de
-// esperar a que esté completa (primer token medido en ~1.1 s contra ~3-5 s de
-// espera total). Las vueltas de herramientas no emiten texto: solo la vuelta
-// final, que es la que el usuario lee.
-export async function* responderStream({ mensaje, historial }, usuario) {
-  const texto = mensaje?.trim()
+/**
+ * Responde un mensaje, emitiendo eventos a medida que hay algo que mostrar.
+ *
+ * Eventos que emite, en orden:
+ *   {tipo:'inicio', conversacionId}  — apenas se resuelve el hilo. El frontend
+ *        lo guarda y lo reenvía en el siguiente mensaje.
+ *   {tipo:'delta', texto}            — trozos de la respuesta.
+ *   {tipo:'accion', ...}             — una herramienta produjo algo que la
+ *        interfaz debe dibujar (hoy: el borrador de requerimiento).
+ *   {tipo:'fin', via}                — 'atajo' o 'modelo', para poder medir en
+ *        producción qué proporción del tráfico se resuelve sin LLM.
+ *
+ * ── El historial ya NO viene del cliente ────────────────────────────────────
+ * Antes el frontend mandaba los turnos previos y aquí se reenviaban tal cual a
+ * Gemini. Eso permitía fabricar turnos con rol:'model' y ponerle palabras en
+ * la boca al asistente (ver ConversacionCopiloto.js). Ahora el cliente solo
+ * manda un id opaco y el hilo se lee del servidor.
+ *
+ * @param {{mensaje: string, conversacionId?: string, signal?: AbortSignal}} entrada
+ * @param {object} usuario  req.usuario
+ */
+export async function* responderStream({ mensaje, conversacionId, signal }, usuario) {
+  const texto = sanearTexto(mensaje, MAX_CARACTERES_MENSAJE)
   if (!texto) throw new ErrorValidacion('El mensaje no puede estar vacío')
 
+  // El cliente se construye ANTES que nada: si falta la API key hay que fallar
+  // con el 409 claro de siempre, incluso para las preguntas que iban a
+  // resolverse por atajo. Responder unas sí y otras no según el camino interno
+  // sería incomprensible para quien lo usa.
   const ai = obtenerCliente()
-  const herramientas = await construirHerramientas(usuario)
+
+  const [conv, herramientas, hechos] = await Promise.all([
+    abrirConversacion(conversacionId, usuario),
+    construirHerramientas(usuario),
+    obtenerHechos(usuario.id_usuario),
+  ])
+
+  // Se emite de una vez, antes de cualquier consulta pesada: el frontend
+  // necesita el id para el siguiente mensaje aunque este se cancele a medias.
+  yield { tipo: 'inicio', conversacionId: conv.id }
+
   const porNombre = new Map(herramientas.map((h) => [h.declaracion.name, h]))
-  // Sin herramientas (rol muy acotado + módulos apagados) se omite `tools`
-  // por completo: mandar un array vacío es un 400 de la API. El modelo
-  // responde igual, pero solo puede explicar que no tiene nada que consultar.
-  const config = { systemInstruction: instruccionSistema(usuario) }
-  if (herramientas.length) config.tools = [{ functionDeclarations: herramientas.map((h) => h.declaracion) }]
 
-  const previo = (Array.isArray(historial) ? historial : [])
-    .filter((m) => typeof m?.texto === 'string' && (m.rol === 'user' || m.rol === 'model'))
-    .slice(-MAX_MENSAJES_HISTORIAL)
+  // ── Camino rápido: sin modelo, sin tokens ────────────────────────────────
+  const atajo = await resolverAtajo(texto, usuario, porNombre)
+  if (atajo) {
+    yield { tipo: 'delta', texto: atajo.texto }
+    registrarIntercambio(conv, { pregunta: texto, respuesta: atajo.texto, tema: atajo.intencion })
+    yield { tipo: 'fin', via: 'atajo', intencion: atajo.intencion }
+    return
+  }
 
-  const contents = [...previo.map(aContenidoHistorial), createUserContent(texto)]
+  // ── Camino normal: el modelo ─────────────────────────────────────────────
+  const config = {
+    systemInstruction: instruccionSistema(usuario, hechos, conv.temas),
+    temperature: TEMPERATURA,
+    maxOutputTokens: MAX_TOKENS_RESPUESTA,
+    // Aborta la lectura del stream cuando el usuario cierra el chat o hace
+    // otra pregunta encima. OJO con lo que esto SÍ y NO hace: según la propia
+    // documentación del SDK, cancela del lado del cliente pero no detiene la
+    // generación en Google ni evita el consumo de cuota. Lo que gana es dejar
+    // de ocupar el socket y el proceso con una respuesta que ya nadie va a
+    // leer — no ahorra cuota, y decir lo contrario sería falso.
+    abortSignal: signal,
+  }
+  // Sin herramientas (rol muy acotado + módulos apagados) se omite `tools` por
+  // completo: mandar un array vacío es un 400 de la API.
+  if (herramientas.length) {
+    config.tools = [{ functionDeclarations: herramientas.map((h) => h.declaracion) }]
+  }
+
+  const contents = [...turnosParaContexto(conv).map(aContenidoHistorial), createUserContent(texto)]
 
   for (let vuelta = 0; vuelta < MAX_VUELTAS_HERRAMIENTAS; vuelta++) {
     // Se acumulan las partes de TODOS los trozos del turno: es lo que después
@@ -120,24 +157,25 @@ export async function* responderStream({ mensaje, historial }, usuario) {
         }
       }
     } catch (err) {
+      // Cancelación del propio usuario: no es un fallo que haya que mostrar ni
+      // registrar. Se corta en silencio y se deja la conversación como estaba.
+      if (err.name === 'AbortError' || signal?.aborted) return
       // El SDK de Gemini propaga tal cual el status HTTP del error de GOOGLE
       // en `err.status` (401 con una API key inválida, 429 sin cuota, etc.).
-      // Dejarlo pasar sin envolver hace que errorHandler.js lo reenvíe como
-      // si fuera el status de ESTA api — un 401 de Google se confunde con
-      // una sesión de Skynet expirada, y el frontend cierra sesión a
-      // cualquiera que le pregunte algo al copiloto (ver api/client.js: todo
-      // 401 dispara 'skynet:logout'). Se normaliza a 502: es un fallo del
-      // servicio externo, nunca de la sesión del usuario.
+      // Dejarlo pasar sin envolver hace que errorHandler.js lo reenvíe como si
+      // fuera el status de ESTA api — un 401 de Google se confunde con una
+      // sesión de Skynet expirada, y el frontend cierra sesión a cualquiera
+      // que le pregunte algo al copiloto (ver api/client.js: todo 401 dispara
+      // 'skynet:logout'). Se normaliza a 502: es un fallo del servicio
+      // externo, nunca de la sesión del usuario.
       throw new ErrorAplicacion(`El servicio de IA no respondió correctamente: ${err.message}`, 502)
     }
 
     const llamadas = partesTurno.filter((p) => p.functionCall).map((p) => p.functionCall)
     if (!llamadas.length) {
       const textoRespuesta = textoTurno.trim() || 'No tengo una respuesta para eso.'
-      yield {
-        tipo: 'fin',
-        historial: [...previo, { rol: 'user', texto }, { rol: 'model', texto: textoRespuesta }],
-      }
+      registrarIntercambio(conv, { pregunta: texto, respuesta: textoRespuesta })
+      yield { tipo: 'fin', via: 'modelo' }
       return
     }
 
@@ -172,6 +210,18 @@ export async function* responderStream({ mensaje, historial }, usuario) {
         }
       })
     )
+
+    // Herramientas que producen una ACCIÓN para la interfaz (hoy solo el
+    // borrador de requerimiento de compra): además de dárselas al modelo para
+    // que las describa, se reenvían tal cual al frontend para que dibuje su
+    // tarjeta de confirmación. El modelo únicamente las VE — la decisión de
+    // guardarlas de verdad nunca pasa por él (ver preparar_requerimiento_
+    // compra en copiloto.herramientas.js).
+    for (const r of resultados) {
+      if (r.name === 'preparar_requerimiento_compra' && r.response?.resultado?.borrador) {
+        yield { tipo: 'accion', accion: 'requerimiento_compra_borrador', datos: r.response.resultado }
+      }
+    }
 
     contents.push(
       createUserContent(resultados.map((r) => createPartFromFunctionResponse(r.id, r.name, r.response)))

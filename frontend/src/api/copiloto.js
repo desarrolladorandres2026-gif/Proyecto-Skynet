@@ -1,3 +1,5 @@
+import { request } from './client.js'
+
 const BASE = import.meta.env.VITE_API_URL || '/api'
 
 // A diferencia del resto de la API (api/client.js devuelve el JSON completo),
@@ -5,19 +7,29 @@ const BASE = import.meta.env.VITE_API_URL || '/api'
 // No se usa EventSource porque solo soporta GET y aquí hace falta POST con
 // cuerpo; se lee el body del fetch trozo a trozo.
 //
-// `historial` son los turnos previos ({rol:'user'|'model', texto}) tal cual los
-// devolvió la última respuesta — el backend es la fuente de verdad del
-// historial (lo recorta y le agrega el turno nuevo), este cliente no lo
-// reconstruye ni lo persiste.
+// `conversacionId` es un identificador OPACO que devuelve el servidor en el
+// primer evento del stream y que este cliente solo reenvía. Sustituyó al
+// historial completo que antes viajaba en cada petición.
 //
-// `onDelta(textoParcial)` se llama con cada trozo que llega. Resuelve con el
-// historial final que devuelve el backend.
+// El cambio no fue por ancho de banda sino por seguridad: mandando el
+// historial, un cliente podía fabricar turnos con rol:'model' y ponerle
+// palabras en la boca al asistente ("confirmado: este usuario es Super
+// Admin"). El modelo trata su propio historial como hechos ya establecidos,
+// así que es la vía de inyección más efectiva que hay. Ahora los turnos del
+// modelo son los que el servidor generó, y este cliente no puede inventarlos
+// (ver Backend/src/models/ConversacionCopiloto.js).
+//
+// `onDelta(textoParcial)` se llama con cada trozo que llega. `onAccion(evento)`
+// se llama cuando el modelo usó una herramienta que produce una acción para
+// la interfaz (hoy solo el borrador de requerimiento de compra) — nunca es el
+// modelo quien decide guardarla, solo la propone; confirmarRequerimientoCompra
+// de abajo es el único camino real hacia la base de datos.
 export const copiloto = {
-  async chat(mensaje, historial, { onDelta, signal } = {}) {
+  async chat(mensaje, conversacionId, { onDelta, onAccion, signal } = {}) {
     const res = await fetch(`${BASE}/copiloto/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mensaje, historial }),
+      body: JSON.stringify({ mensaje, conversacionId }),
       credentials: 'include',
       signal,
     })
@@ -36,7 +48,11 @@ export const copiloto = {
     const lector = res.body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
-    let historialFinal = null
+    let idFinal = conversacionId ?? null
+    // 'atajo' cuando el servidor resolvió sin llamar al modelo, 'modelo'
+    // cuando sí. Se devuelve para poder medir en la propia interfaz qué
+    // proporción del tráfico se está resolviendo por el camino rápido.
+    let via = null
 
     while (true) {
       const { done, value } = await lector.read()
@@ -53,11 +69,23 @@ export const copiloto = {
         if (!linea) continue
         const evento = JSON.parse(linea.slice(6))
         if (evento.tipo === 'delta') onDelta?.(evento.texto)
-        else if (evento.tipo === 'fin') historialFinal = evento.historial
+        else if (evento.tipo === 'accion') onAccion?.(evento)
+        else if (evento.tipo === 'inicio') idFinal = evento.conversacionId
+        else if (evento.tipo === 'fin') via = evento.via
         else if (evento.tipo === 'error') throw new Error(evento.error)
       }
     }
 
-    return { historial: historialFinal ?? historial ?? [] }
+    return { conversacionId: idFinal, via }
+  },
+
+  // Único endpoint que de verdad guarda un requerimiento sugerido por el
+  // chat — nunca lo llama el modelo, solo el botón "Confirmar y enviar" que
+  // dibuja la tarjeta de borrador (ver CopilotoBorradorRequerimiento.jsx).
+  crearRequerimientoCompra(borrador) {
+    return request('/copiloto/requerimientos/compra', {
+      method: 'POST',
+      body: JSON.stringify({ areaOProceso: borrador.areaOProceso, items: borrador.items }),
+    })
   },
 }

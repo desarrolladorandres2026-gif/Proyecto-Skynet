@@ -18,8 +18,16 @@ export function CopilotoAnimatedIcon({
   interactive = true,
   showPulseRing = true,
   speed = 'normal', // 'slow' | 'normal' | 'fast'
+  state = 'IDLE', // 'IDLE' | 'LISTENING' | 'PROCESSING' | 'SPEAKING' | 'ERROR'
 }) {
-  const speedMult = speed === 'slow' ? 1.5 : speed === 'fast' ? 0.6 : 1
+  const effectiveSpeed =
+    speed !== 'normal'
+      ? speed
+      : state === 'PROCESSING' || state === 'LISTENING' || state === 'SPEAKING'
+      ? 'fast'
+      : 'normal'
+
+  const speedMult = effectiveSpeed === 'slow' ? 1.5 : effectiveSpeed === 'fast' ? 0.5 : 1
 
   return (
     <div
@@ -35,8 +43,13 @@ export function CopilotoAnimatedIcon({
         <div
           className={cn(
             'absolute inset-0 rounded-full transition-all duration-500 pointer-events-none',
-            'dark:bg-cyan-400/25 dark:shadow-[0_0_30px_rgba(34,211,238,0.5)]',
-            'bg-sky-500/20 shadow-[0_0_24px_rgba(2,132,199,0.35)]',
+            state === 'ERROR'
+              ? 'bg-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.6)]'
+              : state === 'LISTENING'
+              ? 'dark:bg-cyan-400/40 dark:shadow-[0_0_35px_rgba(34,211,238,0.8)] bg-sky-500/35 shadow-[0_0_28px_rgba(2,132,199,0.6)] animate-pulse'
+              : state === 'PROCESSING'
+              ? 'dark:bg-cyan-300/40 dark:shadow-[0_0_40px_rgba(103,232,249,0.9)] bg-cyan-400/40 shadow-[0_0_32px_rgba(6,182,212,0.7)] animate-pulse'
+              : 'dark:bg-cyan-400/25 dark:shadow-[0_0_30px_rgba(34,211,238,0.5)] bg-sky-500/20 shadow-[0_0_24px_rgba(2,132,199,0.35)]',
             'animate-[copilot-aura_3s_ease-in-out_infinite]',
             isOpen && 'dark:bg-cyan-400/40 dark:shadow-[0_0_40px_rgba(34,211,238,0.75)] bg-sky-600/35 shadow-[0_0_32px_rgba(2,132,199,0.55)]'
           )}

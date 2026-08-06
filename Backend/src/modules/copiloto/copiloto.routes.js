@@ -2,7 +2,7 @@ import { verificarToken } from '../../middleware/auth.js'
 import { requiereModuloActivo } from '../../middleware/moduloActivo.js'
 import { copilotoLimiter } from '../../middleware/rateLimit.js'
 import { safeRouter } from '../../middleware/safeRouter.js'
-import { chat } from './copiloto.controller.js'
+import { chat, confirmarRequerimientoCompra } from './copiloto.controller.js'
 
 // Copiloto de datos: chat de solo lectura sobre información PROPIA del
 // usuario (ver copiloto.herramientas.js). Capacidad universal, igual que
@@ -12,5 +12,12 @@ const router = safeRouter()
 
 router.use(verificarToken, requiereModuloActivo('copiloto'))
 router.post('/chat', copilotoLimiter, chat)
+
+// Confirma un borrador que el chat sugirió (ver copiloto.herramientas.js
+// #preparar_requerimiento_compra). Exige AMBOS módulos activos: copiloto (por
+// el router.use de arriba) y requerimientos — es la misma acción de negocio
+// que crear uno desde el formulario normal, así que respeta el mismo
+// interruptor de Sistema → Módulos que ese formulario.
+router.post('/requerimientos/compra', requiereModuloActivo('requerimientos'), confirmarRequerimientoCompra)
 
 export default router
