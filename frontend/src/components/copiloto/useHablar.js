@@ -118,15 +118,48 @@ function elegirVozPorDefecto(voces) {
 // getVoices() suele venir vacío en la primera llamada (el navegador carga las
 // voces de forma asíncrona) — sin esperar, la primera respuesta se leería con
 // la voz por defecto en inglés.
+//
+// ── Por qué se sondea además de escuchar 'voiceschanged' ────────────────────
+// En el navegador basta con el evento. Dentro del asistente de escritorio
+// (Electron) NO: medido contra la app real, `voiceschanged` no llega a
+// dispararse y las voces del sistema aparecen entre 1 y 2 segundos después de
+// cargar la página.
+//
+// La versión anterior tenía un único `setTimeout(resolve, 1000)` como red de
+// seguridad, y ese valor caía JUSTO en medio de esa ventana: unas veces leía
+// las voces y otras leía una lista vacía. Cuando perdía la carrera, el
+// selector se quedaba sin opciones y `vozActual` en null, así que Skynet
+// hablaba con la voz por defecto del sistema (en inglés) o no hablaba.
+//
+// Un fallo intermitente y dependiente de la carga del equipo es de los peores
+// de diagnosticar, así que se sondea hasta que aparezcan en vez de apostar a
+// un tiempo fijo.
+const ESPERA_VOCES_MS = 8000
+const INTERVALO_SONDEO_MS = 250
+
 function cargarVoces() {
   return new Promise((resolve) => {
     if (window.speechSynthesis.getVoices().length > 0) return resolve()
-    const onVoces = () => {
-      window.speechSynthesis.removeEventListener('voiceschanged', onVoces)
+
+    let terminado = false
+    const terminar = () => {
+      if (terminado) return
+      terminado = true
+      window.speechSynthesis.removeEventListener('voiceschanged', terminar)
+      clearInterval(sondeo)
+      clearTimeout(limite)
       resolve()
     }
-    window.speechSynthesis.addEventListener('voiceschanged', onVoces)
-    setTimeout(resolve, 1000)
+
+    // Camino rápido del navegador: si el evento llega, se resuelve al instante.
+    window.speechSynthesis.addEventListener('voiceschanged', terminar)
+    const sondeo = setInterval(() => {
+      if (window.speechSynthesis.getVoices().length > 0) terminar()
+    }, INTERVALO_SONDEO_MS)
+    // Tope absoluto: un equipo sin ninguna voz instalada nunca poblaría la
+    // lista, y dejar la promesa colgada bloquearía el arranque de la voz para
+    // siempre. Se sigue adelante y el resto del hook trata la lista vacía.
+    const limite = setTimeout(terminar, ESPERA_VOCES_MS)
   })
 }
 

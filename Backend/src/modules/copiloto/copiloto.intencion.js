@@ -46,6 +46,26 @@ const VERBOS_ESCRITURA = new Set([
   'anadir', 'anade', 'actualizar', 'actualiza',
 ])
 
+// Verbos que piden IR a algún lado, no consultar un dato. Descartan el atajo
+// por la misma lógica que VERBOS_ESCRITURA: la frase no pide información sino
+// una acción, y la acción la resuelve `abrir_seccion` a través del modelo.
+//
+// Sin esto, "abre el panel" tomaba el atajo de `resumen_dashboard` y
+// respondía con el resumen en texto en vez de navegar. Para el usuario eso se
+// lee como que el asistente ignoró lo que le pidió.
+//
+// La lista es CORTA y deliberadamente NO incluye "muestra"/"muéstrame": esos
+// son ambiguos y se usan mucho más como consulta ("muéstrame mis
+// requerimientos") que como navegación. Al ser ambiguos, el criterio de
+// precisión sobre cobertura de este archivo dice dejarlos como están: quien
+// diga "muéstrame los reportes" recibirá la lista, que es una respuesta útil,
+// no una equivocada.
+const VERBOS_NAVEGACION = new Set([
+  'abre', 'abrir', 'abreme', 'abrame', 'abra',
+  'llevame', 'lleva', 'llevar', 'ir', 'vamos', 'anda', 'andate',
+  'navega', 'navegar', 'entra', 'entrar', 'ingresa', 'ingresar',
+])
+
 // Señales de que la persona quiere una EXPLICACIÓN o un juicio, no un dato.
 // Eso es justo lo que un modelo hace bien y una plantilla no puede improvisar.
 //
@@ -65,6 +85,19 @@ const OBJETO_AUSENCIA = ['ausencia', 'ausencias', 'vacacion', 'vacaciones', 'per
 const OBJETO_DANO = ['dano', 'danos', 'averia', 'averias', 'novedad', 'novedades', 'falla', 'fallas', 'reporte', 'reportes', 'danado']
 const OBJETO_PENDIENTE = ['pendiente', 'pendientes', 'resumen', 'tablero', 'dashboard', 'panel', 'tareas', 'pendejadas']
 const OBJETO_CLIMA = ['clima', 'tiempo', 'temperatura', 'lluvia', 'llover', 'lloviendo', 'calor', 'frio', 'grados']
+
+// Hora y fecha entran al camino rápido por la misma razón que el saludo: son
+// de las preguntas más repetidas que existen, la respuesta es una línea, y
+// gastar en ellas una petición de la cuota gratuita que comparte todo el
+// Terminal no se justifica.
+//
+// Las dos listas son CORTAS y exactas a propósito. `coincide()` exige
+// igualdad para palabras de menos de 6 letras (ver copiloto.texto.js), así
+// que "hora" no puede colisionar con "ahora" —que además es palabra vacía— ni
+// "dia" con "día de pago". Cualquier frase más elaborada supera el tope de
+// tokens y cae al modelo, que es lo correcto.
+const OBJETO_HORA = ['hora', 'horas']
+const OBJETO_FECHA = ['fecha', 'dia', 'hoy']
 
 // Estados que la persona nombra en voz alta, mapeados al valor exacto que
 // guarda cada módulo. La clave es lo que DICE, el valor lo que consulta.
@@ -148,13 +181,29 @@ export function detectarIntencion(texto) {
   if (MARCADORES_RAZONAMIENTO.test(plano)) return null
   // Igualdad exacta sobre las palabras crudas, no sobre `tokens`: el descarte
   // por verbo tiene que ver la frase tal como se dijo (ver VERBOS_ESCRITURA).
-  if (crudas.some((p) => VERBOS_ESCRITURA.has(p))) return null
+  if (crudas.some((p) => VERBOS_ESCRITURA.has(p) || VERBOS_NAVEGACION.has(p))) return null
 
-  // ── Clima: única consulta externa con atajo. Necesita una ciudad; si no la
+  // ── Clima: consulta externa con atajo. Necesita una ciudad; si no la
   // nombran se asume Neiva (donde está el Terminal), que es lo que quiere
   // decir alguien que pregunta "¿cómo está el clima?" desde aquí.
   if (buscarToken(tokens, OBJETO_CLIMA)) {
     return { nombre: 'clima', args: { ciudad: extraerCiudad(plano) || 'Neiva' } }
+  }
+
+  // ── Hora y fecha. Van DESPUÉS del clima, y el orden importa: "el clima de
+  // hoy" contiene 'hoy', que es marcador de fecha, pero la pregunta es del
+  // clima. El vocabulario de clima es el más específico de los tres, así que
+  // gana; al revés, toda pregunta meteorológica que mencione "hoy" o "el día"
+  // se contestaría con la fecha.
+  //
+  // `extraerCiudad` sirve tal cual para el lugar: descarta "hoy"/"ahora" como
+  // si fueran ciudades, que es justo lo que aparece en estas frases ("¿qué
+  // hora es ahora?").
+  if (buscarToken(tokens, OBJETO_HORA)) {
+    return { nombre: 'hora', args: { lugar: extraerCiudad(plano) || undefined } }
+  }
+  if (buscarToken(tokens, OBJETO_FECHA)) {
+    return { nombre: 'fecha', args: { lugar: extraerCiudad(plano) || undefined } }
   }
 
   // ── Consultas de módulo. El objeto manda; el estado es opcional.

@@ -183,6 +183,32 @@ export function clima(datos) {
   return `En ${datos.ciudad} hay ${Math.round(datos.temperaturaC)} grados, ${datos.condicion}, con ${datos.humedadPorcentaje}% de humedad.`
 }
 
+// ── Hora y fecha ────────────────────────────────────────────────────────────
+// Se responde la hora "de reloj de pared" y no la técnica: nadie pregunta la
+// hora esperando oír la zona IANA ni el desfase UTC. El lugar solo se nombra
+// cuando el usuario preguntó por otro sitio — decir "en Bogotá son las 3" a
+// quien está en Neiva sobra y suena a que no entendió la pregunta.
+export function hora(datos, lugarPedido) {
+  if (datos?.error) return datos.error
+  if (!datos?.hora) return null
+  const donde = lugarPedido ? ` en ${capitalizar(lugarPedido)}` : ''
+  return `Son las ${datos.hora}${donde}.`
+}
+
+export function fecha(datos, lugarPedido) {
+  if (datos?.error) return datos.error
+  if (!datos?.fecha) return null
+  const donde = lugarPedido ? ` en ${capitalizar(lugarPedido)}` : ''
+  return `Hoy es ${datos.fecha}${donde}.`
+}
+
+function capitalizar(texto) {
+  return String(texto)
+    .split(' ')
+    .map((p) => (p ? p[0].toUpperCase() + p.slice(1) : p))
+    .join(' ')
+}
+
 // ── Auxiliares ──────────────────────────────────────────────────────────────
 // "15 de marzo" y no "2026-03-15": esto se lee en voz alta.
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']

@@ -28,6 +28,8 @@ const HERRAMIENTA_DE = {
   mis_ausencias: 'mis_ausencias',
   mis_reportes_dano: 'mis_reportes_dano',
   clima: 'consultar_clima',
+  hora: 'hora_actual',
+  fecha: 'fecha_actual',
 }
 
 /**
@@ -85,6 +87,10 @@ function redactarSegunIntencion(intencion, datos) {
       return Array.isArray(datos) ? redactar.listaDanos(datos) : null
     case 'clima':
       return redactar.clima(datos)
+    case 'hora':
+      return redactar.hora(datos, intencion.args?.lugar)
+    case 'fecha':
+      return redactar.fecha(datos, intencion.args?.lugar)
     default:
       return null
   }

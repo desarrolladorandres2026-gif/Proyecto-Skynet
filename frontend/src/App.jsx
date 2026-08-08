@@ -35,6 +35,8 @@ import InduccionHome from './modules/induccion/InduccionHome.jsx'
 import CertificadoPage from './modules/induccion/CertificadoPage.jsx'
 import InstallBanner from './pwa/InstallBanner.jsx'
 import PreferenciasNotificacionesPage from './modules/notificaciones/PreferenciasNotificacionesPage.jsx'
+import AsistentePage from './escritorio/AsistentePage.jsx'
+import DiagnosticoPage from './escritorio/DiagnosticoPage.jsx'
 
 export default function App() {
   return (
@@ -43,6 +45,19 @@ export default function App() {
         <InstallBanner />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+
+          {/* Asistente de escritorio. Van FUERA del AppShell a propósito: son
+              lo que carga la ventana oculta de Electron, que no debe montar el
+              sidebar, el widget flotante ni el resto del panel — sería trabajo
+              de render permanente en una ventana que nadie ve.
+
+              Tampoco van dentro de ProtectedRoute: sin sesión, esa ruta
+              redirige al login, y en una ventana oculta eso deja al asistente
+              en una pantalla de login invisible sin que nadie se entere.
+              AsistentePage detecta la falta de sesión y le pide al proceso
+              principal que abra el panel visible (ver skynet:sesion-caducada). */}
+          <Route path="/asistente" element={<AsistentePage />} />
+          <Route path="/asistente/diagnostico" element={<DiagnosticoPage />} />
 
           <Route
             element={

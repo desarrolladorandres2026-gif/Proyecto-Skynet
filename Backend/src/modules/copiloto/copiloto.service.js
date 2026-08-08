@@ -15,6 +15,7 @@ import {
   obtenerHechos,
   sanearTexto,
 } from './copiloto.memoria.js'
+import { registrarPendiente, consumirPendiente } from './copiloto.confirmaciones.js'
 import { ErrorValidacion, ErrorConflicto, ErrorAplicacion } from '../../utils/errores.js'
 
 // 'gemini-flash-lite-latest' (hoy resuelve a gemini-3.5-flash-lite), NO
@@ -73,8 +74,19 @@ function aContenidoHistorial(turno) {
  *   {tipo:'delta', texto}            — trozos de la respuesta.
  *   {tipo:'accion', ...}             — una herramienta produjo algo que la
  *        interfaz debe dibujar (hoy: el borrador de requerimiento).
+ *   {tipo:'navegacion', ruta, titulo} — el usuario pidió ir a una sección y
+ *        tiene permiso: el frontend hace el navigate().
+ *   {tipo:'confirmacion', token, ...} — una herramienta destructiva quedó a la
+ *        espera de un botón real (ver copiloto.confirmaciones.js).
  *   {tipo:'fin', via}                — 'atajo' o 'modelo', para poder medir en
  *        producción qué proporción del tráfico se resuelve sin LLM.
+ *
+ * ── Por qué eventos tipados y no texto libre ────────────────────────────────
+ * El frontend NUNCA interpreta la prosa del modelo para decidir qué hacer. Si
+ * la navegación dependiera de detectar "voy a abrir los reportes" en el texto,
+ * bastaría con que el modelo redactara distinto —o con que el usuario le
+ * pidiera que lo dijera— para disparar una acción no pretendida. Cada acción
+ * de interfaz nace de una herramienta ejecutada y verificada en el servidor.
  *
  * ── El historial ya NO viene del cliente ────────────────────────────────────
  * Antes el frontend mandaba los turnos previos y aquí se reenviaban tal cual a
@@ -82,10 +94,10 @@ function aContenidoHistorial(turno) {
  * la boca al asistente (ver ConversacionCopiloto.js). Ahora el cliente solo
  * manda un id opaco y el hilo se lee del servidor.
  *
- * @param {{mensaje: string, conversacionId?: string, signal?: AbortSignal}} entrada
+ * @param {{mensaje: string, conversacionId?: string, signal?: AbortSignal, ip?: string}} entrada
  * @param {object} usuario  req.usuario
  */
-export async function* responderStream({ mensaje, conversacionId, signal }, usuario) {
+export async function* responderStream({ mensaje, conversacionId, signal, ip }, usuario) {
   const texto = sanearTexto(mensaje, MAX_CARACTERES_MENSAJE)
   if (!texto) throw new ErrorValidacion('El mensaje no puede estar vacío')
 
@@ -97,7 +109,7 @@ export async function* responderStream({ mensaje, conversacionId, signal }, usua
 
   const [conv, herramientas, hechos] = await Promise.all([
     abrirConversacion(conversacionId, usuario),
-    construirHerramientas(usuario),
+    construirHerramientas(usuario, { ip }),
     obtenerHechos(usuario.id_usuario),
   ])
 
@@ -202,6 +214,37 @@ export async function* responderStream({ mensaje, conversacionId, signal }, usua
             response: { error: 'Esa consulta está fuera del alcance del rol de este usuario.' },
           }
         }
+
+        // ── Acción destructiva: se PARA aquí, no se ejecuta ────────────────
+        // El modelo la pidió, pero pedir no es ejecutar. Se guarda pendiente y
+        // se le devuelve un resultado que le dice explícitamente que todavía
+        // no pasó nada, para que no le anuncie al usuario algo que no ocurrió.
+        if (herramienta.requiereConfirmacion) {
+          const args = llamada.args || {}
+          // La descripción puede consultar la base (para decir QUÉ se va a
+          // cancelar, no solo "confirma la acción"), así que se espera. Si esa
+          // consulta falla, la confirmación NO se cae: se muestra un texto
+          // genérico. Perder el detalle es aceptable; perder el botón dejaría
+          // al usuario sin forma de completar lo que pidió.
+          let descripcion = null
+          try {
+            descripcion = (await herramienta.descripcionConfirmacion?.(args)) || null
+          } catch {
+            descripcion = null
+          }
+          const token = registrarPendiente(usuario, { nombre: llamada.name, args, descripcion })
+          return {
+            id,
+            name: llamada.name,
+            confirmacion: { token, args, descripcion },
+            response: {
+              pendiente: true,
+              mensaje:
+                'NO se ha ejecutado nada. La acción quedó esperando que el usuario la confirme con un botón en la interfaz. Explícale en una frase qué va a pasar si confirma y no digas que ya está hecho.',
+            },
+          }
+        }
+
         try {
           const resultado = await herramienta.ejecutar(llamada.args || {})
           return { id, name: llamada.name, response: { resultado } }
@@ -211,15 +254,30 @@ export async function* responderStream({ mensaje, conversacionId, signal }, usua
       })
     )
 
-    // Herramientas que producen una ACCIÓN para la interfaz (hoy solo el
-    // borrador de requerimiento de compra): además de dárselas al modelo para
-    // que las describa, se reenvían tal cual al frontend para que dibuje su
-    // tarjeta de confirmación. El modelo únicamente las VE — la decisión de
-    // guardarlas de verdad nunca pasa por él (ver preparar_requerimiento_
-    // compra en copiloto.herramientas.js).
+    // Herramientas que producen una ACCIÓN para la interfaz: además de
+    // dárselas al modelo para que las describa, se reenvían al frontend para
+    // que las ejecute o dibuje. El modelo únicamente las VE — la decisión de
+    // guardar o de confirmar nunca pasa por él.
     for (const r of resultados) {
+      if (r.confirmacion) {
+        yield {
+          tipo: 'confirmacion',
+          herramienta: r.name,
+          token: r.confirmacion.token,
+          descripcion: r.confirmacion.descripcion,
+          datos: r.confirmacion.args,
+        }
+        continue
+      }
       if (r.name === 'preparar_requerimiento_compra' && r.response?.resultado?.borrador) {
         yield { tipo: 'accion', accion: 'requerimiento_compra_borrador', datos: r.response.resultado }
+      }
+      // La navegación la marca la propia herramienta con `navegacion: true`
+      // (ver abrir_seccion), no el nombre de la función: así, el día que haya
+      // otra herramienta que también navegue, no hay que tocar este bucle.
+      if (r.response?.resultado?.navegacion) {
+        const { ruta, titulo, clave } = r.response.resultado
+        yield { tipo: 'navegacion', ruta, titulo, clave }
       }
     }
 
@@ -229,4 +287,41 @@ export async function* responderStream({ mensaje, conversacionId, signal }, usua
   }
 
   throw new ErrorConflicto('El copiloto no pudo completar la respuesta (demasiadas consultas encadenadas).')
+}
+
+/**
+ * Ejecuta una acción que el usuario ya confirmó con un botón.
+ *
+ * ── Este camino NO PASA POR GEMINI ──────────────────────────────────────────
+ * Es lo que hace que la confirmación signifique algo. El modelo propuso la
+ * acción en su momento y ahí terminó su participación: aquí solo se canjea un
+ * token que el servidor emitió, contra el catálogo de herramientas que se
+ * vuelve a construir para ESTE usuario y en ESTE instante.
+ *
+ * Reconstruir el catálogo en vez de guardarlo con la acción pendiente es
+ * deliberado: entre que el modelo propuso y el usuario confirmó pudieron
+ * revocarle el permiso o apagar el módulo. Lo que manda es el permiso de
+ * ahora, no el de hace cinco minutos.
+ *
+ * @param {string} token   El que viajó en el evento {tipo:'confirmacion'}.
+ * @param {object} usuario req.usuario
+ * @param {{ip?: string}} contexto
+ */
+export async function ejecutarConfirmada(token, usuario, contexto = {}) {
+  const accion = consumirPendiente(token, usuario)
+  if (!accion) {
+    throw new ErrorValidacion('Esa confirmación ya no es válida. Vuelve a pedirlo y confírmalo de nuevo.')
+  }
+
+  const herramientas = await construirHerramientas(usuario, contexto)
+  const herramienta = herramientas.find((h) => h.declaracion.name === accion.nombre)
+  if (!herramienta) {
+    throw new ErrorConflicto('Ya no tienes permiso para realizar esa acción.')
+  }
+
+  // `requiereConfirmacion` se envuelve para que la herramienta NO se ejecute
+  // por el camino del modelo; aquí se llama a `ejecutar` directamente, que es
+  // el único punto del sistema donde una acción confirmada corre de verdad.
+  const resultado = await herramienta.ejecutar(accion.args || {})
+  return { herramienta: accion.nombre, resultado }
 }

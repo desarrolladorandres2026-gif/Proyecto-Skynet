@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { motion, useDragControls } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { copiloto } from '../../api/copiloto.js'
@@ -27,6 +28,7 @@ const PATRON_ABRIR_CHAT = /\b(abre|abrir|muestra|mostrar)\s+(skynet|chat|copilot
 // o abrir el Modo Chat completo por clic o por comando explícito "Abre Skynet".
 export default function CopilotoWidget() {
   const { moduloActivo } = useAuth()
+  const navigate = useNavigate()
   const dragControls = useDragControls()
   const [abierto, setAbierto] = useState(false)
   const [mensajes, setMensajes] = useState([])
@@ -36,6 +38,9 @@ export default function CopilotoWidget() {
   const [borrador, setBorrador] = useState(null)
   const [enviandoBorrador, setEnviandoBorrador] = useState(false)
   const [errorBorrador, setErrorBorrador] = useState('')
+  const [confirmacion, setConfirmacion] = useState(null)
+  const [enviandoConfirmacion, setEnviandoConfirmacion] = useState(false)
+  const [errorConfirmacion, setErrorConfirmacion] = useState('')
 
   // Estado para disparar el efecto visual de dispersión cuántica a pantalla completa al abrir el chat
   const [dispersionKey, setDispersionKey] = useState(0)
@@ -101,6 +106,12 @@ export default function CopilotoWidget() {
       setCargando(true)
       setBorrador(null)
       setErrorBorrador('')
+      // Una confirmación pendiente muere en cuanto se pregunta otra cosa: el
+      // token del servidor sigue vivo unos minutos, pero dejar el botón en
+      // pantalla después de cambiar de tema es la receta para que alguien lo
+      // pulse creyendo que confirma lo último que dijo.
+      setConfirmacion(null)
+      setErrorConfirmacion('')
       if (hablar) vozRef.current.reiniciar()
 
       try {
@@ -117,6 +128,25 @@ export default function CopilotoWidget() {
           },
           onAccion: (evento) => {
             if (evento.accion === 'requerimiento_compra_borrador') setBorrador(evento.datos)
+          },
+          // La ruta viene del servidor, ya resuelta contra los permisos reales
+          // de este usuario (ver copiloto.navegacion.js) — este componente no
+          // decide a dónde se puede ir, solo ejecuta. Y aunque llegara una
+          // ruta indebida, los guardas de App.jsx (PermissionRoute /
+          // ModuloActivoRoute) siguen siendo los que deciden si se pinta.
+          onNavegacion: (evento) => {
+            if (evento.ruta) navigate(evento.ruta)
+          },
+          onConfirmacion: (evento) => {
+            setConfirmacion(evento)
+            setErrorConfirmacion('')
+            // Una confirmación EXIGE ver qué se va a hacer antes de decir que
+            // sí. Si la pregunta entró por voz con el chat cerrado, el usuario
+            // oiría "¿quieres continuar?" sin tener dónde pulsar, así que aquí
+            // el chat se abre solo: es exactamente el caso que el diseño de
+            // voz reserva para abrirlo (acción que requiere interacción
+            // visual), no una excepción a esa regla.
+            abrirConEfecto()
           },
         })
         conversacionIdRef.current = resultado.conversacionId
@@ -147,7 +177,7 @@ export default function CopilotoWidget() {
         }
       }
     },
-    [aplicarMensajes]
+    [aplicarMensajes, navigate, abrirConEfecto]
   )
 
   // Camino de las preguntas dictadas. Además de enviarlas, atiende el único
@@ -193,6 +223,8 @@ export default function CopilotoWidget() {
     setError('')
     setBorrador(null)
     setErrorBorrador('')
+    setConfirmacion(null)
+    setErrorConfirmacion('')
     // Suelta también el hilo del servidor: "limpiar" tiene que borrar lo que
     // el modelo recuerda, no solo lo que se ve en pantalla. Sin esto, el chat
     // aparecía vacío pero el asistente seguía respondiendo con el contexto de
@@ -205,6 +237,28 @@ export default function CopilotoWidget() {
   const descartarBorrador = () => {
     setBorrador(null)
     setErrorBorrador('')
+  }
+
+  const descartarConfirmacion = () => {
+    setConfirmacion(null)
+    setErrorConfirmacion('')
+  }
+
+  // Único camino por el que una acción marcada como destructiva llega a
+  // ejecutarse. No pasa por Gemini: manda el token que emitió el servidor a un
+  // endpoint que no consulta al modelo (ver copiloto.confirmaciones.js).
+  async function confirmarAccion() {
+    setEnviandoConfirmacion(true)
+    setErrorConfirmacion('')
+    try {
+      await copiloto.confirmarAccion(confirmacion.token)
+      setConfirmacion(null)
+      aplicarMensajes((prev) => [...prev, { rol: 'model', texto: 'Listo, la acción quedó ejecutada.' }])
+    } catch (err) {
+      setErrorConfirmacion(err.message || 'No se pudo ejecutar la acción')
+    } finally {
+      setEnviandoConfirmacion(false)
+    }
   }
 
   async function confirmarBorrador() {
@@ -280,6 +334,11 @@ export default function CopilotoWidget() {
           onDescartarBorrador={descartarBorrador}
           enviandoBorrador={enviandoBorrador}
           errorBorrador={errorBorrador}
+          confirmacion={confirmacion}
+          onConfirmarAccion={confirmarAccion}
+          onDescartarConfirmacion={descartarConfirmacion}
+          enviandoConfirmacion={enviandoConfirmacion}
+          errorConfirmacion={errorConfirmacion}
         />
 
         <div className="flex justify-end touch-none" onPointerDown={(e) => dragControls.start(e)}>

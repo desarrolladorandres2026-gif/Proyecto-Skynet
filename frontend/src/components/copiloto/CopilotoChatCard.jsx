@@ -27,6 +27,7 @@ import {
 import { CopilotoAnimatedIcon } from './CopilotoAnimatedIcon'
 import { Popover, PopoverTrigger, PopoverContent } from '../Popover.jsx'
 import { CopilotoBorradorRequerimiento } from './CopilotoBorradorRequerimiento.jsx'
+import { CopilotoConfirmacion } from './CopilotoConfirmacion.jsx'
 import { cn } from '../../lib/cn'
 
 /**
@@ -72,6 +73,11 @@ export function CopilotoChatCard({
   onDescartarBorrador,
   enviandoBorrador = false,
   errorBorrador = '',
+  confirmacion = null,
+  onConfirmarAccion,
+  onDescartarConfirmacion,
+  enviandoConfirmacion = false,
+  errorConfirmacion = '',
   onIniciarArrastre,
 }) {
   const finRef = useRef(null)
@@ -418,6 +424,14 @@ export function CopilotoChatCard({
             onDescartar={onDescartarBorrador}
             enviando={enviandoBorrador}
             error={errorBorrador}
+          />
+
+          <CopilotoConfirmacion
+            confirmacion={confirmacion}
+            onConfirmar={onConfirmarAccion}
+            onDescartar={onDescartarConfirmacion}
+            enviando={enviandoConfirmacion}
+            error={errorConfirmacion}
           />
 
           {error && (

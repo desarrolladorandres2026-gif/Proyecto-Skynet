@@ -42,4 +42,10 @@ export const env = {
   // activable pero /copiloto/chat responde un error claro en vez de tumbar
   // el arranque del servidor, igual que Cloudinary.
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+  // Búsqueda web del copiloto. Las DOS son opcionales y se eligen por orden de
+  // preferencia (Tavily > Brave); sin ninguna, la herramienta cae al modo
+  // básico de DuckDuckGo, que responde bastante peor pero no rompe nada. Ver
+  // copiloto.busqueda.js para el detalle de por qué están escalonadas así.
+  TAVILY_API_KEY: process.env.TAVILY_API_KEY,
+  BRAVE_SEARCH_API_KEY: process.env.BRAVE_SEARCH_API_KEY,
 }

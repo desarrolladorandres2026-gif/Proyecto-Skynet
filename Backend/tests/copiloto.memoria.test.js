@@ -154,6 +154,21 @@ describe('instruccionSistema', () => {
     // estético: cada carácter que se le agregue se paga en latencia y en cuota
     // compartida en todas las peticiones futuras, así que crecer debe ser una
     // decisión consciente y no el resultado de ir añadiendo aclaraciones.
-    expect(PROMPT_BASE.length).toBeLessThan(1200)
+    //
+    // ── Subió de 1200 a 1700 al construir el motor de herramientas ──────────
+    // Lo que se compró con esos ~130 tokens por mensaje, en orden de valor:
+    //  1. La regla vieja ("responde SOLO con lo que devuelvan tus
+    //     herramientas") IMPEDÍA responder preguntas generales: el asistente
+    //     contestaba "eso no lo cubren mis herramientas" a cosas que sabe.
+    //     Distinguir dominio general vs. datos del Terminal es la corrección
+    //     que habilita la mitad de los casos de uso pedidos.
+    //  2. La instrucción de usar herramienta para todo lo que dependa de HOY:
+    //     sin ella el modelo responde la hora y las tasas de memoria, con
+    //     seguridad y equivocado.
+    //  3. La regla de no dar por hecha una acción pendiente de confirmación.
+    //
+    // Si vuelve a crecer, que sea por una razón de este calibre y quede escrita
+    // aquí. Recortar prosa nunca cuesta correcciones; recortar estas tres sí.
+    expect(PROMPT_BASE.length).toBeLessThan(1700)
   })
 })

@@ -87,6 +87,55 @@ describe('atajos de consulta', () => {
     // "de hoy" es un adverbio de tiempo, no una ciudad.
     expect(detectarIntencion('el clima de hoy')).toMatchObject({ nombre: 'clima', args: { ciudad: 'Neiva' } })
   })
+
+  it('resuelve la hora, con y sin lugar', () => {
+    expect(detectarIntencion('qué hora es')).toMatchObject({ nombre: 'hora' })
+    expect(detectarIntencion('qué hora es ahora')).toMatchObject({ nombre: 'hora' })
+    expect(detectarIntencion('qué hora es en madrid')).toMatchObject({
+      nombre: 'hora',
+      args: { lugar: 'madrid' },
+    })
+  })
+
+  it('"Nueva York" cae al modelo, y está bien que así sea', () => {
+    // 'nueva' está en VERBOS_ESCRITURA (por "nueva solicitud", "nuevo
+    // requerimiento"), así que el descarte por verbo de escritura se dispara.
+    // Es un falso negativo conocido y se deja a propósito: relajar ese
+    // descarte para ganar 800 ms en una ciudad abriría la puerta a que "quiero
+    // una nueva vacación" tomara un atajo de consulta. El modelo tiene la
+    // herramienta hora_actual declarada y responde bien igual.
+    expect(detectarIntencion('qué hora es en nueva york')).toBeNull()
+  })
+
+  it('los verbos de navegación descartan el atajo', () => {
+    // "abre el panel" pide IR al panel, no que le lean el resumen. Sin este
+    // descarte tomaba el atajo de resumen_dashboard y el usuario recibía un
+    // texto en vez de la pantalla que pidió.
+    expect(detectarIntencion('abre el panel')).toBeNull()
+    expect(detectarIntencion('llevame a mis vacaciones')).toBeNull()
+    expect(detectarIntencion('entra a requerimientos')).toBeNull()
+  })
+
+  it('"muéstrame" sigue siendo consulta, no navegación', () => {
+    // Es ambiguo y se usa mucho más como consulta. Meterlo en el descarte
+    // costaría el atajo de la pregunta más frecuente del sistema.
+    expect(detectarIntencion('muestrame mis requerimientos')).toMatchObject({
+      nombre: 'mis_requerimientos',
+    })
+  })
+
+  it('resuelve la fecha', () => {
+    expect(detectarIntencion('qué día es hoy')).toMatchObject({ nombre: 'fecha' })
+    expect(detectarIntencion('qué fecha es')).toMatchObject({ nombre: 'fecha' })
+  })
+
+  it('el clima gana sobre la fecha cuando la frase menciona "hoy"', () => {
+    // El orden de las reglas es lo que decide esto: 'hoy' es marcador de
+    // fecha, pero el vocabulario de clima es más específico y debe ganar. Al
+    // revés, toda pregunta meteorológica con "hoy" respondería la fecha.
+    expect(detectarIntencion('qué clima hace hoy')).toMatchObject({ nombre: 'clima' })
+    expect(detectarIntencion('va a llover hoy')).toMatchObject({ nombre: 'clima' })
+  })
 })
 
 describe('cortesía', () => {

@@ -1,0 +1,15 @@
+{
+  "_comentario": "Copia este archivo como config.json JUNTO AL EJECUTABLE de Skynet (no en esta carpeta) para configurar el asistente sin recompilarlo. Todos los campos son opcionales.",
+
+  "_url": "Dónde vive el panel de Skynet. Es de donde la app carga TODO: la interfaz, la sesión y las llamadas al backend.",
+  "url": "https://skynet.terminalneiva.gov.co",
+
+  "_atajo": "Atajo global, funciona desde cualquier ventana de Windows. Formato de Electron: Control, Alt, Shift, Super + una tecla. Si otro programa ya lo usa, Skynet avisa al arrancar y lo marca en Diagnóstico.",
+  "atajo": "Control+Shift+S",
+
+  "_wakeWord": "Dejar el micrófono abierto escuchando 'Oye Skynet'. Falso por defecto: abrir el micrófono de forma permanente debe ser una decisión consciente. El reconocimiento es OFFLINE (Vosk), así que el audio no sale del equipo, pero exige tener instalado el modelo de voz.",
+  "wakeWord": false,
+
+  "_autoArranque": "Iniciar Skynet al encender el equipo. También se puede activar desde el menú de la bandeja.",
+  "autoArranque": false
+}

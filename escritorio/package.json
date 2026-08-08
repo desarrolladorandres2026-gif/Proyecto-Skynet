@@ -1,0 +1,28 @@
+{
+  "name": "skynet-escritorio",
+  "version": "1.0.0",
+  "description": "Asistente global de Skynet: vive en la bandeja del sistema y escucha aunque el panel web esté cerrado",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "cross-env SKYNET_URL=http://localhost:5173 electron .",
+    "modelo": "node scripts/preparar-modelo.mjs",
+    "empaquetar": "electron-builder --win"
+  },
+  "_nota_dependencias": "vosk-browser NO va aquí: lo importa el panel web (frontend/src/escritorio/reconocedorVosk.js), que es quien corre dentro de esta ventana. Esta app solo aporta la bandeja, el atajo global y el acceso al archivo del modelo.",
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "co.gov.terminalneiva.skynet",
+    "productName": "Skynet",
+    "directories": { "output": "../.exe" },
+    "files": ["src/**/*", "recursos/**/*", "package.json"],
+    "extraResources": [{ "from": "recursos", "to": "recursos" }],
+    "win": { "target": "nsis" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
+  }
+}

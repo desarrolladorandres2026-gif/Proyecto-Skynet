@@ -19,13 +19,21 @@ const BASE = import.meta.env.VITE_API_URL || '/api'
 // modelo son los que el servidor generó, y este cliente no puede inventarlos
 // (ver Backend/src/models/ConversacionCopiloto.js).
 //
-// `onDelta(textoParcial)` se llama con cada trozo que llega. `onAccion(evento)`
-// se llama cuando el modelo usó una herramienta que produce una acción para
-// la interfaz (hoy solo el borrador de requerimiento de compra) — nunca es el
-// modelo quien decide guardarla, solo la propone; confirmarRequerimientoCompra
-// de abajo es el único camino real hacia la base de datos.
+// Callbacks, uno por tipo de evento del stream:
+//   onDelta(texto)        — trozos de la respuesta.
+//   onAccion(evento)      — una herramienta produjo algo que dibujar (borrador).
+//   onNavegacion(evento)  — {ruta, titulo}: hay que llevar al usuario ahí.
+//   onConfirmacion(ev)    — {token, descripcion}: hay que pedir un sí explícito.
+//
+// ── Por qué el frontend NUNCA lee el texto para decidir qué hacer ───────────
+// Las acciones llegan como eventos TIPADOS, no deducidas de la prosa. Si la
+// navegación se disparara al detectar "voy a abrir los reportes" en la
+// respuesta, bastaría con que el modelo redactara distinto —o con que alguien
+// le pidiera que lo escribiera— para provocar una acción no pretendida. Cada
+// evento de acción nace de una herramienta que el servidor ya ejecutó y
+// verificó contra los permisos reales del usuario.
 export const copiloto = {
-  async chat(mensaje, conversacionId, { onDelta, onAccion, signal } = {}) {
+  async chat(mensaje, conversacionId, { onDelta, onAccion, onNavegacion, onConfirmacion, signal } = {}) {
     const res = await fetch(`${BASE}/copiloto/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -70,6 +78,8 @@ export const copiloto = {
         const evento = JSON.parse(linea.slice(6))
         if (evento.tipo === 'delta') onDelta?.(evento.texto)
         else if (evento.tipo === 'accion') onAccion?.(evento)
+        else if (evento.tipo === 'navegacion') onNavegacion?.(evento)
+        else if (evento.tipo === 'confirmacion') onConfirmacion?.(evento)
         else if (evento.tipo === 'inicio') idFinal = evento.conversacionId
         else if (evento.tipo === 'fin') via = evento.via
         else if (evento.tipo === 'error') throw new Error(evento.error)
@@ -87,5 +97,13 @@ export const copiloto = {
       method: 'POST',
       body: JSON.stringify({ areaOProceso: borrador.areaOProceso, items: borrador.items }),
     })
+  },
+
+  // Dispara una acción que quedó pendiente de confirmación. El `token` lo
+  // emitió el servidor y este cliente solo lo devuelve: no codifica la acción,
+  // así que no hay nada que se pueda alterar desde aquí para ejecutar otra
+  // cosa (ver Backend/.../copiloto.confirmaciones.js).
+  confirmarAccion(token) {
+    return request('/copiloto/confirmar', { method: 'POST', body: JSON.stringify({ token }) })
   },
 }

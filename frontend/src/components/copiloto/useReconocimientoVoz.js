@@ -1,24 +1,43 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { esEscritorio } from '../../escritorio/esEscritorio.js'
+import { ReconocedorVosk } from '../../escritorio/reconocedorVosk.js'
 
-// Reconocimiento de voz para Skynet, con dos modos sobre la MISMA Web Speech
-// API (Chrome/Edge; Firefox no la implementa y Safari solo a medias — por eso
-// todo el widget degrada a texto si `soportado` es false):
+// Reconocimiento de voz para Skynet, con dos modos:
 //
 //  1. Pulsar para hablar: una sola captura, disparada por el botón de
-//     micrófono. Es el modo por defecto y no deja el micrófono abierto.
+//     micrófono (o por el atajo global en el asistente de escritorio). Es el
+//     modo por defecto y no deja el micrófono abierto.
 //  2. "Oye Skynet": escucha continua buscando la frase de activación. Va
-//     APAGADO por defecto y lo enciende el usuario a conciencia, porque en
-//     Chrome el audio se transcribe en servidores de Google — dejarlo abierto
-//     sin que la persona lo sepa sería enviar conversaciones del Terminal a un
-//     tercero sin su consentimiento.
+//     APAGADO por defecto y lo enciende el usuario a conciencia.
 //
-// Limitación conocida de la API (no es un bug de este código): el navegador
-// corta el reconocimiento continuo cada cierto tiempo y cuando la pestaña deja
-// de estar en primer plano. Se reinicia solo mientras el modo siga activo, así
-// que "Oye Skynet" funciona con la app abierta en pantalla, no en segundo plano.
-
-const SpeechRecognition =
+// ── Dos motores, una sola lógica ────────────────────────────────────────────
+// Todo lo de abajo (detección de la frase de activación, los tres modos, el
+// vigilante de cuelgues, el reinicio) es idéntico corra donde corra. Lo único
+// que cambia es QUIÉN transcribe:
+//
+//   NAVEGADOR  → Web Speech API (Chrome/Edge; Firefox no la implementa y
+//                Safari solo a medias, por eso el widget degrada a texto si
+//                `soportado` es false). El audio se transcribe en servidores
+//                de Google: por eso el modo wake es opt-in explícito.
+//   ESCRITORIO → Vosk, offline y en el propio equipo (ver
+//                escritorio/reconocedorVosk.js). No es una preferencia: la
+//                Web Speech API NO funciona dentro de Electron, porque la
+//                clave del servicio de Google solo viene en las builds
+//                oficiales de Chrome.
+//
+// `ReconocedorVosk` imita la forma de `SpeechRecognition` a propósito, así que
+// esta línea es TODO lo que hay que ramificar. No hay dos implementaciones de
+// la escucha que puedan separarse con el tiempo.
+//
+// Limitación que el asistente de escritorio resuelve: en el navegador, la
+// escucha continua se corta cuando la pestaña deja de estar en primer plano,
+// así que "Oye Skynet" solo funciona con la app abierta en pantalla. En
+// Electron la ventana corre con `backgroundThrottling: false` y sigue oyendo
+// aunque esté oculta (ver escritorio/src/main.js).
+const SpeechRecognitionWeb =
   typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null
+
+const SpeechRecognition = esEscritorio() ? ReconocedorVosk : SpeechRecognitionWeb
 
 // Quita tildes y signos para comparar: el transcriptor devuelve "Oye, Skynet."
 // con puntuación y acentos variables.
@@ -315,6 +334,15 @@ export function useReconocimientoVoz({
         setError('No diste permiso para usar el micrófono.')
         return
       }
+      // Exclusivo del motor Vosk: la app está instalada pero le falta el
+      // modelo de voz. Es un fallo de instalación, no de micrófono, y sin
+      // distinguirlo el usuario ve "error de micrófono" y revisa el hardware.
+      if (evento.error === 'modelo-no-instalado') {
+        wakeActivoRef.current = false
+        setEscuchandoWake(false)
+        setError('Falta el modelo de voz. Ábrelo en Diagnóstico para ver cómo instalarlo.')
+        return
+      }
       setError(`Error de micrófono: ${evento.error}`)
     }
 
@@ -348,7 +376,15 @@ export function useReconocimientoVoz({
     const resultado = await pedirPermisoMicrofono()
     setPidiendoPermiso(false)
     if (resultado === 'denegado') {
-      setError('Bloqueaste el acceso al micrófono. Actívalo desde el icono de candado/cámara en la barra de direcciones y vuelve a intentar.')
+      // El sitio donde se arregla es distinto en cada entorno: en el navegador
+      // es el candado de la barra de direcciones, que en el asistente de
+      // escritorio no existe (la ventana no tiene barra). Mandar a alguien a
+      // un botón que no puede ver es peor que no decirle nada.
+      setError(
+        esEscritorio()
+          ? 'Windows tiene bloqueado el micrófono para Skynet. Ve a Configuración → Privacidad y seguridad → Micrófono y permite el acceso a las aplicaciones de escritorio.'
+          : 'Bloqueaste el acceso al micrófono. Actívalo desde el icono de candado/cámara en la barra de direcciones y vuelve a intentar.'
+      )
       return false
     }
     if (resultado === 'sin-microfono') {

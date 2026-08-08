@@ -40,7 +40,7 @@ export async function chat(req, res) {
   const enviar = (evento) => res.write(`data: ${JSON.stringify(evento)}\n\n`)
 
   try {
-    const entrada = { mensaje, conversacionId, signal: controlador.signal }
+    const entrada = { mensaje, conversacionId, signal: controlador.signal, ip: req.ip }
     for await (const evento of service.responderStream(entrada, req.usuario)) {
       enviar(evento)
     }
@@ -69,4 +69,14 @@ export async function confirmarRequerimientoCompra(req, res) {
     req.usuario
   )
   res.status(201).json({ requerimiento })
+}
+
+// Ejecuta una acción marcada como `requiereConfirmacion` que el usuario acaba
+// de aprobar pulsando un botón. Igual que el endpoint de arriba, NO pasa por
+// Gemini: el modelo propuso la acción, pero quien la dispara es esta petición,
+// nacida de un clic real (ver copiloto.confirmaciones.js).
+export async function confirmarAccion(req, res) {
+  const { token } = req.body
+  const resultado = await service.ejecutarConfirmada(token, req.usuario, { ip: req.ip })
+  res.json(resultado)
 }

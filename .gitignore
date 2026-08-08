@@ -7,6 +7,7 @@ atlas-credentials.env
 # Dependencias y builds
 **/node_modules
 **/dist
+/.exe
 
 # Almacenamiento de archivos subidos
 Backend/storage
@@ -18,3 +19,8 @@ Thumbs.db
 
 # Config local de Claude Code (puede contener datos sensibles de sesión)
 .claude/settings.local.json
+
+# Modelo de voz del asistente de escritorio: 40 MB de binarios que no cambian
+# entre commits y que Git guardaría para siempre en cada versión.
+# Se descarga con:  cd escritorio && npm run modelo
+escritorio/recursos/*.tar.gz

@@ -59,6 +59,20 @@ export default defineConfig({
       filename: 'sw.js',
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      injectManifest: {
+        // El motor de voz offline (vosk-browser) son ~5,8 MB de WebAssembly
+        // que SOLO usa el asistente de escritorio (ver
+        // src/escritorio/reconocedorVosk.js). Se excluye del precache del
+        // service worker por dos razones:
+        //  1. Precacharlo obligaría a CADA usuario del panel web a descargar
+        //     5,8 MB de algo que su navegador no puede usar (la Web Speech
+        //     API es la que funciona ahí).
+        //  2. Supera el límite por archivo de Workbox, así que la build
+        //     fallaba directamente.
+        // Se carga bajo demanda con import() dinámico, que es justo lo que lo
+        // mantiene fuera del bundle principal.
+        globIgnores: ['**/vosk-*.js'],
+      },
       manifest: {
         name: 'Skynet',
         short_name: 'Skynet',

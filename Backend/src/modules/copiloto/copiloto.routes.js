@@ -2,7 +2,7 @@ import { verificarToken } from '../../middleware/auth.js'
 import { requiereModuloActivo } from '../../middleware/moduloActivo.js'
 import { copilotoLimiter } from '../../middleware/rateLimit.js'
 import { safeRouter } from '../../middleware/safeRouter.js'
-import { chat, confirmarRequerimientoCompra } from './copiloto.controller.js'
+import { chat, confirmarRequerimientoCompra, confirmarAccion } from './copiloto.controller.js'
 
 // Copiloto de datos: chat de solo lectura sobre información PROPIA del
 // usuario (ver copiloto.herramientas.js). Capacidad universal, igual que
@@ -19,5 +19,12 @@ router.post('/chat', copilotoLimiter, chat)
 // que crear uno desde el formulario normal, así que respeta el mismo
 // interruptor de Sistema → Módulos que ese formulario.
 router.post('/requerimientos/compra', requiereModuloActivo('requerimientos'), confirmarRequerimientoCompra)
+
+// Dispara una acción que quedó esperando confirmación (ver copiloto.
+// confirmaciones.js). No lleva `copilotoLimiter`: ese limitador existe para
+// racionar la cuota de Gemini, y este camino no llama al modelo. Lo que sí
+// aplica es el permiso de la herramienta, que se revalida al ejecutar dentro
+// de `ejecutarConfirmada` — no aquí, porque depende de cuál sea la acción.
+router.post('/confirmar', confirmarAccion)
 
 export default router
