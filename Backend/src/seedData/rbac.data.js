@@ -66,6 +66,12 @@ export const PERMISOS = [
   permiso('email', 'eliminar', 'Eliminar y mover correos'),
   permiso('email', 'configurar', 'Conectar/desconectar cuentas y configurar Email'),
 
+  // IA (avisos proactivos del copiloto). Igual que en Email: leer/ajustar
+  // las preferencias PERSONALES de cada quien no es un permiso — es
+  // universal para todo autenticado (ver modules/ia). Este permiso gobierna
+  // solo el interruptor MAESTRO global por categoría.
+  permiso('ia', 'configurar', 'Configurar qué categorías puede avisar la IA a nivel de toda la plataforma'),
+
   // Requerimientos (compra/servicio, formatos FO-GBS-09/FO-GBS-36). Crear un
   // requerimiento y ver los propios tampoco es un permiso — mismo principio
   // que danos:gestionar/mantenimiento:ejecutar, universal para todo
@@ -128,6 +134,7 @@ const PERMISOS_ADMINISTRADOR_BASE = [
   'email:enviar',
   'email:eliminar',
   'email:configurar',
+  'ia:configurar',
 ]
 
 // Administrador + las 2 capacidades de Requerimientos que NO comparte con

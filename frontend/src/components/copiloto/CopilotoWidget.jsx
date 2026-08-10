@@ -1,13 +1,15 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useDragControls } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { copiloto } from '../../api/copiloto.js'
+import { ia as iaApi } from '../../api/ia.js'
 import { CopilotoButton } from './CopilotoButton.jsx'
 import { CopilotoChatCard } from './CopilotoChatCard.jsx'
 import { CopilotoDispersionOverlay } from './CopilotoDispersionOverlay.jsx'
 import { useVoiceAssistant } from './useVoiceAssistant.js'
+import { useAvisosIA } from './useAvisosIA.js'
 
 // Comando de interfaz que se resuelve en el navegador, sin ir al servidor: es
 // una acción sobre la propia pantalla, así que mandarla a un modelo para que
@@ -203,6 +205,52 @@ export default function CopilotoWidget() {
   // vaya un render por detrás.
   const vozRef = useRef(voz)
   vozRef.current = voz
+
+  // Preferencia personal de "leer avisos en voz" (PreferenciaIA.voz.activo,
+  // ver modules/ia). Se carga una sola vez al montar: por defecto es
+  // true (avisar por voz automáticamente es el comportamiento elegido para
+  // Skynet), así que hasta que responda el servidor se asume true en vez de
+  // esperar en silencio.
+  const vozAvisosIARef = useRef(true)
+  useEffect(() => {
+    // Sin el widget del copiloto no hay dónde mostrar/hablar un aviso: se
+    // gatea también en 'copiloto' además de 'ia' (el módulo dueño del canal
+    // de entrega), no solo en 'ia'.
+    if (!moduloActivo('ia') || !moduloActivo('copiloto')) return
+    let cancelado = false
+    iaApi
+      .preferencias()
+      .then((prefs) => {
+        if (!cancelado) vozAvisosIARef.current = prefs.voz.activo
+      })
+      .catch(() => {})
+    return () => {
+      cancelado = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Avisos proactivos (nuevo requerimiento, nuevo daño...) — ver
+  // useAvisosIA.js. Se pintan como burbujas normales del asistente (mismo
+  // `rol:'model'` que cualquier respuesta) y, si la voz está permitida y no
+  // hay una respuesta del chat hablándose en este momento, se leen en voz
+  // automáticamente sin que el usuario haya preguntado nada.
+  const onAvisosIA = useCallback(
+    (avisos) => {
+      aplicarMensajes((prev) => [
+        ...prev,
+        ...avisos.map((a) => ({ rol: 'model', texto: a.cuerpo ? `${a.titulo}. ${a.cuerpo}` : a.titulo })),
+      ])
+      const puedeHablar = vozAvisosIARef.current && vozRef.current.soportado && !peticionRef.current
+      if (puedeHablar) {
+        vozRef.current.reiniciar()
+        for (const a of avisos) vozRef.current.encolarTexto(a.cuerpo ? `${a.titulo}. ${a.cuerpo}` : a.titulo)
+        vozRef.current.finalizar()
+      }
+    },
+    [aplicarMensajes]
+  )
+  useAvisosIA({ activo: moduloActivo('ia') && moduloActivo('copiloto'), onAvisos: onAvisosIA })
 
   if (!moduloActivo('copiloto')) return null
 

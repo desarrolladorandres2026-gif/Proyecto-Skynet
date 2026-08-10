@@ -19,6 +19,8 @@ import TareasDanosPage from './modules/danos/TareasDanosPage.jsx'
 import MisTareasPage from './modules/danos/MisTareasPage.jsx'
 import EmailPage from './modules/email/EmailPage.jsx'
 import EmailConfiguracionPage from './modules/email/EmailConfiguracionPage.jsx'
+import PreferenciasIAPage from './modules/ia/PreferenciasIAPage.jsx'
+import ConfiguracionIAPage from './modules/ia/ConfiguracionIAPage.jsx'
 import NuevoRequerimientoPage from './modules/requerimientos/NuevoRequerimientoPage.jsx'
 import MisRequerimientosPage from './modules/requerimientos/MisRequerimientosPage.jsx'
 import MiFirmaPage from './modules/requerimientos/MiFirmaPage.jsx'
@@ -123,6 +125,8 @@ export default function App() {
                 Super Admin (/sistema/modulos); el dashboard es núcleo. */}
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="notificaciones" element={<PreferenciasNotificacionesPage />} />
+            <Route path="ia/preferencias" element={<ModuloActivoRoute modulo="ia"><PreferenciasIAPage /></ModuloActivoRoute>} />
+            <Route path="ia/configuracion" element={<ModuloActivoRoute modulo="ia"><PermissionRoute permiso="ia:configurar"><ConfiguracionIAPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="danos/reportar" element={<ModuloActivoRoute modulo="danos"><ReportarDanoPage /></ModuloActivoRoute>} />
             <Route path="danos/tareas" element={<ModuloActivoRoute modulo="danos"><PermissionRoute permiso="danos:gestionar"><TareasDanosPage /></PermissionRoute></ModuloActivoRoute>} />
             {/* Mantenimiento (mantenimiento:ejecutar sin danos:gestionar): solo ve y

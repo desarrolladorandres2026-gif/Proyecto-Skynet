@@ -21,6 +21,12 @@ export const env = {
   EMAIL_SECURE: process.env.EMAIL_SECURE === 'true',
   EMAIL_USER: process.env.EMAIL_USER,
   EMAIL_PASS: process.env.EMAIL_PASS,
+  // Dirección que aparece en "De:". Separada de EMAIL_USER porque con un
+  // proveedor transaccional (Resend/SES/Postmark) el usuario SMTP no es una
+  // dirección de correo real (p. ej. Resend usa literalmente "resend" como
+  // usuario) — cae a EMAIL_USER si no se define, para no romper el caso
+  // Gmail donde ambos coinciden.
+  EMAIL_FROM: process.env.EMAIL_FROM || process.env.EMAIL_USER,
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',
   // Usado para construir enlaces absolutos hacia el propio backend en emails
   // (ej. el enlace de baja de notificaciones, que el usuario abre desde su

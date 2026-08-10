@@ -1,4 +1,5 @@
 import { notificar } from '../modules/notificaciones/notificaciones.service.js'
+import { avisarIA } from '../modules/ia/ia.service.js'
 
 // Compatibilidad hacia atrás: firma histórica usada por varios módulos
 // (mantenimiento, daños) desde antes de que existiera el motor
@@ -36,4 +37,19 @@ export async function notificarUsuarios(userIds, payload, categoria = null) {
     // comportamiento EXACTO de antes de este cambio (push incondicional).
     transaccional: !categoria,
   })
+
+  // Mismo evento, canal aparte: si `categoria` es una de verdad (no el
+  // legado sin categoría), además se encola como aviso proactivo para el
+  // chat del copiloto — avisarIA() ya filtra por módulo activo/config
+  // global/preferencia personal y nunca lanza, así que este call-site único
+  // (en vez de tocar cada módulo de negocio) es seguro de agregar sin más.
+  if (categoria) {
+    await avisarIA({
+      usuarios: idsUnicos,
+      categoria,
+      titulo: payload.title || payload.titulo,
+      cuerpo: payload.body || payload.cuerpo,
+      url: payload.url,
+    })
+  }
 }

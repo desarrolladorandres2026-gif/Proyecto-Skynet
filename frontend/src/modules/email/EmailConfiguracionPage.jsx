@@ -1,8 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { SlidersHorizontal, CircleCheck, CircleX, MailCheck } from 'lucide-react'
 import { email as emailApi } from '../../api/email.js'
 import { Card, Btn, ErrorMsg, OkMsg } from '../../components/ui.jsx'
+
+// El clic en "Aprobar"/"Denegar" del correo termina en OTRA pestaña (Google
+// redirige al backend, que sirve una página propia — ver
+// email.plantillas.js#paginaConexionExitosa — y no vuelve a abrir el SPA).
+// Esta pestaña (la que ya estaba abierta en /email/configuracion) nunca
+// recibe esa navegación, así que se entera sola: reintenta el estado cada
+// pocos segundos mientras hay una aprobación pendiente, y de inmediato al
+// recuperar el foco (el momento típico en que el usuario vuelve de revisar
+// su correo en la otra pestaña).
+const POLL_MS = 4000
 
 // Solo Gmail tiene proveedor real implementado hoy (GmailProvider vía
 // OAuth). Outlook/IMAP quedan deshabilitados hasta implementarse — la
@@ -20,19 +30,52 @@ export default function EmailConfiguracionPage() {
   const [ok, setOk] = useState('')
   const [pendiente, setPendiente] = useState(false)
   const [desconectando, setDesconectando] = useState(false)
+  const conectadaRef = useRef(false)
 
   useEffect(() => {
-    if (params.get('email_conectado')) setOk('Cuenta de Gmail conectada correctamente.')
-    if (params.get('email_error')) setError(params.get('email_error'))
     if (params.get('email_pendiente')) setPendiente(true)
-    if (params.get('email_conectado') || params.get('email_error') || params.get('email_pendiente')) {
-      setParams({}, { replace: true })
-    }
+    if (params.get('email_pendiente')) setParams({}, { replace: true })
   }, [params, setParams])
 
+  const cargarEstado = useCallback(async () => {
+    try {
+      const data = await emailApi.estado()
+      setConexion(data.conexion)
+      if (data.conexion?.conectada && !conectadaRef.current) {
+        setOk(`Cuenta de Gmail conectada correctamente: ${data.conexion.cuenta}`)
+        setPendiente(false)
+      }
+      conectadaRef.current = Boolean(data.conexion?.conectada)
+    } catch (err) {
+      setError(err.message)
+    }
+  }, [])
+
   useEffect(() => {
-    emailApi.estado().then((data) => setConexion(data.conexion)).catch((err) => setError(err.message))
-  }, [ok])
+    cargarEstado()
+  }, [cargarEstado])
+
+  // Poll corto solo mientras hay una aprobación pendiente (evita pegarle al
+  // backend sin parar el resto del tiempo) + refetch inmediato al recuperar
+  // el foco, que cubre tanto "ya aprobé en la otra pestaña" como "desconecté
+  // desde otra pestaña/dispositivo".
+  useEffect(() => {
+    if (!pendiente) return
+    const id = setInterval(cargarEstado, POLL_MS)
+    return () => clearInterval(id)
+  }, [pendiente, cargarEstado])
+
+  useEffect(() => {
+    function alRecuperarFoco() {
+      if (document.visibilityState === 'visible') cargarEstado()
+    }
+    window.addEventListener('focus', alRecuperarFoco)
+    document.addEventListener('visibilitychange', alRecuperarFoco)
+    return () => {
+      window.removeEventListener('focus', alRecuperarFoco)
+      document.removeEventListener('visibilitychange', alRecuperarFoco)
+    }
+  }, [cargarEstado])
 
   async function desconectar() {
     setDesconectando(true)

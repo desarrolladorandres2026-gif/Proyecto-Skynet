@@ -1,5 +1,5 @@
 import { env } from '../../config/env.js'
-import { paginaConexionDenegada, paginaConexionError } from './email.plantillas.js'
+import { paginaConexionDenegada, paginaConexionError, paginaConexionExitosa } from './email.plantillas.js'
 import * as service from './email.service.js'
 
 export async function estado(req, res) {
@@ -79,22 +79,26 @@ export async function denegarConexionGmail(req, res) {
     .send(ok ? paginaConexionDenegada() : paginaConexionError('El enlace ya no es válido o ya fue usado.'))
 }
 
-// Google redirige aquí en el mismo navegador que aprobó desde el correo (no
-// necesariamente el que abrió "Conectar" en Skynet, ni tiene por qué tener
-// cookie de sesión): la autorización la da por completo el `state` firmado
-// en aprobarConexionGmail, atado a una EmailConexionSolicitud concreta y de
-// un solo uso — ver conectarGmailCallback.
+// Google redirige aquí en el navegador que aprobó desde el correo — casi
+// siempre una pestaña DISTINTA de la que ya tenía Skynet abierto (la que
+// hizo clic en "Conectar"). Por eso esto ya NO redirige de vuelta al SPA
+// (`/email/configuracion?...`): abrir esa URL aquí crearía una tercera
+// pestaña de Skynet en vez de actualizar la que el usuario ya tenía abierta.
+// En su lugar sirve una página de confirmación autocontenida que se cierra
+// sola; la pestaña original se entera sola por polling/foco — ver
+// EmailConfiguracionPage.jsx. La autorización la da por completo el `state`
+// firmado en aprobarConexionGmail, atado a una EmailConexionSolicitud
+// concreta y de un solo uso — ver conectarGmailCallback.
 export async function callbackGmail(req, res) {
   const { code, state, error } = req.query
-  const destino = `${env.FRONTEND_URL}/email/configuracion`
   if (error || !code || !state) {
-    return res.redirect(`${destino}?email_error=${encodeURIComponent(error || 'conexion_cancelada')}`)
+    return res.status(400).set('Content-Type', 'text/html').send(paginaConexionError(error || 'La conexión fue cancelada.'))
   }
   try {
-    await service.conectarGmailCallback(code, state)
-    res.redirect(`${destino}?email_conectado=1`)
+    const cuenta = await service.conectarGmailCallback(code, state)
+    res.set('Content-Type', 'text/html').send(paginaConexionExitosa(cuenta.correo))
   } catch (err) {
-    res.redirect(`${destino}?email_error=${encodeURIComponent(err.message)}`)
+    res.status(400).set('Content-Type', 'text/html').send(paginaConexionError(err.message))
   }
 }
 

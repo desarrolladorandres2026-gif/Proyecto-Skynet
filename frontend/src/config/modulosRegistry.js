@@ -1,6 +1,6 @@
 import {
   Wrench, Users, ShieldCheck, ScrollText, TriangleAlert,
-  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays, Mail,
+  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays, Mail, Bot,
 } from 'lucide-react'
 
 // Registro único de módulos para el sidebar (AppLayout.jsx) y para decidir
@@ -93,6 +93,20 @@ export const MODULOS_REGISTRO = [
     // ajustar cómo se le avisa solo porque un módulo de negocio esté apagado).
     publico: true,
     items: [{ to: '/notificaciones', label: 'Preferencias' }],
+  },
+  {
+    key: 'ia',
+    label: 'IA',
+    icon: Bot,
+    // A diferencia de 'notificaciones', este grupo SÍ tiene módulo propio
+    // (activable/desactivable desde Sistema → Módulos): el Super Admin puede
+    // apagar el feature entero de avisos proactivos de un clic. "Mis avisos"
+    // es universal (publico); "Configuración" exige el permiso maestro.
+    publico: true,
+    items: [
+      { to: '/ia/preferencias', label: 'Mis avisos' },
+      { to: '/ia/configuracion', label: 'Configuración', permiso: 'ia:configurar' },
+    ],
   },
   {
     key: 'mantenimiento',

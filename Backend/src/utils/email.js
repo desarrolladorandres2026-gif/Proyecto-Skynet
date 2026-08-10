@@ -36,7 +36,7 @@ async function enviarConReintentos(datosCorreo, intentos = 3) {
 // nombre de perfil de la cuenta de Gmail usada como SMTP (p. ej. "sigittn"),
 // no "Skynet" — confuso para quien lo recibe y además una señal más de
 // remitente genérico/no confiable para los filtros antispam.
-const REMITENTE = `"Skynet" <${env.EMAIL_USER}>`
+const REMITENTE = `"Skynet" <${env.EMAIL_FROM}>`
 
 // Punto de entrada genérico usado por notificaciones.service.js (y por
 // cualquier flujo transaccional futuro que necesite mandar un correo con

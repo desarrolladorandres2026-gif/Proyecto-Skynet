@@ -87,4 +87,12 @@ export const MODULOS_SISTEMA = [
     esNucleo: false,
     orden: 15,
   },
+  {
+    key: 'ia',
+    nombre: 'IA',
+    descripcion:
+      'Avisos proactivos de Skynet en el chat (con voz): nuevos requerimientos, reportes de daño, ausencias y mantenimiento. Configurable a nivel global (Super Admin) y personal (cada usuario).',
+    esNucleo: false,
+    orden: 16,
+  },
 ]

@@ -3,11 +3,16 @@ import { env } from '../../../config/env.js'
 import { descifrar } from '../../../utils/cifrado.js'
 import { EmailProvider } from './EmailProvider.js'
 
-// Scope único (gmail.modify) para no complicar la pantalla de consentimiento
-// con varios permisos: cubre leer, buscar, enviar, archivar y mover a
-// papelera. NO cubre borrado permanente (trash.delete) — "eliminar" en este
-// proveedor mueve a la papelera de Gmail, nunca purga de forma irreversible.
-export const GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
+// gmail.modify cubre leer, buscar, enviar, archivar y mover a papelera (NO
+// cubre borrado permanente — "eliminar" en este proveedor mueve a la
+// papelera de Gmail, nunca purga). userinfo.email es aparte: sin él,
+// oauth2.userinfo.get() en conectarGmailCallback (email.service.js) falla
+// con "Request is missing required authentication credential" — el token
+// de gmail.modify por sí solo no autoriza leer el perfil del usuario.
+export const GMAIL_SCOPES = [
+  'https://www.googleapis.com/auth/gmail.modify',
+  'https://www.googleapis.com/auth/userinfo.email',
+]
 
 export function clienteOAuth() {
   if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
