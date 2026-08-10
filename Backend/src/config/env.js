@@ -38,6 +38,11 @@ export const env = {
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
   NOTIF_WORKER_INTERVALO_MS: Number(process.env.NOTIF_WORKER_INTERVALO_MS) || 5000,
   NOTIF_WORKER_LOTE: Number(process.env.NOTIF_WORKER_LOTE) || 25,
+  // Ventana móvil de retención de auditoría (ver auditoria.worker.js): se
+  // borran los registros con más antigüedad que esto, no toda la colección
+  // de golpe, para que siempre quede historial reciente disponible.
+  AUDITORIA_RETENCION_MESES: Number(process.env.AUDITORIA_RETENCION_MESES) || 3,
+  AUDITORIA_WORKER_INTERVALO_MS: Number(process.env.AUDITORIA_WORKER_INTERVALO_MS) || 24 * 60 * 60 * 1000,
   STORAGE_ROOT: process.env.STORAGE_ROOT || './storage',
   FILES_PUBLIC_URL: process.env.FILES_PUBLIC_URL || 'http://localhost:3001/storage',
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,

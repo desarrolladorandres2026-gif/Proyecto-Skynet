@@ -8,3 +8,8 @@ export async function listarPaginado(filtro, { page, limit }) {
   ])
   return { registros, total }
 }
+
+export async function eliminarAnteriores(fechaLimite) {
+  const { deletedCount } = await RegistroAuditoria.deleteMany({ creadoEn: { $lt: fechaLimite } })
+  return deletedCount
+}

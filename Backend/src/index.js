@@ -9,6 +9,7 @@ import routes from './routes/index.js'
 import { sincronizarCatalogoSistema } from './modules/sistema/sistema.service.js'
 import { sincronizarConfiguracionSLA } from './modules/mantenimiento/ordenes.service.js'
 import { iniciarWorkerNotificaciones } from './modules/notificaciones/notificaciones.worker.js'
+import { iniciarWorkerAuditoria } from './modules/auditoria/auditoria.worker.js'
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js'
 
 const app = express()
@@ -70,6 +71,11 @@ async function start() {
   // adicional (ver docs/notificaciones/README.md para la decisión de no usar
   // Redis/BullMQ a esta escala).
   iniciarWorkerNotificaciones()
+
+  // Limpieza periódica de auditoría (ventana móvil de 3 meses por defecto):
+  // ver auditoria.worker.js. Mismo patrón que el worker de notificaciones,
+  // sin infraestructura adicional.
+  iniciarWorkerAuditoria()
 
   const server = app.listen(env.PORT, () => {
     console.log(`\n🚀  Backend Skynet corriendo en http://localhost:${env.PORT}`)

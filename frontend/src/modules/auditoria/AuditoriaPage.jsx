@@ -68,10 +68,13 @@ export default function AuditoriaPage() {
 
   return (
     <div>
-      <div className="mb-5 flex items-center gap-2.5">
+      <div className="mb-1 flex items-center gap-2.5">
         <ScrollText className="h-5 w-5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Auditoría</h1>
       </div>
+      <p className="mb-5 text-sm text-slate-500 dark:text-slate-400">
+        Se conservan los registros de los últimos 3 meses; los más antiguos se eliminan automáticamente.
+      </p>
 
       <ErrorMsg>{error}</ErrorMsg>
 
