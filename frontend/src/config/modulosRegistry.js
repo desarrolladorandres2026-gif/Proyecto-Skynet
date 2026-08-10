@@ -1,6 +1,6 @@
 import {
   Wrench, Users, ShieldCheck, ScrollText, TriangleAlert,
-  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays,
+  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays, Mail,
 } from 'lucide-react'
 
 // Registro único de módulos para el sidebar (AppLayout.jsx) y para decidir
@@ -23,6 +23,22 @@ export const MODULOS_REGISTRO = [
     icon: Gauge,
     publico: true,
     items: [{ to: '/dashboard', label: 'Dashboard' }],
+  },
+  {
+    key: 'email',
+    label: 'Email',
+    icon: Mail,
+    // email:ver gobierna el grupo entero; cada item interno se recorta luego
+    // por su propio permiso (mismo patrón que 'requerimientos').
+    permiso: 'email:ver',
+    items: [
+      { to: '/email', label: 'Bandeja de entrada', end: true },
+      { to: '/email/importantes', label: 'Importantes' },
+      { to: '/email/enviados', label: 'Enviados', permiso: 'email:enviar' },
+      { to: '/email/borradores', label: 'Borradores', permiso: 'email:enviar' },
+      { to: '/email/papelera', label: 'Papelera', permiso: 'email:eliminar' },
+      { to: '/email/configuracion', label: 'Configuración', permiso: 'email:configurar' },
+    ],
   },
   {
     key: 'danos',

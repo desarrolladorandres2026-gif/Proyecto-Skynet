@@ -48,4 +48,14 @@ export const env = {
   // copiloto.busqueda.js para el detalle de por qué están escalonadas así.
   TAVILY_API_KEY: process.env.TAVILY_API_KEY,
   BRAVE_SEARCH_API_KEY: process.env.BRAVE_SEARCH_API_KEY,
+  // Email — conexión OAuth a Gmail (opcional, igual que GEMINI_API_KEY: sin
+  // esto el módulo "email" sigue activable, pero "Conectar" responde un
+  // error claro en vez de tumbar el arranque). Credenciales de Google Cloud
+  // Console (OAuth client de tipo "Web application").
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI || `http://localhost:${process.env.PORT || 3001}/api/email/oauth/gmail/callback`,
+  // Cifra el refresh token de Gmail en Mongo (utils/cifrado.js). Genera con:
+  // openssl rand -hex 32
+  TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY,
 }

@@ -159,6 +159,21 @@ function mostrarPanel(ruta = '/') {
     icon: iconoApp(),
     webPreferences: preferenciasComunes(),
   })
+
+  // Sin esto Electron deniega en silencio cualquier permiso (por defecto),
+  // así que el banner "Activa las notificaciones" (PushOnboardingPrompt.jsx)
+  // pediría el permiso, no pasaría nada, y nadie sabría por qué: en el
+  // navegador normal el usuario ve un diálogo nativo y decide; aquí, sin
+  // handler, Electron decide por él y siempre dice que no. Se concede solo
+  // 'notifications' (permiso del que también depende pushManager.subscribe
+  // en Chromium) porque el clic en "Activar" ya es el consentimiento
+  // explícito de la persona — no hace falta un segundo diálogo nativo.
+  const permisosPanel = new Set(['notifications'])
+  ventanaPanel.webContents.session.setPermissionRequestHandler((_wc, permiso, aceptar) => {
+    aceptar(permisosPanel.has(permiso))
+  })
+  ventanaPanel.webContents.session.setPermissionCheckHandler((_wc, permiso) => permisosPanel.has(permiso))
+
   ventanaPanel.loadURL(`${ajustes.url}${ruta}`)
   ventanaPanel.on('closed', () => {
     ventanaPanel = null

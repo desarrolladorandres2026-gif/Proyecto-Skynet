@@ -56,6 +56,16 @@ export const PERMISOS = [
   // Fase 4 (módulo del Supervisor)
   permiso('mantenimiento', 'gestionar_activos_criticidad', 'Editar criticidad, garantía y vida útil de equipos'),
 
+  // Email (módulo de comunicaciones). Leer/buscar/resumir son acciones de
+  // solo lectura, gobernadas por permisos separados de las sensibles
+  // (enviar/eliminar) para poder delegar consulta sin delegar envío.
+  permiso('email', 'ver', 'Ver el módulo de Email'),
+  permiso('email', 'leer', 'Leer correos'),
+  permiso('email', 'buscar', 'Buscar y resumir correos'),
+  permiso('email', 'enviar', 'Enviar y responder correos'),
+  permiso('email', 'eliminar', 'Eliminar y mover correos'),
+  permiso('email', 'configurar', 'Conectar/desconectar cuentas y configurar Email'),
+
   // Requerimientos (compra/servicio, formatos FO-GBS-09/FO-GBS-36). Crear un
   // requerimiento y ver los propios tampoco es un permiso — mismo principio
   // que danos:gestionar/mantenimiento:ejecutar, universal para todo
@@ -112,6 +122,12 @@ const PERMISOS_ADMINISTRADOR_BASE = [
   // Aprobar ausencias es de Talento Humano (rol dedicado abajo), no del
   // Administrador de la operación.
   'ausencias:ver_todas',
+  'email:ver',
+  'email:leer',
+  'email:buscar',
+  'email:enviar',
+  'email:eliminar',
+  'email:configurar',
 ]
 
 // Administrador + las 2 capacidades de Requerimientos que NO comparte con

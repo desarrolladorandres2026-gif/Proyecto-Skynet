@@ -17,6 +17,8 @@ import UsuariosPage from './modules/usuarios/UsuariosPage.jsx'
 import ReportarDanoPage from './modules/danos/ReportarDanoPage.jsx'
 import TareasDanosPage from './modules/danos/TareasDanosPage.jsx'
 import MisTareasPage from './modules/danos/MisTareasPage.jsx'
+import EmailPage from './modules/email/EmailPage.jsx'
+import EmailConfiguracionPage from './modules/email/EmailConfiguracionPage.jsx'
 import NuevoRequerimientoPage from './modules/requerimientos/NuevoRequerimientoPage.jsx'
 import MisRequerimientosPage from './modules/requerimientos/MisRequerimientosPage.jsx'
 import MiFirmaPage from './modules/requerimientos/MiFirmaPage.jsx'
@@ -131,6 +133,10 @@ export default function App() {
                 "Reportar daño"); las bandejas de gestión y "Mi firma" (solo
                 tiene sentido para quien puede aprobar/firmar) exigen su
                 permiso. */}
+            <Route path="email" element={<ModuloActivoRoute modulo="email"><PermissionRoute permiso="email:ver"><EmailPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="email/configuracion" element={<ModuloActivoRoute modulo="email"><PermissionRoute permiso="email:configurar"><EmailConfiguracionPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="email/:carpeta" element={<ModuloActivoRoute modulo="email"><PermissionRoute permiso="email:ver"><EmailPage /></PermissionRoute></ModuloActivoRoute>} />
+
             <Route path="requerimientos/nuevo" element={<ModuloActivoRoute modulo="requerimientos"><NuevoRequerimientoPage /></ModuloActivoRoute>} />
             <Route path="requerimientos/mios" element={<ModuloActivoRoute modulo="requerimientos"><MisRequerimientosPage /></ModuloActivoRoute>} />
             <Route path="requerimientos/mi-firma" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:aprobar_financiero"><MiFirmaPage /></PermissionRoute></ModuloActivoRoute>} />

@@ -8,6 +8,7 @@
     "start": "electron .",
     "dev": "cross-env SKYNET_URL=http://localhost:5173 electron .",
     "modelo": "node scripts/preparar-modelo.mjs",
+    "preempaquetar": "node scripts/limpiar-build.mjs",
     "empaquetar": "electron-builder --win"
   },
   "_nota_dependencias": "vosk-browser NO va aquí: lo importa el panel web (frontend/src/escritorio/reconocedorVosk.js), que es quien corre dentro de esta ventana. Esta app solo aporta la bandeja, el atajo global y el acceso al archivo del modelo.",

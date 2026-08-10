@@ -8,6 +8,7 @@ import permisosRoutes from '../modules/permisos/permisos.routes.js'
 import auditoriaRoutes from '../modules/auditoria/auditoria.routes.js'
 import danosRoutes from '../modules/danos/danos.routes.js'
 import requerimientosRoutes from '../modules/requerimientos/requerimientos.routes.js'
+import emailRoutes from '../modules/email/email.routes.js'
 import ausenciasRoutes from '../modules/ausencias/ausencias.routes.js'
 import operacionRoutes from '../modules/operacion/operacion.routes.js'
 import sistemaRoutes from '../modules/sistema/sistema.routes.js'
@@ -30,6 +31,7 @@ router.use('/permisos', permisosRoutes)
 router.use('/auditoria', auditoriaRoutes)
 router.use('/danos', danosRoutes)
 router.use('/requerimientos', requerimientosRoutes)
+router.use('/email', emailRoutes)
 router.use('/ausencias', ausenciasRoutes)
 router.use('/sistema', sistemaRoutes)
 router.use('/notificaciones', notificacionesRoutes)

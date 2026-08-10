@@ -43,6 +43,15 @@ export const MODULOS_SISTEMA = [
     orden: 5,
   },
   {
+    // orden fraccional a propósito: se pide justo debajo de "Panel" (orden 1)
+    // sin renumerar los módulos núcleo existentes (2-5).
+    key: 'email',
+    nombre: 'Email',
+    descripcion: 'Gestión inteligente del correo electrónico mediante Skynet. Permite consultar, buscar, resumir, redactar y gestionar correos desde el asistente.',
+    esNucleo: false,
+    orden: 1.5,
+  },
+  {
     key: 'danos',
     nombre: 'Reportes de daños',
     descripcion: 'Reporte universal de daños con foto y su gestión como tareas de mantenimiento.',
