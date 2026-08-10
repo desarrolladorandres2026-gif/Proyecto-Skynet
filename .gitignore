@@ -3,11 +3,15 @@ atlas-credentials.env
 **/.env
 **/.env.*
 !**/.env.example
+!**/.env.production.example
 
 # Dependencias y builds
 **/node_modules
 **/dist
 /.exe
+
+# Logs de PM2 en el VPS (ver deploy/ecosystem.config.cjs)
+/logs
 
 # Almacenamiento de archivos subidos
 Backend/storage
