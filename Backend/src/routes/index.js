@@ -16,17 +16,24 @@ import sistemaRoutes from '../modules/sistema/sistema.routes.js'
 import notificacionesRoutes from '../modules/notificaciones/notificaciones.routes.js'
 import perfilRoutes from '../modules/perfil/perfil.routes.js'
 import copilotoRoutes from '../modules/copiloto/copiloto.routes.js'
+import backupRoutes from '../modules/backup/backup.routes.js'
 
 const router = Router()
 
 router.use('/auth', authRoutes)
 router.use('/usuarios', usuariosRoutes)
-router.use('/mantenimiento', mantenimientoRoutes)
 // Montado aparte (no dentro de mantenimiento.routes.js): usa RBAC granular
 // nuevo, no el requireModulo('mantenimiento') binario legado — ver
-// ordenes.routes.js. Express prueba primero el prefijo /mantenimiento de
-// arriba; como ninguna de sus rutas matchea /ordenes/*, cae aquí.
+// ordenes.routes.js. DEBE ir antes que '/mantenimiento' de abajo: Express
+// matchea por prefijo en orden de registro, y el router legado exige
+// requireModulo('mantenimiento') (el array Usuario.modulos, un checkbox
+// aparte del rol RBAC) con un router.use() sin ruta — ese gate responde 403
+// para CUALQUIER sub-ruta de /mantenimiento/*, incluida /ordenes/*, antes de
+// que Express pueda "caer" al router nuevo. Montarlo primero aquí evita que
+// alguien con el rol/permiso RBAC correcto pero sin ese checkbox legado
+// quede bloqueado de todo el CMMS (bug real, encontrado en prueba de carga).
 router.use('/mantenimiento/ordenes', ordenesRoutes)
+router.use('/mantenimiento', mantenimientoRoutes)
 router.use('/roles', rolesRoutes)
 router.use('/permisos', permisosRoutes)
 router.use('/auditoria', auditoriaRoutes)
@@ -39,6 +46,7 @@ router.use('/sistema', sistemaRoutes)
 router.use('/notificaciones', notificacionesRoutes)
 router.use('/perfil', perfilRoutes)
 router.use('/copiloto', copilotoRoutes)
+router.use('/backup', backupRoutes)
 // operacion ahora solo expone /dashboard (núcleo, universal para todo rol);
 // se monta en la raíz por eso.
 router.use('/', operacionRoutes)

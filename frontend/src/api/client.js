@@ -1,3 +1,5 @@
+import { comprimirSiEsImagen } from '../lib/imageCompression.js'
+
 const BASE = import.meta.env.VITE_API_URL || '/api'
 
 // El token de sesión vive en una cookie httpOnly puesta por el backend: este
@@ -8,8 +10,27 @@ export function removeUsuarioLocal() {
   localStorage.removeItem('skynet_usuario')
 }
 
+// Comprime en el sitio cualquier File de imagen dentro de un FormData antes
+// de subirlo (fotos de daños, evidencias, firmas, etc.). Centralizado acá en
+// vez de en cada api/*.js para que aplique a toda subida sin tener que
+// tocar cada punto de llamada por separado.
+async function comprimirFormData(formData) {
+  const entradas = Array.from(formData.entries())
+  const tieneImagenes = entradas.some(([, v]) => v instanceof File && v.type?.startsWith('image/'))
+  if (!tieneImagenes) return formData
+
+  const nuevo = new FormData()
+  for (const [clave, valor] of entradas) {
+    nuevo.append(clave, valor instanceof File ? await comprimirSiEsImagen(valor) : valor)
+  }
+  return nuevo
+}
+
 export async function request(path, options = {}) {
   const isFormData = options.body instanceof FormData
+  if (isFormData) {
+    options = { ...options, body: await comprimirFormData(options.body) }
+  }
 
   const headers = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
@@ -31,6 +52,12 @@ export async function request(path, options = {}) {
   // paralelo a un posible login manual) podría dispatchear skynet:logout y
   // borrar el usuario que el login manual acaba de establecer.
   if (res.status === 401 && !options.suppressAuthEvent) {
+    // Si había un usuario logueado, este 401 casi siempre es tokenVersion
+    // desincronizado (un admin cambió su rol, permisos o contraseña) y no una
+    // sesión que simplemente expiró sola: se lo señalamos a LoginPage.
+    if (localStorage.getItem('skynet_usuario')) {
+      sessionStorage.setItem('skynet_sesion_invalidada', '1')
+    }
     removeUsuarioLocal()
     window.dispatchEvent(new Event('skynet:logout'))
   }

@@ -52,10 +52,21 @@ const ausenciaSchema = new mongoose.Schema(
     fechaInicio: { type: Date, required: true },
     fechaFin: { type: Date, required: true },
 
-    // Días hábiles calculados en el service al crear y congelados aquí: si
+    // Rango horario opcional, solo tiene sentido cuando la ausencia es de UN
+    // solo día (fechaInicio === fechaFin): p. ej. un permiso de dos horas
+    // para una cita médica no consume el día completo. "HH:mm" en hora
+    // local del Terminal; el service es quien exige que vengan juntas y que
+    // horaFin sea posterior a horaInicio, igual criterio que motivoLicencia
+    // más abajo.
+    horaInicio: { type: String, trim: true, default: '' },
+    horaFin: { type: String, trim: true, default: '' },
+
+    // Días naturales calculados en el service al crear y congelados aquí: si
     // mañana cambia la forma de contarlos, las solicitudes ya aprobadas
     // conservan el número con el que se aprobaron (igual criterio que los
-    // snapshots de cargo en Requerimientos).
+    // snapshots de cargo en Requerimientos). Cuenta TODOS los días del rango,
+    // sin excluir sábados/domingos ni festivos: el Terminal opera 24/7, así
+    // que no existe un "día no laborable" que descontar.
     diasHabiles: { type: Number, required: true, min: 1 },
 
     motivo: { type: String, trim: true },

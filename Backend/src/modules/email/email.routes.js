@@ -2,6 +2,7 @@ import { verificarToken } from '../../middleware/auth.js'
 import { requierePermiso } from '../../middleware/permisos.js'
 import { requiereModuloActivo } from '../../middleware/moduloActivo.js'
 import { safeRouter } from '../../middleware/safeRouter.js'
+import { emailAccionLimiter } from '../../middleware/rateLimit.js'
 import {
   estado, listar, buscar, detalle, enviar, eliminar, marcarLeido, archivar,
   iniciarConexionGmail, aprobarConexionGmail, denegarConexionGmail, callbackGmail, desconectar,
@@ -20,14 +21,14 @@ router.get('/oauth/gmail/callback', requiereModuloActivo('email'), callbackGmail
 
 router.use(verificarToken, requiereModuloActivo('email'))
 
-router.get('/oauth/gmail/iniciar', requierePermiso('email:configurar'), iniciarConexionGmail)
+router.get('/oauth/gmail/iniciar', emailAccionLimiter, requierePermiso('email:configurar'), iniciarConexionGmail)
 router.delete('/oauth/gmail', requierePermiso('email:configurar'), desconectar)
 
 router.get('/estado', requierePermiso('email:ver'), estado)
 router.get('/', requierePermiso('email:leer'), listar)
 router.get('/buscar', requierePermiso('email:buscar'), buscar)
 router.get('/:id', requierePermiso('email:leer'), detalle)
-router.post('/', requierePermiso('email:enviar'), enviar)
+router.post('/', emailAccionLimiter, requierePermiso('email:enviar'), enviar)
 router.delete('/:id', requierePermiso('email:eliminar'), eliminar)
 router.patch('/:id/leido', requierePermiso('email:leer'), marcarLeido)
 router.patch('/:id/archivar', requierePermiso('email:eliminar'), archivar)

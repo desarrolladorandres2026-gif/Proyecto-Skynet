@@ -1,4 +1,5 @@
 import Permiso from '../../models/Permiso.js'
+import Rol from '../../models/Rol.js'
 import * as repo from './sistema.repository.js'
 import { MODULOS_SISTEMA } from '../../seedData/modulos.data.js'
 import { PERMISOS } from '../../seedData/rbac.data.js'
@@ -37,8 +38,11 @@ export async function estaModuloActivo(key) {
 // Upserta los módulos declarados en modulos.data.js y los permisos que falten
 // de rbac.data.js: un módulo o permiso nuevo en código aparece en la BD al
 // primer arranque, sin reejecutar seeds. Nunca pisa el estado `activo` ni los
-// permisos ya asignados a los roles. También borra de ModuloSistema los que
-// ya no estén en MODULOS_SISTEMA (p. ej. módulos eliminados del código).
+// permisos ya asignados a los roles. También borra de ModuloSistema y de
+// Permiso los que ya no estén en el código (p. ej. módulos/permisos
+// eliminados) — sin este paso, un permiso retirado de rbac.data.js se queda
+// huérfano en Mongo para siempre y la pantalla "Roles y permisos" lo sigue
+// listando como asignable aunque ningún endpoint lo verifique ya.
 export async function sincronizarCatalogoSistema() {
   try {
     for (const modulo of MODULOS_SISTEMA) {
@@ -47,6 +51,16 @@ export async function sincronizarCatalogoSistema() {
     await repo.eliminarNoListados(MODULOS_SISTEMA.map((m) => m.key))
     for (const p of PERMISOS) {
       await Permiso.updateOne({ codigo: p.codigo }, { $setOnInsert: p }, { upsert: true })
+    }
+    const codigosVigentes = PERMISOS.map((p) => p.codigo)
+    const permisosObsoletos = await Permiso.find({ codigo: { $nin: codigosVigentes } }).select('_id')
+    if (permisosObsoletos.length > 0) {
+      const idsObsoletos = permisosObsoletos.map((p) => p._id)
+      // Se quitan primero de cualquier Rol que aún los referencie: si no, el
+      // ObjectId queda colgando y Rol.find().populate('permisos') lo resuelve
+      // a null, reventando aRolPublico() (lee p.codigo de un null) para ese rol.
+      await Rol.updateMany({}, { $pull: { permisos: { $in: idsObsoletos } } })
+      await Permiso.deleteMany({ _id: { $in: idsObsoletos } })
     }
     invalidarCacheModulos()
   } catch (err) {

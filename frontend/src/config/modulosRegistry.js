@@ -161,6 +161,11 @@ export const MODULOS_REGISTRO = [
     label: 'Sistema',
     icon: SlidersHorizontal,
     permiso: 'sistema:gestionar_modulos',
-    items: [{ to: '/sistema/modulos', label: 'Módulos del sistema' }],
+    items: [
+      { to: '/sistema/modulos', label: 'Módulos del sistema' },
+      // soloSuperAdmin, no permiso: ver la nota en useModulosVisibles
+      // (AppLayout.jsx) — el backup completo no debe quedar delegable.
+      { to: '/sistema/backup', label: 'Copia de seguridad', soloSuperAdmin: true },
+    ],
   },
 ]

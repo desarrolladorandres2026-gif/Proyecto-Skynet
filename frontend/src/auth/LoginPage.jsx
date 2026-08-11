@@ -9,6 +9,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
+  // Puesto por api/client.js cuando un 401 cierra una sesión que SÍ estaba
+  // activa (típicamente porque un admin cambió el rol/permisos del usuario):
+  // sin este aviso, el cierre de sesión se ve idéntico a un fallo silencioso.
+  const [sesionInvalidada] = useState(
+    () => sessionStorage.getItem('skynet_sesion_invalidada') === '1'
+  )
+  if (sesionInvalidada) sessionStorage.removeItem('skynet_sesion_invalidada')
 
   // Con sesión activa (incluido el instante posterior a un login exitoso),
   // esta página redirige al inicio: sin esto el login "funciona" pero la
@@ -110,6 +117,12 @@ export default function LoginPage() {
               />
             </div>
           </div>
+
+          {!error && sesionInvalidada && (
+            <p className="skynet-mono rounded-md border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-200">
+              Tu sesión se cerró porque un administrador actualizó tu rol o tus permisos. Inicia sesión de nuevo para continuar.
+            </p>
+          )}
 
           {error && (
             <p className="skynet-mono rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">

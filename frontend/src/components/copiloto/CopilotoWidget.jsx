@@ -7,9 +7,10 @@ import { copiloto } from '../../api/copiloto.js'
 import { ia as iaApi } from '../../api/ia.js'
 import { CopilotoButton } from './CopilotoButton.jsx'
 import { CopilotoChatCard } from './CopilotoChatCard.jsx'
-import { CopilotoDispersionOverlay } from './CopilotoDispersionOverlay.jsx'
 import { useVoiceAssistant } from './useVoiceAssistant.js'
 import { useAvisosIA } from './useAvisosIA.js'
+import { useTecladoVirtual } from './useTecladoVirtual.js'
+import { useEsMovil } from '../../layout/useEsMovil.js'
 
 // Comando de interfaz que se resuelve en el navegador, sin ir al servidor: es
 // una acción sobre la propia pantalla, así que mandarla a un modelo para que
@@ -32,6 +33,8 @@ export default function CopilotoWidget() {
   const { moduloActivo } = useAuth()
   const navigate = useNavigate()
   const dragControls = useDragControls()
+  const esMovil = useEsMovil()
+  const alturaTeclado = useTecladoVirtual()
   const [abierto, setAbierto] = useState(false)
   const [mensajes, setMensajes] = useState([])
   const [entrada, setEntrada] = useState('')
@@ -44,23 +47,7 @@ export default function CopilotoWidget() {
   const [enviandoConfirmacion, setEnviandoConfirmacion] = useState(false)
   const [errorConfirmacion, setErrorConfirmacion] = useState('')
 
-  // Estado para disparar el efecto visual de dispersión cuántica a pantalla completa al abrir el chat
-  const [dispersionKey, setDispersionKey] = useState(0)
-  const [dispersionOrigin, setDispersionOrigin] = useState({
-    x: window.innerWidth - 60,
-    y: window.innerHeight - 60,
-  })
-
-  const abrirConEfecto = useCallback((pos) => {
-    if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
-      setDispersionOrigin(pos)
-    } else {
-      setDispersionOrigin({
-        x: window.innerWidth - 60,
-        y: window.innerHeight - 60,
-      })
-    }
-    setDispersionKey((k) => k + 1)
+  const abrirConEfecto = useCallback(() => {
     setAbierto(true)
   }, [])
 
@@ -337,9 +324,6 @@ export default function CopilotoWidget() {
 
   return (
     <>
-      {/* Overlay de Dispersión Cuántica a Pantalla Completa */}
-      <CopilotoDispersionOverlay triggerKey={dispersionKey} origin={dispersionOrigin} />
-
       <motion.div
         drag
         dragListener={false}
@@ -350,6 +334,7 @@ export default function CopilotoWidget() {
       >
         <CopilotoChatCard
           isOpen={abierto}
+          alturaTeclado={esMovil ? alturaTeclado : 0}
           onClose={cerrar}
           mensajes={mensajes}
           entrada={entrada}
@@ -392,7 +377,7 @@ export default function CopilotoWidget() {
         <div className="flex justify-end touch-none" onPointerDown={(e) => dragControls.start(e)}>
           <CopilotoButton
             isOpen={abierto}
-            onClick={(pos) => (abierto ? cerrar() : abrirConEfecto(pos))}
+            onClick={() => (abierto ? cerrar() : abrirConEfecto())}
             state={asistenteVoz.estadoVoz}
             rmsRef={asistenteVoz.rmsRef}
             badgeText="Skynet • Arrastra para mover"

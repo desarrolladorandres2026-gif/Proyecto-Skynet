@@ -20,7 +20,16 @@ export async function sembrarCatalogoRBAC() {
       if (!id) throw new Error(`Permiso "${codigo}" referenciado por el rol "${r.slug}" no existe en PERMISOS`)
       return id
     })
-    const doc = await Rol.findOneAndUpdate({ slug: r.slug }, { ...r, permisos }, { upsert: true, new: true })
+    // $setOnInsert (no $set): crea el rol si falta, pero si ya existe no le
+    // pisa nombre/permisos. Antes usaba un reemplazo completo, así que
+    // volver a correr este seed en un entorno donde un Super Admin ya
+    // personalizó permisos desde RolesPage borraba esa personalización sin
+    // aviso — justo el síntoma de "otorgué permisos y no se reflejaron".
+    const doc = await Rol.findOneAndUpdate(
+      { slug: r.slug },
+      { $setOnInsert: { ...r, permisos } },
+      { upsert: true, new: true }
+    )
     rolIdPorSlug.set(r.slug, doc._id)
   }
 

@@ -121,7 +121,14 @@ export default function BandejaAusenciasPage() {
                     )}
                   </span>
                 </Td>
-                <Td className="whitespace-nowrap">{fmtFecha(a.fechaInicio)}</Td>
+                <Td className="whitespace-nowrap">
+                  {fmtFecha(a.fechaInicio)}
+                  {a.horaInicio && (
+                    <span className="block text-xs text-slate-500 dark:text-slate-400">
+                      {a.horaInicio}–{a.horaFin}
+                    </span>
+                  )}
+                </Td>
                 <Td className="whitespace-nowrap">{fmtFecha(a.fechaFin)}</Td>
                 <Td>{a.diasHabiles}</Td>
                 <Td className="max-w-xs truncate text-slate-600 dark:text-slate-300">
@@ -164,8 +171,8 @@ export default function BandejaAusenciasPage() {
             <p className="text-sm text-slate-600 dark:text-slate-300">
               {decision.ausencia.solicitante?.nombre} · {decision.ausencia.tipo} ·{' '}
               {fmtFecha(decision.ausencia.fechaInicio)} → {fmtFecha(decision.ausencia.fechaFin)} (
-              {decision.ausencia.diasHabiles} día{decision.ausencia.diasHabiles === 1 ? '' : 's'} hábil
-              {decision.ausencia.diasHabiles === 1 ? '' : 'es'})
+              {decision.ausencia.diasHabiles} día{decision.ausencia.diasHabiles === 1 ? '' : 's'}
+              {decision.ausencia.horaInicio ? ` · ${decision.ausencia.horaInicio}–${decision.ausencia.horaFin}` : ''})
             </p>
 
             <Field label={esRechazo ? 'Motivo del rechazo (obligatorio)' : 'Observación (opcional)'}>

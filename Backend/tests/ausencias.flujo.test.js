@@ -21,7 +21,7 @@ import {
   aprobarAusencia,
   rechazarAusencia,
   cancelarAusencia,
-  contarDiasHabiles,
+  contarDias,
   listarBandeja,
   calendario,
 } from '../src/modules/ausencias/ausencias.service.js'
@@ -72,8 +72,8 @@ async function esperarNotificaciones(filtro, intentos = 50) {
   return []
 }
 
-// Lunes de una semana futura fija, para que el conteo de días hábiles y la
-// validación de "fecha pasada" no dependan del día en que corran las pruebas.
+// Lunes de una semana futura fija, para que la validación de "fecha pasada"
+// no dependa del día en que corran las pruebas.
 function lunesFuturo(semanasAdelante = 2) {
   const fecha = new Date()
   fecha.setHours(0, 0, 0, 0)
@@ -176,6 +176,36 @@ describe('Ausencias — capa HTTP', () => {
     expect((await request(app).get('/api/ausencias').set('Authorization', authJefe)).status).toBe(403)
   })
 
+  it('el calendario no expone motivo, motivoLicencia ni soporte médico a quien solo tiene ausencias:aprobar', async () => {
+    const { actor } = await crearActor(null)
+    const { usuario: jefe, actor: jefeActor } = await crearActor('ausencias:aprobar')
+    const lunes = lunesFuturo()
+
+    const doc = await crearAusencia(
+      {
+        tipo: 'incapacidad',
+        fechaInicio: lunes,
+        fechaFin: lunes,
+        motivo: 'Diagnóstico confidencial de la EPS',
+        soporte: { url: 'https://res.cloudinary.com/demo/soporte.pdf', publicId: 'demo/soporte', nombreArchivo: 'incapacidad.pdf' },
+      },
+      actor
+    )
+    await aprobarAusencia(doc._id, {}, jefeActor)
+
+    const res = await request(app).get('/api/ausencias/calendario').set('Authorization', autorizacion(jefe))
+    expect(res.status).toBe(200)
+
+    const item = res.body.ausencias.find((a) => String(a._id) === String(doc._id))
+    expect(item).toBeDefined()
+    expect(item.tipo).toBe('incapacidad')
+    expect(item.fechaInicio).toBeDefined()
+    expect(item.motivo).toBeUndefined()
+    expect(item.motivoLicencia).toBeUndefined()
+    expect(item.soporte).toBeUndefined()
+    expect(item.decision).toBeUndefined()
+  })
+
   it('nadie ve el detalle de la ausencia de otra persona sin permiso', async () => {
     const { usuario: duenio, actor } = await crearActor(null)
     const { usuario: curioso } = await crearActor(null)
@@ -195,16 +225,16 @@ describe('Ausencias — capa HTTP', () => {
   })
 })
 
-describe('Ausencias — conteo de días hábiles', () => {
-  it('excluye sábados y domingos', () => {
+describe('Ausencias — conteo de días', () => {
+  it('cuenta todos los días naturales del rango, sin excluir fines de semana', () => {
     const lunes = lunesFuturo()
-    expect(contarDiasHabiles(lunes, lunes)).toBe(1)
+    expect(contarDias(lunes, lunes)).toBe(1)
     // Lunes a viernes de la misma semana.
-    expect(contarDiasHabiles(lunes, sumarDias(lunes, 4))).toBe(5)
-    // Lunes a domingo: el fin de semana no suma.
-    expect(contarDiasHabiles(lunes, sumarDias(lunes, 6))).toBe(5)
+    expect(contarDias(lunes, sumarDias(lunes, 4))).toBe(5)
+    // Lunes a domingo: el Terminal opera 24/7, el fin de semana también suma.
+    expect(contarDias(lunes, sumarDias(lunes, 6))).toBe(7)
     // Dos semanas completas.
-    expect(contarDiasHabiles(lunes, sumarDias(lunes, 11))).toBe(10)
+    expect(contarDias(lunes, sumarDias(lunes, 11))).toBe(12)
   })
 })
 
@@ -229,7 +259,7 @@ describe('Ausencias — solicitar', () => {
     expect(avisos[0].categoria).toBe('ausencias')
   })
 
-  it('rechaza fechas invertidas y rangos sin días hábiles', async () => {
+  it('rechaza fechas invertidas', async () => {
     const { actor } = await crearActor(null)
     const lunes = lunesFuturo()
 
@@ -237,10 +267,42 @@ describe('Ausencias — solicitar', () => {
       crearAusencia({ tipo: 'permiso_no_remunerado', fechaInicio: sumarDias(lunes, 4), fechaFin: lunes }, actor)
     ).rejects.toThrow(/anterior a la de inicio/)
 
-    // Sábado y domingo: cero días hábiles.
+    // Sábado y domingo: el Terminal opera 24/7, así que sí cuentan (2 días).
+    const finDeSemana = await crearAusencia(
+      { tipo: 'permiso_no_remunerado', fechaInicio: sumarDias(lunes, 5), fechaFin: sumarDias(lunes, 6) },
+      actor
+    )
+    expect(finDeSemana.diasHabiles).toBe(2)
+  })
+
+  it('acepta horario cuando la ausencia es de un solo día y lo exige coherente', async () => {
+    const { actor } = await crearActor(null)
+    const lunes = lunesFuturo()
+
+    const doc = await crearAusencia(
+      { tipo: 'permiso_no_remunerado', fechaInicio: lunes, fechaFin: lunes, horaInicio: '08:00', horaFin: '10:30' },
+      actor
+    )
+    expect(doc.horaInicio).toBe('08:00')
+    expect(doc.horaFin).toBe('10:30')
+
     await expect(
-      crearAusencia({ tipo: 'permiso_no_remunerado', fechaInicio: sumarDias(lunes, 5), fechaFin: sumarDias(lunes, 6) }, actor)
-    ).rejects.toThrow(/ningún día hábil/)
+      crearAusencia(
+        { tipo: 'permiso_no_remunerado', fechaInicio: lunes, fechaFin: sumarDias(lunes, 1), horaInicio: '08:00', horaFin: '10:00' },
+        actor
+      )
+    ).rejects.toThrow(/un único día/)
+
+    await expect(
+      crearAusencia({ tipo: 'permiso_no_remunerado', fechaInicio: lunes, fechaFin: lunes, horaInicio: '10:00' }, actor)
+    ).rejects.toThrow(/hora de inicio como la de fin/)
+
+    await expect(
+      crearAusencia(
+        { tipo: 'permiso_no_remunerado', fechaInicio: lunes, fechaFin: lunes, horaInicio: '10:00', horaFin: '08:00' },
+        actor
+      )
+    ).rejects.toThrow(/posterior a la hora de inicio/)
   })
 
   it('no permite vacaciones sobre fechas pasadas, pero sí incapacidades', async () => {
@@ -252,7 +314,7 @@ describe('Ausencias — solicitar', () => {
     ).rejects.toThrow(/fechas ya pasadas/)
 
     // Una incapacidad se reporta después de ocurrida: debe aceptarse. Se usa
-    // un rango que garantiza incluir al menos un día hábil.
+    // un rango de varios días.
     const doc = await crearAusencia(
       {
         tipo: 'incapacidad',

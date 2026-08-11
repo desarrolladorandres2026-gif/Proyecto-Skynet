@@ -58,6 +58,12 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.js',
       registerType: 'autoUpdate',
+      // No auto-inyectar el script de registro: lo registramos a mano en
+      // src/pwa/actualizacionAutomatica.js para poder forzar
+      // registration.update() por intervalo (ver comentario ahí — el
+      // navegador por spec solo revisa SW nuevo una vez cada 24h por su
+      // cuenta, lo cual es la causa real de que haga falta Ctrl+Shift+R).
+      injectRegister: false,
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       injectManifest: {
         // El motor de voz offline (vosk-browser) son ~5,8 MB de WebAssembly

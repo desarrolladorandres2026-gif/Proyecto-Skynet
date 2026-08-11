@@ -11,28 +11,40 @@ const FORM_VACIO = {
   tipo: 'vacaciones',
   fechaInicio: '',
   fechaFin: '',
+  horaInicio: '',
+  horaFin: '',
   motivo: '',
   motivoLicencia: '',
   archivoSoporte: null,
 }
 
-// Espejo en cliente de contarDiasHabiles() del backend
+// Espejo en cliente de contarDias() del backend
 // (Backend/src/modules/ausencias/ausencias.service.js). Solo para previsualizar
 // mientras se llena el formulario: el backend recalcula y su número es el que
-// se guarda. Tampoco descuenta festivos, igual que allá.
-function diasHabilesEstimados(desde, hasta) {
+// se guarda. Cuenta TODOS los días del rango — el Terminal opera 24/7, no hay
+// "día no hábil" que restar.
+function diasEstimados(desde, hasta) {
   if (!desde || !hasta) return 0
   const inicio = new Date(`${desde}T00:00:00`)
   const fin = new Date(`${hasta}T00:00:00`)
   if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime()) || fin < inicio) return 0
-  let dias = 0
-  const cursor = new Date(inicio)
-  while (cursor <= fin) {
-    const dia = cursor.getDay()
-    if (dia !== 0 && dia !== 6) dias += 1
-    cursor.setDate(cursor.getDate() + 1)
-  }
-  return dias
+  return Math.round((fin.getTime() - inicio.getTime()) / (24 * 60 * 60 * 1000)) + 1
+}
+
+// "08:00" y "10:30" -> "2 h 30 min". Solo para mostrarle al usuario lo que
+// está pidiendo mientras llena las horas; el backend es quien valida.
+function duracionEstimada(horaInicio, horaFin) {
+  if (!horaInicio || !horaFin) return ''
+  const [hi, mi] = horaInicio.split(':').map(Number)
+  const [hf, mf] = horaFin.split(':').map(Number)
+  const minutos = hf * 60 + mf - (hi * 60 + mi)
+  if (minutos <= 0) return ''
+  const horas = Math.floor(minutos / 60)
+  const restoMin = minutos % 60
+  const partes = []
+  if (horas > 0) partes.push(`${horas} h`)
+  if (restoMin > 0) partes.push(`${restoMin} min`)
+  return partes.join(' ')
 }
 
 export default function MisAusenciasPage() {
@@ -77,6 +89,13 @@ export default function MisAusenciasPage() {
       // Con archivo (incapacidad) hay que mandar multipart; sin archivo, el
       // JSON de siempre — ver api/ausencias.js.
       const { archivoSoporte, ...resto } = form
+      // El horario solo tiene sentido en un único día: si el usuario lo llenó
+      // y luego cambió las fechas a un rango, no lo arrastramos (el backend
+      // lo rechazaría de todas formas).
+      if (resto.fechaInicio !== resto.fechaFin) {
+        resto.horaInicio = ''
+        resto.horaFin = ''
+      }
       let payload = resto
       if (archivoSoporte) {
         const fd = new FormData()
@@ -108,7 +127,9 @@ export default function MisAusenciasPage() {
     }
   }
 
-  const dias = diasHabilesEstimados(form.fechaInicio, form.fechaFin)
+  const dias = diasEstimados(form.fechaInicio, form.fechaFin)
+  const esUnSoloDia = Boolean(form.fechaInicio) && form.fechaInicio === form.fechaFin
+  const duracion = esUnSoloDia ? duracionEstimada(form.horaInicio, form.horaFin) : ''
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -136,7 +157,7 @@ export default function MisAusenciasPage() {
               <Th>Tipo</Th>
               <Th>Desde</Th>
               <Th>Hasta</Th>
-              <Th>Días hábiles</Th>
+              <Th>Días</Th>
               <Th>Estado</Th>
               <Th>Decisión</Th>
               <Th></Th>
@@ -146,7 +167,14 @@ export default function MisAusenciasPage() {
             {lista.map((a) => (
               <tr key={a._id}>
                 <Td><Badge valor={a.tipo} /></Td>
-                <Td className="whitespace-nowrap">{fmtFecha(a.fechaInicio)}</Td>
+                <Td className="whitespace-nowrap">
+                  {fmtFecha(a.fechaInicio)}
+                  {a.horaInicio && (
+                    <span className="block text-xs text-slate-500 dark:text-slate-400">
+                      {a.horaInicio}–{a.horaFin}
+                    </span>
+                  )}
+                </Td>
                 <Td className="whitespace-nowrap">{fmtFecha(a.fechaFin)}</Td>
                 <Td>{a.diasHabiles}</Td>
                 <Td><Badge valor={a.estado} /></Td>
@@ -214,8 +242,36 @@ export default function MisAusenciasPage() {
 
           {dias > 0 && (
             <p className="panel-mono text-xs text-cyan-700 dark:text-cyan-400">
-              {dias} día{dias === 1 ? '' : 's'} hábil{dias === 1 ? '' : 'es'} (sin descontar festivos)
+              {dias} día{dias === 1 ? '' : 's'}
             </p>
+          )}
+
+          {/* Horario opcional, solo tiene sentido si la ausencia es de UN
+              solo día: p. ej. un permiso de un par de horas para una cita
+              médica no debería consumir el día completo. El Terminal es
+              24/7, así que no hay "horario laboral" fijo que asumir — se
+              pide explícito. */}
+          {esUnSoloDia && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Hora inicio (opcional)">
+                <Input
+                  type="time"
+                  value={form.horaInicio}
+                  onChange={(e) => setForm({ ...form, horaInicio: e.target.value })}
+                />
+              </Field>
+              <Field label="Hora fin (opcional)">
+                <Input
+                  type="time"
+                  value={form.horaFin}
+                  onChange={(e) => setForm({ ...form, horaFin: e.target.value })}
+                />
+              </Field>
+            </div>
+          )}
+
+          {duracion && (
+            <p className="panel-mono text-xs text-cyan-700 dark:text-cyan-400">Duración: {duracion}</p>
           )}
 
           {/* El motivo legal solo aplica al permiso remunerado: es el respaldo

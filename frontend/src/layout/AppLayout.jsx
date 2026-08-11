@@ -238,13 +238,18 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
 // Exportado porque tanto AppLayout (panel admin) como MobileShell (roles
 // no-admin) necesitan la misma lista filtrada para su navegación.
 export function useModulosVisibles() {
-  const { tieneModulo, tienePermiso, moduloActivo } = useAuth()
+  const { usuario, tieneModulo, tienePermiso, moduloActivo } = useAuth()
 
   return MODULOS_REGISTRO.map((m) => ({
     ...m,
-    items: m.items.filter(
-      (item) => !item.permiso || [].concat(item.permiso).some((p) => tienePermiso(p))
-    ),
+    // item.soloSuperAdmin: a diferencia de item.permiso (que tienePermiso()
+    // deja pasar a esSuperAdmin O a quien tenga ese código puntual), exige
+    // el bypass en sí — para herramientas como el backup completo que no
+    // deben aparecer aunque alguien delegue el permiso del grupo a otro rol.
+    items: m.items.filter((item) => {
+      if (item.soloSuperAdmin) return Boolean(usuario?.esSuperAdmin)
+      return !item.permiso || [].concat(item.permiso).some((p) => tienePermiso(p))
+    }),
   })).filter((m) => {
     if (!moduloActivo(m.key)) return false
     if (m.items.length === 0) return false

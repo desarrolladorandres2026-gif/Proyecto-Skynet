@@ -79,16 +79,34 @@ export function CopilotoChatCard({
   enviandoConfirmacion = false,
   errorConfirmacion = '',
   onIniciarArrastre,
+  alturaTeclado = 0,
 }) {
   const finRef = useRef(null)
   const inputRef = useRef(null)
 
   useEffect(() => {
-    if (isOpen) {
-      finRef.current?.scrollIntoView({ behavior: 'smooth' })
-      inputRef.current?.focus()
-    }
+    if (isOpen) finRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [mensajes, isOpen, cargando])
+
+  // Enfocar el input dispara el teclado del celular. Hacerlo apenas se abre
+  // (antes) significaba que el teclado aparecía a mitad de la animación de
+  // entrada (scale/opacity/y, 0.35s): el navegador tenía que animar y
+  // redimensionar el viewport visual al mismo tiempo, y eso es lo que se veía
+  // como la tarjeta "trabándose" al abrir. Esperar a que la animación termine
+  // separa ambas cosas: primero se ve la tarjeta abrirse, después el teclado.
+  const enfocarSiAbrio = () => {
+    if (isOpen) inputRef.current?.focus()
+  }
+
+  // Con el teclado abierto en el celular, `100vh`/`35rem` fijo ya no describe
+  // lo que realmente se ve: el teclado tapa la parte de abajo del viewport
+  // visual sin achicar `window.innerHeight`. Sin este ajuste la tarjeta queda
+  // fija a su alto de siempre, empujada fuera de la pantalla o con el campo
+  // de texto escondido detrás del teclado — el "se traba" que se reporta.
+  const conTeclado = alturaTeclado > 0
+  const estiloTarjeta = conTeclado
+    ? { maxHeight: `calc(100dvh - ${alturaTeclado}px - 5rem)`, transform: `translateY(-${alturaTeclado}px)` }
+    : undefined
 
   const suguerenciasRapidas = [
     '¿Cómo va mi último requerimiento?',
@@ -109,7 +127,12 @@ export function CopilotoChatCard({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.88, y: 25 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="relative mb-3 flex h-[35rem] w-[calc(100vw-2rem)] max-w-[390px] flex-col overflow-hidden neumorphic-skynet-card z-50 select-text font-sans p-5"
+          onAnimationComplete={enfocarSiAbrio}
+          style={estiloTarjeta}
+          className={cn(
+            'relative mb-3 flex w-[calc(100vw-2rem)] max-w-[390px] flex-col overflow-hidden neumorphic-skynet-card z-50 select-text font-sans p-5',
+            conTeclado ? 'h-auto' : 'h-[35rem]'
+          )}
         >
           {/* ============================================================ */}
           {/* ENCABEZADO NEUMÓRFICO CON ÍCONO ANIMADO DEL BOTÓN */}

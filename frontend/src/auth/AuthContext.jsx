@@ -39,6 +39,37 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('skynet:logout', onLogout)
   }, [])
 
+  // Heartbeat: re-consulta /auth/me cada 2 min mientras hay sesión, para que
+  // un cambio de rol/permisos hecho por un admin (que incrementa tokenVersion
+  // en BD) se detecte pronto en vez de esperar a que el usuario dispare por
+  // su cuenta la próxima petición que reciba el 401. También revisa al volver
+  // a la pestaña, que es cuando más se nota un permiso desactualizado.
+  useEffect(() => {
+    if (!usuario) return
+
+    let cancelado = false
+    async function chequear() {
+      try {
+        const u = await auth.me()
+        if (!cancelado) setUsuario(u)
+      } catch {
+        // request() ya dispara skynet:logout en 401; nada más que hacer acá.
+      }
+    }
+
+    const intervalo = setInterval(chequear, 2 * 60 * 1000)
+    function onVisibilidad() {
+      if (document.visibilityState === 'visible') chequear()
+    }
+    document.addEventListener('visibilitychange', onVisibilidad)
+
+    return () => {
+      cancelado = true
+      clearInterval(intervalo)
+      document.removeEventListener('visibilitychange', onVisibilidad)
+    }
+  }, [usuario?.id_usuario])
+
   const login = useCallback(async (email, password) => {
     const u = await auth.login(email, password)
     loginManualRef.current = true

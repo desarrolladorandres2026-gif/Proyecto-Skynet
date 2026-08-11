@@ -36,6 +36,26 @@ export function PermissionRoute({ permiso, children }) {
   return children
 }
 
+// Más estricto que PermissionRoute: para herramientas que deben quedar
+// atadas al bypass esSuperAdmin en sí (backup completo de la plataforma),
+// no a un permiso RBAC que en teoría podría delegarse a otro rol más
+// adelante — ver backup.routes.js (soloAdmin) en el backend, que es quien
+// de verdad lo hace cumplir.
+export function SuperAdminRoute({ children }) {
+  const { usuario } = useAuth()
+
+  if (!usuario?.esSuperAdmin) {
+    return (
+      <div className="flex min-h-[60svh] flex-col items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
+        <p className="text-lg font-medium text-slate-700 dark:text-slate-200">Sin acceso</p>
+        <p className="text-sm">Esta sección es exclusiva del Super Admin.</p>
+      </div>
+    )
+  }
+
+  return children
+}
+
 // Gate de módulo del sistema desactivado por el Super Admin (ModuloSistema).
 // Se antepone a PermissionRoute en App.jsx para los módulos desactivables del
 // ERP (danos, flota, operacion); mantenimiento lo hereda vía

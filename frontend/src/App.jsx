@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, RouterContextProvider } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext.jsx'
-import { ProtectedRoute, ModuleRoute, PermissionRoute, ModuloActivoRoute } from './auth/ProtectedRoute.jsx'
+import { ProtectedRoute, ModuleRoute, PermissionRoute, ModuloActivoRoute, SuperAdminRoute } from './auth/ProtectedRoute.jsx'
 import LoginPage from './auth/LoginPage.jsx'
 import AppShell from './layout/AppShell.jsx'
 import HomeRedirect from './layout/HomeRedirect.jsx'
@@ -35,6 +35,7 @@ import DashboardPage from './modules/operacion/DashboardPage.jsx'
 import RolesPage from './modules/roles/RolesPage.jsx'
 import AuditoriaPage from './modules/auditoria/AuditoriaPage.jsx'
 import ModulosSistemaPage from './modules/sistema/ModulosSistemaPage.jsx'
+import BackupPage from './modules/backup/BackupPage.jsx'
 import InduccionHome from './modules/induccion/InduccionHome.jsx'
 import CertificadoPage from './modules/induccion/CertificadoPage.jsx'
 import InstallBanner from './pwa/InstallBanner.jsx'
@@ -160,6 +161,7 @@ export default function App() {
             <Route path="roles" element={<PermissionRoute permiso="roles:gestionar"><RolesPage /></PermissionRoute>} />
             <Route path="auditoria" element={<PermissionRoute permiso="auditoria:leer"><AuditoriaPage /></PermissionRoute>} />
             <Route path="sistema/modulos" element={<PermissionRoute permiso="sistema:gestionar_modulos"><ModulosSistemaPage /></PermissionRoute>} />
+            <Route path="sistema/backup" element={<SuperAdminRoute><BackupPage /></SuperAdminRoute>} />
 
             <Route path="induccion" element={<InduccionHome />} />
             <Route path="induccion/certificado" element={<CertificadoPage />} />

@@ -117,6 +117,7 @@ export default function CalendarioAusenciasPage() {
                         <Badge valor={a.tipo} />
                         <span className="text-sm whitespace-nowrap text-slate-600 dark:text-slate-300">
                           {fmtFecha(a.fechaInicio)} → {fmtFecha(a.fechaFin)}
+                          {a.horaInicio && ` · ${a.horaInicio}–${a.horaFin}`}
                         </span>
                         <span className="panel-mono text-xs text-slate-500 dark:text-slate-400">
                           {a.diasHabiles} d

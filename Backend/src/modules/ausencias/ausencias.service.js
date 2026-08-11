@@ -34,23 +34,20 @@ function aDia(valor) {
   return fecha
 }
 
-// Cuenta días de lunes a viernes, ambos extremos incluidos.
-//
-// LIMITACIÓN CONOCIDA: no descuenta festivos colombianos. Hacerlo bien exige
-// un calendario de festivos (Ley 51 de 1983, con traslado al lunes siguiente)
-// que hoy no existe en el sistema. Mientras tanto el conteo puede sobrestimar
-// los días consumidos en semanas con festivo, y quien apruebe debe ajustarlo
-// a mano. Se documenta aquí en vez de fingir exactitud.
-export function contarDiasHabiles(inicio, fin) {
-  let dias = 0
-  const cursor = new Date(inicio)
-  while (cursor <= fin) {
-    const dia = cursor.getDay()
-    if (dia !== 0 && dia !== 6) dias += 1
-    cursor.setDate(cursor.getDate() + 1)
-  }
-  return dias
+// Cuenta días naturales, ambos extremos incluidos. El Terminal opera 24/7
+// (hay turnos todos los días, incluidos sábados, domingos y festivos), así
+// que "día hábil" en el sentido clásico lunes-viernes no describe la
+// operación real: un sábado ausente cuesta un día de trabajo igual que un
+// martes. Por eso no se excluyen fines de semana ni festivos — cada día del
+// rango solicitado cuenta.
+export function contarDias(inicio, fin) {
+  const msPorDia = 24 * 60 * 60 * 1000
+  return Math.round((fin.getTime() - inicio.getTime()) / msPorDia) + 1
 }
+
+// "HH:mm" en 24 horas, con ceros a la izquierda — lo que produce un <input
+// type="time">.
+const HORA_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 
 // Dos ausencias de la misma persona no pueden traslaparse, sin importar el
 // tipo: nadie puede estar de vacaciones e incapacitado el mismo día. Solo
@@ -68,7 +65,7 @@ async function haySolapamiento(usuarioId, inicio, fin, excluirId = null) {
 }
 
 export async function crearAusencia(datos, usuarioActor) {
-  const { tipo, fechaInicio, fechaFin, motivo, motivoLicencia, soporte } = datos || {}
+  const { tipo, fechaInicio, fechaFin, motivo, motivoLicencia, soporte, horaInicio, horaFin } = datos || {}
 
   if (!TIPOS_AUSENCIA.includes(tipo)) {
     throw new ErrorValidacion(`tipo debe ser uno de: ${TIPOS_AUSENCIA.join(', ')}`)
@@ -105,10 +102,26 @@ export async function crearAusencia(datos, usuarioActor) {
     throw new ErrorValidacion('El soporte debe ser un archivo subido, no una URL externa')
   }
 
-  const diasHabiles = contarDiasHabiles(inicio, fin)
-  if (diasHabiles < 1) {
-    throw new ErrorValidacion('El rango solicitado no incluye ningún día hábil')
+  // Rango horario: opcional, y solo tiene sentido dentro de un único día —
+  // "de 8:00 a 10:00" no significa nada sobre un rango de varios días.
+  const horaInicioLimpia = horaInicio ? String(horaInicio).trim() : ''
+  const horaFinLimpia = horaFin ? String(horaFin).trim() : ''
+  if (horaInicioLimpia || horaFinLimpia) {
+    if (inicio.getTime() !== fin.getTime()) {
+      throw new ErrorValidacion('El horario solo aplica cuando la ausencia es de un único día')
+    }
+    if (!horaInicioLimpia || !horaFinLimpia) {
+      throw new ErrorValidacion('Si indicas horario, se necesita tanto la hora de inicio como la de fin')
+    }
+    if (!HORA_RE.test(horaInicioLimpia) || !HORA_RE.test(horaFinLimpia)) {
+      throw new ErrorValidacion('El horario debe tener formato HH:mm')
+    }
+    if (horaFinLimpia <= horaInicioLimpia) {
+      throw new ErrorValidacion('La hora de fin debe ser posterior a la hora de inicio')
+    }
   }
+
+  const diasHabiles = contarDias(inicio, fin)
 
   if (await haySolapamiento(usuarioActor.id_usuario, inicio, fin)) {
     throw new ErrorConflicto('Ya tienes una ausencia registrada que se cruza con esas fechas')
@@ -124,6 +137,8 @@ export async function crearAusencia(datos, usuarioActor) {
     motivoLicencia: tipo === 'permiso_remunerado' ? motivoLicencia : undefined,
     fechaInicio: inicio,
     fechaFin: fin,
+    horaInicio: horaInicioLimpia,
+    horaFin: horaFinLimpia,
     diasHabiles,
     motivo: motivo ? String(motivo).trim() : '',
     soporte: soporte?.url ? soporte : undefined,
@@ -132,12 +147,13 @@ export async function crearAusencia(datos, usuarioActor) {
     estado: 'pendiente',
   })
 
-  await auditar(usuarioActor, 'crear', doc, `Solicitó ${tipo} por ${diasHabiles} día(s) hábil(es)`)
+  const horarioTexto = horaInicioLimpia ? ` de ${horaInicioLimpia} a ${horaFinLimpia}` : ''
+  await auditar(usuarioActor, 'crear', doc, `Solicitó ${tipo} por ${diasHabiles} día(s)${horarioTexto}`)
 
   const aprobadores = await usuariosConPermiso('ausencias:aprobar')
   notificarUsuarios(aprobadores, {
     title: 'Nueva solicitud de ausencia',
-    body: `${solicitante?.nombre || usuarioActor.nombre_usuario} solicitó ${tipo} (${diasHabiles} día(s) hábil(es))`,
+    body: `${solicitante?.nombre || usuarioActor.nombre_usuario} solicitó ${tipo} (${diasHabiles} día(s)${horarioTexto})`,
     url: `/ausencias/bandeja`,
   }).catch((err) => console.error('Error notificando nueva ausencia:', err.message))
 
@@ -186,7 +202,7 @@ export async function aprobarAusencia(id, { observacion } = {}, usuarioActor) {
   await registrarDecision(doc, usuarioActor)
 
   await doc.save()
-  await auditar(usuarioActor, 'aprobar', doc, `Aprobó ${doc.tipo} de ${doc.diasHabiles} día(s) hábil(es)`)
+  await auditar(usuarioActor, 'aprobar', doc, `Aprobó ${doc.tipo} de ${doc.diasHabiles} día(s)`)
 
   notificarUsuarios([doc.solicitante], {
     title: 'Tu solicitud de ausencia fue aprobada',
@@ -288,6 +304,11 @@ export function calendario({ desde, hasta } = {}) {
     fechaInicio: { $lte: fin },
     fechaFin: { $gte: inicio },
   })
+    // Proyección deliberada: a diferencia de listarTodas(), a /calendario
+    // también entra quien solo tiene 'ausencias:aprobar' (sin 'ver_todas',
+    // ver ausencias.routes.js) — nunca debe traer motivo, motivoLicencia ni
+    // soporte (el certificado médico de una incapacidad es dato sensible).
+    .select('tipo fechaInicio fechaFin horaInicio horaFin diasHabiles cargoSolicitante dependenciaSolicitante estado solicitante')
     .populate('solicitante', 'nombre nombre_usuario cargo dependencia')
     .sort({ fechaInicio: 1 })
 }

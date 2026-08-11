@@ -32,10 +32,38 @@ export function getVapidPublicKey(_req, res) {
   res.json({ publicKey: env.VAPID_PUBLIC_KEY || null })
 }
 
+// El endpoint lo manda el navegador del usuario (Push API) y nunca debería
+// apuntar a otro sitio: enviarPush() más adelante hace un POST real a
+// `sub.endpoint` (ver notificaciones.service.js), reintentado varias veces
+// por el worker. Sin esta lista blanca, cualquier usuario autenticado podría
+// registrar una URL propia o interna (localhost, IP del VPS, metadata de la
+// nube) y convertir al servidor en un proxy SSRF que reintenta solo.
+const HOSTS_PUSH_EXACTOS = new Set([
+  'fcm.googleapis.com', // Chrome, Edge, Opera y demás navegadores Chromium
+  'updates.push.services.mozilla.com', // Firefox
+  'web.push.apple.com', // Safari
+])
+const SUFIJOS_PUSH_PERMITIDOS = ['.notify.windows.com'] // WNS (Edge legado)
+
+function endpointPushEsValido(endpoint) {
+  let url
+  try {
+    url = new URL(endpoint)
+  } catch {
+    return false
+  }
+  if (url.protocol !== 'https:') return false
+  const host = url.hostname.toLowerCase()
+  return HOSTS_PUSH_EXACTOS.has(host) || SUFIJOS_PUSH_PERMITIDOS.some((sufijo) => host.endsWith(sufijo))
+}
+
 export async function suscribirPush(req, res) {
   const { endpoint, keys } = req.body
   if (!endpoint || !keys?.p256dh || !keys?.auth) {
     return res.status(400).json({ error: 'endpoint, keys.p256dh y keys.auth son obligatorios' })
+  }
+  if (typeof endpoint !== 'string' || !endpointPushEsValido(endpoint)) {
+    return res.status(400).json({ error: 'El endpoint no corresponde a un servicio de notificaciones push reconocido' })
   }
 
   const { navegador, dispositivo } = describirDispositivo(req.headers['user-agent'])

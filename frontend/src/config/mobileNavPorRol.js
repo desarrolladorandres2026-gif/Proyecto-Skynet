@@ -30,6 +30,9 @@ export const MOBILE_NAV_POR_ROL = {
     { to: '/danos/mis-tareas', label: 'Mis tareas', icon: ClipboardList },
   ],
   seguridad: [],
+  bodega: [
+    { to: '/requerimientos/bodega', label: 'Bandeja', icon: ClipboardList },
+  ],
   operador: [
     { to: '/danos/reportar', label: 'Reportar', icon: TriangleAlert },
     { to: '/requerimientos/nuevo', label: 'Requerimientos', icon: FileText },
