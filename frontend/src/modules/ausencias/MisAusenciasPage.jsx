@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { CalendarDays, Plus, Ban, Clock, CircleCheck, Paperclip } from 'lucide-react'
 import { ausencias as ausenciasApi } from '../../api/ausencias.js'
-import { TIPOS_AUSENCIA, MOTIVOS_PERMISO_REMUNERADO } from '../../config/ausenciasConstants.js'
+import { TIPOS_AUSENCIA, TIPO_AUSENCIA_LABELS, MOTIVOS_PERMISO_REMUNERADO } from '../../config/ausenciasConstants.js'
 import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Select, Textarea, Modal,
   TablaWrap, Th, Td, EmptyState, fmtFecha,
 } from '../../components/ui.jsx'
+import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 
 const FORM_VACIO = {
   tipo: 'vacaciones',
@@ -57,6 +58,9 @@ export default function MisAusenciasPage() {
   const [form, setForm] = useState(FORM_VACIO)
   const [guardando, setGuardando] = useState(false)
   const [errorForm, setErrorForm] = useState('')
+
+  const [porCancelar, setPorCancelar] = useState(null)
+  const [cancelando, setCancelando] = useState(false)
 
   async function cargar() {
     setCargando(true)
@@ -116,14 +120,21 @@ export default function MisAusenciasPage() {
     }
   }
 
-  async function cancelar(ausencia) {
-    if (!window.confirm(`¿Retirar tu solicitud de ${ausencia.tipo} del ${fmtFecha(ausencia.fechaInicio)}?`)) return
+  async function confirmarCancelar() {
+    if (!porCancelar) return
+    setOk(''); setError('')
+    setCancelando(true)
     try {
-      await ausenciasApi.cancelar(ausencia._id)
+      await ausenciasApi.cancelar(porCancelar._id)
       setOk('Solicitud cancelada')
       cargar()
     } catch (err) {
       setError(err.message)
+    } finally {
+      // Se cierra pase lo que pase: el aviso (OkMsg/ErrorMsg) vive en la
+      // página y el overlay del diálogo lo taparía.
+      setCancelando(false)
+      setPorCancelar(null)
     }
   }
 
@@ -194,7 +205,7 @@ export default function MisAusenciasPage() {
                 </Td>
                 <Td className="text-right">
                   {a.estado === 'pendiente' && (
-                    <Btn variante="fantasma" className="flex items-center gap-1.5" onClick={() => cancelar(a)}>
+                    <Btn variante="fantasma" className="flex items-center gap-1.5" onClick={() => setPorCancelar(a)}>
                       <Ban className="h-4 w-4" aria-hidden="true" /> Retirar
                     </Btn>
                   )}
@@ -327,6 +338,20 @@ export default function MisAusenciasPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        abierto={Boolean(porCancelar)}
+        onCancelar={() => setPorCancelar(null)}
+        onConfirmar={confirmarCancelar}
+        cargando={cancelando}
+        titulo="¿Retirar esta solicitud?"
+        descripcion={
+          porCancelar
+            ? `${TIPO_AUSENCIA_LABELS[porCancelar.tipo] || porCancelar.tipo} del ${fmtFecha(porCancelar.fechaInicio)}. Si la retiras tendrás que volver a solicitarla.`
+            : ''
+        }
+        confirmarLabel="Retirar"
+      />
     </div>
   )
 }

@@ -13,9 +13,23 @@ import { cn } from '../../lib/cn'
  * - ERROR: Resplandor rojo brillante con micro-vibración.
  *
  * Rendimiento:
- * - Actualización a 60 FPS mediante Canvas + SVG con requestAnimationFrame y refs directas.
- * - Cero re-renders de React por frame.
+ * - Cero re-renders de React por frame: el bucle escribe en el DOM por refs.
+ * - El bucle de 60 FPS SOLO corre cuando el orbe tiene algo que reaccionar
+ *   (escuchando, pensando, hablando o en error). En reposo —que es donde el
+ *   orbe pasa casi todo el tiempo— los anillos giran con una animación CSS,
+ *   que lleva el compositor de la GPU sin despertar el hilo principal.
+ *
+ *   No es una micro-optimización: este componente vive en el widget del panel
+ *   Y en la ventana oculta del asistente de escritorio, así que un bucle
+ *   incondicional significaba dos canvas repintándose 60 veces por segundo
+ *   durante toda la jornada, en equipos que además tienen el ERP abierto. Se
+ *   medía en ~0,4 hilos de CPU y GPU constantes sin que nadie estuviera
+ *   usando Skynet.
  */
+
+// Estados en los que el orbe reacciona a algo (audio, progreso) y por tanto
+// necesita recalcularse cada frame. IDLE queda fuera a propósito.
+const ESTADOS_ANIMADOS = new Set(['LISTENING', 'PROCESSING', 'SPEAKING', 'ERROR'])
 export function VoiceOrb({
   state = 'IDLE', // 'IDLE' | 'LISTENING' | 'PROCESSING' | 'SPEAKING' | 'ERROR'
   size = 70,
@@ -51,6 +65,26 @@ export function VoiceOrb({
   }, [])
 
   useEffect(() => {
+    // ── Reposo: se cede el giro al CSS y no se pinta ni un frame ────────────
+    // Hay que borrar los `transform` en línea que dejó el bucle: un estilo en
+    // línea gana a la animación CSS, así que sin esto el orbe se quedaría
+    // congelado en el ángulo exacto donde terminó de hablar.
+    if (!ESTADOS_ANIMADOS.has(state)) {
+      for (const ref of [ring1Ref, ring2Ref, haloOuterRef, haloInnerRef]) {
+        if (ref.current) ref.current.style.transform = ''
+      }
+      if (haloOuterRef.current) {
+        haloOuterRef.current.style.opacity = ''
+        haloOuterRef.current.style.boxShadow = ''
+      }
+      // El canvas de partículas no dibuja nada en reposo, pero puede quedar el
+      // último fotograma pintado.
+      const canvas = canvasRef.current
+      const ctx = canvas?.getContext?.('2d')
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
+      return undefined
+    }
+
     let rotacion1 = 0
     let rotacion2 = 0
     let tiempo = 0
@@ -150,11 +184,30 @@ export function VoiceOrb({
       animFrameRef.current = requestAnimationFrame(loop)
     }
 
-    loop()
+    // La ventana oculta del asistente de escritorio corre con
+    // `backgroundThrottling: false` para poder seguir escuchando, y eso
+    // significa que Chromium NO frena sus animaciones al esconderla: sin esta
+    // comprobación, el orbe seguiría pintándose a pantalla completa detrás de
+    // todo, para nadie.
+    const visible = () => document.visibilityState !== 'hidden'
+
+    const alCambiarVisibilidad = () => {
+      if (visible() && !animFrameRef.current) {
+        loop()
+      } else if (!visible() && animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current)
+        animFrameRef.current = null
+      }
+    }
+
+    if (visible()) loop()
+    document.addEventListener('visibilitychange', alCambiarVisibilidad)
 
     return () => {
+      document.removeEventListener('visibilitychange', alCambiarVisibilidad)
       if (animFrameRef.current) {
         cancelAnimationFrame(animFrameRef.current)
+        animFrameRef.current = null
       }
     }
   }, [state, rmsRef])
@@ -170,6 +223,18 @@ export function VoiceOrb({
       : state === 'LISTENING'
       ? 'stroke-sky-500 dark:stroke-cyan-300'
       : 'stroke-cyan-500/60 dark:stroke-cyan-400/60'
+
+  // En reposo el giro lo lleva el compositor. Las duraciones reproducen el
+  // ritmo que tenía el bucle en IDLE (0,8 × 0,8°/frame y 0,8 × 1,2°/frame a
+  // 60 FPS ≈ 9,4 s y 6,3 s por vuelta), para que el cambio no se note.
+  const enReposo = !ESTADOS_ANIMADOS.has(state)
+  const giroCSS = (segundos, inverso) =>
+    enReposo
+      ? {
+          animation: `${inverso ? 'copilot-spin-reverse' : 'copilot-spin'} ${segundos}s linear infinite`,
+          transformOrigin: 'center',
+        }
+      : undefined
 
   return (
     <div
@@ -243,8 +308,9 @@ export function VoiceOrb({
           </linearGradient>
         </defs>
 
-        {/* CAPA 1: Anillo Exterior con rotación controlada por ref (ring1Ref) */}
-        <g ref={ring1Ref} className="origin-center">
+        {/* CAPA 1: Anillo Exterior. Gira por CSS en reposo y por ref (ring1Ref)
+            cuando el orbe está reaccionando a algo. */}
+        <g ref={ring1Ref} className="origin-center" style={giroCSS(9.4, false)}>
           <circle
             cx="200"
             cy="200"
@@ -279,7 +345,7 @@ export function VoiceOrb({
         </g>
 
         {/* CAPA 2: Rombo cibernético intermedio (ring2Ref) */}
-        <g ref={ring2Ref} className="origin-center">
+        <g ref={ring2Ref} className="origin-center" style={giroCSS(6.3, true)}>
           <polygon
             points="200,64 336,200 200,336 64,200"
             fill="none"

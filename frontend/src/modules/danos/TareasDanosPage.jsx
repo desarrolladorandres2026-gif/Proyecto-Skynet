@@ -10,6 +10,7 @@ import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Select, Field, Textarea, Modal,
   TablaWrap, Th, Td, EmptyState, fmtFechaHora,
 } from '../../components/ui.jsx'
+import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 
 // Espejo de TRANSICIONES en Backend/src/modules/danos/danos.service.js — el
 // backend sigue siendo la autoridad (valida cada cambio); esto solo evita
@@ -482,6 +483,8 @@ export default function TareasDanosPage() {
   const [asignando, setAsignando] = useState(null)
   const [cambiando, setCambiando] = useState(null)
   const [detalle, setDetalle] = useState(null)
+  const [porEliminar, setPorEliminar] = useState(null)
+  const [eliminando, setEliminando] = useState(false)
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -560,15 +563,21 @@ export default function TareasDanosPage() {
     navigate(`/requerimientos/nuevo?dano=${reporte._id}`)
   }
 
-  async function eliminar(r) {
-    if (!window.confirm('¿Eliminar este reporte? La foto también se eliminará.')) return
+  async function confirmarEliminar() {
+    if (!porEliminar) return
     setOk(''); setError('')
+    setEliminando(true)
     try {
-      await danosApi.eliminar(r._id)
+      await danosApi.eliminar(porEliminar._id)
       setOk('Reporte eliminado')
       await Promise.all([cargar(), cargarTecnicos()])
     } catch (err) {
       setError(err.message)
+    } finally {
+      // Se cierra pase lo que pase: el aviso de error vive en la página
+      // (ErrorMsg) y el overlay del diálogo lo taparía.
+      setEliminando(false)
+      setPorEliminar(null)
     }
   }
 
@@ -701,7 +710,7 @@ export default function TareasDanosPage() {
                       <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Cambiar estado
                     </Btn>
                     {puedeAsignarAOtros && (
-                      <Btn variante="peligro" onClick={() => eliminar(r)} title="Eliminar reporte" className="!px-2.5">
+                      <Btn variante="peligro" onClick={() => setPorEliminar(r)} title="Eliminar reporte" className="!px-2.5">
                         <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                       </Btn>
                     )}
@@ -729,6 +738,16 @@ export default function TareasDanosPage() {
       {detalle && (
         <ModalDetalle reporte={detalle} onCerrar={() => setDetalle(null)} onSolicitarRepuesto={solicitarRepuesto} />
       )}
+
+      <ConfirmDialog
+        abierto={Boolean(porEliminar)}
+        onCancelar={() => setPorEliminar(null)}
+        onConfirmar={confirmarEliminar}
+        cargando={eliminando}
+        titulo="¿Eliminar este reporte?"
+        descripcion={`Se borrará el reporte${porEliminar?.foto?.url ? ' junto con su foto' : ''}. Esta acción no se puede deshacer.`}
+        confirmarLabel="Eliminar"
+      />
     </div>
   )
 }

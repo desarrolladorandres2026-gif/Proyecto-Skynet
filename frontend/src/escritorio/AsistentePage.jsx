@@ -40,17 +40,27 @@ export default function AsistentePage() {
   const conversacionIdRef = useRef(null)
   const peticionRef = useRef(null)
 
-  // Precarga del modelo de voz al arrancar, no en la primera pulsación: son
-  // varios segundos de descompresión, y pagarlos cuando el usuario ya está
-  // hablando significa perder la frase entera.
+  // Precarga del modelo de voz SOLO si el equipo va a escuchar de continuo.
+  //
+  // Con "Oye Skynet" encendido hay que pagar la descompresión por adelantado:
+  // el reconocimiento tiene que estar listo antes de que alguien hable, y
+  // cargarlo en la primera frase significaría perderla entera.
+  //
+  // Con el wake word apagado —que es el valor por defecto— no: el modelo son
+  // varios cientos de MB residentes para algo que en la mayoría de equipos no
+  // se usa nunca, y era una de las razones de que Skynet apareciera comiéndose
+  // 1-2 GB en el administrador de tareas. Si la persona pulsa el atajo, el
+  // reconocedor lo carga en ese momento (reconocedorVosk.js lo cachea como
+  // singleton, así que solo se paga la primera vez).
   useEffect(() => {
-    if (!esEscritorio()) return
+    if (!esEscritorio()) return undefined
+    if (!puente.wakeWordInicial) return undefined
     let vivo = true
     precargarModelo().then((ok) => vivo && setModeloListo(ok))
     return () => {
       vivo = false
     }
-  }, [])
+  }, [puente.wakeWordInicial])
 
   // ── El único camino de las preguntas ──────────────────────────────────────
   // Idéntico al del widget: mismo endpoint, mismo streaming, mismos eventos de

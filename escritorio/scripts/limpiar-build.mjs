@@ -1,7 +1,12 @@
 // Se ejecuta automáticamente antes de "npm run empaquetar" (hook "preempaquetar" de npm).
-// Windows Defender bloquea momentáneamente los binarios recién escritos en .exe/ al
-// escanearlos, y un Skynet.exe abierto también los bloquea. Sin esto, cada empaquetado
+// Windows Defender bloquea momentáneamente los binarios recién escritos en instalable/win-unpacked
+// al escanearlos, y un Skynet.exe abierto también los bloquea. Sin esto, cada empaquetado
 // deja basura de intentos previos y electron-builder falla con ERR_ELECTRON_BUILDER_CANNOT_EXECUTE.
+//
+// Se borra SOLO win-unpacked, no la carpeta instalable/ entera: ahí quedan los
+// instaladores de versiones anteriores y el latest.yml, que son justamente lo que
+// se publica. Borrarlos obligaría a reconstruir versiones viejas para poder
+// reproducir una publicación.
 import { execFileSync } from 'node:child_process'
 import { rmSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -9,7 +14,7 @@ import path from 'node:path'
 import { setTimeout as esperar } from 'node:timers/promises'
 
 const raizProyecto = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..', '..')
-const carpetaBuild = path.join(raizProyecto, '.exe')
+const carpetaBuild = path.join(raizProyecto, 'instalable', 'win-unpacked')
 
 function matarProcesos() {
   const script =
@@ -33,7 +38,7 @@ async function limpiar() {
   for (let i = 1; i <= intentos; i++) {
     try {
       rmSync(carpetaBuild, { recursive: true, force: true })
-      console.log('[limpiar-build] Carpeta .exe anterior eliminada, listo para reescribir.')
+      console.log('[limpiar-build] win-unpacked anterior eliminado, listo para reescribir.')
       return
     } catch (error) {
       if (i === intentos) {

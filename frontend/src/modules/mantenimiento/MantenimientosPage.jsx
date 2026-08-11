@@ -4,9 +4,32 @@ import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Textarea, Modal,
   TablaWrap, Th, Td, EmptyState, Pager, fmtFecha, aInputFecha,
 } from '../../components/ui.jsx'
+import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 
 function urlPdf(filename) {
   return `/storage/mantenimientos/${filename}`
+}
+
+// Las dos acciones de la tabla que piden confirmación. Un solo diálogo las
+// atiende a ambas: el estado `confirmacion` guarda cuál se pidió y sobre qué
+// mantenimiento, y de aquí sale el texto.
+const CONFIRMACIONES = {
+  finalizar: {
+    titulo: '¿Marcar como finalizado?',
+    descripcion: 'Se registrará la fecha de hoy como fecha de realización del mantenimiento.',
+    confirmarLabel: 'Finalizar',
+    variante: 'primario',
+    ejecutar: (id) => mantenimientoApi.mantenimientos.finalizar(id),
+    exito: 'Mantenimiento finalizado',
+  },
+  eliminar: {
+    titulo: '¿Eliminar este mantenimiento?',
+    descripcion: 'Desaparecerá del historial del equipo. Esta acción no se puede deshacer.',
+    confirmarLabel: 'Eliminar',
+    variante: 'peligro',
+    ejecutar: (id) => mantenimientoApi.mantenimientos.eliminar(id),
+    exito: 'Mantenimiento eliminado',
+  },
 }
 
 const TABS = [
@@ -73,6 +96,9 @@ export default function MantenimientosPage() {
   const [editandoId, setEditandoId] = useState(null)
   const [guardando, setGuardando] = useState(false)
   const [errorForm, setErrorForm] = useState('')
+
+  const [confirmacion, setConfirmacion] = useState(null) // { accion, item }
+  const [ejecutando, setEjecutando] = useState(false)
 
   async function cargar() {
     setCargando(true)
@@ -147,25 +173,22 @@ export default function MantenimientosPage() {
     }
   }
 
-  async function finalizar(m) {
-    if (!window.confirm('¿Marcar este mantenimiento como finalizado con fecha de hoy?')) return
+  async function confirmarAccion() {
+    if (!confirmacion) return
+    const { ejecutar, exito } = CONFIRMACIONES[confirmacion.accion]
+    setOk(''); setError('')
+    setEjecutando(true)
     try {
-      await mantenimientoApi.mantenimientos.finalizar(m._id)
-      setOk('Mantenimiento finalizado')
+      await ejecutar(confirmacion.item._id)
+      setOk(exito)
       cargar()
     } catch (err) {
       setError(err.message)
-    }
-  }
-
-  async function eliminar(m) {
-    if (!window.confirm('¿Eliminar este mantenimiento? Esta acción no se puede deshacer.')) return
-    try {
-      await mantenimientoApi.mantenimientos.eliminar(m._id)
-      setOk('Mantenimiento eliminado')
-      cargar()
-    } catch (err) {
-      setError(err.message)
+    } finally {
+      // Se cierra pase lo que pase: el aviso vive en la página y el overlay
+      // del diálogo lo taparía.
+      setEjecutando(false)
+      setConfirmacion(null)
     }
   }
 
@@ -293,11 +316,15 @@ export default function MantenimientosPage() {
                       </label>
                       {m.estado !== 'finalizado' && (
                         <>
-                          <Btn variante="fantasma" onClick={() => finalizar(m)}>Finalizar</Btn>
+                          <Btn variante="fantasma" onClick={() => setConfirmacion({ accion: 'finalizar', item: m })}>Finalizar</Btn>
                           <Btn variante="fantasma" onClick={() => abrirModal('editar', m)}>Editar</Btn>
                         </>
                       )}
-                      <Btn variante="fantasma" className="!text-red-600 dark:!text-red-400" onClick={() => eliminar(m)}>
+                      <Btn
+                        variante="fantasma"
+                        className="!text-red-600 dark:!text-red-400"
+                        onClick={() => setConfirmacion({ accion: 'eliminar', item: m })}
+                      >
                         Eliminar
                       </Btn>
                     </div>
@@ -401,6 +428,17 @@ export default function MantenimientosPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        abierto={Boolean(confirmacion)}
+        onCancelar={() => setConfirmacion(null)}
+        onConfirmar={confirmarAccion}
+        cargando={ejecutando}
+        titulo={confirmacion ? CONFIRMACIONES[confirmacion.accion].titulo : ''}
+        descripcion={confirmacion ? CONFIRMACIONES[confirmacion.accion].descripcion : ''}
+        confirmarLabel={confirmacion ? CONFIRMACIONES[confirmacion.accion].confirmarLabel : ''}
+        variante={confirmacion ? CONFIRMACIONES[confirmacion.accion].variante : 'peligro'}
+      />
     </div>
   )
 }

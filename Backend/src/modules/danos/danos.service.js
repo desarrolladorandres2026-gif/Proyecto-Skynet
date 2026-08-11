@@ -312,18 +312,32 @@ export async function redistribuirPendientes() {
 
 // Mongo solo puede ordenar `estado`/`prioridad` alfabéticamente, y eso da un
 // orden sin sentido ("asignado, cancelado, en_espera, en_proceso…"). El orden
-// que sí sirve —lo que exige acción arriba, dentro de eso lo más crítico, y
-// dentro de eso lo más viejo (que es lo más atrasado)— se arma en memoria.
-// Es viable porque esta lista no pagina: ya se traen todos los documentos.
+// que sí sirve —lo que exige acción arriba, y dentro de eso lo más crítico— se
+// arma en memoria. Es viable porque esta lista no pagina: ya se traen todos
+// los documentos.
 const PESO_ESTADO = { pendiente: 0, en_espera: 1, asignado: 2, en_proceso: 3, resuelto: 4, cancelado: 5 }
 const PESO_PRIORIDAD = { critica: 0, alta: 1, media: 2, baja: 3 }
 
-function ordenarPorUrgencia(reportes) {
+// El último desempate (misma urgencia, misma prioridad) va en direcciones
+// opuestas según quién pregunte, y por eso es un parámetro y no una constante:
+//  - la LISTA que se le muestra a alguien quiere lo más reciente arriba: al
+//    abrir la pantalla, lo que acaba de pasar es lo que se busca (opción del
+//    usuario, ver listarReportes).
+//  - el REPARTO automático quiere lo más viejo primero: un daño atrasado no
+//    debe perder su turno de técnico contra uno que acaba de entrar (ver
+//    redistribuirPendientes).
+// Se ordena por `fecha` (cuándo ocurrió el daño), que es justo la columna
+// "Fecha"/"Ocurrió" que se ve en pantalla, para que el orden coincida con el
+// dato que el usuario está leyendo.
+function ordenarPorUrgencia(reportes, { recientesPrimero = false } = {}) {
+  const porFecha = (a, b) =>
+    recientesPrimero ? new Date(b.fecha) - new Date(a.fecha) : new Date(a.fecha) - new Date(b.fecha)
+
   reportes.sort(
     (a, b) =>
       PESO_ESTADO[a.estado] - PESO_ESTADO[b.estado] ||
       PESO_PRIORIDAD[a.prioridad] - PESO_PRIORIDAD[b.prioridad] ||
-      new Date(a.fecha) - new Date(b.fecha)
+      porFecha(a, b)
   )
 }
 
@@ -358,7 +372,9 @@ export async function listarReportes({ estado, tipo, asignado, prioridad } = {},
     .populate(POPULATE_ATENDIDO)
     .sort({ fecha: -1 })
 
-  ordenarPorUrgencia(reportes)
+  // Nota: este sort de Mongo lo pisa por completo ordenarPorUrgencia; se deja
+  // solo para que el orden ya venga estable si algún día se lista sin reordenar.
+  ordenarPorUrgencia(reportes, { recientesPrimero: true })
 
   // El resumen de contadores respeta el mismo alcance que la lista: un
   // técnico ve cuántas de LAS SUYAS están en cada estado, no el total del

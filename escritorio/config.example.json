@@ -1,8 +1,8 @@
 {
-  "_comentario": "Copia este archivo como config.json JUNTO AL EJECUTABLE de Skynet (no en esta carpeta) para configurar el asistente sin recompilarlo. Todos los campos son opcionales.",
+  "_comentario": "Copia este archivo como config.json JUNTO AL EJECUTABLE de Skynet (no en esta carpeta) para configurar el asistente sin recompilarlo. Todos los campos son opcionales: sin este archivo, el Skynet instalado ya apunta al servidor de producción.",
 
-  "_url": "Dónde vive el panel de Skynet. Es de donde la app carga TODO: la interfaz, la sesión y las llamadas al backend.",
-  "url": "https://skynet.terminalneiva.gov.co",
+  "_url": "Dónde vive el panel de Skynet. Es de donde la app carga TODO: la interfaz, la sesión y las llamadas al backend (el frontend pide /api con rutas relativas, y nginx las lleva al backend). Solo hay que tocarlo para apuntar a un servidor de pruebas.",
+  "url": "https://skynetttn.online",
 
   "_atajo": "Atajo global, funciona desde cualquier ventana de Windows. Formato de Electron: Control, Alt, Shift, Super + una tecla. Si otro programa ya lo usa, Skynet avisa al arrancar y lo marca en Diagnóstico.",
   "atajo": "Control+Shift+S",
@@ -11,5 +11,11 @@
   "wakeWord": false,
 
   "_autoArranque": "Iniciar Skynet al encender el equipo. También se puede activar desde el menú de la bandeja.",
-  "autoArranque": false
+  "autoArranque": false,
+
+  "_actualizaciones": "Recibir actualizaciones automáticas. VERDADERO por defecto (al revés que el micrófono: aquí el riesgo está en quedarse atrás). Se descargan solas y se instalan al cerrar Skynet; nunca reinician el programa por sorpresa. Ponlo en false solo en equipos donde TI quiera controlar la versión a mano.",
+  "actualizaciones": true,
+
+  "_urlActualizaciones": "De dónde se bajan. Solo hace falta si el Terminal monta un espejo interno; por defecto usa la carpeta /descargas/ del mismo servidor.",
+  "urlActualizaciones": "https://skynetttn.online/descargas/"
 }

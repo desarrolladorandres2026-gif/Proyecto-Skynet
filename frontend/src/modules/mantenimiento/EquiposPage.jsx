@@ -5,6 +5,7 @@ import {
   Btn, Card, ErrorMsg, OkMsg, Field, Input, Select, Textarea, Modal,
   TablaWrap, Th, Td, EmptyState, Pager, aInputFecha,
 } from '../../components/ui.jsx'
+import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 
 const FORM_VACIO = {
   numero_inventario: '',
@@ -42,6 +43,9 @@ export default function EquiposPage() {
   const [form, setForm] = useState(FORM_VACIO)
   const [guardando, setGuardando] = useState(false)
   const [errorForm, setErrorForm] = useState('')
+
+  const [porEliminar, setPorEliminar] = useState(null)
+  const [eliminando, setEliminando] = useState(false)
 
   async function cargar() {
     setCargando(true)
@@ -123,14 +127,21 @@ export default function EquiposPage() {
     }
   }
 
-  async function eliminar(eq) {
-    if (!window.confirm(`¿Eliminar el equipo ${eq.numero_inventario}? Se borrará también su historial de mantenimientos.`)) return
+  async function confirmarEliminar() {
+    if (!porEliminar) return
+    setOk(''); setError('')
+    setEliminando(true)
     try {
-      await mantenimientoApi.equipos.eliminar(eq._id)
+      await mantenimientoApi.equipos.eliminar(porEliminar._id)
       setOk('Equipo eliminado')
       cargar()
     } catch (err) {
       setError(err.message)
+    } finally {
+      // Se cierra pase lo que pase: el aviso vive en la página y el overlay
+      // del diálogo lo taparía.
+      setEliminando(false)
+      setPorEliminar(null)
     }
   }
 
@@ -197,7 +208,7 @@ export default function EquiposPage() {
                         Ficha
                       </Link>
                       <Btn variante="fantasma" onClick={() => abrirEditar(eq)}>Editar</Btn>
-                      <Btn variante="fantasma" className="!text-red-600 dark:!text-red-400" onClick={() => eliminar(eq)}>
+                      <Btn variante="fantasma" className="!text-red-600 dark:!text-red-400" onClick={() => setPorEliminar(eq)}>
                         Eliminar
                       </Btn>
                     </div>
@@ -322,6 +333,16 @@ export default function EquiposPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        abierto={Boolean(porEliminar)}
+        onCancelar={() => setPorEliminar(null)}
+        onConfirmar={confirmarEliminar}
+        cargando={eliminando}
+        titulo={`¿Eliminar el equipo ${porEliminar?.numero_inventario}?`}
+        descripcion="Se borrará también todo su historial de mantenimientos. Esta acción no se puede deshacer."
+        confirmarLabel="Eliminar"
+      />
     </div>
   )
 }

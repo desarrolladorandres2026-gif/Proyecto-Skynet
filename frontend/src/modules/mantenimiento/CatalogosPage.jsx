@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { mantenimientoApi } from '../../api/mantenimiento.js'
 import { Btn, Card, ErrorMsg, OkMsg, Input, EmptyState } from '../../components/ui.jsx'
+import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 
 function ListaCatalogo({ titulo, tipo, items, onCambio }) {
   const [nombre, setNombre] = useState('')
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
+  const [porEliminar, setPorEliminar] = useState(null)
+  const [eliminando, setEliminando] = useState(false)
 
   async function agregar(e) {
     e.preventDefault()
@@ -23,14 +26,20 @@ function ListaCatalogo({ titulo, tipo, items, onCambio }) {
     }
   }
 
-  async function eliminar(item) {
-    if (!window.confirm(`¿Eliminar "${item.nombre}" del catálogo?`)) return
+  async function confirmarEliminar() {
+    if (!porEliminar) return
     setError('')
+    setEliminando(true)
     try {
-      const data = await mantenimientoApi.catalogos.eliminar(tipo, item._id)
+      const data = await mantenimientoApi.catalogos.eliminar(tipo, porEliminar._id)
       onCambio(data.lista)
     } catch (err) {
+      // Caso típico: el backend rechaza porque el valor está en uso. El aviso
+      // vive en la tarjeta, así que hay que cerrar el diálogo para verlo.
       setError(err.message)
+    } finally {
+      setEliminando(false)
+      setPorEliminar(null)
     }
   }
 
@@ -52,13 +61,23 @@ function ListaCatalogo({ titulo, tipo, items, onCambio }) {
           {items.map((item) => (
             <li key={item._id} className="flex items-center justify-between py-2">
               <span className="text-sm text-slate-700 dark:text-slate-200">{item.nombre}</span>
-              <Btn variante="fantasma" className="!text-red-600 dark:!text-red-400" onClick={() => eliminar(item)}>
+              <Btn variante="fantasma" className="!text-red-600 dark:!text-red-400" onClick={() => setPorEliminar(item)}>
                 Eliminar
               </Btn>
             </li>
           ))}
         </ul>
       )}
+
+      <ConfirmDialog
+        abierto={Boolean(porEliminar)}
+        onCancelar={() => setPorEliminar(null)}
+        onConfirmar={confirmarEliminar}
+        cargando={eliminando}
+        titulo={`¿Eliminar "${porEliminar?.nombre}" del catálogo?`}
+        descripcion="Dejará de estar disponible al registrar equipos. No se puede eliminar si algún equipo lo está usando."
+        confirmarLabel="Eliminar"
+      />
     </Card>
   )
 }

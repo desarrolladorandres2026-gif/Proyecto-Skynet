@@ -10,6 +10,8 @@ export const TIPOS_AUSENCIA = [
   { value: 'incapacidad', label: 'Incapacidad' },
 ]
 
+export const TIPO_AUSENCIA_LABELS = Object.fromEntries(TIPOS_AUSENCIA.map((t) => [t.value, t.label]))
+
 // Causales que el CST (art. 57, mod. Ley 2466 de 2025) obliga a remunerar —
 // 'otro' cubre lo que el Terminal decide pagar aunque la ley no lo exija.
 export const MOTIVOS_PERMISO_REMUNERADO = [

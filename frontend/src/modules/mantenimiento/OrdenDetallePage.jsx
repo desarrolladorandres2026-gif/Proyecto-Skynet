@@ -8,6 +8,7 @@ import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Select, Textarea,
   TablaWrap, Th, Td, fmtFechaHora,
 } from '../../components/ui.jsx'
+import { PromptDialog } from '../../components/PromptDialog.jsx'
 
 function urlEvidencia(archivo) {
   return `/storage/mantenimiento_evidencias/${archivo}`
@@ -435,6 +436,8 @@ function SeccionRepuestos({ orden, puedoEjecutar, tienePermiso, onCambio }) {
   const [urgencia, setUrgencia] = useState('media')
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
+  const [rechazando, setRechazando] = useState(null)
+  const [enviandoRechazo, setEnviandoRechazo] = useState(false)
   const puedeAprobar = tienePermiso('mantenimiento:aprobar_repuestos')
 
   async function accion(fn) {
@@ -482,10 +485,7 @@ function SeccionRepuestos({ orden, puedoEjecutar, tienePermiso, onCambio }) {
                 {s.estado === 'solicitado' && puedeAprobar && (
                   <>
                     <Btn variante="fantasma" onClick={() => accion(() => ordenesApi.aprobarRepuestos(orden._id, s._id))}>Aprobar</Btn>
-                    <Btn variante="fantasma" className="!text-red-400" onClick={() => {
-                      const motivo = window.prompt('Motivo del rechazo:')
-                      if (motivo) accion(() => ordenesApi.rechazarRepuestos(orden._id, s._id, motivo))
-                    }}>Rechazar</Btn>
+                    <Btn variante="fantasma" className="!text-red-400" onClick={() => setRechazando(s)}>Rechazar</Btn>
                   </>
                 )}
                 {s.estado === 'en_alistamiento' && puedeAprobar && (
@@ -526,6 +526,30 @@ function SeccionRepuestos({ orden, puedoEjecutar, tienePermiso, onCambio }) {
           )}
         </div>
       )}
+
+      <PromptDialog
+        abierto={Boolean(rechazando)}
+        onCancelar={() => setRechazando(null)}
+        onConfirmar={async ({ motivo }) => {
+          setEnviandoRechazo(true)
+          await accion(() => ordenesApi.rechazarRepuestos(orden._id, rechazando._id, motivo.trim()))
+          setEnviandoRechazo(false)
+          setRechazando(null)
+        }}
+        cargando={enviandoRechazo}
+        titulo="Rechazar solicitud de repuestos"
+        descripcion={rechazando ? rechazando.items.map((it) => `${it.nombre} x${it.cantidad}`).join(', ') : ''}
+        campos={[{
+          nombre: 'motivo',
+          label: 'Motivo del rechazo',
+          tipo: 'textarea',
+          requerido: true,
+          placeholder: 'Ej.: ya hay existencias en bodega',
+          ayuda: 'Quien solicitó verá este motivo en la orden.',
+        }]}
+        confirmarLabel="Rechazar"
+        variante="peligro"
+      />
     </Card>
   )
 }
@@ -615,6 +639,8 @@ function SeccionHallazgos({ orden, puedoEjecutar, tienePermiso, hallazgos, onCam
   const [form, setForm] = useState({ categoria: '', tipo: '', criticidad: 'media', riesgo: '', descripcion: '', recomendacion: '', accion_correctiva: '', accion_preventiva: '', fecha_limite: '' })
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
+  const [aceptandoRiesgo, setAceptandoRiesgo] = useState(null)
+  const [enviandoRiesgo, setEnviandoRiesgo] = useState(false)
   const puedeAceptarRiesgo = tienePermiso('mantenimiento:asignar')
 
   async function accion(fn) {
@@ -664,13 +690,7 @@ function SeccionHallazgos({ orden, puedoEjecutar, tienePermiso, hallazgos, onCam
                   <Btn variante="fantasma" onClick={() => accion(() => hallazgosApi.marcarResuelto(h._id))}>Marcar resuelto</Btn>
                 )}
                 {['abierto', 'en_seguimiento'].includes(h.estado) && puedeAceptarRiesgo && (
-                  <Btn variante="fantasma" onClick={() => {
-                    const justificacion = window.prompt('Justificación para aceptar el riesgo:')
-                    if (!justificacion) return
-                    const reevaluarEn = window.prompt('Fecha de reevaluación (YYYY-MM-DD):')
-                    if (!reevaluarEn) return
-                    accion(() => hallazgosApi.aceptarRiesgo(h._id, justificacion, reevaluarEn))
-                  }}>Aceptar riesgo</Btn>
+                  <Btn variante="fantasma" onClick={() => setAceptandoRiesgo(h)}>Aceptar riesgo</Btn>
                 )}
                 {h.estado !== 'convertido_en_ot' && puedoEjecutar && (
                   <Btn variante="fantasma" onClick={() => accion(() => hallazgosApi.convertir(h._id))}>Convertir en OT</Btn>
@@ -711,6 +731,41 @@ function SeccionHallazgos({ orden, puedoEjecutar, tienePermiso, hallazgos, onCam
           )}
         </div>
       )}
+
+      {/* Antes eran dos window.prompt() encadenados: si cancelabas el segundo
+          se perdía lo escrito en el primero. Un solo diálogo con los dos
+          campos elimina ese hueco. */}
+      <PromptDialog
+        abierto={Boolean(aceptandoRiesgo)}
+        onCancelar={() => setAceptandoRiesgo(null)}
+        onConfirmar={async ({ justificacion, reevaluarEn }) => {
+          setEnviandoRiesgo(true)
+          await accion(() => hallazgosApi.aceptarRiesgo(aceptandoRiesgo._id, justificacion.trim(), reevaluarEn))
+          setEnviandoRiesgo(false)
+          setAceptandoRiesgo(null)
+        }}
+        cargando={enviandoRiesgo}
+        titulo="Aceptar el riesgo del hallazgo"
+        descripcion={aceptandoRiesgo?.descripcion}
+        campos={[
+          {
+            nombre: 'justificacion',
+            label: 'Justificación',
+            tipo: 'textarea',
+            requerido: true,
+            placeholder: '¿Por qué se asume este riesgo en lugar de corregirlo?',
+          },
+          {
+            nombre: 'reevaluarEn',
+            label: 'Reevaluar el',
+            tipo: 'fecha',
+            requerido: true,
+            min: new Date().toISOString().slice(0, 10),
+            ayuda: 'Fecha en la que hay que volver a revisar el hallazgo.',
+          },
+        ]}
+        confirmarLabel="Aceptar riesgo"
+      />
     </Card>
   )
 }
@@ -720,6 +775,8 @@ function SeccionChecklist({ orden, puedoEjecutar, onCambio }) {
   const [plantillasDisp, setPlantillasDisp] = useState([])
   const [plantillaId, setPlantillaId] = useState('')
   const [error, setError] = useState('')
+  const [omitiendo, setOmitiendo] = useState(null)
+  const [enviandoOmision, setEnviandoOmision] = useState(false)
 
   useEffect(() => {
     if (puedoEjecutar && !orden.checklist?.plantilla) {
@@ -790,14 +847,34 @@ function SeccionChecklist({ orden, puedoEjecutar, onCambio }) {
               {item.omitido && item.motivoOmision && <span className="block text-xs text-slate-400">Omitido: {item.motivoOmision}</span>}
             </span>
             {puedoEjecutar && orden.estado === 'en_progreso' && !item.completado && !item.omitido && (
-              <Btn variante="fantasma" onClick={() => {
-                const motivo = window.prompt('Motivo de la omisión:')
-                if (motivo) marcar(item, { omitido: true, motivoOmision: motivo })
-              }}>Omitir</Btn>
+              <Btn variante="fantasma" onClick={() => setOmitiendo(item)}>Omitir</Btn>
             )}
           </li>
         ))}
       </ul>
+
+      <PromptDialog
+        abierto={Boolean(omitiendo)}
+        onCancelar={() => setOmitiendo(null)}
+        onConfirmar={async ({ motivo }) => {
+          setEnviandoOmision(true)
+          await marcar(omitiendo, { omitido: true, motivoOmision: motivo.trim() })
+          setEnviandoOmision(false)
+          setOmitiendo(null)
+        }}
+        cargando={enviandoOmision}
+        titulo="Omitir este paso del checklist"
+        descripcion={omitiendo?.texto}
+        campos={[{
+          nombre: 'motivo',
+          label: 'Motivo de la omisión',
+          tipo: 'textarea',
+          requerido: true,
+          placeholder: 'Ej.: el equipo no tiene esa pieza',
+          ayuda: 'Queda registrado junto al paso omitido.',
+        }]}
+        confirmarLabel="Omitir paso"
+      />
     </Card>
   )
 }
@@ -879,6 +956,8 @@ function SeccionInventario({ orden, puedoEjecutar, onCambio }) {
   const [q, setQ] = useState('')
   const [resultados, setResultados] = useState([])
   const [error, setError] = useState('')
+  const [consumiendo, setConsumiendo] = useState(null)
+  const [enviandoConsumo, setEnviandoConsumo] = useState(false)
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -888,17 +967,19 @@ function SeccionInventario({ orden, puedoEjecutar, onCambio }) {
     return () => clearTimeout(t)
   }, [q])
 
-  async function consumir(material) {
-    const cantidad = window.prompt(`¿Cuántas unidades de "${material.nombre}" (stock: ${material.stock})?`, '1')
-    if (!cantidad) return
+  async function confirmarConsumo({ cantidad }) {
     setError('')
+    setEnviandoConsumo(true)
     try {
-      await inventarioApi.consumir(orden._id, material._id, Number(cantidad))
+      await inventarioApi.consumir(orden._id, consumiendo._id, Number(cantidad))
       setQ('')
       setResultados([])
       onCambio()
     } catch (err) {
       setError(err.message)
+    } finally {
+      setEnviandoConsumo(false)
+      setConsumiendo(null)
     }
   }
 
@@ -914,11 +995,34 @@ function SeccionInventario({ orden, puedoEjecutar, onCambio }) {
           {resultados.map((m) => (
             <li key={m._id} className="flex items-center justify-between py-2 text-sm">
               <span>{m.nombre} — stock: {m.stock}</span>
-              <Btn variante="fantasma" onClick={() => consumir(m)}>Consumir</Btn>
+              <Btn variante="fantasma" onClick={() => setConsumiendo(m)}>Consumir</Btn>
             </li>
           ))}
         </ul>
       )}
+
+      <PromptDialog
+        abierto={Boolean(consumiendo)}
+        onCancelar={() => setConsumiendo(null)}
+        onConfirmar={confirmarConsumo}
+        cargando={enviandoConsumo}
+        titulo={`Consumir ${consumiendo?.nombre || ''}`}
+        campos={[{
+          nombre: 'cantidad',
+          label: 'Cantidad',
+          tipo: 'numero',
+          requerido: true,
+          valorInicial: '1',
+          min: 1,
+          // Sin `max`: consumirParaOrden() en Backend/src/modules/mantenimiento/
+          // inventario.service.js permite dejar el stock en negativo a
+          // propósito (prioriza que el técnico no se quede parado; el
+          // faltante queda en el movimiento de inventario). Poner un tope
+          // aquí bloquearía ese caso que el backend sí acepta.
+          ayuda: `Disponible: ${consumiendo?.stock ?? 0}. Si consumes más, el stock queda en negativo y se registra el movimiento.`,
+        }]}
+        confirmarLabel="Consumir"
+      />
     </Card>
   )
 }

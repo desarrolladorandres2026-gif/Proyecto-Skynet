@@ -10,6 +10,12 @@ atlas-credentials.env
 **/dist
 /.exe
 
+# Instaladores de la app de escritorio (electron-builder). Binarios de ~90 MB
+# por versión: se publican en el VPS (escritorio/npm run publicar), no en Git.
+# Se conserva la carpeta para que el empaquetado tenga dónde escribir.
+/instalable/*
+!/instalable/.gitkeep
+
 # Logs de PM2 en el VPS (ver deploy/ecosystem.config.cjs)
 /logs
 

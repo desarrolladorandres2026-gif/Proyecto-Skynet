@@ -57,6 +57,47 @@ function Fila({ nombre, estado, detalle, arreglo }) {
   )
 }
 
+// Traduce el estado del actualizador (src/actualizador.js del proceso Electron)
+// a lenguaje de esta pantalla. Ninguna de estas situaciones es un FALLO rojo:
+// un Skynet desactualizado sigue funcionando, así que marcarlo en rojo restaría
+// urgencia a las filas que sí significan "el asistente no puede trabajar".
+function describirActualizaciones(act) {
+  if (!act) {
+    return {
+      estado: ESTADO.AVISO,
+      detalle: 'Solo disponible en la app de escritorio instalada.',
+      arreglo: 'Abre Skynet desde el icono de la bandeja, no desde el navegador.',
+    }
+  }
+  if (act.fase === 'lista') {
+    return {
+      estado: ESTADO.AVISO,
+      detalle: `La versión ${act.version} está descargada y esperando (tienes la ${act.versionInstalada}).`,
+      arreglo:
+        'Menú de la bandeja → "Reiniciar para actualizar". Si no lo haces, se instalará sola la próxima vez que cierres Skynet.',
+    }
+  }
+  if (act.fase === 'descargando') {
+    return { estado: ESTADO.PROBANDO, detalle: `Descargando la versión ${act.version}... ${act.detalle || ''}` }
+  }
+  if (act.fase === 'desactivado') {
+    return {
+      estado: ESTADO.AVISO,
+      detalle: `${act.detalle}. Este equipo no recibirá correcciones automáticamente.`,
+      arreglo: 'Quita "actualizaciones": false del config.json junto al ejecutable y reinicia Skynet.',
+    }
+  }
+  if (act.fase === 'error') {
+    return {
+      estado: ESTADO.AVISO,
+      detalle: `No se pudo consultar el servidor de actualizaciones: ${act.detalle}`,
+      arreglo:
+        'Suele ser falta de internet en el equipo. Si el resto de Skynet funciona, comprueba que /descargas/latest.yml esté publicado en el servidor.',
+    }
+  }
+  return { estado: ESTADO.OK, detalle: `Versión ${act.versionInstalada}, al día. Se revisa cada 6 horas.` }
+}
+
 export default function DiagnosticoPage() {
   const { usuario, cargando } = useAuth()
   const puente = puenteEscritorio()
@@ -208,6 +249,8 @@ export default function DiagnosticoPage() {
             'Abre el panel desde el menú de la bandeja e inicia sesión. La sesión dura 8 horas; después hay que repetirlo.',
         }
 
+  const actualizaciones = describirActualizaciones(info?.actualizaciones)
+
   return (
     <div className="mx-auto max-w-2xl p-6">
       <div className="mb-5 flex items-center justify-between">
@@ -276,6 +319,7 @@ export default function DiagnosticoPage() {
           }
           arreglo='Actívalo en el menú de la bandeja → "Arrancar con Windows".'
         />
+        <Fila nombre="Actualizaciones" {...actualizaciones} />
       </ul>
 
       {info && (

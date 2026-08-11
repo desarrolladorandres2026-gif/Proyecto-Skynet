@@ -9,9 +9,11 @@
     "dev": "cross-env SKYNET_URL=http://localhost:5173 electron .",
     "modelo": "node scripts/preparar-modelo.mjs",
     "preempaquetar": "node scripts/limpiar-build.mjs",
-    "empaquetar": "electron-builder --win"
+    "empaquetar": "electron-builder --win",
+    "publicar": "node scripts/publicar.mjs"
   },
   "_nota_dependencias": "vosk-browser NO va aquí: lo importa el panel web (frontend/src/escritorio/reconocedorVosk.js), que es quien corre dentro de esta ventana. Esta app solo aporta la bandeja, el atajo global y el acceso al archivo del modelo.",
+  "_nota_files": "node_modules va EXPLÍCITO en build.files. En cuanto se listan patrones propios dejan de incluirse solos, y sin él electron-updater no entra en el paquete: el .exe arranca, falla el require y se cierra sin decir nada. electron-builder ya descarta las devDependencies por su cuenta.",
   "devDependencies": {
     "cross-env": "^7.0.3",
     "electron": "^33.0.0",
@@ -20,10 +22,40 @@
   "build": {
     "appId": "co.gov.terminalneiva.skynet",
     "productName": "Skynet",
-    "directories": { "output": "../.exe" },
-    "files": ["src/**/*", "recursos/**/*", "package.json"],
-    "extraResources": [{ "from": "recursos", "to": "recursos" }],
-    "win": { "target": "nsis" },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
+    "directories": {
+      "output": "../instalable"
+    },
+    "files": [
+      "src/**/*",
+      "recursos/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "recursos",
+        "to": "recursos"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Skynet",
+      "createDesktopShortcut": true
+    },
+    "artifactName": "Skynet-Instalador-${version}.${ext}",
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://skynetttn.online/descargas/",
+        "channel": "latest"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }

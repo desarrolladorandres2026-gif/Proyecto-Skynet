@@ -1,6 +1,7 @@
 const path = require('node:path')
 const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, shell, nativeImage, Notification } = require('electron')
 const { config, rutaModelo, hayModelo, RUTA_CONFIG } = require('./config')
+const { iniciarActualizador, buscarAMano, instalarAhora, estadoActualizador } = require('./actualizador')
 
 // ── Por qué existe una app de escritorio ────────────────────────────────────
 // Una página web NO puede escuchar el micrófono cuando está cerrada. No es una
@@ -42,10 +43,20 @@ if (!app.requestSingleInstanceLock()) {
 
 function arrancar() {
   app.whenReady().then(() => {
+    // Fuera la barra "File / Edit / View / Window / Help" que Electron pone por
+    // defecto en toda ventana. No es de Skynet: viene en inglés, ofrece cosas
+    // que aquí no significan nada (Window, Help) y rompe la ilusión de que esto
+    // es el panel del Terminal y no un navegador disfrazado. Todo lo que la
+    // persona necesita está en la bandeja o dentro del propio panel.
+    Menu.setApplicationMenu(null)
+
     crearVentanaVoz()
     crearBandeja()
     registrarAtajo()
     aplicarAutoArranque()
+    // Después de la bandeja: el actualizador se comunica a través de ella
+    // (el ítem "Reiniciar para actualizar" aparece solo cuando hay una lista).
+    iniciarActualizador({ ajustes, notificar, alCambiar: refrescarBandeja })
   })
 
   // En Windows/Linux cerrar todas las ventanas termina la app por defecto. Aquí
@@ -104,12 +115,18 @@ function crearVentanaVoz() {
     alwaysOnTop: true,
     webPreferences: {
       ...preferenciasComunes(),
-      // LA opción que hace posible todo esto. Chromium ralentiza los
-      // temporizadores y suspende el trabajo de las ventanas que no están
-      // visibles — es exactamente lo que rompe el wake word en una pestaña de
-      // navegador en segundo plano. Desactivarlo mantiene el bucle de audio
-      // corriendo a velocidad normal con la ventana oculta.
-      backgroundThrottling: false,
+      // Chromium ralentiza los temporizadores y suspende el trabajo de las
+      // ventanas que no están visibles — es exactamente lo que rompe el wake
+      // word en una pestaña de navegador en segundo plano. Desactivarlo
+      // mantiene el bucle de audio corriendo a velocidad normal oculto.
+      //
+      // Pero SOLO cuando de verdad hay que escuchar. Desactivar el freno de
+      // Chromium en un equipo que nunca usa "Oye Skynet" es pagar el coste sin
+      // recibir nada: la ventana se queda a pleno rendimiento las 8 horas de
+      // la jornada, detrás de todo, sin nadie escuchando. Con el wake word
+      // apagado, el atajo global sigue funcionando igual — despierta la
+      // ventana antes de pedirle que escuche.
+      backgroundThrottling: ajustes.wakeWord === false ? true : false,
     },
   })
 
@@ -245,6 +262,9 @@ function refrescarBandeja() {
   if (!atajoRegistrado) problemas.push('atajo ocupado')
   if (ajustes.wakeWord && !hayModelo()) problemas.push('falta el modelo de voz')
 
+  const act = estadoActualizador()
+  if (act.fase === 'lista') problemas.push(`actualización ${act.version} lista`)
+
   bandeja.setToolTip(
     problemas.length ? `Skynet — ${problemas.join(', ')}` : `Skynet — ${ajustes.atajo} para hablar`
   )
@@ -275,6 +295,14 @@ function refrescarBandeja() {
         click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked, args: ['--oculto'] }),
       },
       { type: 'separator' },
+      // El ítem de reinicio solo existe cuando de verdad hay algo que aplicar.
+      // Un "Reiniciar para actualizar" siempre visible pero inerte enseña a
+      // ignorarlo, justo cuando aparezca la actualización que sí importa.
+      ...(act.fase === 'lista'
+        ? [{ label: `Reiniciar para actualizar  (${act.version})`, click: instalarAhora }]
+        : []),
+      { label: etiquetaActualizaciones(act), click: buscarAMano, enabled: act.fase !== 'descargando' },
+      { type: 'separator' },
       {
         label: 'Salir',
         click: () => {
@@ -284,6 +312,16 @@ function refrescarBandeja() {
       },
     ])
   )
+}
+
+// El menú es el único sitio donde se puede ver qué está haciendo el
+// actualizador: la app no tiene ventana propia y el panel es del frontend.
+function etiquetaActualizaciones(act) {
+  if (act.fase === 'descargando') return `Descargando ${act.version}...  ${act.detalle || ''}`.trim()
+  if (act.fase === 'lista') return `Versión ${act.versionInstalada} — actualización pendiente`
+  if (act.fase === 'desactivado') return `Versión ${act.versionInstalada} — actualizaciones apagadas`
+  if (act.fase === 'error') return `Versión ${act.versionInstalada} — buscar actualizaciones (falló)`
+  return `Versión ${act.versionInstalada} — buscar actualizaciones`
 }
 
 function aplicarAutoArranque() {
@@ -335,4 +373,6 @@ ipcMain.handle('skynet:diagnostico', () => ({
   rutaConfig: RUTA_CONFIG(),
   autoArranque: app.getLoginItemSettings().openAtLogin,
   estadoVoz,
+  actualizaciones: estadoActualizador(),
+  urlActualizaciones: ajustes.urlActualizaciones,
 }))

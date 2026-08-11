@@ -17,6 +17,18 @@ const { app } = require('electron')
 
 const RUTA_CONFIG = () => path.join(path.dirname(app.getPath('exe')), 'config.json')
 
+// Dónde vive Skynet en producción. El frontend llama al backend con rutas
+// relativas (`/api`, ver frontend/src/api/client.js), y nginx las enruta al
+// Express de PM2 en el 3001 (deploy/nginx/skynetttn.conf). Por eso esta única
+// URL es todo lo que la app necesita saber del servidor: apuntarla bien deja
+// funcionando panel, API, sesión y archivos a la vez.
+const URL_PRODUCCION = 'https://skynetttn.online'
+const URL_DESARROLLO = 'http://localhost:5173'
+
+// De dónde se bajan las actualizaciones. Es el mismo servidor, en una carpeta
+// que nginx sirve como estática (bloque `location /descargas/`).
+const URL_ACTUALIZACIONES = `${URL_PRODUCCION}/descargas/`
+
 function leerArchivo() {
   try {
     const crudo = fs.readFileSync(RUTA_CONFIG(), 'utf8')
@@ -36,8 +48,15 @@ function config() {
   if (cache) return cache
   const archivo = leerArchivo()
   cache = {
-    // De dónde se carga el panel. En producción, la URL del Skynet desplegado.
-    url: process.env.SKYNET_URL || archivo.url || 'http://localhost:5173',
+    // De dónde se carga el panel. El defecto depende de si la app está
+    // empaquetada, y no es un detalle: un .exe instalado en el equipo de un
+    // funcionario NO tiene un Vite corriendo en el 5173, así que si el defecto
+    // fuera el de desarrollo, cualquier instalación sin `config.json` al lado
+    // arrancaría contra la nada y se vería como "Skynet no abre".
+    url:
+      process.env.SKYNET_URL ||
+      archivo.url ||
+      (app.isPackaged ? URL_PRODUCCION : URL_DESARROLLO),
     // Atajo global. Formato de Electron (Accelerator).
     //
     // Ctrl+Shift+S y no algo más corto: los atajos globales se registran para
@@ -52,6 +71,12 @@ function config() {
     wakeWord: archivo.wakeWord === true,
     // Arrancar con Windows. También apagado por defecto.
     autoArranque: archivo.autoArranque === true,
+    // Actualizaciones automáticas. ENCENDIDO por defecto, al revés que el
+    // micrófono: aquí el riesgo está en NO actualizar (equipos rezagados con
+    // fallos ya corregidos), y quien administre un equipo suelto sin salida a
+    // internet puede apagarlo con `"actualizaciones": false`.
+    actualizaciones: archivo.actualizaciones !== false,
+    urlActualizaciones: archivo.urlActualizaciones || URL_ACTUALIZACIONES,
   }
   return cache
 }
@@ -69,4 +94,4 @@ function hayModelo() {
   return fs.existsSync(rutaModelo())
 }
 
-module.exports = { config, rutaModelo, hayModelo, RUTA_CONFIG }
+module.exports = { config, rutaModelo, hayModelo, RUTA_CONFIG, URL_PRODUCCION }
