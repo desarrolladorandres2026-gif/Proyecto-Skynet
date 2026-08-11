@@ -1,38 +1,48 @@
 import { useState } from 'react'
-import { DatabaseBackup, Download } from 'lucide-react'
-import { backup as backupApi } from '../../api/backup.js'
+import { DatabaseBackup, FileArchive, Trash2 } from 'lucide-react'
 import { Btn, Card, ErrorMsg, OkMsg } from '../../components/ui.jsx'
+import BackupPersonalizadoPanel from './BackupPersonalizadoPanel.jsx'
+import PurgaHistoricoModal from './PurgaHistoricoModal.jsx'
+import { descargarPdfsRequerimientosFinalizados } from '../../pdf/backupPdfsRequerimientos.js'
 
 export default function BackupPage() {
-  const [generando, setGenerando] = useState(false)
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
+  const [mesesModal, setMesesModal] = useState(null)
+  const [generandoPdfs, setGenerandoPdfs] = useState(false)
+  const [progresoPdfs, setProgresoPdfs] = useState(null)
 
-  async function generar() {
-    setGenerando(true)
+  async function descargarPdfs() {
+    setGenerandoPdfs(true)
     setError('')
     setOk('')
+    setProgresoPdfs(null)
     try {
-      const { blob, nombre } = await backupApi.exportar()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = nombre
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-      setOk('Backup generado y descargado correctamente.')
+      const { total } = await descargarPdfsRequerimientosFinalizados({
+        onProgreso: (hecho, deTotal) => setProgresoPdfs({ hecho, total: deTotal }),
+      })
+      setOk(
+        total === 0
+          ? 'No hay requerimientos aprobados y despachados todavía.'
+          : `Se descargaron ${total} PDF(s) en un .zip.`
+      )
     } catch (err) {
       setError(err.message)
     } finally {
-      setGenerando(false)
+      setGenerandoPdfs(false)
+      setProgresoPdfs(null)
     }
   }
 
+  function alEliminar(resultado) {
+    const total = resultado.resultados.reduce((acc, r) => acc + r.eliminados, 0)
+    setOk(`Se eliminaron ${total} registro(s) anteriores al ${new Date(resultado.corte).toLocaleDateString('es-CO')}.`)
+    setError('')
+  }
+
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="mb-6 flex items-center gap-3">
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mb-2 flex items-center gap-3">
         <DatabaseBackup className="h-6 w-6 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
         <div>
           <h1 className="panel-mono text-xl font-semibold tracking-wide text-slate-900 dark:text-white">Copia de seguridad</h1>
@@ -41,30 +51,57 @@ export default function BackupPage() {
       </div>
 
       <Card>
-        <p className="text-sm text-slate-600 dark:text-slate-300">
-          Genera un archivo Excel con toda la información de la plataforma (usuarios, roles, requerimientos,
-          reportes de daños, ausencias, mantenimiento, auditoría y más), organizada en una hoja por colección.
-        </p>
-        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-          No hay backups automáticos ni programados: tú decides cuándo generarlo. Los registros de{' '}
-          <strong>Auditoría</strong> se eliminan solos pasados unos meses (ver módulo Sistema), así que conviene
-          descargar un backup de vez en cuando para no perder ese historial.
-        </p>
-        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-          Por seguridad, el archivo nunca incluye contraseñas ni credenciales — solo información de negocio.
-          Guárdalo en un lugar de confianza: contiene datos personales de todo el personal.
-        </p>
+        <BackupPersonalizadoPanel />
+      </Card>
 
-        <ErrorMsg>{error}</ErrorMsg>
-        <OkMsg>{ok}</OkMsg>
+      <ErrorMsg>{error}</ErrorMsg>
+      <OkMsg>{ok}</OkMsg>
 
-        <div className="mt-5">
-          <Btn onClick={generar} disabled={generando} className="flex items-center gap-2">
-            <Download className="h-4 w-4" aria-hidden="true" />
-            {generando ? 'Generando backup…' : 'Generar y descargar backup'}
+      <Card>
+        <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">PDFs de Requerimientos</h2>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+          Descarga en un solo .zip el PDF de cada requerimiento ya <strong>aprobado por Financiero y despachado
+          por Bodega</strong> — el registro final del trámite. No incluye los pendientes, rechazados ni los que
+          Bodega marcó "no se puede despachar", porque esos documentos todavía pueden cambiar.
+        </p>
+        <div className="mt-4">
+          <Btn onClick={descargarPdfs} disabled={generandoPdfs} className="flex items-center gap-2">
+            <FileArchive className="h-4 w-4" aria-hidden="true" />
+            {generandoPdfs
+              ? progresoPdfs
+                ? `Generando PDF ${progresoPdfs.hecho} de ${progresoPdfs.total}…`
+                : 'Buscando requerimientos…'
+              : 'Descargar PDFs (.zip)'}
           </Btn>
         </div>
       </Card>
+
+      <Card>
+        <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Depurar histórico</h2>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+          Para no saturar la plataforma, puedes eliminar el historial más viejo de Requerimientos, Reportes de
+          daños, Ausencias, Auditoría, Órdenes de mantenimiento, Movimientos de inventario y Bitácora de
+          entradas. Primero se descarga un Excel de rescate solo con lo que se va a borrar, y luego pides
+          confirmación con tu contraseña. Usuarios, roles y catálogos nunca se tocan.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Btn variante="peligro" onClick={() => setMesesModal(6)} className="flex items-center gap-2">
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            Rescatar y eliminar (6 meses)
+          </Btn>
+          <Btn variante="peligro" onClick={() => setMesesModal(12)} className="flex items-center gap-2">
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            Rescatar y eliminar (1 año)
+          </Btn>
+        </div>
+      </Card>
+
+      <PurgaHistoricoModal
+        abierto={mesesModal !== null}
+        meses={mesesModal}
+        onCerrar={() => setMesesModal(null)}
+        onEliminado={alEliminar}
+      />
     </div>
   )
 }

@@ -4,13 +4,16 @@ import cookieParser from 'cookie-parser'
 import request from 'supertest'
 import jwt from 'jsonwebtoken'
 import ExcelJS from 'exceljs'
+import JSZip from 'jszip'
 
 import { env } from '../src/config/env.js'
 import Usuario from '../src/models/Usuario.js'
 import Rol from '../src/models/Rol.js'
 import RegistroAuditoria from '../src/models/RegistroAuditoria.js'
+import ReporteDano from '../src/models/ReporteDano.js'
 import '../src/models/Permiso.js'
 import backupRoutes from '../src/modules/backup/backup.routes.js'
+import { generarBackup } from '../src/modules/backup/backup.service.js'
 import { notFoundHandler, errorHandler } from '../src/middleware/errorHandler.js'
 import { hashPassword } from '../src/utils/password.js'
 
@@ -65,6 +68,15 @@ describe('Backup — control de acceso', () => {
     expect(res.status).toBe(403)
   })
 })
+
+function descargarBinario(req) {
+  return req.buffer().parse((response, callback) => {
+    response.setEncoding('binary')
+    let data = ''
+    response.on('data', (chunk) => { data += chunk })
+    response.on('end', () => callback(null, Buffer.from(data, 'binary')))
+  })
+}
 
 describe('Backup — generación del Excel', () => {
   let admin
@@ -137,5 +149,139 @@ describe('Backup — generación del Excel', () => {
     const registro = await RegistroAuditoria.findOne({ modulo: 'backup', accion: 'generar_backup' })
     expect(registro).not.toBeNull()
     expect(registro.usuarioNombre).toBe('admin')
+  })
+})
+
+describe('Backup — catálogo de colecciones', () => {
+  it('lista las colecciones disponibles para el panel de personalización', async () => {
+    const rolAdmin = await crearRol({ esSuperAdmin: true })
+    const admin = await crearUsuario(rolAdmin, { nombre_usuario: 'admin', email: 'admin@example.com' })
+    const res = await request(app).get('/api/backup/colecciones').set('Authorization', `Bearer ${token(admin)}`)
+
+    expect(res.status).toBe(200)
+    const usuarios = res.body.colecciones.find((c) => c.clave === 'usuarios')
+    expect(usuarios).toEqual({ clave: 'usuarios', hoja: 'Usuarios', filtrablePorFecha: false })
+    const requerimientos = res.body.colecciones.find((c) => c.clave === 'requerimientos')
+    expect(requerimientos.filtrablePorFecha).toBe(true)
+  })
+})
+
+// A nivel de servicio (no HTTP): backupLimiter permite solo 5 peticiones por
+// hora y este archivo ya consume parte de ese cupo en "control de acceso" y
+// "generación del Excel" — probar cada combinación de colecciones/rango/
+// formato vía supertest agotaría el límite real y estas pruebas empezarían a
+// fallar con 429 en vez de validar la lógica. generarBackup() es la misma
+// función que usa el controller, así que cubre exactamente lo mismo sin
+// pasar por el rate limiter.
+describe('Backup — panel de personalización (colecciones, rango, formato)', () => {
+  let admin
+  let usuarioActor
+
+  beforeEach(async () => {
+    const rolAdmin = await crearRol({ esSuperAdmin: true })
+    admin = await crearUsuario(rolAdmin, { nombre_usuario: 'admin', email: 'admin@example.com' })
+    usuarioActor = { id_usuario: admin._id, nombre_usuario: admin.nombre_usuario }
+
+    await ReporteDano.create({
+      tipo: 'dano',
+      fecha: new Date('2025-01-15'),
+      descripcion: 'Reporte fuera de rango',
+      reportadoPor: admin._id,
+    })
+    await ReporteDano.create({
+      tipo: 'dano',
+      fecha: new Date('2026-06-15'),
+      descripcion: 'Reporte dentro de rango',
+      reportadoPor: admin._id,
+    })
+  })
+
+  it('rechaza una clave de colección desconocida', async () => {
+    await expect(generarBackup({ colecciones: 'usuarios,coleccion-inventada' }, usuarioActor)).rejects.toThrow()
+  })
+
+  it('rechaza un formato desconocido', async () => {
+    await expect(generarBackup({ formato: 'pdf' }, usuarioActor)).rejects.toThrow()
+  })
+
+  it('rechaza "desde" posterior a "hasta"', async () => {
+    await expect(
+      generarBackup({ desde: '2026-06-01', hasta: '2026-01-01' }, usuarioActor)
+    ).rejects.toThrow()
+  })
+
+  it('exporta solo las colecciones seleccionadas', async () => {
+    const { buffer } = await generarBackup({ colecciones: 'usuarios' }, usuarioActor)
+    const workbook = new ExcelJS.Workbook()
+    await workbook.xlsx.load(buffer)
+
+    expect(workbook.getWorksheet('Usuarios')).toBeDefined()
+    expect(workbook.getWorksheet('Roles')).toBeUndefined()
+    expect(workbook.getWorksheet('Reportes de daños')).toBeUndefined()
+  })
+
+  it('el rango de fechas filtra las colecciones con campoFecha, pero no las que no lo tienen', async () => {
+    const { buffer } = await generarBackup(
+      { colecciones: 'danos,usuarios', desde: '2026-01-01', hasta: '2026-12-31' },
+      usuarioActor
+    )
+    const workbook = new ExcelJS.Workbook()
+    await workbook.xlsx.load(buffer)
+
+    const hojaDanos = workbook.getWorksheet('Reportes de daños')
+    // fila 1 = encabezado, fila 2 = único registro dentro del rango
+    expect(hojaDanos.rowCount).toBe(2)
+    const colDescripcion = hojaDanos.getRow(1).values.indexOf('descripcion')
+    expect(hojaDanos.getRow(2).getCell(colDescripcion).value).toBe('Reporte dentro de rango')
+
+    // Usuarios no tiene campoFecha: el rango no le aplica, sigue completo.
+    const hojaUsuarios = workbook.getWorksheet('Usuarios')
+    expect(hojaUsuarios.rowCount).toBeGreaterThanOrEqual(2)
+  })
+
+  it('formato csv devuelve un .zip con un .csv por colección seleccionada', async () => {
+    const { buffer, contentType, extension } = await generarBackup(
+      { colecciones: 'usuarios,roles', formato: 'csv' },
+      usuarioActor
+    )
+    expect(contentType).toBe('application/zip')
+    expect(extension).toBe('zip')
+
+    const zip = await JSZip.loadAsync(buffer)
+    expect(Object.keys(zip.files).sort()).toEqual(['roles.csv', 'usuarios.csv'])
+    const contenidoUsuarios = await zip.files['usuarios.csv'].async('string')
+    expect(contenidoUsuarios).toContain('nombre_usuario')
+    expect(contenidoUsuarios).not.toContain('password')
+  })
+
+  it('formato json devuelve un objeto con una clave por colección, referencias resueltas', async () => {
+    const { buffer, contentType } = await generarBackup(
+      { colecciones: 'usuarios,roles', formato: 'json' },
+      usuarioActor
+    )
+    expect(contentType).toBe('application/json')
+
+    const cuerpo = JSON.parse(buffer.toString('utf-8'))
+    expect(Array.isArray(cuerpo.usuarios)).toBe(true)
+    expect(Array.isArray(cuerpo.roles)).toBe(true)
+    expect(cuerpo.usuarios.every((u) => !('password' in u))).toBe(true)
+
+    const filaAdmin = cuerpo.usuarios.find((u) => u.nombre_usuario === 'admin')
+    const rolDoc = await Rol.findById(admin.rol)
+    expect(filaAdmin.rol).toBe(rolDoc.nombre)
+  })
+
+  it('la petición HTTP real también respeta colecciones/formato (una sola llamada, deja cupo al rate limiter)', async () => {
+    const rolOtro = await crearRol({ esSuperAdmin: true })
+    const otroAdmin = await crearUsuario(rolOtro, { nombre_usuario: 'admin2', email: 'admin2@example.com' })
+    const res = await descargarBinario(
+      request(app)
+        .get('/api/backup/exportar?colecciones=usuarios&formato=xlsx')
+        .set('Authorization', `Bearer ${token(otroAdmin)}`)
+    )
+    const workbook = new ExcelJS.Workbook()
+    await workbook.xlsx.load(res.body)
+    expect(workbook.getWorksheet('Usuarios')).toBeDefined()
+    expect(workbook.getWorksheet('Roles')).toBeUndefined()
   })
 })

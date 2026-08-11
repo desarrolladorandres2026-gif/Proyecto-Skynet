@@ -31,28 +31,42 @@ import ArticuloConocimiento from '../../models/mantenimiento/ArticuloConocimient
 //
 // `camposExcluir`: nunca deben viajar en un archivo que puede terminar en el
 // disco de una laptop — hashes de contraseña y tokens/credenciales cifradas.
+//
+// `campoFecha`: marca las colecciones PURGABLES por antigüedad (ver
+// purga.service.js) — deliberadamente solo datos históricos/transaccionales
+// que se acumulan con el tiempo. Los catálogos e identidades (Usuarios,
+// Roles, Permisos, Equipos, Marcas, Plantillas, Cuentas de correo, Módulos)
+// NUNCA llevan `campoFecha`: no tienen noción de "viejo = descartable", y
+// purgarlos por fecha borraría cuentas activas o catálogos en uso.
+// `clave`: identificador estable para que el frontend seleccione colecciones
+// por checkbox (backup.routes.js::GET /colecciones) sin depender del texto
+// de `hoja`, que es para mostrar, no para referenciar.
 export const COLECCIONES_BACKUP = [
-  { modelo: Usuario, hoja: 'Usuarios', camposExcluir: ['password'] },
-  { modelo: Rol, hoja: 'Roles' },
-  { modelo: Permiso, hoja: 'Permisos' },
-  { modelo: ModuloSistema, hoja: 'Módulos del sistema' },
-  { modelo: Ausencia, hoja: 'Ausencias' },
-  { modelo: ReporteDano, hoja: 'Reportes de daños' },
-  { modelo: Requerimiento, hoja: 'Requerimientos' },
+  { clave: 'usuarios', modelo: Usuario, hoja: 'Usuarios', camposExcluir: ['password'] },
+  { clave: 'roles', modelo: Rol, hoja: 'Roles' },
+  { clave: 'permisos', modelo: Permiso, hoja: 'Permisos' },
+  { clave: 'modulos', modelo: ModuloSistema, hoja: 'Módulos del sistema' },
+  { clave: 'ausencias', modelo: Ausencia, hoja: 'Ausencias', campoFecha: 'fechaInicio' },
+  { clave: 'danos', modelo: ReporteDano, hoja: 'Reportes de daños', campoFecha: 'fecha' },
+  { clave: 'requerimientos', modelo: Requerimiento, hoja: 'Requerimientos', campoFecha: 'fechaSolicitud' },
   // La razón de ser de este módulo: RegistroAuditoria se purga solo cada
   // AUDITORIA_RETENCION_MESES (3 por defecto, ver auditoria.worker.js) — sin
-  // backup, esos registros desaparecen para siempre pasado ese plazo.
-  { modelo: RegistroAuditoria, hoja: 'Auditoría' },
-  { modelo: EmailCuenta, hoja: 'Cuentas de correo', camposExcluir: ['refreshTokenCifrado'] },
-  { modelo: Equipo, hoja: 'Equipos' },
-  { modelo: TipoEquipo, hoja: 'Tipos de equipo' },
-  { modelo: Marca, hoja: 'Marcas' },
-  { modelo: Mantenimiento, hoja: 'Órdenes de mantenimiento' },
-  { modelo: Hallazgo, hoja: 'Hallazgos' },
-  { modelo: BitacoraEntrada, hoja: 'Bitácora de entradas' },
-  { modelo: InventarioMaterial, hoja: 'Inventario de materiales' },
-  { modelo: MovimientoInventario, hoja: 'Movimientos de inventario' },
-  { modelo: PlantillaMantenimiento, hoja: 'Plantillas de mantenimiento' },
-  { modelo: ConfiguracionSLA, hoja: 'Configuración SLA' },
-  { modelo: ArticuloConocimiento, hoja: 'Base de conocimiento' },
+  // backup, esos registros desaparecen para siempre pasado ese plazo. Se deja
+  // también purgable a mano (6/12 meses) por si el Super Admin quiere
+  // depurarla antes de que corra el worker automático.
+  { clave: 'auditoria', modelo: RegistroAuditoria, hoja: 'Auditoría', campoFecha: 'creadoEn' },
+  { clave: 'cuentas_correo', modelo: EmailCuenta, hoja: 'Cuentas de correo', camposExcluir: ['refreshTokenCifrado'] },
+  { clave: 'equipos', modelo: Equipo, hoja: 'Equipos' },
+  { clave: 'tipos_equipo', modelo: TipoEquipo, hoja: 'Tipos de equipo' },
+  { clave: 'marcas', modelo: Marca, hoja: 'Marcas' },
+  { clave: 'mantenimiento', modelo: Mantenimiento, hoja: 'Órdenes de mantenimiento', campoFecha: 'creado_en' },
+  { clave: 'hallazgos', modelo: Hallazgo, hoja: 'Hallazgos' },
+  { clave: 'bitacora', modelo: BitacoraEntrada, hoja: 'Bitácora de entradas', campoFecha: 'creado_en' },
+  { clave: 'inventario', modelo: InventarioMaterial, hoja: 'Inventario de materiales' },
+  { clave: 'movimientos_inventario', modelo: MovimientoInventario, hoja: 'Movimientos de inventario', campoFecha: 'creado_en' },
+  { clave: 'plantillas', modelo: PlantillaMantenimiento, hoja: 'Plantillas de mantenimiento' },
+  { clave: 'configuracion_sla', modelo: ConfiguracionSLA, hoja: 'Configuración SLA' },
+  { clave: 'base_conocimiento', modelo: ArticuloConocimiento, hoja: 'Base de conocimiento' },
 ]
+
+export const COLECCIONES_PURGABLES = COLECCIONES_BACKUP.filter((c) => c.campoFecha)

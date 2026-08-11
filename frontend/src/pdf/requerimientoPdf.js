@@ -333,9 +333,16 @@ async function dibujarBloquesFirma(pdf, req, yInicial) {
   }
 }
 
-// Única función de generación (no hay un generador por tipo): la invocan
-// tanto RequerimientoDetallePage como BandejaBodegaPage.
-export async function generarPdfRequerimiento(req) {
+export function nombreArchivoPdfRequerimiento(req) {
+  const codigo = FORMATOS[req.tipo].codigo
+  return `${codigo}_${String(req._id || '').slice(-6)}.pdf`
+}
+
+// Construye el documento sin guardarlo — separado de generarPdfRequerimiento
+// para que el backup masivo (BackupPage.jsx, descarga en lote de PDFs ya
+// aprobados+despachados) pueda meter el mismo PDF en un .zip en vez de
+// disparar N descargas individuales del navegador.
+export async function construirPdfRequerimiento(req) {
   const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
   let y = await dibujarEncabezado(pdf, req.tipo)
   y = encabezadoSolicitante(pdf, req, y)
@@ -348,7 +355,12 @@ export async function generarPdfRequerimiento(req) {
   }
 
   await dibujarBloquesFirma(pdf, req, y)
+  return pdf
+}
 
-  const codigo = FORMATOS[req.tipo].codigo
-  pdf.save(`${codigo}_${String(req._id || '').slice(-6)}.pdf`)
+// Única función de descarga directa (no hay un generador por tipo): la
+// invocan tanto RequerimientoDetallePage como BandejaBodegaPage.
+export async function generarPdfRequerimiento(req) {
+  const pdf = await construirPdfRequerimiento(req)
+  pdf.save(nombreArchivoPdfRequerimiento(req))
 }
