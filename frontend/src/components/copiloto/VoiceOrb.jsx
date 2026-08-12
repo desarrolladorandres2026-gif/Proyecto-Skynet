@@ -310,17 +310,23 @@ export function VoiceOrb({
 
         {/* CAPA 1: Anillo Exterior. Gira por CSS en reposo y por ref (ring1Ref)
             cuando el orbe está reaccionando a algo. */}
-        <g ref={ring1Ref} className="origin-center" style={giroCSS(9.4, false)}>
-          <circle
-            cx="200"
-            cy="200"
-            r="176"
-            fill="none"
-            className={colorBorde}
-            strokeWidth={state === 'SPEAKING' ? 7 : state === 'PROCESSING' ? 6 : 4}
-            style={{ filter: 'url(#orbGlow)' }}
-          />
+        {/* El aro exterior va FUERA del grupo que gira, a propósito.
+            Es una circunferencia perfecta: rotarla no cambia un solo píxel,
+            pero lleva encima el filtro gaussiano `#orbGlow`, y un filtro SVG
+            dentro de un elemento en movimiento obliga al navegador a
+            recalcular el desenfoque en cada fotograma. Sacándolo, el
+            resultado se dibuja una vez y se reutiliza. */}
+        <circle
+          cx="200"
+          cy="200"
+          r="176"
+          fill="none"
+          className={colorBorde}
+          strokeWidth={state === 'SPEAKING' ? 7 : state === 'PROCESSING' ? 6 : 4}
+          style={{ filter: 'url(#orbGlow)' }}
+        />
 
+        <g ref={ring1Ref} className="origin-center" style={giroCSS(9.4, false)}>
           {/* Arcos de latitud / longitud de la esfera */}
           <ellipse
             cx="200"

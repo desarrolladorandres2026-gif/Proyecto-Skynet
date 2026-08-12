@@ -126,7 +126,7 @@ function crearVentanaVoz() {
       // la jornada, detrás de todo, sin nadie escuchando. Con el wake word
       // apagado, el atajo global sigue funcionando igual — despierta la
       // ventana antes de pedirle que escuche.
-      backgroundThrottling: ajustes.wakeWord === false ? true : false,
+      backgroundThrottling: !ajustes.wakeWord,
     },
   })
 
@@ -202,6 +202,14 @@ function mostrarPanel(ruta = '/') {
     shell.openExternal(url)
     return { action: 'deny' }
   })
+}
+
+// Escuchar de continuo obliga a mantener la ventana oculta a pleno
+// rendimiento; no escuchar no. Este es el interruptor de esa diferencia, y se
+// llama tanto al arrancar como cuando se cambia el wake word desde la bandeja.
+function aplicarFrenoDeFondo(escuchando) {
+  if (!ventanaVoz || ventanaVoz.isDestroyed()) return
+  ventanaVoz.webContents.setBackgroundThrottling(!escuchando)
 }
 
 // ── Atajo global ────────────────────────────────────────────────────────────
@@ -284,6 +292,10 @@ function refrescarBandeja() {
         // equipo, no de la app. Si se quiere permanente, se pone allí.
         click: (item) => {
           ajustes.wakeWord = item.checked
+          // El freno de Chromium se decide al crear la ventana, así que si no
+          // se ajusta aquí, encender el wake word desde la bandeja daría una
+          // escucha que se duerme sola en cuanto se oculta el orbe.
+          aplicarFrenoDeFondo(item.checked)
           ventanaVoz?.webContents.send('skynet:wake-word', item.checked)
           refrescarBandeja()
         },
