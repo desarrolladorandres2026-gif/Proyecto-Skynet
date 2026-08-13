@@ -56,10 +56,9 @@ describe('LoginPage - Efecto de verificación y acceso', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /iniciar sesión/i }))
 
-    // Verifica que se muestre la secuencia épica de acceso concedido
     await waitFor(() => {
       expect(screen.getByText(/ACCESO CONCEDIDO/i)).toBeInTheDocument()
-      expect(screen.getByText(/SKYNET PROTOCOL ONLINE/i)).toBeInTheDocument()
+      expect(screen.getByText(/SKYNET ONLINE/i)).toBeInTheDocument()
       expect(screen.getByText(/admin_skynet/i)).toBeInTheDocument()
     })
   })

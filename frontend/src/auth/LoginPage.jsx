@@ -1,11 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext.jsx'
-import {
-  playVerifySound,
-  playAccessGrantedSound,
-  playAccessDeniedSound,
-} from '../utils/cyberAudio.js'
 import './login.css'
 
 export default function LoginPage() {
@@ -27,13 +22,13 @@ export default function LoginPage() {
   )
   if (sesionInvalidada) sessionStorage.removeItem('skynet_sesion_invalidada')
 
-  // Telemetría animada durante el proceso de verificación
+  // Telemetría animada rápida durante verificación
   useEffect(() => {
     if (fase === 'verificando') {
       setTelemetriaPaso(1)
       intervalRef.current = setInterval(() => {
         setTelemetriaPaso((prev) => (prev < 3 ? prev + 1 : prev))
-      }, 350)
+      }, 250)
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
@@ -42,12 +37,12 @@ export default function LoginPage() {
     }
   }, [fase])
 
-  // Temporizadores independientes por cada fase para asegurar la navegación fluida
+  // Temporizadores optimizados: rápidos, fluidos y sin trabas
   useEffect(() => {
     if (fase === 'concedido') {
       const tConcedido = setTimeout(() => {
         setFase('entrando')
-      }, 1200)
+      }, 750)
 
       return () => clearTimeout(tConcedido)
     }
@@ -55,7 +50,7 @@ export default function LoginPage() {
     if (fase === 'entrando') {
       const tEntrando = setTimeout(() => {
         navigate('/', { replace: true })
-      }, 350)
+      }, 200)
 
       return () => clearTimeout(tEntrando)
     }
@@ -72,15 +67,12 @@ export default function LoginPage() {
 
     setError('')
     setFase('verificando')
-    playVerifySound()
 
     try {
       const resUsuario = await login(email, password)
       setUsuarioData(resUsuario)
-      playAccessGrantedSound()
       setFase('concedido')
     } catch (err) {
-      playAccessDeniedSound()
       setError(err.message || 'No se pudo iniciar sesión. Verifica tus credenciales.')
       setFase('idle')
     }
@@ -96,37 +88,21 @@ export default function LoginPage() {
         if (enSecuencia) navigate('/', { replace: true })
       }}
     >
-      {/* Flash del portal cuántico de transición final */}
+      {/* Transición suave al entrar */}
       {fase === 'entrando' && <div className="skynet-portal-flash" aria-hidden="true" />}
 
-      {/* Rayos cuánticos de hipervelocidad durante acceso concedido */}
-      {enSecuencia && (
-        <div className="skynet-warp-tunnel" aria-hidden="true">
-          {Array.from({ length: 16 }).map((_, i) => (
-            <div
-              key={i}
-              className="skynet-warp-ray"
-              style={{
-                '--angle': `${i * 22.5}deg`,
-                animationDelay: `${(i % 4) * 0.15}s`,
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Fondo tipo HUD: grid táctico + líneas de escaneo */}
+      {/* Fondo tipo HUD: grid táctico optimizado */}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <div className={`skynet-grid absolute inset-0 ${enSecuencia ? 'skynet-grid-warp' : ''}`} />
         <div className="skynet-scanline absolute inset-x-0 h-40" />
         <div className={`skynet-glow absolute left-1/2 top-1/2 ${enSecuencia ? 'skynet-glow-active' : ''}`} />
       </div>
 
-      {/* Onda expansiva (Shockwave) al autorizar acceso */}
+      {/* Onda expansiva ligera al autorizar */}
       {enSecuencia && <div className="skynet-shockwave" aria-hidden="true" />}
 
       <div
-        className={`skynet-card relative w-full max-w-md p-8 ${
+        className={`skynet-card relative w-full max-w-md p-6 sm:p-8 ${
           fase === 'verificando'
             ? 'skynet-card-verificando'
             : enSecuencia
@@ -137,7 +113,7 @@ export default function LoginPage() {
         {/* Haz de escaneo láser activo durante la verificación */}
         {fase === 'verificando' && <div className="skynet-scan-beam" aria-hidden="true" />}
 
-        {/* Corner brackets: firma visual del diseño táctico */}
+        {/* Corner brackets */}
         <span className="skynet-bracket skynet-bracket--tl" aria-hidden="true" />
         <span className="skynet-bracket skynet-bracket--tr" aria-hidden="true" />
         <span className="skynet-bracket skynet-bracket--bl" aria-hidden="true" />
@@ -145,59 +121,58 @@ export default function LoginPage() {
 
         {enSecuencia ? (
           /* =========================================================
-             SECUENCIA ÉPICA: ACCESO CONCEDIDO / BIOMETRIC HUD RETICLE
+             SECUENCIA ÉPICA LIGERA: ACCESO CONCEDIDO
              ========================================================= */
           <div className="py-2 text-center cursor-pointer select-none">
-            {/* Retícula holográfica de autenticación */}
+            {/* Retícula holográfica fluida */}
             <div className="skynet-hud-reticle">
               <div className="skynet-ring-outer" />
               <div className="skynet-ring-mid" />
               <div className="skynet-ring-inner">
                 <svg
-                  className="h-9 w-9 text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.8)]"
+                  className="h-8 w-8 text-emerald-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
-                  strokeWidth={2.4}
+                  strokeWidth={2.5}
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <div className="skynet-radar-sweep" />
             </div>
 
-            <p className="skynet-mono text-[11px] font-semibold tracking-[0.35em] text-emerald-400">
-              AUTORIZACIÓN NIVEL 1 · ACCESO CONCEDIDO
+            <p className="skynet-mono text-[11px] font-semibold tracking-[0.3em] text-emerald-400">
+              ACCESO CONCEDIDO
             </p>
 
-            <h2 className="skynet-title skynet-granted-text my-2 text-2xl text-white">
-              SKYNET PROTOCOL ONLINE
+            <h2 className="skynet-title skynet-granted-text my-2 text-xl sm:text-2xl text-white">
+              SKYNET ONLINE
             </h2>
 
-            <div className="my-5 rounded border border-cyan-500/30 bg-cyan-950/40 p-3.5 text-left backdrop-blur">
-              <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2 text-[11px]">
+            <div className="my-4 rounded border border-cyan-500/30 bg-cyan-950/40 p-3 text-left">
+              <div className="flex items-center justify-between border-b border-cyan-500/20 pb-1.5 text-[11px]">
                 <span className="skynet-mono text-cyan-400/70">OPERADOR:</span>
                 <span className="skynet-mono font-bold text-white">
                   {usuarioData?.nombre_usuario || usuarioData?.nombre || email.split('@')[0]}
                 </span>
               </div>
-              <div className="flex items-center justify-between border-b border-cyan-500/20 py-2 text-[11px]">
+              <div className="flex items-center justify-between border-b border-cyan-500/20 py-1.5 text-[11px]">
                 <span className="skynet-mono text-cyan-400/70">CLEARANCE:</span>
                 <span className="skynet-mono text-emerald-400">
                   {usuarioData?.rol?.nombre || usuarioData?.rol?.slug || 'AUTORIZADO'}
                 </span>
               </div>
-              <div className="flex items-center justify-between pt-2 text-[11px]">
-                <span className="skynet-mono text-cyan-400/70">ESTADO DEL ENLACE:</span>
-                <span className="skynet-mono animate-pulse text-cyan-300">100% SINCRONIZADO</span>
+              <div className="flex items-center justify-between pt-1.5 text-[11px]">
+                <span className="skynet-mono text-cyan-400/70">ESTADO:</span>
+                <span className="skynet-mono text-cyan-300">SINCRONIZADO</span>
               </div>
             </div>
 
-            {/* Barra de progreso de entrada cuántica */}
-            <div className="space-y-1.5">
+            {/* Barra de progreso rápida */}
+            <div className="space-y-1">
               <div className="flex justify-between text-[10px] tracking-widest text-cyan-400/80">
-                <span className="skynet-mono">INICIALIZANDO SUBSISTEMAS</span>
-                <span className="skynet-mono">LISTO</span>
+                <span className="skynet-mono">INICIALIZANDO</span>
+                <span className="skynet-mono">100%</span>
               </div>
               <div className="skynet-progress-track">
                 <div className="skynet-progress-fill" />
@@ -206,20 +181,20 @@ export default function LoginPage() {
           </div>
         ) : (
           /* =========================================================
-             FORMULARIO PRINCIPAL DE LOGIN CON TELEMETRÍA TÁCTICA
+             FORMULARIO PRINCIPAL DE LOGIN
              ========================================================= */
           <>
-            <div className="mb-7 text-center">
+            <div className="mb-6 text-center">
               <p className="skynet-mono mb-2 text-[11px] tracking-[0.35em] text-cyan-400/70">
                 SISTEMA · ACCESO RESTRINGIDO
               </p>
               <h1 className="skynet-title skynet-title-glitch text-3xl text-white">SKYNET</h1>
               <p className="skynet-mono mt-2 text-xs text-slate-400">
-                &gt; autenticación requerida para continuar_
+                &gt; autenticación requerida_
               </p>
             </div>
 
-            <form onSubmit={onSubmit} className="space-y-5">
+            <form onSubmit={onSubmit} className="space-y-4">
               <div className="skynet-field">
                 <label
                   htmlFor="email"
@@ -228,10 +203,6 @@ export default function LoginPage() {
                   CORREO
                 </label>
                 <div className="skynet-input-frame">
-                  <div className="skynet-input-glow" aria-hidden="true" />
-                  <div className="skynet-input-dark-bg" aria-hidden="true" />
-                  <div className="skynet-input-white" aria-hidden="true" />
-                  <div className="skynet-input-border" aria-hidden="true" />
                   <span className="skynet-input-icon" aria-hidden="true">
                     <svg
                       width={16}
@@ -269,10 +240,6 @@ export default function LoginPage() {
                   CONTRASEÑA
                 </label>
                 <div className="skynet-input-frame">
-                  <div className="skynet-input-glow" aria-hidden="true" />
-                  <div className="skynet-input-dark-bg" aria-hidden="true" />
-                  <div className="skynet-input-white" aria-hidden="true" />
-                  <div className="skynet-input-border" aria-hidden="true" />
                   <span className="skynet-input-icon" aria-hidden="true">
                     <svg
                       width={16}
@@ -302,23 +269,23 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Registro de telemetría en tiempo real durante la verificación */}
+              {/* Registro de telemetría ligero */}
               {fase === 'verificando' && (
-                <div className="space-y-1 rounded border border-cyan-500/20 bg-cyan-950/20 p-2.5 text-[10px] text-cyan-300">
+                <div className="space-y-1 rounded border border-cyan-500/20 bg-cyan-950/30 p-2 text-[10px] text-cyan-300">
                   <div className="skynet-terminal-line skynet-mono text-cyan-400">
                     <span className="inline-block h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />
-                    <span>[01] INICIANDO HANDSHAKE CRIPTOGRÁFICO...</span>
+                    <span>[01] INICIANDO HANDSHAKE...</span>
                   </div>
                   {telemetriaPaso >= 2 && (
                     <div className="skynet-terminal-line skynet-mono text-cyan-300">
                       <span>&gt;</span>
-                      <span>[02] VALIDANDO HASH DE IDENTIDAD SHA-512...</span>
+                      <span>[02] VALIDANDO CREDENCIALES...</span>
                     </div>
                   )}
                   {telemetriaPaso >= 3 && (
                     <div className="skynet-terminal-line skynet-mono text-emerald-400">
                       <span>&gt;</span>
-                      <span>[03] SINCRONIZANDO CON NODO CENTRAL SKYNET...</span>
+                      <span>[03] CONECTANDO A SKYNET...</span>
                     </div>
                   )}
                 </div>
@@ -331,7 +298,7 @@ export default function LoginPage() {
               )}
 
               {error && (
-                <p className="skynet-mono rounded-md border border-red-500/40 bg-red-950/30 px-3 py-2 text-xs text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                <p className="skynet-mono rounded-md border border-red-500/40 bg-red-950/30 px-3 py-2 text-xs text-red-300">
                   ERROR: {error}
                 </p>
               )}
@@ -345,7 +312,7 @@ export default function LoginPage() {
                   {fase === 'verificando' ? (
                     <>
                       <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
-                      VERIFICANDO CREDENCIALES…
+                      VERIFICANDO…
                     </>
                   ) : (
                     'INICIAR SESIÓN'
@@ -354,7 +321,7 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <p className="skynet-mono mt-6 text-center text-[10px] tracking-[0.15em] text-slate-500">
+            <p className="skynet-mono mt-5 text-center text-[10px] tracking-[0.15em] text-slate-500">
               CONEXIÓN CIFRADA · NODO LOCAL
             </p>
           </>

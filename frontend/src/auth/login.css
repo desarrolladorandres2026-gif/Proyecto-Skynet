@@ -1,9 +1,9 @@
 /* Tema visual del login: consola táctica estilo HUD.
-   Aislado del resto de la app — solo se importa desde LoginPage. */
+   Aislado del resto de la app — solo se importa desde LoginPage.
+   Optimizado para 60-120 FPS fluido en móviles y escritorio. */
 
 .skynet-login {
   background: #05070a;
-  perspective: 1000px;
 }
 
 .skynet-mono {
@@ -14,7 +14,7 @@
   font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
   font-weight: 700;
   letter-spacing: 0.3em;
-  text-shadow: 0 0 18px rgba(0, 229, 255, 0.45);
+  text-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
 }
 
 /* Escaneo de luz al hover */
@@ -43,78 +43,62 @@
 @keyframes skynet-scan-sweep {
   0% {
     background-position: 150% 0;
-    filter: drop-shadow(0 0 0 transparent);
   }
   50% {
-    filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.9));
+    filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.8));
   }
   100% {
     background-position: -50% 0;
-    filter: drop-shadow(0 0 0 transparent);
   }
 }
 
-/* Grid táctico de fondo, se desplaza muy lento para dar sensación de "sistema activo" */
+/* Grid táctico de fondo - optimizado con transform 2D ligero */
 .skynet-grid {
   background-image:
-    linear-gradient(rgba(0, 229, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 229, 255, 0.07) 1px, transparent 1px);
-  background-size: 42px 42px;
-  animation: skynet-grid-drift 18s linear infinite;
+    linear-gradient(rgba(0, 229, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: skynet-grid-drift 20s linear infinite;
   mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 100%);
-  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease;
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 100%);
+  transition: transform 0.6s ease-out, opacity 0.6s ease-out;
+  will-change: transform, opacity;
 }
 
 @keyframes skynet-grid-drift {
   from { background-position: 0 0, 0 0; }
-  to { background-position: 42px 42px, 42px 42px; }
+  to { background-position: 40px 40px, 40px 40px; }
 }
 
-/* Modo Warp/Hipervelocidad cuando se autoriza el acceso */
 .skynet-grid-warp {
-  animation: skynet-grid-warp-anim 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-  filter: brightness(1.8) drop-shadow(0 0 15px rgba(0, 229, 255, 0.8));
+  transform: scale(1.35);
+  opacity: 0.15;
 }
 
-@keyframes skynet-grid-warp-anim {
-  0% {
-    transform: scale(1) translateZ(0);
-    opacity: 0.8;
-  }
-  50% {
-    transform: scale(2.8) translateZ(300px);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(6) translateZ(700px);
-    opacity: 0;
-  }
-}
-
-/* Resplandor ambiental fijo detrás de la tarjeta */
+/* Resplandor ambiental fijo */
 .skynet-glow {
   width: 60vmax;
   height: 60vmax;
   transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, transparent 65%);
-  transition: transform 0.6s ease, opacity 0.6s ease;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.07) 0%, transparent 65%);
+  transition: transform 0.4s ease, opacity 0.4s ease;
+  will-change: transform, opacity;
 }
 
 .skynet-glow-active {
-  background: radial-gradient(circle, rgba(0, 229, 255, 0.28) 0%, rgba(16, 185, 129, 0.15) 35%, transparent 70%);
-  transform: translate(-50%, -50%) scale(1.4);
-  opacity: 1;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.18) 0%, rgba(16, 185, 129, 0.1) 35%, transparent 70%);
+  transform: translate(-50%, -50%) scale(1.2);
 }
 
-/* Línea de escaneo que cruza la pantalla de arriba a abajo */
+/* Línea de escaneo que cruza la pantalla */
 .skynet-scanline {
   top: -10rem;
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(0, 229, 255, 0.05) 45%,
-    rgba(0, 229, 255, 0.12) 50%,
-    rgba(0, 229, 255, 0.05) 55%,
+    rgba(0, 229, 255, 0.04) 45%,
+    rgba(0, 229, 255, 0.08) 50%,
+    rgba(0, 229, 255, 0.04) 55%,
     transparent 100%
   );
   animation: skynet-scan 6s ease-in-out infinite;
@@ -125,57 +109,48 @@
   100% { transform: translateY(calc(100svh + 10rem)); }
 }
 
+/* Tarjeta principal - optimizada para evitar repaints en móviles */
 .skynet-card {
-  background: linear-gradient(180deg, rgba(13, 18, 26, 0.92), rgba(8, 11, 16, 0.94));
-  border: 1px solid rgba(0, 229, 255, 0.18);
+  background: rgba(10, 14, 22, 0.95);
+  border: 1px solid rgba(0, 229, 255, 0.2);
   border-radius: 6px;
-  box-shadow:
-    0 0 0 1px rgba(0, 229, 255, 0.05),
-    0 25px 60px -20px rgba(0, 0, 0, 0.9),
-    0 0 40px -10px rgba(0, 229, 255, 0.12);
-  animation: skynet-card-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-  backdrop-filter: blur(12px);
-  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 229, 255, 0.08);
+  animation: skynet-card-in 0.4s ease-out both;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+  will-change: transform, opacity;
 }
 
 .skynet-card-verificando {
-  border-color: rgba(0, 229, 255, 0.6);
-  box-shadow:
-    0 0 0 1px rgba(0, 229, 255, 0.25),
-    0 0 35px rgba(0, 229, 255, 0.25),
-    0 25px 60px -20px rgba(0, 0, 0, 0.9);
+  border-color: rgba(0, 229, 255, 0.5);
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.2), 0 10px 30px -10px rgba(0, 0, 0, 0.8);
 }
 
 .skynet-card-concedido {
   border-color: #00e5ff;
-  background: linear-gradient(180deg, rgba(10, 25, 36, 0.96), rgba(5, 15, 22, 0.98));
-  box-shadow:
-    0 0 0 2px rgba(0, 229, 255, 0.5),
-    0 0 60px rgba(0, 229, 255, 0.4),
-    0 0 100px rgba(16, 185, 129, 0.25);
-  transform: scale(1.02);
+  background: rgba(8, 20, 30, 0.97);
+  box-shadow: 0 0 35px rgba(0, 229, 255, 0.3), 0 0 20px rgba(16, 185, 129, 0.2);
+  transform: scale(1.01);
 }
 
 @keyframes skynet-card-in {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.98);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
-/* Corner brackets: firma visual del diseño HUD */
+/* Corner brackets HUD */
 .skynet-bracket {
   position: absolute;
-  width: 22px;
-  height: 22px;
-  border: 2px solid rgba(0, 229, 255, 0.55);
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 229, 255, 0.6);
   opacity: 0;
-  animation: skynet-bracket-in 0.5s ease-out 0.3s forwards;
-  transition: border-color 0.4s ease, transform 0.4s ease;
+  animation: skynet-bracket-in 0.4s ease-out 0.2s forwards;
 }
 
 .skynet-bracket--tl {
@@ -209,15 +184,15 @@
 }
 
 .skynet-field {
-  animation: skynet-field-in 0.5s ease-out both;
+  animation: skynet-field-in 0.4s ease-out both;
 }
-.skynet-field:nth-of-type(1) { animation-delay: 0.15s; }
-.skynet-field:nth-of-type(2) { animation-delay: 0.25s; }
+.skynet-field:nth-of-type(1) { animation-delay: 0.1s; }
+.skynet-field:nth-of-type(2) { animation-delay: 0.2s; }
 
 @keyframes skynet-field-in {
   from {
     opacity: 0;
-    transform: translateX(-8px);
+    transform: translateX(-6px);
   }
   to {
     opacity: 1;
@@ -225,101 +200,11 @@
   }
 }
 
-/* Input con borde animado */
+/* Input Frame optimizado para fluidez móvil */
 .skynet-input-frame {
   position: relative;
   display: flex;
   align-items: center;
-}
-
-.skynet-input-white,
-.skynet-input-border,
-.skynet-input-dark-bg,
-.skynet-input-glow {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border-radius: 8px;
-  filter: blur(3px);
-  pointer-events: none;
-}
-
-.skynet-input-glow {
-  overflow: hidden;
-  filter: blur(14px);
-  opacity: 0.35;
-  inset: -6px;
-}
-.skynet-input-glow::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 400px;
-  height: 400px;
-  transform: translate(-50%, -50%) rotate(60deg);
-  background-image: conic-gradient(#000, #007c8c 5%, #000 38%, #000 50%, #00e5ff 60%, #000 87%);
-  transition: transform 2s;
-}
-
-.skynet-input-dark-bg::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 400px;
-  height: 400px;
-  transform: translate(-50%, -50%) rotate(82deg);
-  background-image: conic-gradient(rgba(0, 0, 0, 0), #0a2a33, rgba(0, 0, 0, 0) 10%, rgba(0, 0, 0, 0) 50%, #0f5c66, rgba(0, 0, 0, 0) 60%);
-  transition: transform 2s;
-}
-
-.skynet-input-white {
-  filter: blur(2px);
-}
-.skynet-input-white::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 400px;
-  height: 400px;
-  transform: translate(-50%, -50%) rotate(83deg);
-  background-image: conic-gradient(rgba(0, 0, 0, 0) 0%, #00e5ff, rgba(0, 0, 0, 0) 8%, rgba(0, 0, 0, 0) 50%, #00b8cc, rgba(0, 0, 0, 0) 58%);
-  transition: transform 2s;
-}
-
-.skynet-input-border {
-  filter: blur(0.5px);
-}
-.skynet-input-border::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 400px;
-  height: 400px;
-  transform: translate(-50%, -50%) rotate(70deg);
-  filter: brightness(1.3);
-  background-image: conic-gradient(#1c191c, #007c8c 5%, #1c191c 14%, #1c191c 50%, #00e5ff 60%, #1c191c 64%);
-  transition: transform 2s;
-}
-
-.skynet-input-frame:hover .skynet-input-dark-bg::before,
-.skynet-input-frame:focus-within .skynet-input-dark-bg::before {
-  transform: translate(-50%, -50%) rotate(-98deg);
-}
-.skynet-input-frame:hover .skynet-input-glow::before,
-.skynet-input-frame:focus-within .skynet-input-glow::before {
-  transform: translate(-50%, -50%) rotate(-120deg);
-}
-.skynet-input-frame:hover .skynet-input-white::before,
-.skynet-input-frame:focus-within .skynet-input-white::before {
-  transform: translate(-50%, -50%) rotate(-97deg);
-}
-.skynet-input-frame:hover .skynet-input-border::before,
-.skynet-input-frame:focus-within .skynet-input-border::before {
-  transform: translate(-50%, -50%) rotate(-110deg);
 }
 
 .skynet-input-icon {
@@ -334,11 +219,11 @@
 .skynet-input {
   position: relative;
   z-index: 1;
-  background: #05070a;
-  border: none;
+  background: #080c14;
+  border: 1px solid rgba(0, 229, 255, 0.25);
   border-radius: 6px;
   outline: none;
-  transition: background 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .skynet-input::placeholder {
@@ -346,51 +231,49 @@
 }
 
 .skynet-input:focus {
+  border-color: #00e5ff;
   background: rgba(0, 229, 255, 0.04);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.15);
 }
 
 .skynet-input:-webkit-autofill,
 .skynet-input:-webkit-autofill:hover,
 .skynet-input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px #05070a inset;
-  box-shadow: 0 0 0px 1000px #05070a inset;
+  -webkit-box-shadow: 0 0 0px 1000px #080c14 inset;
+  box-shadow: 0 0 0px 1000px #080c14 inset;
   -webkit-text-fill-color: #ffffff;
   caret-color: #ffffff;
-  transition: background-color 9999s ease-in-out 0s;
 }
 
-/* Botón con efecto cyberpunk */
+/* Botón principal */
 .skynet-btn {
   --main-color: #00e5ff;
-  --main-bg-color: rgba(0, 229, 255, 0.36);
-  --pattern-color: rgba(0, 229, 255, 0.073);
+  --main-bg-color: rgba(0, 229, 255, 0.3);
 
   cursor: pointer;
   color: var(--main-color);
   text-transform: uppercase;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
   font-weight: 700;
   font-size: 0.875rem;
   padding: 0.75rem 1.5rem;
   background: radial-gradient(circle, var(--main-bg-color) 0%, rgba(0, 0, 0, 0) 95%),
-    linear-gradient(var(--pattern-color) 1px, transparent 1px),
-    linear-gradient(to right, var(--pattern-color) 1px, transparent 1px);
-  background-size: cover, 15px 15px, 15px 15px;
-  background-position: center center, center center, center center;
+    linear-gradient(rgba(0, 229, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(to right, rgba(0, 229, 255, 0.06) 1px, transparent 1px);
+  background-size: cover, 14px 14px, 14px 14px;
+  background-position: center center;
   border-width: 1px 0 1px 0;
   border-image: radial-gradient(circle, var(--main-color) 0%, rgba(0, 0, 0, 0) 100%) 1;
-  transition: background-size 0.2s ease-in-out, opacity 0.2s ease, box-shadow 0.3s ease;
+  transition: opacity 0.2s ease, box-shadow 0.2s ease;
   position: relative;
-  overflow: hidden;
 }
 
 .skynet-btn:hover:not(:disabled) {
-  background-size: cover, 10px 10px, 10px 10px;
-  box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.25);
 }
 
 .skynet-btn:active:not(:disabled) {
-  filter: brightness(1.3);
+  filter: brightness(1.2);
 }
 
 .skynet-btn:disabled {
@@ -399,77 +282,74 @@
 }
 
 /* =====================================================================
-   EFECTOS ÉPICOS DE VERIFICACIÓN Y ACCESO SKYNET
+   EFECTOS ÉPICOS DE VERIFICACIÓN (LIGEROS Y FLUIDOS EN MÓVIL)
    ===================================================================== */
 
-/* Haz de escaneo láser en la tarjeta */
+/* Haz de escaneo láser en la tarjeta - CSS transform 2D puro */
 .skynet-scan-beam {
   position: absolute;
   left: 0;
   right: 0;
-  height: 3px;
+  top: 0;
+  height: 2px;
   background: linear-gradient(90deg, transparent, #00e5ff 30%, #ffffff 50%, #00e5ff 70%, transparent);
-  box-shadow: 0 0 15px 2px #00e5ff, 0 0 30px #00e5ff;
-  animation: skynet-beam-sweep 1.2s ease-in-out infinite alternate;
+  box-shadow: 0 0 10px #00e5ff;
+  animation: skynet-beam-sweep 1s ease-in-out infinite alternate;
   pointer-events: none;
   z-index: 20;
+  will-change: transform;
 }
 
 @keyframes skynet-beam-sweep {
   0% {
-    top: 5%;
-    opacity: 0.4;
+    transform: translateY(12px);
+    opacity: 0.5;
   }
   50% {
     opacity: 1;
   }
   100% {
-    top: 92%;
-    opacity: 0.4;
+    transform: translateY(320px);
+    opacity: 0.5;
   }
 }
 
-/* Onda expansiva de energía (Shockwave) */
+/* Onda expansiva ligera */
 .skynet-shockwave {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 20px;
-  height: 20px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   border: 2px solid #00e5ff;
-  transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, -50%) scale(0.6);
   opacity: 1;
   pointer-events: none;
-  animation: skynet-shockwave-pulse 1.4s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+  animation: skynet-shockwave-pulse 0.7s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
   z-index: 15;
+  will-change: transform, opacity;
 }
 
 @keyframes skynet-shockwave-pulse {
   0% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) scale(0.6);
     opacity: 1;
-    border-width: 4px;
-    box-shadow: 0 0 40px #00e5ff, inset 0 0 20px #00e5ff;
-  }
-  50% {
-    opacity: 0.8;
-    border-color: #34d399;
+    border-color: #00e5ff;
   }
   100% {
-    transform: translate(-50%, -50%) scale(55);
+    transform: translate(-50%, -50%) scale(4.5);
     opacity: 0;
-    border-width: 1px;
-    box-shadow: 0 0 80px rgba(0, 229, 255, 0);
+    border-color: #34d399;
   }
 }
 
-/* Retícula Holográfica HUD (Target Reticle) */
+/* Retícula Holográfica HUD */
 .skynet-hud-reticle {
   position: relative;
-  width: 110px;
-  height: 110px;
-  margin: 0 auto 1.25rem;
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -479,31 +359,31 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1.5px dashed rgba(0, 229, 255, 0.7);
-  animation: skynet-rotate-cw 8s linear infinite;
-  box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+  border: 1.5px dashed rgba(0, 229, 255, 0.8);
+  animation: skynet-rotate-cw 6s linear infinite;
+  will-change: transform;
 }
 
 .skynet-ring-mid {
   position: absolute;
-  inset: 12px;
+  inset: 10px;
   border-radius: 50%;
   border: 1.5px solid transparent;
   border-top-color: #34d399;
   border-bottom-color: #00e5ff;
-  animation: skynet-rotate-ccw 4s linear infinite;
+  animation: skynet-rotate-ccw 3s linear infinite;
+  will-change: transform;
 }
 
 .skynet-ring-inner {
   position: absolute;
-  inset: 24px;
+  inset: 20px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0, 229, 255, 0.25) 0%, rgba(16, 185, 129, 0.1) 60%, transparent 80%);
-  animation: skynet-pulse-core 1.5s ease-in-out infinite alternate;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.25) 0%, transparent 80%);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 25px rgba(0, 229, 255, 0.5);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
 }
 
 @keyframes skynet-rotate-cw {
@@ -516,126 +396,51 @@
   to { transform: rotate(0deg); }
 }
 
-@keyframes skynet-pulse-core {
-  0% {
-    transform: scale(0.92);
-    box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
-  }
-  100% {
-    transform: scale(1.08);
-    box-shadow: 0 0 35px rgba(0, 229, 255, 0.8), 0 0 50px rgba(52, 211, 153, 0.4);
-  }
-}
-
-/* Radar scanner sweep circular */
-.skynet-radar-sweep {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(0, 229, 255, 0.4) 360deg);
-  animation: skynet-rotate-cw 2s linear infinite;
-  pointer-events: none;
-}
-
-/* Barra de progreso de enlace neural / sincronización */
+/* Barra de progreso rápida */
 .skynet-progress-track {
   width: 100%;
   height: 4px;
-  background: rgba(0, 229, 255, 0.12);
+  background: rgba(0, 229, 255, 0.15);
   border-radius: 9999px;
   overflow: hidden;
   position: relative;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .skynet-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #00e5ff, #34d399);
-  box-shadow: 0 0 12px #00e5ff;
   border-radius: 9999px;
-  animation: skynet-progress-load 1.4s cubic-bezier(0.1, 0.7, 0.1, 1) forwards;
+  animation: skynet-progress-load 0.75s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+  will-change: width;
 }
 
 @keyframes skynet-progress-load {
   0% { width: 0%; }
-  35% { width: 55%; }
-  75% { width: 88%; }
+  50% { width: 70%; }
   100% { width: 100%; }
 }
 
-/* Líneas de túnel / rayo cuántico para hipervelocidad */
-.skynet-warp-tunnel {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 5;
-}
-
-.skynet-warp-ray {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 2px;
-  height: 80px;
-  background: linear-gradient(to top, transparent, rgba(0, 229, 255, 0.9), #ffffff);
-  transform-origin: bottom center;
-  animation: skynet-warp-streak 0.8s cubic-bezier(0.1, 0.8, 0.2, 1) infinite;
-  box-shadow: 0 0 8px #00e5ff;
-}
-
-@keyframes skynet-warp-streak {
-  0% {
-    transform: rotate(var(--angle)) translateY(20px) scaleY(0.2);
-    opacity: 0;
-  }
-  30% {
-    opacity: 1;
-  }
-  100% {
-    transform: rotate(var(--angle)) translateY(450px) scaleY(2.5);
-    opacity: 0;
-  }
-}
-
-/* Flash de transición final (Portal Dissolve) */
+/* Flash de transición final suave */
 .skynet-portal-flash {
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.95) 0%, rgba(0, 229, 255, 0.8) 40%, #05070a 100%);
+  background: #05070a;
+  opacity: 0;
   z-index: 9999;
   pointer-events: none;
-  animation: skynet-flash-anim 0.55s ease-out forwards;
+  animation: skynet-flash-anim 0.3s ease-out forwards;
+  will-change: opacity;
 }
 
 @keyframes skynet-flash-anim {
-  0% {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-  40% {
-    opacity: 1;
-    transform: scale(1.02);
-  }
-  100% {
-    opacity: 0.9;
-    transform: scale(1.05);
-  }
+  0% { opacity: 0; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0.95; }
 }
 
-/* Monospace glitch text pulse */
+/* Texto de acceso concedido */
 .skynet-granted-text {
-  text-shadow: 0 0 12px rgba(52, 211, 153, 0.8), 0 0 24px rgba(0, 229, 255, 0.5);
-  animation: skynet-text-glow 1s ease-in-out infinite alternate;
-}
-
-@keyframes skynet-text-glow {
-  from {
-    filter: drop-shadow(0 0 2px #34d399);
-  }
-  to {
-    filter: drop-shadow(0 0 10px #00e5ff);
-  }
+  text-shadow: 0 0 10px rgba(52, 211, 153, 0.7), 0 0 15px rgba(0, 229, 255, 0.4);
 }
 
 /* Telemetría animada de terminal */
@@ -644,13 +449,13 @@
   align-items: center;
   gap: 0.35rem;
   opacity: 0;
-  animation: skynet-term-in 0.3s ease-out forwards;
+  animation: skynet-term-in 0.25s ease-out forwards;
 }
 
 @keyframes skynet-term-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(3px);
   }
   to {
     opacity: 1;
@@ -670,24 +475,11 @@
   .skynet-ring-outer,
   .skynet-ring-mid,
   .skynet-ring-inner,
-  .skynet-radar-sweep,
-  .skynet-warp-ray,
-  .skynet-portal-flash,
-  .skynet-input-glow::before,
-  .skynet-input-dark-bg::before,
-  .skynet-input-white::before,
-  .skynet-input-border::before {
+  .skynet-portal-flash {
     animation: none !important;
     transition: none !important;
   }
   .skynet-card {
-    opacity: 1;
-    transform: none;
-  }
-  .skynet-bracket {
-    opacity: 1;
-  }
-  .skynet-field {
     opacity: 1;
     transform: none;
   }
