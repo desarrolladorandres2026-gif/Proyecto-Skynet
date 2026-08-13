@@ -381,6 +381,62 @@ export async function obtenerAlertasOperativas() {
   return alertas.sort((a, b) => ORDEN_PRIORIDAD[a.prioridad] - ORDEN_PRIORIDAD[b.prioridad])
 }
 
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+// Serie mensual (últimos `meses`, fija — independiente del filtro desde/hasta
+// del resto del dashboard, que es un corte total, no una tendencia): OT
+// abiertas se cuentan por `creado_en`, cerradas/costo/SLA por `fecha_cierre`
+// (el momento en que esos datos quedan definitivos), mismo criterio temporal
+// que ya usa `obtenerFichaActivo` para "fuera de servicio".
+async function obtenerSerieMensual(meses = 6) {
+  const ahora = new Date()
+  const inicio = new Date(ahora.getFullYear(), ahora.getMonth() - (meses - 1), 1)
+
+  const [creadas, cerradas] = await Promise.all([
+    Mantenimiento.aggregate([
+      { $match: { creado_en: { $gte: inicio } } },
+      { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$creado_en' } }, total: { $sum: 1 } } },
+    ]),
+    Mantenimiento.aggregate([
+      { $match: { estado: 'cerrada', fecha_cierre: { $gte: inicio } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m', date: '$fecha_cierre' } },
+          total: { $sum: 1 },
+          costoMateriales: { $sum: '$costo_materiales' },
+          conSLA: { $sum: { $cond: [{ $ne: ['$sla.cumplido_solucion', null] }, 1, 0] } },
+          slaCumplido: { $sum: { $cond: [{ $eq: ['$sla.cumplido_solucion', true] }, 1, 0] } },
+        },
+      },
+    ]),
+  ])
+
+  const porMes = new Map()
+  for (let i = 0; i < meses; i++) {
+    const fecha = new Date(inicio.getFullYear(), inicio.getMonth() + i, 1)
+    const key = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`
+    porMes.set(key, {
+      mes: key,
+      etiqueta: `${MESES_CORTOS[fecha.getMonth()]} ${String(fecha.getFullYear()).slice(-2)}`,
+      otAbiertas: 0,
+      otCerradas: 0,
+      costoMateriales: 0,
+      cumplimientoSLA: null,
+    })
+  }
+  for (const c of creadas) {
+    if (porMes.has(c._id)) porMes.get(c._id).otAbiertas = c.total
+  }
+  for (const c of cerradas) {
+    const m = porMes.get(c._id)
+    if (!m) continue
+    m.otCerradas = c.total
+    m.costoMateriales = c.costoMateriales
+    m.cumplimientoSLA = c.conSLA ? Math.round((c.slaCumplido / c.conSLA) * 100) : null
+  }
+  return [...porMes.values()]
+}
+
 // ── 10. Dashboard Gerencial ──────────────────────────────────────────────
 export async function obtenerDashboardGerencial({ desde, hasta } = {}) {
   const filtroFecha = {}
@@ -416,9 +472,11 @@ export async function obtenerDashboardGerencial({ desde, hasta } = {}) {
     porEquipo.set(key, actual)
   }
   const activosMasProblematicos = [...porEquipo.values()].sort((a, b) => b.total - a.total).slice(0, 5)
+  const serieMensual = await obtenerSerieMensual()
 
   return {
     periodo: { desde: desde || null, hasta: hasta || null },
+    serieMensual,
     cumplimiento_sla: conSLA.length ? conSLA.filter((o) => o.sla.cumplido_solucion).length / conSLA.length : null,
     tiempo_promedio_atencion_horas: tiemposAtencionMs.length ? Math.round((promedio(tiemposAtencionMs) / 3_600_000) * 10) / 10 : null,
     tiempo_promedio_solucion_horas: tiemposSolucionMs.length ? Math.round((promedio(tiemposSolucionMs) / 3_600_000) * 10) / 10 : null,

@@ -8,11 +8,11 @@ export function Breadcrumb({ items }) {
 
   return (
     <nav aria-label="Navegación de migas de pan" className="flex min-w-0 items-center gap-2 text-xs sm:text-sm">
-      {/* Ícono inicial de Panel / Dashboard con resplandor neón */}
+      {/* Ícono inicial de Panel de Control con resplandor neón */}
       <Link
         to="/dashboard"
         className="flex items-center gap-1.5 p-1.5 rounded-lg text-cyan-600 dark:text-cyan-300 hover:bg-cyan-500/10 transition-all duration-300 group"
-        title="Ir a Panel / Dashboard"
+        title="Ir a Panel de Control"
       >
         <div className="relative flex items-center justify-center p-1 rounded-md bg-cyan-500/10 border border-cyan-500/30 dark:shadow-[0_0_10px_rgba(6,182,212,0.3)] group-hover:scale-110 transition-transform">
           <Gauge className="h-3.5 w-3.5 text-cyan-500 dark:text-cyan-300" />

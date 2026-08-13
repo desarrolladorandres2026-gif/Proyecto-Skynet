@@ -1,10 +1,32 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  ResponsiveContainer, BarChart, Bar, LineChart, Line,
+  CartesianGrid, XAxis, YAxis, Tooltip, Legend,
+} from 'recharts'
 import { ordenesApi, supervisorApi, plantillasApi, inventarioApi } from '../../api/mantenimiento.js'
 import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Select, Textarea,
   TablaWrap, Th, Td, EmptyState, fmtFecha,
 } from '../../components/ui.jsx'
+
+// recharts pinta SVG con colores fijos (no puede leer clases `dark:` de
+// Tailwind) — esta pestaña, igual que el resto de SupervisorPage.jsx, todavía
+// no migró al sistema de temas claro/oscuro del panel premium (ver
+// [[proyecto_rediseno_panel_admin_premium]], "fases 2+ pendientes"), así que
+// se asume el mismo fondo oscuro que ya asumen las tarjetas de arriba
+// (`text-white`/`text-slate-400` sin variante `dark:`).
+const COLORES_GRAFICA = {
+  grid: '#334155',
+  eje: '#94a3b8',
+  abiertas: '#f59e0b',
+  cerradas: '#22d3ee',
+  costo: '#34d399',
+  sla: '#22d3ee',
+  tooltipBg: '#0f172a',
+  tooltipBorder: '#334155',
+  tooltipText: '#f1f5f9',
+}
 
 // Módulo del Supervisor (CMMS Fase 4): centro de control, asignación
 // inteligente, balanceador de carga, aprobaciones, kanban, calendario, SLA,
@@ -432,6 +454,10 @@ function TabDashboard() {
   if (error) return <ErrorMsg>{error}</ErrorMsg>
   if (!datos) return <Card>Cargando…</Card>
 
+  const c = COLORES_GRAFICA
+  const ejeComun = { stroke: c.eje, fontSize: 12, tickLine: false, axisLine: false }
+  const tooltipComun = { contentStyle: { background: c.tooltipBg, border: `1px solid ${c.tooltipBorder}`, borderRadius: 8, fontSize: 12 }, labelStyle: { color: c.tooltipText }, itemStyle: { color: c.tooltipText } }
+
   const items = [
     ['Cumplimiento SLA', datos.cumplimiento_sla !== null ? `${Math.round(datos.cumplimiento_sla * 100)}%` : '—'],
     ['Tiempo prom. atención', datos.tiempo_promedio_atencion_horas !== null ? `${datos.tiempo_promedio_atencion_horas} h` : '—'],
@@ -455,6 +481,56 @@ function TabDashboard() {
           </Card>
         ))}
       </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <h2 className="mb-3 text-sm font-semibold text-white">Órdenes por mes</h2>
+          {datos.serieMensual.some((m) => m.otAbiertas || m.otCerradas) ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={datos.serieMensual}>
+                <CartesianGrid strokeDasharray="3 3" stroke={c.grid} vertical={false} />
+                <XAxis dataKey="etiqueta" {...ejeComun} />
+                <YAxis allowDecimals={false} {...ejeComun} />
+                <Tooltip {...tooltipComun} />
+                <Legend wrapperStyle={{ fontSize: 12, color: c.eje }} />
+                <Bar dataKey="otAbiertas" name="Abiertas" fill={c.abiertas} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="otCerradas" name="Cerradas" fill={c.cerradas} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <p className="text-sm text-slate-400">Sin órdenes en los últimos 6 meses.</p>}
+        </Card>
+
+        <Card>
+          <h2 className="mb-3 text-sm font-semibold text-white">Costo de materiales por mes</h2>
+          {datos.serieMensual.some((m) => m.costoMateriales) ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={datos.serieMensual}>
+                <CartesianGrid strokeDasharray="3 3" stroke={c.grid} vertical={false} />
+                <XAxis dataKey="etiqueta" {...ejeComun} />
+                <YAxis {...ejeComun} tickFormatter={(v) => `$${(v / 1000).toLocaleString('es-CO')}k`} />
+                <Tooltip {...tooltipComun} formatter={(v) => [`$${Number(v).toLocaleString('es-CO')}`, 'Costo']} />
+                <Bar dataKey="costoMateriales" name="Costo materiales" fill={c.costo} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <p className="text-sm text-slate-400">Sin costos registrados en los últimos 6 meses.</p>}
+        </Card>
+
+        <Card>
+          <h2 className="mb-3 text-sm font-semibold text-white">Cumplimiento SLA por mes</h2>
+          {datos.serieMensual.some((m) => m.cumplimientoSLA !== null) ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={datos.serieMensual}>
+                <CartesianGrid strokeDasharray="3 3" stroke={c.grid} vertical={false} />
+                <XAxis dataKey="etiqueta" {...ejeComun} />
+                <YAxis domain={[0, 100]} {...ejeComun} tickFormatter={(v) => `${v}%`} />
+                <Tooltip {...tooltipComun} formatter={(v) => [`${v}%`, 'Cumplimiento SLA']} />
+                <Line type="monotone" dataKey="cumplimientoSLA" name="SLA" stroke={c.sla} strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : <p className="text-sm text-slate-400">Sin OT cerradas con SLA en los últimos 6 meses.</p>}
+        </Card>
+      </div>
+
       <Card>
         <h2 className="mb-2 font-semibold text-white">Activos más problemáticos</h2>
         {datos.activos_mas_problematicos.length ? (
@@ -569,7 +645,7 @@ const TABS = [
   { key: 'hallazgos', label: 'Hallazgos', Componente: TabHallazgos },
   { key: 'activos', label: 'Activos', Componente: TabActivos },
   { key: 'alertas', label: 'Alertas', Componente: TabAlertas },
-  { key: 'dashboard', label: 'Dashboard', Componente: TabDashboard },
+  { key: 'dashboard', label: 'Panel de Control', Componente: TabDashboard },
   { key: 'plantillas', label: 'Plantillas', Componente: TabPlantillas },
   { key: 'inventario', label: 'Inventario', Componente: TabInventarioAdmin },
 ]

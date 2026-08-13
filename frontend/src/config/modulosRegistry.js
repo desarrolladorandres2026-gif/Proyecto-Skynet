@@ -22,7 +22,7 @@ export const MODULOS_REGISTRO = [
     label: 'Panel',
     icon: Gauge,
     publico: true,
-    items: [{ to: '/dashboard', label: 'Dashboard' }],
+    items: [{ to: '/dashboard', label: 'Panel de Control' }],
   },
   {
     key: 'email',

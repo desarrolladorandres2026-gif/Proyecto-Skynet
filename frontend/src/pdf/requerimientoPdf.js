@@ -6,19 +6,35 @@ import { LOGO_TERMINAL } from '../modules/induccion/induccionData.js'
 // de Servicios). Mismo patrón que CertificadoPage.jsx (jsPDF + carga de
 // imagen vía Promise sobre <img>), reutilizando el logo ya existente.
 
-// crossOrigin: sin esto, jsPDF no puede leer los píxeles de una imagen de
-// otro origen (Cloudinary, para la firma) al volcarla al PDF — el canvas
-// interno queda "tainted" y addImage falla en silencio. Cloudinary manda
-// Access-Control-Allow-Origin: * en sus URLs de entrega, así que esto no
-// rompe nada; para el logo local (mismo origen) el navegador simplemente
-// lo ignora.
+// Pasar por fetch()+FileReader en vez de un <img crossOrigin="anonymous">
+// evita el problema de raíz: jsPDF extrae los píxeles dibujando la imagen en
+// un canvas interno, y ese canvas queda "tainted" (addImage falla en
+// silencio, atrapado por el catch de cada llamador) si el navegador sirve la
+// imagen desde una respuesta cacheada en modo "no-cors" — algo que pasaba
+// con el logo porque ya se había cargado antes en la página sin
+// crossOrigin (InduccionHome, CertificadoPage). Con un data: URL no hay
+// origen que evaluar: nunca tainta el canvas, tanto para el logo local como
+// para la firma de Cloudinary.
 function cargarImagen(src) {
   return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => resolve(img)
-    img.onerror = reject
-    img.src = src
+    fetch(src, { credentials: 'omit' })
+      .then((res) => {
+        if (!res.ok) throw new Error(`No se pudo cargar la imagen (${res.status}): ${src}`)
+        return res.blob()
+      })
+      .then((blob) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const dataUrl = reader.result
+          const img = new Image()
+          img.onload = () => resolve({ dataUrl, width: img.naturalWidth, height: img.naturalHeight })
+          img.onerror = reject
+          img.src = dataUrl
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+      .catch(reject)
   })
 }
 
@@ -64,12 +80,13 @@ async function dibujarEncabezado(pdf, tipo) {
   pdf.line(MARGIN + anchoLogo + anchoTitulo, MARGIN + altoCaja / 2, ANCHO_PAGINA - MARGIN, MARGIN + altoCaja / 2)
 
   try {
-    const img = await cargarImagen(LOGO_TERMINAL)
+    const { dataUrl, width, height } = await cargarImagen(LOGO_TERMINAL)
     const logoW = anchoLogo - 8
-    const logoH = (img.height / img.width) * logoW
-    pdf.addImage(img, 'PNG', MARGIN + 4, MARGIN + (altoCaja - logoH) / 2, logoW, logoH)
-  } catch {
+    const logoH = (height / width) * logoW
+    pdf.addImage(dataUrl, 'PNG', MARGIN + 4, MARGIN + (altoCaja - logoH) / 2, logoW, logoH)
+  } catch (err) {
     // Sin logo disponible: la caja queda vacía, no bloquea la generación del PDF.
+    console.error('No se pudo cargar el logo en el PDF de requerimiento:', err)
   }
 
   const xTitulo = MARGIN + anchoLogo + anchoTitulo / 2
@@ -285,14 +302,15 @@ async function dibujarBloquesFirma(pdf, req, yInicial) {
   // renglón", que es donde se espera verla en un formato impreso.
   if (req.estado !== 'rechazado' && req.financiero?.firma?.url) {
     try {
-      const img = await cargarImagen(req.financiero.firma.url)
-      const escala = Math.min(ALTO_MAX_FIRMA / img.height, ANCHO_MAX_FIRMA / img.width)
-      const anchoFirma = img.width * escala
-      const altoFirma = img.height * escala
-      pdf.addImage(img, 'PNG', xFinanciero + 5, y - altoFirma - 1, anchoFirma, altoFirma)
-    } catch {
+      const { dataUrl, width, height } = await cargarImagen(req.financiero.firma.url)
+      const escala = Math.min(ALTO_MAX_FIRMA / height, ANCHO_MAX_FIRMA / width)
+      const anchoFirma = width * escala
+      const altoFirma = height * escala
+      pdf.addImage(dataUrl, 'PNG', xFinanciero + 5, y - altoFirma - 1, anchoFirma, altoFirma)
+    } catch (err) {
       // Sin firma disponible (red, CORS, asset borrado): el bloque de texto
       // de abajo sigue mostrando quién aprobó y cuándo — no bloquea el PDF.
+      console.error('No se pudo cargar la firma en el PDF de requerimiento:', err)
     }
   }
 
