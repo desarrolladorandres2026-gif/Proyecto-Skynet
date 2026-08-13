@@ -77,9 +77,27 @@ export function AuthProvider({ children }) {
     return u
   }, [])
 
-  const logout = useCallback(() => {
-    auth.logout()
-    setUsuario(null)
+  // Espera de verdad a que el backend borre la cookie httpOnly antes de dar la
+  // sesión por cerrada. Antes se llamaba a auth.logout() sin await y sin catch,
+  // y se hacía setUsuario(null) de inmediato: si esa petición fallaba (red
+  // caída, backend reiniciándose, la pestaña se cierra antes de que salga), la
+  // UI iba al login como si todo hubiera salido bien pero la cookie seguía
+  // siendo válida hasta 8h — y al volver a abrir la app, /auth/me la aceptaba y
+  // RESTAURABA la sesión sola. En equipos compartidos por turnos eso significa
+  // que la siguiente persona queda operando con la identidad de la anterior.
+  //
+  // El frontend no puede borrar esa cookie por su cuenta (es httpOnly por
+  // diseño, para que un XSS tampoco pueda), así que si el servidor no responde
+  // NO hay forma local de cerrar la sesión: lo correcto es decirlo, no fingir
+  // que se cerró. Devuelve el error para que quien llame lo muestre.
+  const logout = useCallback(async () => {
+    try {
+      await auth.logout()
+      setUsuario(null)
+      return null
+    } catch (err) {
+      return err.message || 'No se pudo cerrar la sesión. Revisa tu conexión e inténtalo de nuevo.'
+    }
   }, [])
 
   // Re-consulta /auth/me y actualiza el usuario en memoria. Lo usa la pantalla

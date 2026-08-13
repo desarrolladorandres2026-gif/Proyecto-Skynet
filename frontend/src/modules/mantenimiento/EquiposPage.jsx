@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { mantenimientoApi } from '../../api/mantenimiento.js'
+import { catalogosApi } from '../../api/catalogos.js'
+import { CatalogoSelect } from '../../components/CatalogoSelect.jsx'
 import {
   Btn, Card, ErrorMsg, OkMsg, Field, Input, Select, Textarea, Modal,
   TablaWrap, Th, Td, EmptyState, Pager, aInputFecha,
@@ -38,6 +40,7 @@ export default function EquiposPage() {
   const [ok, setOk] = useState('')
 
   const [catalogos, setCatalogos] = useState({ tipos: [], marcas: [] })
+  const [dependencias, setDependencias] = useState([])
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
   const [form, setForm] = useState(FORM_VACIO)
@@ -66,6 +69,7 @@ export default function EquiposPage() {
 
   useEffect(() => {
     mantenimientoApi.catalogos.obtener().then(setCatalogos).catch(() => {})
+    catalogosApi.obtener().then(({ dependencias }) => setDependencias(dependencias)).catch(() => {})
   }, [])
 
   function buscar(e) {
@@ -287,7 +291,15 @@ export default function EquiposPage() {
               <Input required value={form.responsable} onChange={upd('responsable')} />
             </Field>
             <Field label="Dependencia">
-              <Input required value={form.dependencia} onChange={upd('dependencia')} />
+              <CatalogoSelect
+                tipo="dependencia"
+                required
+                placeholder="Selecciona una dependencia…"
+                valor={form.dependencia}
+                onChange={(nombre) => setForm((f) => ({ ...f, dependencia: nombre }))}
+                opciones={dependencias}
+                onCrear={setDependencias}
+              />
             </Field>
           </div>
 

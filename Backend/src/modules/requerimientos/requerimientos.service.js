@@ -4,6 +4,7 @@ import Rol from '../../models/Rol.js'
 import { ErrorNoEncontrado, ErrorValidacion, ErrorConflicto } from '../../utils/errores.js'
 import { reautenticar } from '../../utils/reautenticacion.js'
 import { registrarAuditoria } from '../../utils/auditoria.js'
+import { rangoDeDias } from '../../utils/fechas.js'
 import { vincularRequerimiento } from '../danos/danos.service.js'
 import { usuariosConPermiso } from '../mantenimiento/comun.js'
 import { notificarUsuarios as _notificarUsuarios } from '../../utils/sendPush.js'
@@ -421,23 +422,12 @@ export function listarTodos({ estado, tipo } = {}) {
 // límites inclusive): es el campo que la UI ya muestra como "Fecha" en cada
 // bandeja, así que exportar/borrar "del 1 al 31" se corresponde con lo que
 // el usuario ve en pantalla, no con createdAt (metadato técnico).
-function rangoFechas({ desde, hasta } = {}) {
-  if (!desde || !hasta) throw new ErrorValidacion('Debes indicar fecha de inicio y fecha de fin')
-  // Todo en UTC explícito (T00:00:00.000Z), nunca vía setHours(): setHours
-  // opera en la zona horaria LOCAL del proceso Node, así que sobre un Date
-  // parseado como UTC ("2026-01-25" → medianoche UTC) el límite de "hasta"
-  // se corría varias horas dependiendo de dónde corra el servidor — en
-  // UTC-5 llegaba a excluir todo el día. $lt del día siguiente evita
-  // depender de la zona horaria del host por completo.
-  const inicio = new Date(`${desde}T00:00:00.000Z`)
-  const finExclusivo = new Date(`${hasta}T00:00:00.000Z`)
-  if (Number.isNaN(inicio.getTime()) || Number.isNaN(finExclusivo.getTime())) {
-    throw new ErrorValidacion('Las fechas no son válidas')
-  }
-  finExclusivo.setUTCDate(finExclusivo.getUTCDate() + 1)
-  if (inicio >= finExclusivo) throw new ErrorValidacion('La fecha de inicio no puede ser posterior a la de fin')
-  return { $gte: inicio, $lt: finExclusivo }
-}
+// Este módulo ya evitaba el setHours() que rompía a los demás, pero anclaba a
+// medianoche UTC: correcto respecto a la zona del servidor, y aun así corrido
+// 5 horas respecto al día que ve quien usa el sistema. rangoDeDias() ancla a
+// la medianoche del Terminal, que es lo que significa "del 1 al 31" para quien
+// escribe esas fechas en pantalla. Ver utils/fechas.js.
+const rangoFechas = ({ desde, hasta } = {}) => rangoDeDias(desde, hasta)
 
 // "CSV Formula Injection": si una celda empieza con =, +, -, @, tab o CR,
 // Excel/Sheets la interpreta como fórmula al abrir el archivo — un

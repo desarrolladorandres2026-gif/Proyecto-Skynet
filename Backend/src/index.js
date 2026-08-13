@@ -14,10 +14,20 @@ import { notFoundHandler, errorHandler } from './middleware/errorHandler.js'
 
 const app = express()
 
-// Detrás de un proxy/CDN en producción, descomenta para que el rate limiting y
-// los logs usen la IP real del cliente (X-Forwarded-For). NO lo actives sin un
-// proxy delante: permitiría falsear la IP y saltarse el rate limiting.
-// app.set('trust proxy', 1)
+// En producción hay UN salto de proxy delante (nginx -> 127.0.0.1:3001, ver
+// deploy/nginx/skynetttn.conf), que reenvía la IP real en X-Forwarded-For. Sin
+// esto, Express resuelve req.ip como 127.0.0.1 para TODAS las peticiones y los
+// rate limiters de middleware/rateLimit.js (que usan req.ip como clave) tratan
+// a toda la organización como un solo cliente: 10 intentos de login por
+// quincena de hora para el Terminal entero, no por persona.
+//
+// El valor 1 es deliberado (no `true`): confía exactamente en el salto de
+// nginx y en ninguno más, así que un cliente no puede falsear su IP mandando
+// su propio X-Forwarded-For. Solo se activa en producción porque en desarrollo
+// no hay proxy delante y confiar en la cabecera ahí sí permitiría falsearla.
+if (env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1)
+}
 
 // Cabeceras de seguridad (X-Content-Type-Options, HSTS, X-Frame-Options, etc.).
 app.use(helmet())

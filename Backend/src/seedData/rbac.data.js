@@ -18,6 +18,11 @@ export const PERMISOS = [
   permiso('configuracion', 'gestionar', 'Configuración general'),
   permiso('auditoria', 'leer', 'Auditoría y registros'),
   permiso('sistema', 'gestionar_modulos', 'Activar/desactivar módulos del sistema'),
+  // Catálogos de Dependencia y Cargo (selects reutilizados en Usuarios,
+  // Requerimientos y Equipos). Ver que existan o listarlos es universal para
+  // todo autenticado (mismo principio que danos:gestionar); este permiso solo
+  // gobierna agregar/eliminar valores del catálogo.
+  permiso('catalogos', 'gestionar', 'Agregar y eliminar dependencias y cargos'),
 
   // Atención al ciudadano / contenido (Fase 4)
   permiso('pqrs', 'gestionar', 'Gestionar PQRS'),
@@ -104,6 +109,7 @@ export const PERMISOS = [
 // bandeja de supervisión ni acceso a registrar firma — eso es exclusivo de
 // 'Dir. Administrativo y Gestión' (ver PERMISOS_DIR_ADMINISTRATIVO_GESTION).
 const PERMISOS_ADMINISTRADOR_BASE = [
+  'catalogos:gestionar',
   'noticias:gestionar',
   'eventos:gestionar',
   'pqrs:gestionar',

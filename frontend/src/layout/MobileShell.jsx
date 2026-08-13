@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { Menu as MenuIcon, LogOut } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { useModulosVisibles, useTema, ToggleTema, NavContent } from './AppLayout.jsx'
+import ContenidoRuta from './ContenidoRuta.jsx'
 import { MOBILE_NAV_POR_ROL, INICIO_ITEM } from '../config/mobileNavPorRol.js'
 import { BottomSheet } from '../components/mobileUi.jsx'
 // panel.css y mobileShell.css se cargan globalmente desde index.css (ver
@@ -62,6 +63,7 @@ export default function MobileShell() {
   const modulosVisibles = useModulosVisibles()
   const [masAbierto, setMasAbierto] = useState(false)
   const [cuentaAbierta, setCuentaAbierta] = useState(false)
+  const [errorLogout, setErrorLogout] = useState(null)
 
   // Los atajos curados de mobileNavPorRol.js se validan contra los módulos
   // que este usuario realmente tiene habilitados — así un atajo nunca apunta
@@ -95,7 +97,7 @@ export default function MobileShell() {
       </header>
 
       <main className="relative flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-        <Outlet />
+        <ContenidoRuta />
       </main>
 
       <nav className="m-bar flex shrink-0 items-stretch border-t pb-[env(safe-area-inset-bottom)]">
@@ -121,13 +123,20 @@ export default function MobileShell() {
       <BottomSheet abierto={cuentaAbierta} titulo="Cuenta" onCerrar={() => setCuentaAbierta(false)}>
         <p className="text-sm font-medium text-[var(--mobile-text)]">{usuario?.nombre}</p>
         <p className="panel-mono mt-0.5 text-[11px] tracking-wide text-[var(--mobile-accent)] uppercase">{usuario?.rol?.nombre}</p>
+        {/* logout() espera al backend: si la cookie httpOnly no se pudo borrar,
+            la sesión SIGUE viva en el servidor y hay que decirlo en vez de
+            mandar al login como si nada. Este shell no monta el Toaster de
+            sonner (vive en AppLayout), así que el aviso va en línea. */}
         <button
           type="button"
-          onClick={logout}
+          onClick={async () => setErrorLogout(await logout())}
           className="mt-4 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-500/10 dark:text-red-400"
         >
           <LogOut className="h-4 w-4" aria-hidden="true" /> Cerrar sesión
         </button>
+        {errorLogout && (
+          <p className="mt-2 px-3 text-xs text-red-600 dark:text-red-400">{errorLogout}</p>
+        )}
       </BottomSheet>
     </div>
   )

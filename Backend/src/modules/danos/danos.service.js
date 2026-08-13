@@ -376,11 +376,14 @@ export async function listarReportes({ estado, tipo, asignado, prioridad } = {},
   // solo para que el orden ya venga estable si algún día se lista sin reordenar.
   ordenarPorUrgencia(reportes, { recientesPrimero: true })
 
-  // El resumen de contadores respeta el mismo alcance que la lista: un
-  // técnico ve cuántas de LAS SUYAS están en cada estado, no el total del
-  // Terminal (eso es información de supervisión).
+  // El resumen de contadores respeta el mismo alcance que la lista: si el
+  // cliente pidió `asignado=mi` (p.ej. la pantalla "Mis tareas", incluso para
+  // un supervisor que también tiene mantenimiento:ejecutar), el resumen debe
+  // contar solo lo suyo — igual que `filtro` de arriba — y no todo el
+  // Terminal, o los contadores de las pestañas no coincidirían con la lista.
+  const filtroResumen = 'asignadoA' in filtro ? { asignadoA: filtro.asignadoA } : {}
   const porEstado = await ReporteDano.aggregate([
-    { $match: puedeVerTodo(actor) ? {} : { asignadoA: actor.id_usuario } },
+    { $match: filtroResumen },
     { $group: { _id: '$estado', n: { $sum: 1 } } },
   ])
   const resumen = Object.fromEntries(ESTADOS.map((e) => [e, 0]))

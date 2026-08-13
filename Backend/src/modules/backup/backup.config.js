@@ -18,6 +18,8 @@ import MovimientoInventario from '../../models/mantenimiento/MovimientoInventari
 import PlantillaMantenimiento from '../../models/mantenimiento/PlantillaMantenimiento.js'
 import ConfiguracionSLA from '../../models/mantenimiento/ConfiguracionSLA.js'
 import ArticuloConocimiento from '../../models/mantenimiento/ArticuloConocimiento.js'
+import Dependencia from '../../models/Dependencia.js'
+import Cargo from '../../models/Cargo.js'
 
 // Registro único de qué colecciones entran en el backup y con qué nombre de
 // hoja (máx 31 caracteres, límite de Excel). Deliberadamente NO incluye
@@ -45,6 +47,8 @@ export const COLECCIONES_BACKUP = [
   { clave: 'usuarios', modelo: Usuario, hoja: 'Usuarios', camposExcluir: ['password'] },
   { clave: 'roles', modelo: Rol, hoja: 'Roles' },
   { clave: 'permisos', modelo: Permiso, hoja: 'Permisos' },
+  { clave: 'dependencias', modelo: Dependencia, hoja: 'Dependencias' },
+  { clave: 'cargos', modelo: Cargo, hoja: 'Cargos' },
   { clave: 'modulos', modelo: ModuloSistema, hoja: 'Módulos del sistema' },
   { clave: 'ausencias', modelo: Ausencia, hoja: 'Ausencias', campoFecha: 'fechaInicio' },
   { clave: 'danos', modelo: ReporteDano, hoja: 'Reportes de daños', campoFecha: 'fecha' },

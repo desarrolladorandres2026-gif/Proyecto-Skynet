@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs'
 import { registrarAuditoria } from '../../utils/auditoria.js'
 import { reautenticar } from '../../utils/reautenticacion.js'
 import { ErrorValidacion } from '../../utils/errores.js'
+import { restarMeses } from '../../utils/fechas.js'
 import { COLECCIONES_PURGABLES } from './backup.config.js'
 import { cargarMapasReferencia, construirHoja } from './formatoHelpers.js'
 
@@ -16,9 +17,10 @@ function calcularCorte(meses) {
   if (!MESES_VALIDOS.includes(n)) {
     throw new ErrorValidacion('El plazo debe ser 6 o 12 meses')
   }
-  const fecha = new Date()
-  fecha.setMonth(fecha.getMonth() - n)
-  return fecha
+  // restarMeses en vez de setMonth: `new Date('2026-05-31').setMonth(mes - 6)`
+  // desborda al 3 de diciembre en vez del 30 de noviembre, y esta operación
+  // BORRA. Ver BUG-012 en la auditoría 2026-08-13.
+  return restarMeses(new Date(), n)
 }
 
 // Conteo rápido (sin generar el Excel) para que la pantalla de confirmación

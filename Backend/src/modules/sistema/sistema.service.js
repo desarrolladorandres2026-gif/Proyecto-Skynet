@@ -1,5 +1,4 @@
 import Permiso from '../../models/Permiso.js'
-import Rol from '../../models/Rol.js'
 import * as repo from './sistema.repository.js'
 import { MODULOS_SISTEMA } from '../../seedData/modulos.data.js'
 import { PERMISOS } from '../../seedData/rbac.data.js'
@@ -34,15 +33,42 @@ export async function estaModuloActivo(key) {
   return !desactivados.has(key)
 }
 
+// Permisos que están en Mongo pero ya no en rbac.data.js. Se exporta para que
+// scripts/limpiar-permisos-obsoletos.js muestre exactamente lo mismo que el
+// arranque reporta, sin duplicar la consulta.
+export async function permisosObsoletos() {
+  const codigosVigentes = PERMISOS.map((p) => p.codigo)
+  return Permiso.find({ codigo: { $nin: codigosVigentes } }).select('codigo nombre')
+}
+
 // ── Sincronización del catálogo (arranque del servidor) ─────────────────────
 // Upserta los módulos declarados en modulos.data.js y los permisos que falten
 // de rbac.data.js: un módulo o permiso nuevo en código aparece en la BD al
 // primer arranque, sin reejecutar seeds. Nunca pisa el estado `activo` ni los
-// permisos ya asignados a los roles. También borra de ModuloSistema y de
-// Permiso los que ya no estén en el código (p. ej. módulos/permisos
-// eliminados) — sin este paso, un permiso retirado de rbac.data.js se queda
-// huérfano en Mongo para siempre y la pantalla "Roles y permisos" lo sigue
-// listando como asignable aunque ningún endpoint lo verifique ya.
+// permisos ya asignados a los roles.
+//
+// ── Por qué el arranque NO borra permisos obsoletos ─────────────────────────
+// Antes sí lo hacía ($pull sobre todos los Rol + deleteMany sobre Permiso), y
+// era una operación destructiva ASIMÉTRICA: agregar un permiso usa
+// $setOnInsert y por diseño NO lo asigna a ningún rol existente (para no pisar
+// personalizaciones hechas desde la pantalla Roles), pero borrarlo sí
+// cascadeaba a todos los roles. Es decir, un permiso podía SALIR de un rol
+// solo, pero nunca podía VOLVER solo.
+//
+// El caso que lo rompe es un rollback de código, que es respuesta normal a un
+// incidente: al arrancar el commit anterior, un permiso agregado después
+// desaparece de PERMISOS y se borra de todos los roles; al volver adelante, el
+// permiso se recrea pero NINGÚN rol lo recupera. La configuración RBAC queda
+// destruida sin registro en auditoría y sin forma automática de restaurarla.
+// (scripts/otorgar-permiso-catalogos.js existe precisamente por esto.)
+//
+// Ahora solo se REPORTA. La limpieza vive en scripts/limpiar-permisos-obsoletos.js,
+// que muestra qué roles perderían qué antes de tocar nada.
+//
+// Los módulos sí se siguen borrando (repo.eliminarNoListados): ahí lo único
+// que se pierde es el interruptor activo/inactivo, que vuelve a su valor por
+// defecto si el módulo reaparece. Es recuperable con un clic; una asignación
+// de permisos borrada de N roles no lo es.
 export async function sincronizarCatalogoSistema() {
   try {
     for (const modulo of MODULOS_SISTEMA) {
@@ -52,16 +78,17 @@ export async function sincronizarCatalogoSistema() {
     for (const p of PERMISOS) {
       await Permiso.updateOne({ codigo: p.codigo }, { $setOnInsert: p }, { upsert: true })
     }
-    const codigosVigentes = PERMISOS.map((p) => p.codigo)
-    const permisosObsoletos = await Permiso.find({ codigo: { $nin: codigosVigentes } }).select('_id')
-    if (permisosObsoletos.length > 0) {
-      const idsObsoletos = permisosObsoletos.map((p) => p._id)
-      // Se quitan primero de cualquier Rol que aún los referencie: si no, el
-      // ObjectId queda colgando y Rol.find().populate('permisos') lo resuelve
-      // a null, reventando aRolPublico() (lee p.codigo de un null) para ese rol.
-      await Rol.updateMany({}, { $pull: { permisos: { $in: idsObsoletos } } })
-      await Permiso.deleteMany({ _id: { $in: idsObsoletos } })
+
+    const obsoletos = await permisosObsoletos()
+    if (obsoletos.length > 0) {
+      console.warn(
+        `⚠️  ${obsoletos.length} permiso(s) en la base ya no existen en rbac.data.js: ` +
+          `${obsoletos.map((p) => p.codigo).join(', ')}.\n` +
+          '    No se borran automáticamente (ver el comentario en sistema.service.js).\n' +
+          '    Para revisarlos y limpiarlos: node scripts/limpiar-permisos-obsoletos.js'
+      )
     }
+
     invalidarCacheModulos()
   } catch (err) {
     // El catálogo desincronizado no debe tumbar el servidor: sin fila en la

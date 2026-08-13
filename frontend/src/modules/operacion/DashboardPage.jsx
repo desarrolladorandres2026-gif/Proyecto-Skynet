@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Users, Wrench, Gauge, FileText, CalendarDays, ShieldCheck, ScrollText } from 'lucide-react'
+import { Users, Wrench, Gauge, FileText, CalendarDays, ShieldCheck, ScrollText, SlidersHorizontal, RotateCcw } from 'lucide-react'
 import { useAuth, usaPanelDenso } from '../../auth/AuthContext.jsx'
 import { useEsMovil } from '../../layout/useEsMovil.js'
 import { useModulosVisibles } from '../../layout/AppLayout.jsx'
@@ -10,7 +10,12 @@ import { ListRow, QuickAction, SectionHeader } from '../../components/mobileUi.j
 import { MOBILE_NAV_POR_ROL } from '../../config/mobileNavPorRol.js'
 import { StatCard } from '../../components/dashboard/StatCard.jsx'
 import { TrendBadge } from '../../components/dashboard/TrendBadge.jsx'
+import { AccesoRapidoDenso } from '../../components/dashboard/AccesoRapidoDenso.jsx'
+import { ControlesTarjeta } from '../../components/dashboard/ControlesTarjeta.jsx'
+import { usePersonalizacionDashboard } from '../../components/dashboard/usePersonalizacionDashboard.js'
 import { SkeletonStatCards } from '../../components/Skeleton.jsx'
+import { ACCESOS_RAPIDOS_PANEL_DENSO } from '../../config/accesosRapidosPorRol.js'
+import { cn } from '../../lib/cn.js'
 
 // Cada tarjeta declara su clave en la respuesta de /api/dashboard; solo se
 // pintan las claves que el backend devolvió (que a su vez dependen de los
@@ -93,31 +98,81 @@ function HomeFeed({ usuario, visibles, tarjetas }) {
 }
 
 function PanelDenso({ usuario, visibles, tarjetas, tendencias }) {
+  // Mismo filtro defensivo que HomeFeed (móvil): un atajo curado nunca debe
+  // apuntar a una ruta que este rol no tiene permiso de ver.
+  const modulosVisibles = useModulosVisibles()
+  const rutasPermitidas = new Set(modulosVisibles.flatMap((m) => m.items.map((i) => i.to)))
+  const accesos = (ACCESOS_RAPIDOS_PANEL_DENSO[usuario?.rol?.slug] || []).filter((a) => rutasPermitidas.has(a.to))
+
+  const {
+    personalizando,
+    setPersonalizando,
+    visiblesMostradas,
+    mover,
+    alternarOculta,
+    esOculta,
+    restablecer,
+  } = usePersonalizacionDashboard(visibles)
+
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-6">
-        <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-          <Gauge className="h-6 w-6 text-brand-600 dark:text-brand-400" aria-hidden="true" />
-          Panel de control
-        </h1>
-        <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
-          {usuario?.nombre} · <span className="text-brand-700/80 dark:text-brand-400/80">{usuario?.rol?.nombre}</span>
-        </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <Gauge className="h-6 w-6 text-brand-600 dark:text-brand-400" aria-hidden="true" />
+            Panel de control
+          </h1>
+          <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+            {usuario?.nombre} · <span className="text-brand-700/80 dark:text-brand-400/80">{usuario?.rol?.nombre}</span>
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {accesos.map((a) => (
+            <AccesoRapidoDenso key={a.to} icon={a.icon} label={a.label} to={a.to} />
+          ))}
+          {personalizando && (
+            <button
+              type="button"
+              onClick={restablecer}
+              className="panel-btn-fantasma inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150"
+            >
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
+              Restablecer
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setPersonalizando((p) => !p)}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
+              personalizando ? 'panel-btn-primario' : 'panel-btn-secundario'
+            )}
+          >
+            <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+            {personalizando ? 'Listo' : 'Personalizar'}
+          </button>
+        </div>
       </div>
 
       {!tarjetas ? (
         <SkeletonStatCards cantidad={8} />
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {visibles.map((t) => {
-            const delta = t.trendKey ? tendencias?.[t.trendKey] : null
-            return (
-              <Link key={t.clave} to={t.to}>
+        <>
+          {personalizando && (
+            <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
+              Usa las flechas para reordenar y el ojo para ocultar/mostrar. Se guarda en este navegador.
+            </p>
+          )}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {visiblesMostradas.map((t, i) => {
+              const delta = t.trendKey ? tendencias?.[t.trendKey] : null
+              const tarjeta = (
                 <StatCard
                   icon={t.icon}
                   label={t.label}
                   valor={tarjetas[t.clave]}
                   tono={t.tono || 'brand'}
+                  className={personalizando ? cn('pt-9', esOculta(t.clave) && 'opacity-40') : undefined}
                   trend={
                     delta && (
                       <TrendBadge
@@ -129,10 +184,30 @@ function PanelDenso({ usuario, visibles, tarjetas, tendencias }) {
                     )
                   }
                 />
-              </Link>
-            )
-          })}
-        </div>
+              )
+              if (!personalizando) {
+                return (
+                  <Link key={t.clave} to={t.to}>
+                    {tarjeta}
+                  </Link>
+                )
+              }
+              return (
+                <div key={t.clave} className="relative">
+                  {tarjeta}
+                  <ControlesTarjeta
+                    oculta={esOculta(t.clave)}
+                    puedeMoverIzquierda={i > 0}
+                    puedeMoverDerecha={i < visiblesMostradas.length - 1}
+                    onMoverIzquierda={() => mover(t.clave, -1)}
+                    onMoverDerecha={() => mover(t.clave, 1)}
+                    onAlternarOculta={() => alternarOculta(t.clave)}
+                  />
+                </div>
+              )
+            })}
+          </div>
+        </>
       )}
     </div>
   )

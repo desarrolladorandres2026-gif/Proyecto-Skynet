@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route, RouterContextProvider } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext.jsx'
 import { ProtectedRoute, ModuleRoute, PermissionRoute, ModuloActivoRoute, SuperAdminRoute } from './auth/ProtectedRoute.jsx'
 import LoginPage from './auth/LoginPage.jsx'
 import AppShell from './layout/AppShell.jsx'
 import HomeRedirect from './layout/HomeRedirect.jsx'
+import NoEncontrado from './layout/NoEncontrado.jsx'
 import MantenimientoHome from './modules/mantenimiento/MantenimientoHome.jsx'
 import EquiposPage from './modules/mantenimiento/EquiposPage.jsx'
 import EquipoFichaPage from './modules/mantenimiento/EquipoFichaPage.jsx'
@@ -33,6 +34,7 @@ import BandejaAusenciasPage from './modules/ausencias/BandejaAusenciasPage.jsx'
 import CalendarioAusenciasPage from './modules/ausencias/CalendarioAusenciasPage.jsx'
 import DashboardPage from './modules/operacion/DashboardPage.jsx'
 import RolesPage from './modules/roles/RolesPage.jsx'
+import DependenciasCargosPage from './modules/catalogos/CatalogosPage.jsx'
 import AuditoriaPage from './modules/auditoria/AuditoriaPage.jsx'
 import ModulosSistemaPage from './modules/sistema/ModulosSistemaPage.jsx'
 import BackupPage from './modules/backup/BackupPage.jsx'
@@ -159,12 +161,20 @@ export default function App() {
 
             <Route path="usuarios" element={<PermissionRoute permiso="usuarios:gestionar"><UsuariosPage /></PermissionRoute>} />
             <Route path="roles" element={<PermissionRoute permiso="roles:gestionar"><RolesPage /></PermissionRoute>} />
+            <Route path="catalogos" element={<PermissionRoute permiso="catalogos:gestionar"><DependenciasCargosPage /></PermissionRoute>} />
             <Route path="auditoria" element={<PermissionRoute permiso="auditoria:leer"><AuditoriaPage /></PermissionRoute>} />
             <Route path="sistema/modulos" element={<PermissionRoute permiso="sistema:gestionar_modulos"><ModulosSistemaPage /></PermissionRoute>} />
             <Route path="sistema/backup" element={<SuperAdminRoute><BackupPage /></SuperAdminRoute>} />
 
             <Route path="induccion" element={<InduccionHome />} />
             <Route path="induccion/certificado" element={<CertificadoPage />} />
+
+            {/* Comodín DENTRO del layout: una URL desconocida conserva el
+                sidebar y la barra inferior en vez de dejar la pantalla en
+                blanco (que es lo que hacía <Routes> al no encontrar ninguna
+                coincidencia). Sin sesión no llega hasta aquí: ProtectedRoute
+                redirige al login primero. */}
+            <Route path="*" element={<NoEncontrado />} />
           </Route>
         </Routes>
       </BrowserRouter>

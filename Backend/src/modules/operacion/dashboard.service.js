@@ -6,6 +6,7 @@ import Rol from '../../models/Rol.js'
 import RegistroAuditoria from '../../models/RegistroAuditoria.js'
 import Mantenimiento from '../../models/mantenimiento/Mantenimiento.js'
 import { estaModuloActivo } from '../sistema/sistema.service.js'
+import { hoy } from '../../utils/fechas.js'
 
 // Mapeo: cada tarjeta solo se calcula si su módulo está activo.
 // Las tarjetas sin módulo (ej: misDanosReportados) siempre se incluyen.
@@ -99,9 +100,12 @@ export async function calcularResumen(usuario) {
   }
   if (esAdmin || puede('auditoria:leer')) {
     tareas.push(async () => {
-      const inicioHoy = new Date()
-      inicioHoy.setHours(0, 0, 0, 0)
-      tarjetas.auditoriaHoy = await RegistroAuditoria.countDocuments({ creadoEn: { $gte: inicioHoy } })
+      // "Hoy" es el día en el Terminal, no en la zona del proceso Node: con
+      // setHours(0,0,0,0) sobre el VPS (que corre en UTC), el contador se
+      // reiniciaba a las 7 p.m. hora de Neiva y el turno de la noche aparecía
+      // como actividad "de hoy" cuando ya era el día siguiente para el sistema.
+      // Ver BUG-014 en la auditoría 2026-08-13.
+      tarjetas.auditoriaHoy = await RegistroAuditoria.countDocuments({ creadoEn: { $gte: hoy() } })
     })
   }
 

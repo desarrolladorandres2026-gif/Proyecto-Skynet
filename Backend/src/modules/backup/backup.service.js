@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs'
 import JSZip from 'jszip'
 import { registrarAuditoria } from '../../utils/auditoria.js'
 import { ErrorValidacion } from '../../utils/errores.js'
+import { inicioDelDia } from '../../utils/fechas.js'
 import { COLECCIONES_BACKUP } from './backup.config.js'
 import { cargarMapasReferencia, construirHoja, construirCsv, construirJsonColeccion } from './formatoHelpers.js'
 
@@ -28,11 +29,15 @@ function resolverColecciones(clavesParam) {
   return COLECCIONES_BACKUP.filter((c) => seleccion.has(c.clave))
 }
 
-function parseFecha(valor, finDeDia) {
+// Anclado a la medianoche del Terminal, no a la de la zona del proceso Node:
+// `setHours(23,59,59,999)` sobre un Date parseado como UTC hacía que el
+// límite superior cayera a las 6:59 p.m. hora de Neiva en el VPS (que corre en
+// UTC), dejando fuera del backup todo lo del turno de la noche del último día
+// del rango. Mismo BUG-005 que en auditoria.service.js.
+function parseFecha(valor) {
   if (!valor) return undefined
-  const fecha = new Date(valor)
-  if (Number.isNaN(fecha.getTime())) throw new ErrorValidacion(`Fecha inválida: ${valor}`)
-  if (finDeDia) fecha.setHours(23, 59, 59, 999)
+  const fecha = inicioDelDia(valor)
+  if (!fecha) throw new ErrorValidacion(`Fecha inválida: ${valor}`)
   return fecha
 }
 
@@ -42,12 +47,15 @@ function parseFecha(valor, finDeDia) {
 // "dentro/fuera del rango".
 function filtroFecha({ desde, hasta, campoFecha }) {
   if (!campoFecha) return {}
-  const gte = parseFecha(desde, false)
-  const lte = parseFecha(hasta, true)
-  if (!gte && !lte) return {}
+  const inicio = parseFecha(desde)
+  const inicioHasta = parseFecha(hasta)
+  if (!inicio && !inicioHasta) return {}
   const condicion = {}
-  if (gte) condicion.$gte = gte
-  if (lte) condicion.$lte = lte
+  if (inicio) condicion.$gte = inicio
+  // $lt del día siguiente en vez de $lte de las 23:59:59.999: incluye el día
+  // "hasta" completo sin depender de la precisión con que Mongo guardó cada
+  // timestamp.
+  if (inicioHasta) condicion.$lt = new Date(inicioHasta.getTime() + 24 * 60 * 60 * 1000)
   return { [campoFecha]: condicion }
 }
 

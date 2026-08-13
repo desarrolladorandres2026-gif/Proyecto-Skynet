@@ -1,6 +1,6 @@
 import {
   Wrench, Users, ShieldCheck, ScrollText, TriangleAlert,
-  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays, Mail, Bot,
+  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays, Mail, Bot, LayoutList,
 } from 'lucide-react'
 
 // Registro único de módulos para el sidebar (AppLayout.jsx) y para decidir
@@ -148,6 +148,13 @@ export const MODULOS_REGISTRO = [
     icon: ShieldCheck,
     permiso: 'roles:gestionar',
     items: [{ to: '/roles', label: 'Roles' }],
+  },
+  {
+    key: 'catalogos',
+    label: 'Dependencias y cargos',
+    icon: LayoutList,
+    permiso: 'catalogos:gestionar',
+    items: [{ to: '/catalogos', label: 'Catálogos' }],
   },
   {
     key: 'auditoria',

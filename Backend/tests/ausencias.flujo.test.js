@@ -505,3 +505,101 @@ describe('Ausencias — bandeja y calendario', () => {
     expect(await Ausencia.countDocuments({ estado: 'aprobada' })).toBe(1)
   })
 })
+
+// Regresión de BUG-003 (auditoría 2026-08-13).
+//
+// Las pruebas de arriba pasan Date objects, que es lo que construye este
+// archivo — pero el frontend manda lo que produce un <input type="date">: la
+// cadena "YYYY-MM-DD". Ese es justo el caso que estaba roto, y por eso el
+// resto de la suite no lo detectaba: `new Date('2026-08-20')` se parsea como
+// medianoche UTC y el viejo `setHours(0,0,0,0)` la corría a la medianoche de
+// la zona del PROCESO Node.
+//
+// Se afirma sobre el DÍA que queda guardado, no sobre el flujo, y se mira
+// desde la zona del Terminal — que es donde lo lee la persona que solicitó.
+// Correr con scripts/verificar-fechas-tz.js: estas afirmaciones deben dar lo
+// mismo con TZ=UTC, TZ=America/Bogota y TZ=Asia/Tokyo.
+describe('Ausencias — el día guardado es el día pedido', () => {
+  const diaEnElTerminal = (fecha) =>
+    new Date(fecha).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+
+  // Una fecha futura fija en formato de <input type="date">, para que la
+  // afirmación sea sobre un valor concreto y no sobre aritmética de "hoy".
+  const DIA = '2027-08-20'
+
+  it('guarda exactamente el día que se eligió en el formulario', async () => {
+    const { actor } = await crearActor(null)
+
+    const doc = await crearAusencia(
+      { tipo: 'permiso_no_remunerado', fechaInicio: DIA, fechaFin: DIA },
+      actor
+    )
+
+    expect(diaEnElTerminal(doc.fechaInicio)).toBe(DIA)
+    expect(diaEnElTerminal(doc.fechaFin)).toBe(DIA)
+    // El valor exacto en Mongo: medianoche de Neiva = 05:00 UTC.
+    expect(doc.fechaInicio.toISOString()).toBe('2027-08-20T05:00:00.000Z')
+  })
+
+  it('la lista y el formulario de edición muestran el MISMO día', async () => {
+    const { actor } = await crearActor(null)
+    const doc = await crearAusencia(
+      { tipo: 'permiso_no_remunerado', fechaInicio: DIA, fechaFin: DIA },
+      actor
+    )
+
+    // Lo que pinta fmtFecha() en un navegador de Colombia...
+    const enLaLista = diaEnElTerminal(doc.fechaInicio)
+    // ...y lo que pone aInputFecha() en el <input type="date">.
+    const enElFormulario = doc.fechaInicio.toISOString().slice(0, 10)
+
+    expect(enLaLista).toBe(enElFormulario)
+    expect(enLaLista).toBe(DIA)
+  })
+
+  it('un rango de varios días conserva sus dos extremos y cuenta bien', async () => {
+    const { actor } = await crearActor(null)
+    const doc = await crearAusencia(
+      { tipo: 'vacaciones', fechaInicio: '2027-08-20', fechaFin: '2027-08-24' },
+      actor
+    )
+
+    expect(diaEnElTerminal(doc.fechaInicio)).toBe('2027-08-20')
+    expect(diaEnElTerminal(doc.fechaFin)).toBe('2027-08-24')
+    expect(doc.diasHabiles).toBe(5)
+  })
+
+  it('detecta el solape cuando dos solicitudes comparten un solo día', async () => {
+    const { actor } = await crearActor(null)
+    await crearAusencia({ tipo: 'vacaciones', fechaInicio: '2027-08-20', fechaFin: '2027-08-24' }, actor)
+
+    // El último día de la primera es el primero de la segunda.
+    await expect(
+      crearAusencia({ tipo: 'permiso_no_remunerado', fechaInicio: '2027-08-24', fechaFin: '2027-08-25' }, actor)
+    ).rejects.toThrow(/se cruza/)
+
+    // El día siguiente ya no se cruza.
+    const contigua = await crearAusencia(
+      { tipo: 'permiso_no_remunerado', fechaInicio: '2027-08-25', fechaFin: '2027-08-25' },
+      actor
+    )
+    expect(diaEnElTerminal(contigua.fechaInicio)).toBe('2027-08-25')
+  })
+
+  it('el calendario encuentra la ausencia por su día exacto en los bordes', async () => {
+    const { actor } = await crearActor(null)
+    const { actor: jefe } = await crearActor('ausencias:aprobar')
+    const doc = await crearAusencia(
+      { tipo: 'vacaciones', fechaInicio: '2027-08-20', fechaFin: '2027-08-24' },
+      actor
+    )
+    await aprobarAusencia(doc._id, {}, jefe)
+
+    // Consultar exactamente el último día debe encontrarla.
+    expect(await calendario({ desde: '2027-08-24', hasta: '2027-08-24' })).toHaveLength(1)
+    // Un día antes del primero, no.
+    expect(await calendario({ desde: '2027-08-19', hasta: '2027-08-19' })).toHaveLength(0)
+    // Un día después del último, tampoco.
+    expect(await calendario({ desde: '2027-08-25', hasta: '2027-08-25' })).toHaveLength(0)
+  })
+})

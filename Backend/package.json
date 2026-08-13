@@ -14,6 +14,7 @@
     "migrate:mantenimiento": "node scripts/migrate-mysql-to-mongo.js",
     "migrate:mantenimiento-ot": "node scripts/migrate-mantenimiento-ot.js",
     "test": "vitest run",
+    "test:fechas": "node scripts/verificar-fechas-tz.js",
     "test:notificaciones": "node scripts/test-notificaciones.js",
     "test:flujo-notificaciones": "node scripts/test-flujo-notificaciones.js",
     "test:carga": "node scripts/loadtest.js"

@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import {
   Bell, ChevronDown, ChevronsLeft, ChevronsRight, LogOut, Moon, Search,
   Settings, Sun, Wifi, WifiOff,
 } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Toaster } from 'sonner'
+import { Toaster, toast } from 'sonner'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { MODULOS_REGISTRO } from '../config/modulosRegistry.js'
+import ContenidoRuta from './ContenidoRuta.jsx'
 import { cn } from '../lib/cn.js'
 import { Tooltip } from '../components/Tooltip.jsx'
 import {
@@ -84,7 +85,7 @@ function EnlaceNav({ to, label, end, onNavigate, sub = false }) {
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          'panel-nav-link group relative flex items-center gap-3 rounded-xl py-2 text-sm font-medium transition-all duration-300',
+          'panel-nav-link group relative flex items-center gap-3 rounded-lg py-1.5 text-[13px] font-normal transition-all duration-300',
           sub ? 'pl-9 pr-3' : 'px-3',
           isActive
             ? 'is-active text-cyan-700 dark:text-cyan-300 font-semibold shadow-sm'
@@ -105,9 +106,9 @@ function EnlaceNav({ to, label, end, onNavigate, sub = false }) {
           <span className="relative z-10 truncate flex-1">{label}</span>
 
           {isActive && (
-            <span className="relative z-10 flex h-2 w-2">
+            <span className="relative z-10 flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-400"></span>
             </span>
           )}
         </>
@@ -131,7 +132,7 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
                 type="button"
                 aria-label={modulo.label}
                 className={cn(
-                  'relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 group',
+                  'relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-300 group',
                   activo
                     ? 'bg-gradient-to-br from-cyan-500/20 to-sky-600/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/40 shadow-[0_0_18px_rgba(6,182,212,0.35)]'
                     : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-cyan-200 hover:bg-cyan-500/10 dark:hover:bg-cyan-400/10'
@@ -147,7 +148,7 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
 
                 <modulo.icon
                   className={cn(
-                    'h-5 w-5 relative z-10 transition-transform duration-300 group-hover:scale-110',
+                    'h-4 w-4 relative z-10 transition-transform duration-300 group-hover:scale-110',
                     activo && 'animate-[copilot-pulse_3s_ease-in-out_infinite]'
                   )}
                   aria-hidden="true"
@@ -185,38 +186,41 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
         aria-expanded={abierto}
         aria-controls={idGrupo}
         className={cn(
-          'group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-all duration-300',
+          'group flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition-all duration-300',
           activo
-            ? 'bg-cyan-500/10 dark:bg-cyan-400/15 text-cyan-700 dark:text-cyan-300 font-semibold border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
+            ? 'bg-cyan-500/10 dark:bg-cyan-400/15 text-cyan-700 dark:text-cyan-300 font-medium border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
             : 'text-slate-500 hover:text-slate-900 dark:hover:text-cyan-200 hover:bg-cyan-500/8 dark:hover:bg-cyan-400/8'
         )}
       >
         {/* Contenedor del ícono con resplandor neón estilo Copiloto */}
         <div
           className={cn(
-            'relative flex h-6 w-6 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110',
+            'relative flex h-5 w-5 items-center justify-center rounded-md transition-transform duration-300 group-hover:scale-110',
             activo
               ? 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
               : 'bg-slate-200/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 group-hover:text-cyan-500'
           )}
         >
-          <modulo.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <modulo.icon className="h-3 w-3 shrink-0" aria-hidden="true" />
         </div>
 
-        <span className="panel-mono flex-1 text-[11px] font-bold uppercase tracking-[0.15em]">
+        {/* Sobrio: tipografía sans del resto de la app (antes panel-mono,
+            JetBrains Mono estilo HUD) en peso medio y tracking más cerrado —
+            ya no compite en peso visual con el contenido de cada página. */}
+        <span className="flex-1 text-[12px] font-medium tracking-[0.03em] uppercase">
           {modulo.label}
         </span>
 
         {activo && (
-          <span className="flex h-2 w-2 relative mr-1">
+          <span className="flex h-1.5 w-1.5 relative mr-1">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-400"></span>
           </span>
         )}
 
         <ChevronDown
           className={cn(
-            'h-3.5 w-3.5 shrink-0 transition-transform duration-200 text-slate-400 group-hover:text-cyan-400',
+            'h-3 w-3 shrink-0 transition-transform duration-200 text-slate-400 group-hover:text-cyan-400',
             !abierto && '-rotate-90'
           )}
           aria-hidden="true"
@@ -486,7 +490,17 @@ export default function AppLayout() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem destructivo onClick={logout}>
+                {/* logout() ahora espera al backend y devuelve el mensaje de
+                    error si la cookie de sesión no se pudo borrar. Sin este
+                    aviso, un fallo de red dejaba la sesión viva en el servidor
+                    mientras la UI decía que se había cerrado. */}
+                <DropdownMenuItem
+                  destructivo
+                  onClick={async () => {
+                    const error = await logout()
+                    if (error) toast.error(error)
+                  }}
+                >
                   <LogOut className="h-4 w-4" aria-hidden="true" />
                   Cerrar sesión
                 </DropdownMenuItem>
@@ -555,7 +569,7 @@ export default function AppLayout() {
               transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
               className="relative"
             >
-              <Outlet />
+              <ContenidoRuta />
             </motion.div>
           </main>
         </div>

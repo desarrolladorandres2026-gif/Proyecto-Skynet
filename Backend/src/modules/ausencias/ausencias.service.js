@@ -2,6 +2,7 @@ import Ausencia, { TIPOS_AUSENCIA, MOTIVOS_PERMISO_REMUNERADO } from '../../mode
 import Usuario from '../../models/Usuario.js'
 import { ErrorNoEncontrado, ErrorValidacion, ErrorConflicto } from '../../utils/errores.js'
 import { registrarAuditoria } from '../../utils/auditoria.js'
+import { inicioDelDia, contarDias, restarMeses, hoy as hoyEnElTerminal } from '../../utils/fechas.js'
 import { usuariosConPermiso } from '../mantenimiento/comun.js'
 import { notificarUsuarios as _notificarUsuarios } from '../../utils/sendPush.js'
 
@@ -24,26 +25,24 @@ function auditar(usuarioActor, accion, doc, descripcion, cambios) {
   })
 }
 
-// Normaliza a medianoche local: el usuario elige un DÍA en el formulario, no
-// un instante. Sin esto, dos solicitudes del mismo día podrían no detectarse
-// como solapadas por diferencia de horas.
-function aDia(valor) {
-  const fecha = new Date(valor)
-  if (Number.isNaN(fecha.getTime())) return null
-  fecha.setHours(0, 0, 0, 0)
-  return fecha
-}
+// El usuario elige un DÍA en el formulario, no un instante. `inicioDelDia` lo
+// ancla a la medianoche del Terminal (ver utils/fechas.js).
+//
+// Antes esto era un `aDia()` local que hacía `new Date(valor)` (que parsea
+// "2026-08-20" como medianoche UTC) seguido de `setHours(0,0,0,0)` (que opera
+// en la zona del PROCESO Node). El resultado dependía de la variable TZ del
+// servidor: con TZ=America/Bogota, pedir el 20 de agosto guardaba el 19, y
+// aun con el servidor en UTC el navegador colombiano pintaba el día anterior.
+// Ver tests/fechas.test.js y scripts/verificar-fechas-tz.js.
+const aDia = inicioDelDia
 
-// Cuenta días naturales, ambos extremos incluidos. El Terminal opera 24/7
-// (hay turnos todos los días, incluidos sábados, domingos y festivos), así
-// que "día hábil" en el sentido clásico lunes-viernes no describe la
-// operación real: un sábado ausente cuesta un día de trabajo igual que un
-// martes. Por eso no se excluyen fines de semana ni festivos — cada día del
-// rango solicitado cuenta.
-export function contarDias(inicio, fin) {
-  const msPorDia = 24 * 60 * 60 * 1000
-  return Math.round((fin.getTime() - inicio.getTime()) / msPorDia) + 1
-}
+// contarDias vive ahora en utils/fechas.js. Se reexporta porque las pruebas y
+// el frontend lo importan desde aquí. Cuenta días naturales, ambos extremos
+// incluidos: el Terminal opera 24/7 (hay turnos todos los días, incluidos
+// sábados, domingos y festivos), así que "día hábil" en el sentido clásico
+// lunes-viernes no describe la operación real — un sábado ausente cuesta un
+// día de trabajo igual que un martes.
+export { contarDias }
 
 // "HH:mm" en 24 horas, con ceros a la izquierda — lo que produce un <input
 // type="time">.
@@ -297,8 +296,13 @@ export function listarTodas({ estado, tipo } = {}) {
 // Quién está (o estará) fuera en un rango. Solo aprobadas: el calendario
 // muestra ausencias en firme, no intenciones pendientes de decidir.
 export function calendario({ desde, hasta } = {}) {
-  const inicio = aDia(desde) || aDia(new Date())
-  const fin = aDia(hasta) || new Date(inicio.getFullYear(), inicio.getMonth() + 3, 0)
+  const inicio = aDia(desde) || hoyEnElTerminal()
+  // Por defecto, los 3 meses siguientes. restarMeses con un valor negativo
+  // suma, y de paso evita el desbordamiento de setMonth (31 de mayo + 3 meses
+  // no debe saltar de mes) — antes esto usaba el constructor local
+  // `new Date(año, mes+3, 0)`, que depende de la TZ del proceso igual que el
+  // resto de BUG-003.
+  const fin = aDia(hasta) || restarMeses(inicio, -3)
   return Ausencia.find({
     estado: 'aprobada',
     fechaInicio: { $lte: fin },

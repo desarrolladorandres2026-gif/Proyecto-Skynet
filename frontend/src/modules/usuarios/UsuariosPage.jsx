@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, Users } from 'lucide-react'
+import { Plus, Users, Eye, EyeOff } from 'lucide-react'
 import { usuarios as usuariosApi } from '../../api/usuarios.js'
 import { roles as rolesApi } from '../../api/roles.js'
+import { catalogosApi } from '../../api/catalogos.js'
 import { Btn, Badge, ErrorMsg, Field, Input, Select, Modal } from '../../components/ui.jsx'
+import { CatalogoSelect } from '../../components/CatalogoSelect.jsx'
 import { DataTable } from '../../components/DataTable.jsx'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 import { CheckboxLabel } from '../../components/Checkbox.jsx'
@@ -13,6 +15,7 @@ const FORM_VACIO = {
   nombre: '',
   email: '',
   password: '',
+  confirmarPassword: '',
   rol: '',
   dependencia: '',
   cargo: '',
@@ -23,12 +26,15 @@ const FORM_VACIO = {
 export default function UsuariosPage() {
   const [lista, setLista] = useState([])
   const [rolesDisponibles, setRolesDisponibles] = useState([])
+  const [dependenciasDisponibles, setDependenciasDisponibles] = useState([])
+  const [cargosDisponibles, setCargosDisponibles] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
 
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
   const [form, setForm] = useState(FORM_VACIO)
+  const [mostrarPassword, setMostrarPassword] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [errorForm, setErrorForm] = useState('')
 
@@ -38,9 +44,15 @@ export default function UsuariosPage() {
   async function cargar() {
     setCargando(true)
     try {
-      const [data, rolesData] = await Promise.all([usuariosApi.listar(), rolesApi.listar()])
+      const [data, rolesData, catalogosData] = await Promise.all([
+        usuariosApi.listar(),
+        rolesApi.listar(),
+        catalogosApi.obtener(),
+      ])
       setLista(data.usuarios)
       setRolesDisponibles(rolesData.roles)
+      setDependenciasDisponibles(catalogosData.dependencias)
+      setCargosDisponibles(catalogosData.cargos)
       setError('')
     } catch (err) {
       setError(err.message)
@@ -56,6 +68,7 @@ export default function UsuariosPage() {
   function abrirCrear() {
     setEditandoId(null)
     setForm({ ...FORM_VACIO, rol: rolesDisponibles[0]?._id || '' })
+    setMostrarPassword(false)
     setErrorForm('')
     setModalAbierto(true)
   }
@@ -67,12 +80,14 @@ export default function UsuariosPage() {
       nombre: u.nombre,
       email: u.email,
       password: '',
+      confirmarPassword: '',
       rol: u.rol?._id || u.rol || '',
       dependencia: u.dependencia || '',
       cargo: u.cargo || '',
       modulos: u.modulos || [],
       estado: u.estado,
     })
+    setMostrarPassword(false)
     setErrorForm('')
     setModalAbierto(true)
   }
@@ -86,16 +101,21 @@ export default function UsuariosPage() {
 
   async function guardar(e) {
     e.preventDefault()
+    if (form.password && form.password !== form.confirmarPassword) {
+      setErrorForm('La contraseña y su confirmación no coinciden')
+      return
+    }
     setGuardando(true)
     setErrorForm('')
     try {
       if (editandoId) {
-        const datos = { ...form }
+        const { confirmarPassword: _omit, ...datos } = form
         if (!datos.password) delete datos.password
         await usuariosApi.actualizar(editandoId, datos)
         toast.success('Usuario actualizado correctamente')
       } else {
-        await usuariosApi.crear(form)
+        const { confirmarPassword: _omit, ...datos } = form
+        await usuariosApi.crear(datos)
         toast.success('Usuario creado correctamente')
       }
       setModalAbierto(false)
@@ -197,18 +217,40 @@ export default function UsuariosPage() {
             <Input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           </Field>
 
-          <Field label={editandoId ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña'}>
-            <Input
-              type="password"
-              required={!editandoId}
-              // Debe coincidir con PASSWORD_MIN de Backend/src/utils/password.js:
-              // con un mínimo menor, el navegador deja enviar el formulario y el
-              // rechazo llega como error 400 del servidor en vez de validarse aquí.
-              minLength={12}
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-            />
-          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={editandoId ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña'}>
+              <div className="relative">
+                <Input
+                  type={mostrarPassword ? 'text' : 'password'}
+                  required={!editandoId}
+                  // Debe coincidir con PASSWORD_MIN de Backend/src/utils/password.js:
+                  // con un mínimo menor, el navegador deja enviar el formulario y el
+                  // rechazo llega como error 400 del servidor en vez de validarse aquí.
+                  minLength={12}
+                  className="pr-9"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {mostrarPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+                </button>
+              </div>
+            </Field>
+            <Field label="Confirmar contraseña">
+              <Input
+                type={mostrarPassword ? 'text' : 'password'}
+                required={!editandoId || Boolean(form.password)}
+                minLength={12}
+                value={form.confirmarPassword}
+                onChange={(e) => setForm({ ...form, confirmarPassword: e.target.value })}
+              />
+            </Field>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Rol">
@@ -220,10 +262,24 @@ export default function UsuariosPage() {
               </Select>
             </Field>
             <Field label="Dependencia">
-              <Input value={form.dependencia} onChange={(e) => setForm({ ...form, dependencia: e.target.value })} />
+              <CatalogoSelect
+                tipo="dependencia"
+                placeholder="Selecciona una dependencia…"
+                valor={form.dependencia}
+                onChange={(nombre) => setForm({ ...form, dependencia: nombre })}
+                opciones={dependenciasDisponibles}
+                onCrear={setDependenciasDisponibles}
+              />
             </Field>
             <Field label="Cargo">
-              <Input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })} />
+              <CatalogoSelect
+                tipo="cargo"
+                placeholder="Selecciona un cargo…"
+                valor={form.cargo}
+                onChange={(nombre) => setForm({ ...form, cargo: nombre })}
+                opciones={cargosDisponibles}
+                onCrear={setCargosDisponibles}
+              />
             </Field>
             <Field label="Estado">
               <Select value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value })}>

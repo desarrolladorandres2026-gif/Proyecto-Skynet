@@ -29,6 +29,13 @@ export const MODULOS_SISTEMA = [
     orden: 3,
   },
   {
+    key: 'catalogos',
+    nombre: 'Dependencias y cargos',
+    descripcion: 'Catálogo de dependencias y cargos, seleccionables en Usuarios, Requerimientos y Equipos.',
+    esNucleo: true,
+    orden: 3.5,
+  },
+  {
     key: 'auditoria',
     nombre: 'Auditoría',
     descripcion: 'Registro de trazabilidad de todas las mutaciones. Columna vertebral de cumplimiento.',
