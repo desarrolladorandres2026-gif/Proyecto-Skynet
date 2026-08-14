@@ -33,7 +33,7 @@ export async function obtenerCentroControl() {
     ]),
     Mantenimiento.countDocuments({ estado: { $in: ESTADOS_ACTIVOS }, 'sla.fecha_limite_solucion': { $lt: ahora } }),
     Mantenimiento.countDocuments({ estado: { $in: ESTADOS_ACTIVOS }, 'sla.fecha_limite_solucion': { $gte: ahora, $lte: en2h } }),
-    usuariosConPermiso('mantenimiento:ejecutar'),
+    usuariosConPermiso('mantenimiento:ejecutar', { incluirSuperAdmin: false }),
   ])
 
   const ocupadosIds = await Mantenimiento.distinct('tecnico_asignado', {
@@ -66,7 +66,7 @@ export async function sugerirTecnico(otId) {
     throw new ErrorConflicto('Solo se puede sugerir técnico para una orden reportada o programada')
   }
 
-  const tecnicoIds = await usuariosConPermiso('mantenimiento:ejecutar')
+  const tecnicoIds = await usuariosConPermiso('mantenimiento:ejecutar', { incluirSuperAdmin: false })
   const tecnicos = await Usuario.find({ _id: { $in: tecnicoIds }, estado: 'activo' }).select('nombre')
 
   const tipoNombre = ot.equipo?.tipo?.nombre
@@ -118,7 +118,7 @@ export async function sugerirTecnico(otId) {
 // ── 3. Balanceador de Carga ──────────────────────────────────────────────
 
 export async function obtenerBalanceCarga() {
-  const tecnicoIds = await usuariosConPermiso('mantenimiento:ejecutar')
+  const tecnicoIds = await usuariosConPermiso('mantenimiento:ejecutar', { incluirSuperAdmin: false })
   const tecnicos = await Usuario.find({ _id: { $in: tecnicoIds } }).select('nombre')
   const ahora = Date.now()
 

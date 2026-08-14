@@ -77,8 +77,9 @@ export async function listarOrdenes(usuarioActor, { estado, page = 1 } = {}) {
 // Para el selector de técnico del modal de asignación en el frontend.
 export async function listarTecnicos() {
   const permiso = await Permiso.findOne({ codigo: 'mantenimiento:ejecutar' }).select('_id')
-  const filtroRol = permiso ? { $or: [{ esSuperAdmin: true }, { permisos: permiso._id }] } : { esSuperAdmin: true }
-  const roles = await Rol.find(filtroRol).select('_id')
+  if (!permiso) return []
+  const roles = await Rol.find({ permisos: permiso._id }).select('_id')
+  if (!roles.length) return []
   return Usuario.find({ rol: { $in: roles.map((r) => r._id) }, estado: 'activo' }).select('nombre nombre_usuario email')
 }
 

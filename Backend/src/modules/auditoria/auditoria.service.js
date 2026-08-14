@@ -2,7 +2,7 @@ import * as repo from './auditoria.repository.js'
 import { ErrorValidacion, ErrorNoEncontrado } from '../../utils/errores.js'
 import { registrarAuditoria } from '../../utils/auditoria.js'
 import { escapeRegex } from '../../utils/regex.js'
-import { inicioDelDia, restarMeses } from '../../utils/fechas.js'
+import { inicioDelDia, instanteLocal, restarMeses } from '../../utils/fechas.js'
 import { env } from '../../config/env.js'
 import mongoose from 'mongoose'
 
@@ -62,8 +62,10 @@ function construirRangoCreadoEn(desde, hasta) {
   if (desde !== undefined) {
     if (typeof desde !== 'string') throw new ErrorValidacion('desde inválido')
     // Con hora explícita (<input type="datetime-local">) se respeta el
-    // instante tal cual; sin ella, se ancla al inicio de ese día en el Terminal.
-    const fecha = desde.includes('T') ? new Date(desde) : inicioDelDia(desde)
+    // instante que representa en el Terminal; sin ella, se ancla al inicio de
+    // ese día. instanteLocal() existe porque un ISO sin offset se interpreta
+    // en la zona del PROCESO Node por spec, no en la de Neiva.
+    const fecha = desde.includes('T') ? instanteLocal(desde) : inicioDelDia(desde)
     if (!fecha || Number.isNaN(fecha.getTime())) throw new ErrorValidacion('desde no es una fecha válida')
     rango.$gte = fecha
   }
@@ -72,7 +74,7 @@ function construirRangoCreadoEn(desde, hasta) {
     if (typeof hasta !== 'string') throw new ErrorValidacion('hasta inválido')
     if (hasta.includes('T')) {
       // Instante exacto: $lte, porque el usuario eligió ese minuto a propósito.
-      const fecha = new Date(hasta)
+      const fecha = instanteLocal(hasta)
       if (Number.isNaN(fecha.getTime())) throw new ErrorValidacion('hasta no es una fecha válida')
       rango.$lte = fecha
     } else {

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { registrarActualizacionAutomatica } from './pwa/actualizacionAutomatica.js'
+import './utils/splash.js'
 
 // En desarrollo, desregistra service workers de proyectos/builds anteriores
 // servidos en este mismo origen (p. ej. el SW de un proyecto legado en

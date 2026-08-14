@@ -1,15 +1,12 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from './AuthContext.jsx'
+import SkynetLoader from '../components/SkynetLoader.jsx'
 
 export function ProtectedRoute({ children }) {
   const { usuario, cargando } = useAuth()
 
   if (cargando) {
-    return (
-      <div className="flex min-h-svh items-center justify-center text-slate-500 dark:text-slate-400">
-        Cargando…
-      </div>
-    )
+    return <SkynetLoader mensaje="CARGANDO..." subtexto="VERIFICANDO ACCESO" />
   }
 
   if (!usuario) return <Navigate to="/login" replace />

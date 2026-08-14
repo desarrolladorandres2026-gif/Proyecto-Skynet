@@ -31,7 +31,15 @@ const VITEST = createRequire(import.meta.url).resolve('vitest/vitest.mjs')
 // de fecha respecto a Colombia) atrapa errores de signo que las dos anteriores
 // podrían dejar pasar.
 const ZONAS = ['UTC', 'America/Bogota', 'Asia/Tokyo']
-const ARCHIVOS = ['tests/fechas.test.js', 'tests/ausencias.flujo.test.js']
+const ARCHIVOS = [
+  'tests/fechas.test.js',
+  'tests/ausencias.flujo.test.js',
+  'tests/migracion.fechas.test.js',
+  'tests/auditoria.rango.test.js',
+  'tests/mantenimiento.fechas.test.js',
+  'tests/backup.test.js',
+  'tests/purga.retencion.test.js',
+]
 
 let fallos = 0
 

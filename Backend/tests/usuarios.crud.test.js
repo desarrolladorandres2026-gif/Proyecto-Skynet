@@ -11,6 +11,7 @@ import Rol from '../src/models/Rol.js'
 // hace populate de rol.permisos y sin esto falla con MissingSchemaError.
 import '../src/models/Permiso.js'
 import usuariosRoutes from '../src/modules/usuarios/usuarios.routes.js'
+import { quedaOtroSuperAdminActivo } from '../src/modules/usuarios/usuarios.controller.js'
 import { notFoundHandler, errorHandler } from '../src/middleware/errorHandler.js'
 import { hashPassword } from '../src/utils/password.js'
 
@@ -204,6 +205,30 @@ describe('Usuarios — crear', () => {
       .send({ ...nuevo(), nombre_usuario: 'otro.usuario' })
     expect(mismoEmail.status).toBe(409)
   })
+
+  // Regresión de BUG-010 (auditoría 2026-08-13). El check previo
+  // (`Usuario.findOne` antes de `Usuario.create`) no cierra la ventana entre
+  // dos peticiones simultáneas: las dos pueden leer "no existe" antes de que
+  // cualquiera escriba. Sin el mapeo de E11000 → 409 en errorHandler.js, la
+  // que perdía la carrera devolvía un 500 genérico con el mensaje crudo de
+  // Mongo en vez del mismo 409 legible que ya devuelve el caso no
+  // concurrente. Se lanzan las dos peticiones a la vez (sin await entre
+  // ellas) para forzar la carrera real contra el índice único.
+  it('la segunda petición simultánea con el mismo nombre_usuario recibe 409, no 500', async () => {
+    const payload = nuevo()
+    const [primera, segunda] = await Promise.all([
+      request(app).post('/api/usuarios').set('Authorization', authAdmin).send(payload),
+      request(app).post('/api/usuarios').set('Authorization', authAdmin).send({ ...payload, email: 'otro-de-la-carrera@example.com' }),
+    ])
+
+    const estados = [primera.status, segunda.status].sort()
+    expect(estados).toEqual([201, 409])
+
+    const perdedora = primera.status === 409 ? primera : segunda
+    expect(perdedora.body.error).toBe('El nombre de usuario ya existe')
+
+    expect(await Usuario.countDocuments({ nombre_usuario: payload.nombre_usuario })).toBe(1)
+  })
 })
 
 describe('Usuarios — actualizar e invalidación de sesiones', () => {
@@ -285,5 +310,49 @@ describe('Usuarios — eliminar', () => {
 
     const repetido = await request(app).delete(`/api/usuarios/${objetivo._id}`).set('Authorization', authAdmin)
     expect(repetido.status).toBe(404)
+  })
+
+  // Regresión de BUG-009 (auditoría 2026-08-13). Sin este check, un admin
+  // podía borrar su propia cuenta: el _id que su token sigue llevando deja de
+  // existir en Mongo, y verificarToken rechaza con 401 la siguiente petición
+  // —incluida la de la propia pestaña que acaba de "confirmar" el borrado—
+  // sin ninguna explicación visible.
+  it('no permite que un admin elimine su propia cuenta', async () => {
+    const res = await request(app).delete(`/api/usuarios/${admin._id}`).set('Authorization', authAdmin)
+
+    expect(res.status).toBe(409)
+    expect(await Usuario.findById(admin._id)).not.toBeNull()
+  })
+
+  it('sí permite eliminar un Super Admin si queda otro activo', async () => {
+    const otroAdmin = await crearUsuario(rolAdmin)
+
+    const res = await request(app).delete(`/api/usuarios/${otroAdmin._id}`).set('Authorization', authAdmin)
+
+    expect(res.status).toBe(200)
+    expect(await Usuario.findById(otroAdmin._id)).toBeNull()
+  })
+
+  // quedaOtroSuperAdminActivo() es la invariante de datos detrás de la guarda
+  // de arriba. No se prueba vía HTTP porque, con la ruta protegida por
+  // soloAdmin, quien pide el borrado es siempre un Super Admin activo
+  // DISTINTO del objetivo (el autoborrado ya se bloquea antes) — ese actor
+  // siempre cuenta como "el otro que queda", así que la rama nunca se
+  // dispara por esa vía hoy. Se prueba en aislamiento porque protege un
+  // invariante real (nunca cero Super Admin activos), no un flujo HTTP actual.
+  it('quedaOtroSuperAdminActivo() detecta cuando la cuenta excluida es la última activa', async () => {
+    // Solo `admin` (Super Admin) está activo en este punto.
+    expect(await quedaOtroSuperAdminActivo(admin._id)).toBe(false)
+  })
+
+  it('quedaOtroSuperAdminActivo() encuentra a otro Super Admin activo distinto', async () => {
+    const otroAdmin = await crearUsuario(rolAdmin)
+    expect(await quedaOtroSuperAdminActivo(admin._id)).toBe(true)
+    expect(await quedaOtroSuperAdminActivo(otroAdmin._id)).toBe(true)
+  })
+
+  it('quedaOtroSuperAdminActivo() no cuenta a un Super Admin inactivo', async () => {
+    await crearUsuario(rolAdmin, { estado: 'inactivo' })
+    expect(await quedaOtroSuperAdminActivo(admin._id)).toBe(false)
   })
 })

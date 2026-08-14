@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { inicioDelDia, rangoDeDias, contarDias, restarMeses, hoy } from '../src/utils/fechas.js'
+import { inicioDelDia, rangoDeDias, contarDias, restarMeses, hoy, instanteLocal } from '../src/utils/fechas.js'
 import { ErrorValidacion } from '../src/utils/errores.js'
 
 // Regresión de BUG-003, BUG-005 y BUG-012 (auditoría 2026-08-13).
@@ -52,6 +52,28 @@ describe('inicioDelDia', () => {
   it('hoy() cae en el día actual del Terminal', () => {
     const esperado = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
     expect(hoy().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })).toBe(esperado)
+  })
+})
+
+describe('instanteLocal', () => {
+  it('interpreta un datetime-local sin offset como hora del Terminal, no del proceso', () => {
+    // 14:31 en Neiva (UTC-5) son las 19:31 UTC. `new Date('2026-08-13T14:31')`
+    // a secas depende de la TZ del proceso Node por spec — este es justo el
+    // caso que instanteLocal() existe para blindar.
+    expect(instanteLocal('2026-08-13T14:31').toISOString()).toBe('2026-08-13T19:31:00.000Z')
+  })
+
+  it('acepta segundos', () => {
+    expect(instanteLocal('2026-08-13T14:31:05').toISOString()).toBe('2026-08-13T19:31:05.000Z')
+  })
+
+  it('respeta un valor que ya trae offset, sin volver a anclarlo', () => {
+    expect(instanteLocal('2026-08-13T19:31:00.000Z').toISOString()).toBe('2026-08-13T19:31:00.000Z')
+  })
+
+  it('devuelve null ante un valor inválido', () => {
+    expect(instanteLocal('no-es-fecha')).toBeNull()
+    expect(instanteLocal(null)).toBeNull()
   })
 })
 

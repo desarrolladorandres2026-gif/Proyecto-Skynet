@@ -12,7 +12,7 @@ import { cargarMapasReferencia, construirHoja } from './formatoHelpers.js'
 // duplicarlo aquí con más superficie de error.
 const MESES_VALIDOS = [6, 12]
 
-function calcularCorte(meses) {
+export function calcularCorte(meses) {
   const n = Number(meses)
   if (!MESES_VALIDOS.includes(n)) {
     throw new ErrorValidacion('El plazo debe ser 6 o 12 meses')

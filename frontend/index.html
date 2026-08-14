@@ -4,26 +4,451 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta name="theme-color" content="#0b1120" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Skynet" />
     <title>Skynet</title>
     <script>
-      // Aplica el tema guardado ANTES del primer render de React: sin esto,
-      // la página siempre pinta primero con la paleta clara (nuevo default
-      // de :root en panel.css) y recién cambia a oscura cuando AppLayout
-      // monta y corre su efecto — un flash visible en cada carga para quien
-      // eligió modo oscuro. Debe leer la misma clave que AppLayout.jsx
-      // (TEMA_KEY = 'skynet-tema') y el mismo default (oscuro).
+      // Aplica el tema guardado ANTES del primer render de React
       if (localStorage.getItem('skynet-tema') !== 'light') {
         document.documentElement.classList.add('dark')
       }
     </script>
+    <style>
+      /* =========================================================
+         SKYNET CINEMATIC HUD SPLASH SCREEN - COLORES DEL LOGIN
+         - Paleta Cyber Táctica del Login: #00e5ff, #05070a, #0a0e16, #34d399
+         - 100% Hardware Accelerated GPU (translate3d, rotate, scale, opacity)
+         - 60-120 FPS ultra fluidos sin tirones en móviles
+         ========================================================= */
+      #skynet-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #05070a;
+        background-image: 
+          radial-gradient(circle at 50% 35%, rgba(0, 229, 255, 0.12) 0%, transparent 60%),
+          linear-gradient(rgba(0, 229, 255, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 229, 255, 0.06) 1px, transparent 1px);
+        background-size: 100% 100%, 40px 40px, 40px 40px;
+        background-position: center, center, center;
+        color: #f8fafc;
+        contain: strict;
+        transform: translate3d(0, 0, 0);
+        backface-visibility: hidden;
+        perspective: 1000px;
+        transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                    visibility 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+        user-select: none;
+        -webkit-user-select: none;
+        overflow: hidden;
+      }
+
+      html:not(.dark) #skynet-splash {
+        background-color: #05070a;
+        background-image: 
+          radial-gradient(circle at 50% 35%, rgba(0, 229, 255, 0.12) 0%, transparent 60%),
+          linear-gradient(rgba(0, 229, 255, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 229, 255, 0.06) 1px, transparent 1px);
+        color: #f8fafc;
+      }
+
+      #skynet-splash.skynet-splash-fadeout {
+        opacity: 0;
+        transform: scale(1.04) translate3d(0, 0, 0);
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      /* Marco contenedor HUD con brackets esquineros idénticos al Login */
+      .skynet-splash-frame {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 88%;
+        max-width: 380px;
+        padding: 2.25rem 1.75rem;
+        border: 1px solid rgba(0, 229, 255, 0.2);
+        border-radius: 6px;
+        background: rgba(10, 14, 22, 0.95);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8),
+                    0 0 25px rgba(0, 229, 255, 0.15);
+        transform: translateZ(0);
+      }
+
+      html:not(.dark) .skynet-splash-frame {
+        background: rgba(10, 14, 22, 0.95);
+        border: 1px solid rgba(0, 229, 255, 0.2);
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8),
+                    0 0 25px rgba(0, 229, 255, 0.15);
+      }
+
+      /* Brackets tácticos de esquina */
+      .skynet-corner {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-color: rgba(0, 229, 255, 0.6);
+        pointer-events: none;
+      }
+      .skynet-corner-tl { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }
+      .skynet-corner-tr { top: -1px; right: -1px; border-top: 2px solid; border-right: 2px solid; }
+      .skynet-corner-bl { bottom: -1px; left: -1px; border-bottom: 2px solid; border-left: 2px solid; }
+      .skynet-corner-br { bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; }
+
+      /* Haz de escaneo láser continuo */
+      .skynet-scan-line {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #00e5ff 30%, #ffffff 50%, #00e5ff 70%, transparent);
+        box-shadow: 0 0 10px #00e5ff;
+        opacity: 0.85;
+        transform: translate3d(0, 0, 0);
+        will-change: transform;
+        animation: skynetLaser 2.2s ease-in-out infinite alternate;
+        pointer-events: none;
+      }
+
+      /* Orbe Holo-Cyber */
+      .skynet-holo-orb {
+        position: relative;
+        width: 90px;
+        height: 90px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.25rem;
+        transform: translateZ(0);
+      }
+
+      .skynet-halo-glow {
+        position: absolute;
+        inset: -12px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(0, 229, 255, 0.25) 0%, transparent 70%);
+        transform: translateZ(0);
+        will-change: transform, opacity;
+        animation: skynetPulseGpu 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      .skynet-ring-outer {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 1.5px dashed rgba(0, 229, 255, 0.8);
+        transform: translateZ(0);
+        will-change: transform;
+        animation: skynetSpinGpu 6s linear infinite;
+      }
+
+      .skynet-ring-inner {
+        position: absolute;
+        inset: 10px;
+        border-radius: 50%;
+        border: 1.5px solid transparent;
+        border-top-color: #34d399;
+        border-bottom-color: #00e5ff;
+        transform: translateZ(0);
+        will-change: transform;
+        animation: skynetSpinReverseGpu 3s linear infinite;
+      }
+
+      .skynet-core-badge {
+        position: relative;
+        width: 52px;
+        height: 52px;
+        border-radius: 10px;
+        background: #080c14;
+        border: 1px solid rgba(0, 229, 255, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 15px rgba(0, 229, 255, 0.35), inset 0 0 10px rgba(0, 229, 255, 0.15);
+        transform: translateZ(0);
+      }
+
+      html:not(.dark) .skynet-core-badge {
+        background: #080c14;
+        border: 1px solid rgba(0, 229, 255, 0.5);
+        box-shadow: 0 0 15px rgba(0, 229, 255, 0.35), inset 0 0 10px rgba(0, 229, 255, 0.15);
+      }
+
+      .skynet-core-letter {
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 900;
+        font-size: 1.75rem;
+        background: linear-gradient(135deg, #ffffff 0%, #bff9ff 45%, #00e5ff 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1;
+        letter-spacing: -0.02em;
+      }
+
+      /* Títulos e información */
+      .skynet-brand-title {
+        font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+        font-size: 1.45rem;
+        font-weight: 700;
+        letter-spacing: 0.3em;
+        text-indent: 0.3em;
+        text-transform: uppercase;
+        margin: 0 0 0.25rem 0;
+        color: #ffffff;
+        text-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+      }
+
+      html:not(.dark) .skynet-brand-title {
+        color: #ffffff;
+      }
+
+      .skynet-tagline {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        color: rgba(0, 229, 255, 0.7);
+        margin: 0 0 1rem 0;
+      }
+
+      /* Barra de progreso y porcentaje */
+      .skynet-progress-box {
+        width: 100%;
+        margin-bottom: 0.85rem;
+      }
+
+      .skynet-progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.15em;
+        margin-bottom: 0.35rem;
+        color: rgba(0, 229, 255, 0.8);
+      }
+
+      .skynet-percent-text {
+        font-family: 'JetBrains Mono', monospace;
+        color: #00e5ff;
+        font-weight: 700;
+        text-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+      }
+
+      .skynet-track {
+        width: 100%;
+        height: 4px;
+        background: rgba(0, 229, 255, 0.15);
+        border-radius: 9999px;
+        overflow: hidden;
+        position: relative;
+        transform: translateZ(0);
+      }
+
+      .skynet-fill {
+        height: 100%;
+        width: 100%;
+        background: linear-gradient(90deg, #00e5ff, #34d399);
+        border-radius: 9999px;
+        transform: translate3d(-100%, 0, 0);
+        transition: transform 0.12s linear;
+        will-change: transform;
+        box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+      }
+
+      /* Subtexto de estado en vivo */
+      .skynet-live-status {
+        font-size: 0.6875rem;
+        font-family: 'JetBrains Mono', monospace;
+        color: #00e5ff;
+        letter-spacing: 0.12em;
+        text-align: center;
+        min-height: 1rem;
+        margin: 0 0 0.85rem 0;
+        text-transform: uppercase;
+      }
+
+      /* Telemetría checklist de 3 puntos */
+      .skynet-telemetry-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        width: 100%;
+        border-top: 1px dashed rgba(0, 229, 255, 0.2);
+        padding-top: 0.75rem;
+      }
+
+      .skynet-telemetry-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.625rem;
+        font-family: 'JetBrains Mono', monospace;
+        color: #64748b;
+        letter-spacing: 0.08em;
+        transition: color 0.25s ease;
+      }
+
+      .skynet-telemetry-item.active {
+        color: #00e5ff;
+      }
+
+      .skynet-telemetry-item.done {
+        color: #34d399;
+      }
+
+      .skynet-dot-pulse {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        margin-right: 6px;
+      }
+
+      @keyframes skynetSpinGpu {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      @keyframes skynetSpinReverseGpu {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(-360deg); }
+      }
+
+      @keyframes skynetPulseGpu {
+        0%, 100% { transform: scale(0.92); opacity: 0.3; }
+        50% { transform: scale(1.18); opacity: 0.75; }
+      }
+
+      @keyframes skynetLaser {
+        0% { transform: translate3d(0, 0, 0); }
+        100% { transform: translate3d(0, 320px, 0); }
+      }
+
+      /* Accesibilidad para reducción de movimiento */
+      @media (prefers-reduced-motion: reduce) {
+        .skynet-ring-outer,
+        .skynet-ring-inner,
+        .skynet-halo-glow,
+        .skynet-scan-line {
+          animation: none !important;
+        }
+      }
+    </style>
   </head>
   <body>
+    <!-- Splash Screen Cinematográfico Inicial Optimizado para Móvil -->
+    <div id="skynet-splash" aria-hidden="true">
+      <div class="skynet-splash-frame">
+        <div class="skynet-corner skynet-corner-tl"></div>
+        <div class="skynet-corner skynet-corner-tr"></div>
+        <div class="skynet-corner skynet-corner-bl"></div>
+        <div class="skynet-corner skynet-corner-br"></div>
+        <div class="skynet-scan-line"></div>
+
+        <div class="skynet-holo-orb">
+          <div class="skynet-halo-glow"></div>
+          <div class="skynet-ring-outer"></div>
+          <div class="skynet-ring-inner"></div>
+          <div class="skynet-core-badge">
+            <span class="skynet-core-letter">S</span>
+          </div>
+        </div>
+
+        <h1 class="skynet-brand-title">SKYNET</h1>
+        <div class="skynet-tagline">SISTEMA OPERATIVO CORPORATIVO</div>
+
+        <div class="skynet-progress-box">
+          <div class="skynet-progress-header">
+            <span>INICIALIZANDO</span>
+            <span id="skynet-splash-percent" class="skynet-percent-text">0%</span>
+          </div>
+          <div class="skynet-track">
+            <div id="skynet-splash-bar-fill" class="skynet-fill"></div>
+          </div>
+        </div>
+
+        <div id="skynet-splash-status" class="skynet-live-status">INICIALIZANDO NÚCLEO...</div>
+
+        <div class="skynet-telemetry-list">
+          <div id="telemetry-1" class="skynet-telemetry-item active">
+            <span><span class="skynet-dot-pulse"></span>01 // NÚCLEO Y SEGURIDAD</span>
+            <span class="status-tag">CARGANDO</span>
+          </div>
+          <div id="telemetry-2" class="skynet-telemetry-item">
+            <span><span class="skynet-dot-pulse"></span>02 // BASE DE DATOS & API</span>
+            <span class="status-tag">EN ESPERA</span>
+          </div>
+          <div id="telemetry-3" class="skynet-telemetry-item">
+            <span><span class="skynet-dot-pulse"></span>03 // INTERFAZ DE USUARIO</span>
+            <span class="status-tag">EN ESPERA</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Script de Telemetría Progresiva (0% a 100% fluido en 2.2 segundos) -->
+    <script>
+      (function() {
+        var start = performance.now();
+        var duration = 2100; // 2.1 segundos de secuencia de telemetría completa
+        var percentEl = document.getElementById('skynet-splash-percent');
+        var fillEl = document.getElementById('skynet-splash-bar-fill');
+        var statusEl = document.getElementById('skynet-splash-status');
+        var t1 = document.getElementById('telemetry-1');
+        var t2 = document.getElementById('telemetry-2');
+        var t3 = document.getElementById('telemetry-3');
+
+        function step(now) {
+          var elapsed = now - start;
+          var progress = Math.min(elapsed / duration, 1);
+          var eased = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+          var percent = Math.round(eased * 100);
+
+          if (percentEl) percentEl.textContent = percent + '%';
+          if (fillEl) fillEl.style.transform = 'translate3d(' + (-100 + percent) + '%, 0, 0)';
+
+          if (percent < 35) {
+            if (statusEl) statusEl.textContent = 'INICIALIZANDO NÚCLEO...';
+          } else if (percent < 70) {
+            if (statusEl) statusEl.textContent = 'CONECTANDO SERVICIOS Y DATOS...';
+            if (t1) { t1.className = 'skynet-telemetry-item done'; t1.querySelector('.status-tag').textContent = '[OK]'; }
+            if (t2) { t2.className = 'skynet-telemetry-item active'; t2.querySelector('.status-tag').textContent = 'SINCRONIZANDO'; }
+          } else if (percent < 98) {
+            if (statusEl) statusEl.textContent = 'SINCRONIZANDO MÓDULOS...';
+            if (t2) { t2.className = 'skynet-telemetry-item done'; t2.querySelector('.status-tag').textContent = '[OK]'; }
+            if (t3) { t3.className = 'skynet-telemetry-item active'; t3.querySelector('.status-tag').textContent = 'MONTANDO'; }
+          } else {
+            if (statusEl) statusEl.textContent = 'SISTEMA ONLINE // LISTO';
+            if (t3) { t3.className = 'skynet-telemetry-item done'; t3.querySelector('.status-tag').textContent = '[OK]'; }
+          }
+
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          }
+        }
+        requestAnimationFrame(step);
+      })();
+    </script>
+
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

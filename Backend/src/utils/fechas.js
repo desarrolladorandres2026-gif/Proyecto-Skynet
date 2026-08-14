@@ -62,6 +62,28 @@ export function hoy() {
   return inicioDelDia(new Date())
 }
 
+// "YYYY-MM-DDTHH:mm" o "YYYY-MM-DDTHH:mm:ss" — lo que produce un
+// <input type="datetime-local">, sin offset de zona.
+const DATETIME_SIN_OFFSET_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/
+
+/**
+ * Convierte un valor de <input type="datetime-local"> al instante que
+ * representa en el Terminal.
+ *
+ * El propio spec de JavaScript dice que un ISO-8601 SIN offset ("2026-08-13T
+ * 14:31") se interpreta en la zona horaria LOCAL DEL PROCESO que ejecuta el
+ * motor — no en la del navegador que originó el valor. Un `new Date(valor)`
+ * directo sobre esa cadena da un resultado distinto según dónde corra el
+ * servidor: 14:31 se volvía 14:31 UTC en el VPS, en vez de 14:31 hora de
+ * Neiva (19:31 UTC). Si SÍ trae offset ("...Z", "...+05:00") se respeta tal
+ * cual, porque ahí el instante ya está determinado sin ambigüedad.
+ */
+export function instanteLocal(valor) {
+  if (typeof valor !== 'string') return null
+  const fecha = new Date(DATETIME_SIN_OFFSET_RE.test(valor) ? `${valor}${OFFSET_TERMINAL}` : valor)
+  return Number.isNaN(fecha.getTime()) ? null : fecha
+}
+
 /**
  * Rango [desde, hasta] con AMBOS extremos inclusivos, listo para un filtro de
  * Mongo: `{ creadoEn: rangoDeDias('2026-08-01', '2026-08-13') }`.

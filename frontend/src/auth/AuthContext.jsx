@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
 import { auth } from '../api/auth.js'
+import { ocultarSplashScreen } from '../utils/splash.js'
 
 const AuthContext = createContext(null)
 
@@ -23,7 +24,10 @@ export function AuthProvider({ children }) {
         if (activo && !loginManualRef.current) setUsuario(null)
       })
       .finally(() => {
-        if (activo) setCargando(false)
+        if (activo) {
+          setCargando(false)
+          ocultarSplashScreen()
+        }
       })
 
     return () => {

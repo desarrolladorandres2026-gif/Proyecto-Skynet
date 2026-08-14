@@ -153,9 +153,51 @@ export async function actualizarUsuario(req, res) {
   res.json({ usuario: usuarioSinPassword })
 }
 
+// Extraído para poder probarlo directo (ver tests/usuarios.crud.test.js):
+// con la ruta protegida por soloAdmin, quien la llama es siempre un Super
+// Admin ACTIVO distinto del objetivo (el autoborrado ya se bloquea antes de
+// llegar aquí) — así que ese Super Admin que llama SIEMPRE cuenta como "el
+// otro que queda", y esta rama nunca se dispara hoy por HTTP. Se mantiene
+// como defensa en profundidad (protege también una futura llamada directa al
+// service, un borrado en lote, o el caso borde de que el propio actor pase a
+// inactivo entre la verificación del token y este punto) y se prueba como
+// invariante de datos, no como flujo HTTP alcanzable.
+export async function quedaOtroSuperAdminActivo(idExcluido) {
+  // countDocuments no puede filtrar por un campo del documento poblado, así
+  // que se trae el mínimo necesario y se cuenta en memoria — la tabla de
+  // usuarios activos con rol Super Admin es, en la práctica, minúscula.
+  const otrosActivos = await Usuario.find({ _id: { $ne: idExcluido }, estado: 'activo' })
+    .populate({ path: 'rol', select: 'esSuperAdmin' })
+    .select('rol')
+    .lean()
+  return otrosActivos.some((u) => u.rol?.esSuperAdmin)
+}
+
 export async function eliminarUsuario(req, res) {
   const { id } = req.params
-  const usuario = await Usuario.findByIdAndDelete(id)
+
+  // Sin este check, un admin podía borrar su propia cuenta desde el panel: el
+  // token que sigue usando en ese instante queda apuntando a un `_id` que ya
+  // no existe en Mongo, y CUALQUIER petición posterior (incluida la siguiente
+  // en la misma pestaña) la rechaza verificarToken con 401 sin explicación —
+  // la sesión "se cae" sin que la UI diga por qué. Ver BUG-009 en la
+  // auditoría 2026-08-13.
+  if (id === String(req.usuario.id_usuario)) {
+    return res.status(409).json({ error: 'No puedes eliminar tu propia cuenta' })
+  }
+
+  const usuario = await Usuario.findById(id).populate({ path: 'rol', select: 'esSuperAdmin' })
   if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+  // Sin esto, la ÚLTIMA cuenta con esSuperAdmin se puede borrar igual que
+  // cualquier otra: nadie queda con permisos para gestionar roles ni crear
+  // nuevos usuarios, y salir de ese estado exige entrar directo a Mongo.
+  // (roles.service.js protege el ROL Super Admin de perder su nivel o
+  // eliminarse, pero nada impedía vaciar de USUARIOS ese rol por completo.)
+  if (usuario.rol?.esSuperAdmin && !(await quedaOtroSuperAdminActivo(usuario._id))) {
+    return res.status(409).json({ error: 'No puedes eliminar el último Super Admin activo del sistema' })
+  }
+
+  await Usuario.findByIdAndDelete(id)
   res.json({ mensaje: 'Usuario eliminado correctamente' })
 }

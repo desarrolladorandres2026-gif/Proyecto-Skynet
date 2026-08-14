@@ -49,9 +49,18 @@ export function requiereSerParticipante(ot, usuarioActor) {
 // Resuelve todos los usuarios activos cuyo Rol tenga el permiso indicado (o
 // esSuperAdmin) — para notificaciones dirigidas (p. ej. "avisar a todo
 // supervisor"), sin depender de un rol fijo por nombre.
-export async function usuariosConPermiso(codigo) {
+//
+// El comodín esSuperAdmin solo aplica para roles de notificación/aprobación
+// (supervisar, asignar, aprobar). Para 'mantenimiento:ejecutar' (el equipo
+// de técnicos que ejecuta OT) se excluye explícitamente: un Super Admin es
+// una cuenta de sistema, no un técnico, y no debe aparecer en el "equipo de
+// mantenimiento" ni en sus reportes/KPIs.
+export async function usuariosConPermiso(codigo, { incluirSuperAdmin = true } = {}) {
   const permiso = await Permiso.findOne({ codigo }).select('_id')
-  const filtroRol = permiso ? { $or: [{ esSuperAdmin: true }, { permisos: permiso._id }] } : { esSuperAdmin: true }
+  const condiciones = []
+  if (incluirSuperAdmin) condiciones.push({ esSuperAdmin: true })
+  if (permiso) condiciones.push({ permisos: permiso._id })
+  const filtroRol = condiciones.length ? { $or: condiciones } : { _id: null }
   const roles = await Rol.find(filtroRol).select('_id')
   const usuarios = await Usuario.find({ rol: { $in: roles.map((r) => r._id) }, estado: 'activo' }).select('_id')
   return usuarios.map((u) => u._id)
@@ -63,7 +72,7 @@ export async function validarTecnico(tecnicoId) {
     populate: { path: 'permisos', select: 'codigo' },
   })
   if (!usuario || usuario.estado !== 'activo') throw new ErrorValidacion('Técnico no encontrado o inactivo')
-  const tienePermiso = usuario.rol?.esSuperAdmin || usuario.rol?.permisos?.some((p) => p.codigo === 'mantenimiento:ejecutar')
+  const tienePermiso = usuario.rol?.permisos?.some((p) => p.codigo === 'mantenimiento:ejecutar')
   if (!tienePermiso) throw new ErrorValidacion('El usuario seleccionado no tiene permiso para ejecutar órdenes de mantenimiento')
   return usuario._id
 }

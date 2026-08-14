@@ -284,4 +284,47 @@ describe('Backup — panel de personalización (colecciones, rango, formato)', (
     expect(workbook.getWorksheet('Usuarios')).toBeDefined()
     expect(workbook.getWorksheet('Roles')).toBeUndefined()
   })
+
+  // Regresión de BUG-005 (auditoría 2026-08-13). El límite superior del rango
+  // se anclaba con `setHours(23,59,59,999)` sobre un Date parseado como UTC:
+  // en el VPS (que corre en UTC), eso caía a las 6:59 p.m. hora de Neiva y
+  // dejaba fuera del backup todo lo del turno de la noche del último día
+  // pedido — silencioso, sin ningún error, en el módulo pensado justamente
+  // para conservar el histórico.
+  it('incluye un reporte del turno de la noche del último día del rango', async () => {
+    await ReporteDano.create({
+      tipo: 'dano',
+      fecha: new Date('2026-08-14T04:00:00.000Z'), // 23:00 del 13 de agosto en Neiva
+      descripcion: 'Reporte del turno de la noche',
+      reportadoPor: admin._id,
+    })
+
+    const { buffer } = await generarBackup(
+      { colecciones: 'danos', desde: '2026-08-13', hasta: '2026-08-13' },
+      usuarioActor
+    )
+    const workbook = new ExcelJS.Workbook()
+    await workbook.xlsx.load(buffer)
+
+    const hoja = workbook.getWorksheet('Reportes de daños')
+    expect(hoja.rowCount).toBe(2) // encabezado + el reporte de la noche
+  })
+
+  it('excluye un reporte del día siguiente al rango', async () => {
+    await ReporteDano.create({
+      tipo: 'dano',
+      fecha: new Date('2026-08-14T05:00:00.000Z'), // 00:00 del 14 en Neiva: ya es el día 14
+      descripcion: 'Reporte del día siguiente',
+      reportadoPor: admin._id,
+    })
+
+    const { buffer } = await generarBackup(
+      { colecciones: 'danos', desde: '2026-08-13', hasta: '2026-08-13' },
+      usuarioActor
+    )
+    const workbook = new ExcelJS.Workbook()
+    await workbook.xlsx.load(buffer)
+
+    expect(workbook.getWorksheet('Reportes de daños').rowCount).toBe(1) // solo encabezado
+  })
 })

@@ -26,6 +26,37 @@ async function comprimirFormData(formData) {
   return nuevo
 }
 
+// `fetch` no tiene timeout propio: sin uno, un backend que se cuelga (o un
+// proxy que se queda pensando) deja la petición pendiente PARA SIEMPRE. La UI
+// no tiene forma de distinguir eso de "está cargando, ya casi" — el botón
+// queda en spinner infinito, sin error que mostrar y sin que la persona pueda
+// reintentar sin recargar la pestaña entera. Ver BUG-013 en la auditoría
+// 2026-08-13.
+//
+// 20s para peticiones normales; las que suben un archivo (FormData, ya
+// comprimido en el sitio pero puede seguir pesando varios MB en una red de
+// Terminal con señal mala) tienen más margen porque un timeout corto ahí
+// cancelaría subidas legítimas, no solo las colgadas.
+const TIMEOUT_MS_DEFECTO = 20_000
+const TIMEOUT_MS_ARCHIVO = 60_000
+
+// Combina dos AbortSignal en uno que se dispara cuando cualquiera de los dos
+// lo hace. `AbortSignal.any()` haría esto nativo, pero no está disponible en
+// jsdom (entorno de test) ni en los navegadores más viejos de las tablets con
+// las que opera el Terminal — se evita depender de un método que puede faltar
+// justo donde más importa.
+function combinarSignals(a, b) {
+  const controlador = new AbortController()
+  const abortar = () => controlador.abort()
+  if (a.aborted || b.aborted) {
+    controlador.abort()
+  } else {
+    a.addEventListener('abort', abortar, { once: true })
+    b.addEventListener('abort', abortar, { once: true })
+  }
+  return controlador.signal
+}
+
 export async function request(path, options = {}) {
   const isFormData = options.body instanceof FormData
   if (isFormData) {
@@ -37,9 +68,29 @@ export async function request(path, options = {}) {
     ...options.headers,
   }
 
+  // AbortSignal.timeout() crea su propia señal que se dispara sola; si quien
+  // llama ya trae un signal propio (para cancelar manualmente, p. ej. al
+  // desmontar un componente), se combinan las dos — cualquiera de las dos
+  // cancela la petición, sin que una pise a la otra.
+  const timeoutMs = options.timeoutMs ?? (isFormData ? TIMEOUT_MS_ARCHIVO : TIMEOUT_MS_DEFECTO)
+  const signalTimeout = AbortSignal.timeout(timeoutMs)
+  const signal = options.signal ? combinarSignals(options.signal, signalTimeout) : signalTimeout
+
   // credentials:'include' hace que el navegador adjunte la cookie httpOnly de
   // sesión en cada petición (y acepte la que ponga el backend en /login).
-  const res = await fetch(`${BASE}${path}`, { ...options, headers, credentials: 'include' })
+  let res
+  try {
+    res = await fetch(`${BASE}${path}`, { ...options, headers, credentials: 'include', signal })
+  } catch (err) {
+    // AbortError con la señal DE TIMEOUT (no la que pasó quien llama, que
+    // puede querer cancelar sin que eso cuente como fallo de red) se traduce
+    // a un mensaje que la UI ya sabe mostrar en un toast, en vez de dejar
+    // pasar el "AbortError" críptico de fetch.
+    if (err.name === 'AbortError' && signalTimeout.aborted && !options.signal?.aborted) {
+      throw new Error('La solicitud tardó demasiado. Verifica tu conexión e inténtalo de nuevo.')
+    }
+    throw err
+  }
 
   // Un 401 significa que la cookie ya no es válida (expiró, se invalidó por un
   // reset de contraseña, o el usuario fue desactivado/eliminado): limpia el

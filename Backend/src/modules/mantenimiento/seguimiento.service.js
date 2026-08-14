@@ -16,7 +16,7 @@ export async function obtenerSeguimientoTecnicos(usuarioActor) {
     throw new ErrorConflicto('No tienes acceso al seguimiento operativo')
   }
 
-  const tecnicoIds = await usuariosConPermiso('mantenimiento:ejecutar')
+  const tecnicoIds = await usuariosConPermiso('mantenimiento:ejecutar', { incluirSuperAdmin: false })
   const [tecnicos, ordenesActivas] = await Promise.all([
     Usuario.find({ _id: { $in: tecnicoIds } }).select('nombre nombre_usuario'),
     Mantenimiento.find({ tecnico_asignado: { $in: tecnicoIds }, estado: { $in: ESTADOS_SEGUIMIENTO } })

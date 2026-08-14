@@ -1,14 +1,17 @@
 import Mantenimiento from '../../models/mantenimiento/Mantenimiento.js'
 import Equipo from '../../models/mantenimiento/Equipo.js'
 import { escapeRegex } from '../../utils/regex.js'
+import { hoy as HOY_BOGOTA } from '../../utils/fechas.js'
 
-const HOY_BOGOTA = () => {
-  const ahora = new Date()
-  const bogota = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }))
-  bogota.setHours(0, 0, 0, 0)
-  return bogota
-}
-
+// Antes construía "hoy en Bogotá" con
+// `new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }))`
+// seguido de `setHours(0,0,0,0)`: el truco del toLocaleString sí produce la
+// hora de pared correcta de Bogotá, pero setHours vuelve a zonificarla según
+// la zona del PROCESO — en el VPS (que corre en UTC) el resultado final
+// terminaba siendo la medianoche de Bogotá interpretada como si fuera UTC, un
+// desfase de 5 horas más respecto al que ya tenía el truco. hoy() (ver
+// utils/fechas.js) ancla directamente a 05:00 UTC = 00:00 Neiva, sin pasos
+// intermedios que dependan de dónde corre el proceso.
 export async function actualizarEstadosVencidos() {
   const hoy = HOY_BOGOTA()
   await Mantenimiento.updateMany(
@@ -30,8 +33,10 @@ export async function listarFinalizados(_req, res) {
 
 export async function listarProximos(_req, res) {
   const hoy = HOY_BOGOTA()
-  const en7dias = new Date(hoy)
-  en7dias.setDate(en7dias.getDate() + 7)
+  // Suma en milisegundos, no setDate(): setDate reinterpreta el resultado en
+  // la zona del proceso, el mismo tipo de dependencia que se está quitando de
+  // este archivo.
+  const en7dias = new Date(hoy.getTime() + 7 * 24 * 60 * 60 * 1000)
 
   const mantenimientos = await Mantenimiento.find({
     estado: 'pendiente',
