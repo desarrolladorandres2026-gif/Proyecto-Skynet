@@ -18,6 +18,7 @@ import perfilRoutes from '../modules/perfil/perfil.routes.js'
 import copilotoRoutes from '../modules/copiloto/copiloto.routes.js'
 import backupRoutes from '../modules/backup/backup.routes.js'
 import catalogosRoutes from '../modules/catalogos/catalogos.routes.js'
+import empleadosRoutes from '../modules/empleados/empleados.routes.js'
 
 const router = Router()
 
@@ -49,6 +50,7 @@ router.use('/perfil', perfilRoutes)
 router.use('/copiloto', copilotoRoutes)
 router.use('/backup', backupRoutes)
 router.use('/catalogos', catalogosRoutes)
+router.use('/empleados', empleadosRoutes)
 // operacion ahora solo expone /dashboard (núcleo, universal para todo rol);
 // se monta en la raíz por eso.
 router.use('/', operacionRoutes)

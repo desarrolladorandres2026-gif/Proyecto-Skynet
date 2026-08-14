@@ -1,30 +1,63 @@
 import Dependencia from '../../models/Dependencia.js'
 import Cargo from '../../models/Cargo.js'
+import Empleado from '../../models/Empleado.js'
 import Usuario from '../../models/Usuario.js'
 import Equipo from '../../models/mantenimiento/Equipo.js'
 import { escapeRegex } from '../../utils/regex.js'
+import { registrarAuditoria } from '../../utils/auditoria.js'
 
 // Mismo patrón que modules/mantenimiento/catalogos.controller.js (tipo/marca
 // de equipo): un solo controller genérico en vez de repetir CRUD por
 // catálogo. `enUso` valida contra los campos String libres que hoy consumen
 // estos catálogos (Usuario.dependencia/cargo, Equipo.dependencia) — no son
-// ObjectId ref, así que el match es por nombre, no por id.
+// ObjectId ref, así que el match es por nombre, no por id. Talento Humano
+// Fase 1 añade una segunda fuente de "en uso": las referencias reales por
+// ObjectId (Empleado, Cargo.dependencia, Dependencia.padre) — hay que
+// revisar ambas antes de dejar borrar un valor.
 const MODELOS = { dependencia: Dependencia, cargo: Cargo }
 
-async function enUso(tipo, nombre) {
+async function enUso(tipo, item) {
   if (tipo === 'dependencia') {
-    const [usuario, equipo] = await Promise.all([
-      Usuario.exists({ dependencia: nombre }),
-      Equipo.exists({ dependencia: nombre }),
+    const [usuarioLegado, equipoLegado, hijas, cargosAsociados, empleados] = await Promise.all([
+      Usuario.exists({ dependencia: item.nombre }),
+      Equipo.exists({ dependencia: item.nombre }),
+      Dependencia.exists({ padre: item._id }),
+      Cargo.exists({ dependencia: item._id }),
+      Empleado.exists({ dependencia: item._id }),
     ])
-    return Boolean(usuario || equipo)
+    return Boolean(usuarioLegado || equipoLegado || hijas || cargosAsociados || empleados)
   }
-  return Boolean(await Usuario.exists({ cargo: nombre }))
+  const [usuarioLegado, empleados] = await Promise.all([
+    Usuario.exists({ cargo: item.nombre }),
+    Empleado.exists({ cargo: item._id }),
+  ])
+  return Boolean(usuarioLegado || empleados)
+}
+
+// Camina la cadena de `padre` desde `padreId` hacia la raíz: si en algún
+// punto llega a `dependenciaId`, asignarlo crearía un ciclo (una dependencia
+// no puede ser ancestro de sí misma). Cota de 50 saltos como cinturón de
+// seguridad — el catálogo real nunca tendrá una jerarquía tan profunda, y
+// evita un bucle infinito si algún dato ya inconsistente tuviera un ciclo.
+async function creariaCiclo(dependenciaId, padreId) {
+  if (!padreId) return false
+  if (String(padreId) === String(dependenciaId)) return true
+
+  let actualId = padreId
+  for (let saltos = 0; saltos < 50; saltos++) {
+    const actual = await Dependencia.findById(actualId).select('padre')
+    if (!actual?.padre) return false
+    if (String(actual.padre) === String(dependenciaId)) return true
+    actualId = actual.padre
+  }
+  return true
 }
 
 export async function obtenerCatalogos(_req, res) {
   const [dependencias, cargos] = await Promise.all([
-    Dependencia.find().sort({ nombre: 1 }),
+    Dependencia.find()
+      .sort({ nombre: 1 })
+      .populate({ path: 'jefe', select: 'usuario numeroDocumento', populate: { path: 'usuario', select: 'nombre' } }),
     Cargo.find().sort({ nombre: 1 }),
   ])
   res.json({ dependencias, cargos })
@@ -66,11 +99,95 @@ export async function eliminarCatalogo(req, res) {
   const item = await MODELOS[tipo].findById(id)
   if (!item) return res.status(404).json({ error: 'No encontrado' })
 
-  if (await enUso(tipo, item.nombre)) {
+  if (await enUso(tipo, item)) {
     return res.status(409).json({ error: 'No se puede eliminar: hay registros usando este valor' })
   }
 
   await MODELOS[tipo].findByIdAndDelete(id)
   const lista = await MODELOS[tipo].find().sort({ nombre: 1 })
   res.json({ success: true, lista })
+}
+
+// Estructura organizacional (Talento Humano Fase 1) — separado de
+// agregar/eliminar porque edita campos distintos a `nombre` y tiene sus
+// propias reglas (ciclos, existencia del jefe). agregarCatalogo se deja tal
+// cual para no romper los formularios que solo necesitan "un valor más en
+// la lista" (Usuarios, Requerimientos, Equipos).
+export async function actualizarDependencia(req, res) {
+  const { id } = req.params
+  const { padre, jefe } = req.body
+
+  const dependencia = await Dependencia.findById(id)
+  if (!dependencia) return res.status(404).json({ error: 'Dependencia no encontrada' })
+
+  if (padre !== undefined && padre !== null && padre !== '') {
+    if (!(await Dependencia.exists({ _id: padre }))) {
+      return res.status(400).json({ error: 'La dependencia padre indicada no existe' })
+    }
+    if (await creariaCiclo(id, padre)) {
+      return res.status(409).json({ error: 'Esa dependencia crearía un ciclo en la jerarquía' })
+    }
+  }
+
+  if (jefe !== undefined && jefe !== null && jefe !== '') {
+    if (!(await Empleado.exists({ _id: jefe }))) {
+      return res.status(400).json({ error: 'El empleado indicado como jefe no existe' })
+    }
+  }
+
+  const antes = dependencia.toObject()
+  if (padre !== undefined) dependencia.padre = padre || null
+  if (jefe !== undefined) dependencia.jefe = jefe || null
+  await dependencia.save()
+
+  await registrarAuditoria({
+    usuario: req.usuario,
+    accion: 'actualizar',
+    modulo: 'catalogos',
+    entidad: 'Dependencia',
+    entidadId: dependencia._id,
+    descripcion: `Estructura actualizada: ${dependencia.nombre}`,
+    cambios: { antes, despues: dependencia.toObject() },
+  })
+
+  const item = await Dependencia.findById(id).populate({
+    path: 'jefe',
+    select: 'usuario numeroDocumento',
+    populate: { path: 'usuario', select: 'nombre' },
+  })
+  const lista = await Dependencia.find()
+    .sort({ nombre: 1 })
+    .populate({ path: 'jefe', select: 'usuario numeroDocumento', populate: { path: 'usuario', select: 'nombre' } })
+  res.json({ success: true, item, lista })
+}
+
+export async function actualizarCargo(req, res) {
+  const { id } = req.params
+  const { dependencia } = req.body
+
+  const cargo = await Cargo.findById(id)
+  if (!cargo) return res.status(404).json({ error: 'Cargo no encontrado' })
+
+  if (dependencia !== undefined && dependencia !== null && dependencia !== '') {
+    if (!(await Dependencia.exists({ _id: dependencia }))) {
+      return res.status(400).json({ error: 'La dependencia indicada no existe' })
+    }
+  }
+
+  const antes = cargo.toObject()
+  if (dependencia !== undefined) cargo.dependencia = dependencia || null
+  await cargo.save()
+
+  await registrarAuditoria({
+    usuario: req.usuario,
+    accion: 'actualizar',
+    modulo: 'catalogos',
+    entidad: 'Cargo',
+    entidadId: cargo._id,
+    descripcion: `Dependencia por defecto actualizada: ${cargo.nombre}`,
+    cambios: { antes, despues: cargo.toObject() },
+  })
+
+  const lista = await Cargo.find().sort({ nombre: 1 })
+  res.json({ success: true, item: cargo, lista })
 }

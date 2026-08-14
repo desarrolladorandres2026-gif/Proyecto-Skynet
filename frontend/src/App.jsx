@@ -35,6 +35,7 @@ import CalendarioAusenciasPage from './modules/ausencias/CalendarioAusenciasPage
 import DashboardPage from './modules/operacion/DashboardPage.jsx'
 import RolesPage from './modules/roles/RolesPage.jsx'
 import DependenciasCargosPage from './modules/catalogos/CatalogosPage.jsx'
+import EmpleadosPage from './modules/empleados/EmpleadosPage.jsx'
 import AuditoriaPage from './modules/auditoria/AuditoriaPage.jsx'
 import ModulosSistemaPage from './modules/sistema/ModulosSistemaPage.jsx'
 import BackupPage from './modules/backup/BackupPage.jsx'
@@ -161,7 +162,11 @@ export default function App() {
 
             <Route path="usuarios" element={<PermissionRoute permiso="usuarios:gestionar"><UsuariosPage /></PermissionRoute>} />
             <Route path="roles" element={<PermissionRoute permiso="roles:gestionar"><RolesPage /></PermissionRoute>} />
-            <Route path="catalogos" element={<PermissionRoute permiso="catalogos:gestionar"><DependenciasCargosPage /></PermissionRoute>} />
+            {/* catalogos:gestionar (agregar/eliminar valores, Administrador) O
+                empleados:gestionar (editar jerarquía/jefe, Talento Humano) —
+                la página misma recorta qué controles muestra a cada quien. */}
+            <Route path="catalogos" element={<PermissionRoute permiso={['catalogos:gestionar', 'empleados:gestionar']}><DependenciasCargosPage /></PermissionRoute>} />
+            <Route path="empleados" element={<ModuloActivoRoute modulo="empleados"><PermissionRoute permiso={['empleados:gestionar', 'empleados:ver']}><EmpleadosPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="auditoria" element={<PermissionRoute permiso="auditoria:leer"><AuditoriaPage /></PermissionRoute>} />
             <Route path="sistema/modulos" element={<PermissionRoute permiso="sistema:gestionar_modulos"><ModulosSistemaPage /></PermissionRoute>} />
             <Route path="sistema/backup" element={<SuperAdminRoute><BackupPage /></SuperAdminRoute>} />

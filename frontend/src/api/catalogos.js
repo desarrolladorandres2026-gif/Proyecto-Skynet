@@ -10,4 +10,14 @@ export const catalogosApi = {
   eliminar(tipo, id) {
     return request('/catalogos/eliminar', { method: 'POST', body: JSON.stringify({ tipo, id }) })
   },
+  // Estructura organizacional (Talento Humano Fase 1): jerarquía/jefe de una
+  // Dependencia, o la dependencia por defecto de un Cargo. `datos` es un
+  // objeto parcial: solo se envían los campos que cambian (padre/jefe, o
+  // dependencia respectivamente); un string vacío limpia la referencia.
+  actualizarDependencia(id, datos) {
+    return request(`/catalogos/dependencia/${id}`, { method: 'PATCH', body: JSON.stringify(datos) })
+  },
+  actualizarCargo(id, datos) {
+    return request(`/catalogos/cargo/${id}`, { method: 'PATCH', body: JSON.stringify(datos) })
+  },
 }

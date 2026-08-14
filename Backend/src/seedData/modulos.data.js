@@ -80,6 +80,17 @@ export const MODULOS_SISTEMA = [
     orden: 14,
   },
   {
+    // Talento Humano Fase 1. No fusionado con 'catalogos' (Dependencias y
+    // cargos, núcleo): ese módulo sigue siendo el catálogo de valores usado
+    // en toda la app (Usuarios, Requerimientos, Equipos); este es el
+    // expediente de personal propiamente dicho, desactivable por separado.
+    key: 'empleados',
+    nombre: 'Empleados',
+    descripcion: 'Expediente del personal del Terminal: documento, cargo, dependencia y fecha de ingreso.',
+    esNucleo: false,
+    orden: 14.5,
+  },
+  {
     key: 'mantenimiento',
     nombre: 'Mantenimiento TI (legado)',
     descripcion: 'Equipos de TI y sus mantenimientos programados.',

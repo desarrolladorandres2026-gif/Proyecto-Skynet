@@ -93,6 +93,16 @@ export const PERMISOS = [
   permiso('ausencias', 'aprobar', 'Aprobar o rechazar solicitudes de vacaciones, permisos e incapacidades'),
   permiso('ausencias', 'ver_todas', 'Ver todas las ausencias del personal (supervisión y calendario)'),
 
+  // Talento Humano Fase 1 (expediente de personal + estructura
+  // organizacional). Ver el propio expediente y la propia dependencia NO son
+  // permisos (mismo principio que ausencias): cada empleado consulta lo
+  // suyo por ser Empleado, no por RBAC. gestionar cubre además editar la
+  // jerarquía/jefe de Dependencia y la Dependencia por defecto de Cargo
+  // (ver catalogos.controller.js) — es la misma responsabilidad de
+  // "administrar la estructura de personal", no dos permisos separados.
+  permiso('empleados', 'gestionar', 'Crear, editar y desvincular empleados; administrar la estructura organizacional'),
+  permiso('empleados', 'ver', 'Ver el expediente de todos los empleados (supervisión, sin poder editar)'),
+
   // Genéricos del rol Operador, redactados igual de amplio que en la
   // especificación original ("Registrar información", "Actualizar datos");
   // se recomienda partirlos en permisos concretos por módulo cuando cada
@@ -134,6 +144,10 @@ const PERMISOS_ADMINISTRADOR_BASE = [
   // Aprobar ausencias es de Talento Humano (rol dedicado abajo), no del
   // Administrador de la operación.
   'ausencias:ver_todas',
+  // Igual criterio: ver el directorio de personal es supervisión de la
+  // operación; gestionarlo (crear/editar/desvincular, estructura
+  // organizacional) es exclusivo de Talento Humano.
+  'empleados:ver',
   'email:ver',
   'email:leer',
   'email:buscar',
@@ -244,12 +258,12 @@ export const ROLES = [
   {
     nombre: 'Talento Humano',
     slug: 'talento_humano',
-    descripcion: 'Decide sobre las solicitudes de vacaciones, permisos e incapacidades del personal y consulta el calendario de ausencias.',
+    descripcion: 'Decide sobre las solicitudes de vacaciones, permisos e incapacidades del personal, administra el expediente de empleados y la estructura organizacional, y consulta el calendario de ausencias.',
     esSuperAdmin: false,
     ambito: 'global',
     // No es esSistema: no viene de la especificación original de 6 roles, así
     // que sí puede renombrarse o eliminarse desde la pantalla de Roles.
     esSistema: false,
-    permisos: ['ausencias:aprobar', 'ausencias:ver_todas'],
+    permisos: ['ausencias:aprobar', 'ausencias:ver_todas', 'empleados:gestionar', 'empleados:ver'],
   },
 ]
