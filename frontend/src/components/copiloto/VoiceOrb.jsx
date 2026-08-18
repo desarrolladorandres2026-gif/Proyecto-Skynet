@@ -30,6 +30,18 @@ import { cn } from '../../lib/cn'
 // Estados en los que el orbe reacciona a algo (audio, progreso) y por tanto
 // necesita recalcularse cada frame. IDLE queda fuera a propósito.
 const ESTADOS_ANIMADOS = new Set(['LISTENING', 'PROCESSING', 'SPEAKING', 'ERROR'])
+
+// Toda la máquina de estados del orbe es visual (canvas + refs DOM directos,
+// sin re-render de React), así que un lector de pantalla no tiene forma de
+// saber si Skynet está escuchando, pensando o hablando salvo que se lo
+// digamos aparte en texto.
+const TEXTO_ESTADO = {
+  IDLE: '',
+  LISTENING: 'Skynet está escuchando',
+  PROCESSING: 'Skynet está procesando la solicitud',
+  SPEAKING: 'Skynet está hablando',
+  ERROR: 'Skynet encontró un error',
+}
 export function VoiceOrb({
   state = 'IDLE', // 'IDLE' | 'LISTENING' | 'PROCESSING' | 'SPEAKING' | 'ERROR'
   size = 70,
@@ -243,6 +255,11 @@ export function VoiceOrb({
       className={cn('relative flex items-center justify-center select-none cursor-pointer group', className)}
       style={{ width: size, height: size }}
     >
+      {/* Estado leído por lectores de pantalla: el resto del orbe es 100% visual */}
+      <span className="sr-only" role="status" aria-live="polite">
+        {TEXTO_ESTADO[state] || ''}
+      </span>
+
       {/* Canvas posterior para partículas de energía */}
       <canvas
         ref={canvasRef}

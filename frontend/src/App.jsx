@@ -35,13 +35,14 @@ import CalendarioAusenciasPage from './modules/ausencias/CalendarioAusenciasPage
 import DashboardPage from './modules/operacion/DashboardPage.jsx'
 import RolesPage from './modules/roles/RolesPage.jsx'
 import DependenciasCargosPage from './modules/catalogos/CatalogosPage.jsx'
-import EmpleadosPage from './modules/empleados/EmpleadosPage.jsx'
 import AuditoriaPage from './modules/auditoria/AuditoriaPage.jsx'
 import ModulosSistemaPage from './modules/sistema/ModulosSistemaPage.jsx'
 import BackupPage from './modules/backup/BackupPage.jsx'
 import InduccionHome from './modules/induccion/InduccionHome.jsx'
 import CertificadoPage from './modules/induccion/CertificadoPage.jsx'
 import InstallBanner from './pwa/InstallBanner.jsx'
+import CookieConsent from './legal/CookieConsent.jsx'
+import LegalPage from './legal/LegalPage.jsx'
 import PreferenciasNotificacionesPage from './modules/notificaciones/PreferenciasNotificacionesPage.jsx'
 import AsistentePage from './escritorio/AsistentePage.jsx'
 import DiagnosticoPage from './escritorio/DiagnosticoPage.jsx'
@@ -50,9 +51,15 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <CookieConsent />
         <InstallBanner />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+
+          {/* Pública a propósito: cualquiera debe poder consultar términos y
+              privacidad sin haber iniciado sesión (desde el login) ni
+              perder su sesión activa si la abre desde dentro del panel. */}
+          <Route path="/legal" element={<LegalPage />} />
 
           {/* Asistente de escritorio. Van FUERA del AppShell a propósito: son
               lo que carga la ventana oculta de Electron, que no debe montar el
@@ -162,11 +169,7 @@ export default function App() {
 
             <Route path="usuarios" element={<PermissionRoute permiso="usuarios:gestionar"><UsuariosPage /></PermissionRoute>} />
             <Route path="roles" element={<PermissionRoute permiso="roles:gestionar"><RolesPage /></PermissionRoute>} />
-            {/* catalogos:gestionar (agregar/eliminar valores, Administrador) O
-                empleados:gestionar (editar jerarquía/jefe, Talento Humano) —
-                la página misma recorta qué controles muestra a cada quien. */}
-            <Route path="catalogos" element={<PermissionRoute permiso={['catalogos:gestionar', 'empleados:gestionar']}><DependenciasCargosPage /></PermissionRoute>} />
-            <Route path="empleados" element={<ModuloActivoRoute modulo="empleados"><PermissionRoute permiso={['empleados:gestionar', 'empleados:ver']}><EmpleadosPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="catalogos" element={<PermissionRoute permiso="catalogos:gestionar"><DependenciasCargosPage /></PermissionRoute>} />
             <Route path="auditoria" element={<PermissionRoute permiso="auditoria:leer"><AuditoriaPage /></PermissionRoute>} />
             <Route path="sistema/modulos" element={<PermissionRoute permiso="sistema:gestionar_modulos"><ModulosSistemaPage /></PermissionRoute>} />
             <Route path="sistema/backup" element={<SuperAdminRoute><BackupPage /></SuperAdminRoute>} />

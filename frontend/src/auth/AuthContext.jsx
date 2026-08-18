@@ -104,6 +104,16 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  // Autoservicio de cambio de contraseña (incluido el cambio obligatorio tras
+  // un primer login con contraseña de seed/asignada por un admin, ver
+  // ProtectedRoute). El backend reemite la cookie de sesión, así que el
+  // usuario sigue logueado sin tener que volver a autenticarse.
+  const cambiarPassword = useCallback(async (passwordActual, passwordNueva) => {
+    const u = await auth.cambiarPassword(passwordActual, passwordNueva)
+    setUsuario(u)
+    return u
+  }, [])
+
   // Re-consulta /auth/me y actualiza el usuario en memoria. Lo usa la pantalla
   // "Módulos del sistema" tras activar/desactivar un módulo, para que el
   // sidebar del propio Super Admin refleje el cambio sin recargar la página.
@@ -144,7 +154,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ usuario, cargando, login, logout, refrescarUsuario, tieneModulo, tienePermiso, moduloActivo }}
+      value={{ usuario, cargando, login, logout, cambiarPassword, refrescarUsuario, tieneModulo, tienePermiso, moduloActivo }}
     >
       {children}
     </AuthContext.Provider>

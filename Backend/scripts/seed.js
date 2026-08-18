@@ -37,6 +37,7 @@ async function seed() {
     rolNombre: 'Super Administrador',
     modulos: MODULOS_LEGADOS,
     estado: 'activo',
+    debeCambiarPassword: true,
   })
 
   await crearSiNoExiste({
@@ -48,6 +49,7 @@ async function seed() {
     rolNombre: 'Administrador',
     modulos: MODULOS_LEGADOS,
     estado: 'activo',
+    debeCambiarPassword: true,
   })
 
   await crearSiNoExiste({
@@ -59,6 +61,7 @@ async function seed() {
     rolNombre: 'Seguridad',
     modulos: MODULOS_LEGADOS,
     estado: 'activo',
+    debeCambiarPassword: true,
   })
 
   await crearSiNoExiste({
@@ -70,6 +73,7 @@ async function seed() {
     rolNombre: 'Operador',
     modulos: MODULOS_LEGADOS,
     estado: 'activo',
+    debeCambiarPassword: true,
   })
 
   await crearSiNoExiste({
@@ -83,6 +87,7 @@ async function seed() {
     // tareas de daños del RBAC nuevo.
     modulos: ['mantenimiento'],
     estado: 'activo',
+    debeCambiarPassword: true,
   })
 
   await mongoose.disconnect()

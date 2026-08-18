@@ -275,9 +275,16 @@ export function CopilotoChatCard({
                             key={v.voiceURI}
                             role="button"
                             tabIndex={0}
+                            aria-pressed={v.voiceURI === vozElegidaURI}
                             onClick={() => onElegirVoz(v.voiceURI)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                onElegirVoz(v.voiceURI)
+                              }
+                            }}
                             className={cn(
-                              'flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer transition-colors',
+                              'flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cyan-400',
                               v.voiceURI === vozElegidaURI
                                 ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30'
                                 : 'hover:bg-[#252525] text-slate-300'
@@ -335,7 +342,12 @@ export function CopilotoChatCard({
           {/* ============================================================ */}
           {/* CUERPO DEL CHAT NEUMÓRFICO (#212121) */}
           {/* ============================================================ */}
-          <div className="flex-1 space-y-3.5 overflow-y-auto py-4 px-1 custom-scrollbar relative z-10">
+          <div
+            className="flex-1 space-y-3.5 overflow-y-auto py-4 px-1 custom-scrollbar relative z-10"
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions"
+          >
             {mensajes.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center py-4 px-2 space-y-4">
                 {/* Reemplazo del SVG por el diseño del Botón de Skynet */}

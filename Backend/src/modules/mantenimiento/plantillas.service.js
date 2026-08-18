@@ -27,10 +27,31 @@ export async function listarPlantillas({ tipoEquipo, soloActivas = true } = {}) 
   return PlantillaMantenimiento.find(filtro).sort({ nombre: 1 })
 }
 
+// Campos editables del schema (ver models/mantenimiento/PlantillaMantenimiento.js).
+// Explícitos en vez de Object.assign(plantilla, datos) con el body crudo: así
+// un campo ajeno al formulario (p. ej. `creadoPor`) nunca puede sobreescribirse
+// vía mass assignment.
+const CAMPOS_EDITABLES = [
+  'nombre',
+  'tipoMantenimiento',
+  'tiposEquipoCompatibles',
+  'checklist',
+  'herramientasSugeridas',
+  'materialesSugeridos',
+  'tiempoEstimadoMinutos',
+  'procedimiento',
+  'riesgos',
+  'documentacion',
+  'recomendaciones',
+  'activa',
+]
+
 export async function actualizarPlantilla(id, datos, usuarioActor) {
   const plantilla = await PlantillaMantenimiento.findById(id)
   if (!plantilla) throw new ErrorNoEncontrado('Plantilla no encontrada')
-  Object.assign(plantilla, datos)
+  for (const campo of CAMPOS_EDITABLES) {
+    if (datos[campo] !== undefined) plantilla[campo] = datos[campo]
+  }
   await plantilla.save()
   await registrarAuditoria({
     usuario: usuarioActor, accion: 'actualizar', modulo: 'mantenimiento', entidad: 'PlantillaMantenimiento',

@@ -723,3 +723,19 @@ body {
   }
 }
 
+/* prefers-reduced-motion: el orbe de voz, el botón flotante del Copiloto y
+   las tarjetas "ticket"/"luminous" corren animaciones infinitas (spin,
+   pulse, aura, ripple, glow) incluso en reposo. Quien pide reducir el
+   movimiento del sistema no eligió ver eso 8 horas seguidas con el panel
+   abierto. VoiceOrb ya deja de pintar frames de canvas él solo cuando la
+   pestaña está oculta; esta regla apaga también el resto de animaciones
+   CSS declarativas del resto de la app sin tocar cada componente. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

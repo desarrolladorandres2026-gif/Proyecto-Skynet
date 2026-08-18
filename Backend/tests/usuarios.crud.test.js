@@ -145,7 +145,7 @@ describe('Usuarios — crear', () => {
     expect(res.body.usuario.password).toBeUndefined()
     expect(res.body.usuario.email).toBe('nuevo.empleado@example.com')
 
-    const enBd = await Usuario.findById(res.body.usuario._id)
+    const enBd = await Usuario.findById(res.body.usuario._id).select('+password')
     expect(enBd.password).not.toBe(PASSWORD_OK)
     expect(enBd.password.startsWith('$2')).toBe(true)
   })

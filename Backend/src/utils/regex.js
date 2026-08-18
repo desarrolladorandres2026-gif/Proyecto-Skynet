@@ -4,7 +4,9 @@ export function escapeRegex(texto) {
   return texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+// Exportado (no solo usado internamente) para que Usuario.js lo reutilice como
+// `match` a nivel de schema: misma regla, sin duplicar el patrón.
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function esEmailValido(texto) {
   return EMAIL_REGEX.test(texto)

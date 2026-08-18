@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import {
-  Bell, ChevronDown, ChevronsLeft, ChevronsRight, LogOut, Moon, Search,
+  Bell, ChevronDown, ChevronsLeft, ChevronsRight, FileText, LogOut, Moon, Search,
   Settings, Sun, Wifi, WifiOff,
 } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
@@ -487,6 +487,12 @@ export default function AppLayout() {
                   <Link to="/notificaciones">
                     <Settings className="h-4 w-4" aria-hidden="true" />
                     Preferencias de notificaciones
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/legal">
+                    <FileText className="h-4 w-4" aria-hidden="true" />
+                    Términos y privacidad
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

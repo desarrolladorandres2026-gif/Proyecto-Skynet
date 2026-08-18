@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Menu as MenuIcon, LogOut } from 'lucide-react'
+import { Menu as MenuIcon, LogOut, FileText } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { useModulosVisibles, useTema, ToggleTema, NavContent } from './AppLayout.jsx'
 import ContenidoRuta from './ContenidoRuta.jsx'
@@ -123,6 +123,13 @@ export default function MobileShell() {
       <BottomSheet abierto={cuentaAbierta} titulo="Cuenta" onCerrar={() => setCuentaAbierta(false)}>
         <p className="text-sm font-medium text-[var(--mobile-text)]">{usuario?.nombre}</p>
         <p className="panel-mono mt-0.5 text-[11px] tracking-wide text-[var(--mobile-accent)] uppercase">{usuario?.rol?.nombre}</p>
+        <NavLink
+          to="/legal"
+          onClick={() => setCuentaAbierta(false)}
+          className="mt-4 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[var(--mobile-text)] hover:bg-[var(--mobile-accent)]/10"
+        >
+          <FileText className="h-4 w-4" aria-hidden="true" /> Términos y privacidad
+        </NavLink>
         {/* logout() espera al backend: si la cookie httpOnly no se pudo borrar,
             la sesión SIGUE viva en el servidor y hay que decirlo en vez de
             mandar al login como si nada. Este shell no monta el Toaster de

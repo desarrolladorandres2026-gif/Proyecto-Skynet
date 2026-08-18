@@ -16,14 +16,10 @@ router.get('/', obtenerCatalogos)
 router.post('/agregar', requierePermiso('catalogos:gestionar'), agregarCatalogo)
 router.post('/eliminar', requierePermiso('catalogos:gestionar'), eliminarCatalogo)
 
-// Estructura organizacional (Talento Humano Fase 1): jerarquía/jefe de
-// Dependencia y dependencia por defecto de Cargo. Permiso empleados:gestionar
-// (Talento Humano), NO catalogos:gestionar: agregar/eliminar VALORES del
-// catálogo (arriba) es una tarea administrativa genérica que ya tiene
-// Administrador; decidir la jerarquía y quién es jefe de quién es una
-// decisión de Talento Humano específicamente, igual criterio que
-// ausencias:aprobar (ver rbac.data.js).
-router.patch('/dependencia/:id', requierePermiso('empleados:gestionar'), actualizarDependencia)
-router.patch('/cargo/:id', requierePermiso('empleados:gestionar'), actualizarCargo)
+// Jerarquía (padre) de Dependencia y dependencia por defecto de Cargo: misma
+// responsabilidad administrativa que agregar/eliminar valores, así que usa
+// el mismo permiso catalogos:gestionar.
+router.patch('/dependencia/:id', requierePermiso('catalogos:gestionar'), actualizarDependencia)
+router.patch('/cargo/:id', requierePermiso('catalogos:gestionar'), actualizarCargo)
 
 export default router

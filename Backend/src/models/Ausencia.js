@@ -34,10 +34,6 @@ export const ESTADOS_AUSENCIA = ['pendiente', 'aprobada', 'rechazada', 'cancelad
 
 const ausenciaSchema = new mongoose.Schema(
   {
-    // Cuelga de Usuario, no de Empleado: Empleado es Talento Humano Fase 1 y
-    // todavía no existe. Cuando exista, migrar es agregar `empleado` y
-    // resolverlo desde este mismo `solicitante` (relación 1:1), no rehacer
-    // el módulo.
     solicitante: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true, index: true },
 
     tipo: { type: String, enum: TIPOS_AUSENCIA, required: true },

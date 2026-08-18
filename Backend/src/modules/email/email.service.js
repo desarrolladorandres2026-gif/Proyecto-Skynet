@@ -7,6 +7,7 @@ import EmailConexionSolicitud from '../../models/EmailConexionSolicitud.js'
 import Usuario from '../../models/Usuario.js'
 import { registrarAuditoria } from '../../utils/auditoria.js'
 import { cifrar } from '../../utils/cifrado.js'
+import { hashToken } from '../../utils/tokens.js'
 import { enviarEmailConexionGmail } from '../../utils/email.js'
 import { MockEmailProvider } from './providers/MockEmailProvider.js'
 import { clienteOAuth, GMAIL_SCOPES, GmailProvider } from './providers/GmailProvider.js'
@@ -104,10 +105,12 @@ const STATE_TTL = '10m'
 const STATE_AUDIENCE = 'oauth-state-email'
 
 export async function solicitarConexionGmail(usuario, { ip, userAgent } = {}) {
+  // El token en texto plano solo viaja en los enlaces de aprobar/denegar del
+  // correo; en Mongo se guarda su hash (ver utils/tokens.js).
   const token = crypto.randomBytes(32).toString('hex')
   const solicitud = await EmailConexionSolicitud.create({
     usuario: usuario.id_usuario,
-    token,
+    token: hashToken(token),
     expira_en: new Date(Date.now() + SOLICITUD_TTL_MS),
     ip,
     userAgent,
@@ -143,7 +146,7 @@ export async function solicitarConexionGmail(usuario, { ip, userAgent } = {}) {
 // Google dos veces para el mismo token.
 export async function aprobarConexionGmail(token) {
   const solicitud = await EmailConexionSolicitud.findOneAndUpdate(
-    { token, estado: 'pendiente', expira_en: { $gt: new Date() } },
+    { token: hashToken(token), estado: 'pendiente', expira_en: { $gt: new Date() } },
     { $set: { estado: 'aprobada' } },
     { new: true }
   )
@@ -169,7 +172,7 @@ export async function aprobarConexionGmail(token) {
 
 export async function denegarConexionGmail(token) {
   const solicitud = await EmailConexionSolicitud.findOneAndUpdate(
-    { token, estado: 'pendiente' },
+    { token: hashToken(token), estado: 'pendiente' },
     { $set: { estado: 'denegada' } },
     { new: true }
   )

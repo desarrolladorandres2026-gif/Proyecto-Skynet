@@ -1,6 +1,5 @@
 import Dependencia from '../../models/Dependencia.js'
 import Cargo from '../../models/Cargo.js'
-import Empleado from '../../models/Empleado.js'
 import Usuario from '../../models/Usuario.js'
 import Equipo from '../../models/mantenimiento/Equipo.js'
 import { escapeRegex } from '../../utils/regex.js'
@@ -10,28 +9,23 @@ import { registrarAuditoria } from '../../utils/auditoria.js'
 // de equipo): un solo controller genérico en vez de repetir CRUD por
 // catálogo. `enUso` valida contra los campos String libres que hoy consumen
 // estos catálogos (Usuario.dependencia/cargo, Equipo.dependencia) — no son
-// ObjectId ref, así que el match es por nombre, no por id. Talento Humano
-// Fase 1 añade una segunda fuente de "en uso": las referencias reales por
-// ObjectId (Empleado, Cargo.dependencia, Dependencia.padre) — hay que
-// revisar ambas antes de dejar borrar un valor.
+// ObjectId ref, así que el match es por nombre, no por id. También revisa las
+// referencias reales por ObjectId (Cargo.dependencia, Dependencia.padre)
+// antes de dejar borrar un valor.
 const MODELOS = { dependencia: Dependencia, cargo: Cargo }
 
 async function enUso(tipo, item) {
   if (tipo === 'dependencia') {
-    const [usuarioLegado, equipoLegado, hijas, cargosAsociados, empleados] = await Promise.all([
+    const [usuarioLegado, equipoLegado, hijas, cargosAsociados] = await Promise.all([
       Usuario.exists({ dependencia: item.nombre }),
       Equipo.exists({ dependencia: item.nombre }),
       Dependencia.exists({ padre: item._id }),
       Cargo.exists({ dependencia: item._id }),
-      Empleado.exists({ dependencia: item._id }),
     ])
-    return Boolean(usuarioLegado || equipoLegado || hijas || cargosAsociados || empleados)
+    return Boolean(usuarioLegado || equipoLegado || hijas || cargosAsociados)
   }
-  const [usuarioLegado, empleados] = await Promise.all([
-    Usuario.exists({ cargo: item.nombre }),
-    Empleado.exists({ cargo: item._id }),
-  ])
-  return Boolean(usuarioLegado || empleados)
+  const usuarioLegado = await Usuario.exists({ cargo: item.nombre })
+  return Boolean(usuarioLegado)
 }
 
 // Camina la cadena de `padre` desde `padreId` hacia la raíz: si en algún
@@ -55,9 +49,7 @@ async function creariaCiclo(dependenciaId, padreId) {
 
 export async function obtenerCatalogos(_req, res) {
   const [dependencias, cargos] = await Promise.all([
-    Dependencia.find()
-      .sort({ nombre: 1 })
-      .populate({ path: 'jefe', select: 'usuario numeroDocumento', populate: { path: 'usuario', select: 'nombre' } }),
+    Dependencia.find().sort({ nombre: 1 }),
     Cargo.find().sort({ nombre: 1 }),
   ])
   res.json({ dependencias, cargos })
@@ -108,14 +100,13 @@ export async function eliminarCatalogo(req, res) {
   res.json({ success: true, lista })
 }
 
-// Estructura organizacional (Talento Humano Fase 1) — separado de
-// agregar/eliminar porque edita campos distintos a `nombre` y tiene sus
-// propias reglas (ciclos, existencia del jefe). agregarCatalogo se deja tal
-// cual para no romper los formularios que solo necesitan "un valor más en
-// la lista" (Usuarios, Requerimientos, Equipos).
+// Jerarquía organizacional — separado de agregar/eliminar porque edita
+// campos distintos a `nombre` y tiene sus propias reglas (ciclos).
+// agregarCatalogo se deja tal cual para no romper los formularios que solo
+// necesitan "un valor más en la lista" (Usuarios, Requerimientos, Equipos).
 export async function actualizarDependencia(req, res) {
   const { id } = req.params
-  const { padre, jefe } = req.body
+  const { padre } = req.body
 
   const dependencia = await Dependencia.findById(id)
   if (!dependencia) return res.status(404).json({ error: 'Dependencia no encontrada' })
@@ -129,15 +120,8 @@ export async function actualizarDependencia(req, res) {
     }
   }
 
-  if (jefe !== undefined && jefe !== null && jefe !== '') {
-    if (!(await Empleado.exists({ _id: jefe }))) {
-      return res.status(400).json({ error: 'El empleado indicado como jefe no existe' })
-    }
-  }
-
   const antes = dependencia.toObject()
   if (padre !== undefined) dependencia.padre = padre || null
-  if (jefe !== undefined) dependencia.jefe = jefe || null
   await dependencia.save()
 
   await registrarAuditoria({
@@ -150,14 +134,8 @@ export async function actualizarDependencia(req, res) {
     cambios: { antes, despues: dependencia.toObject() },
   })
 
-  const item = await Dependencia.findById(id).populate({
-    path: 'jefe',
-    select: 'usuario numeroDocumento',
-    populate: { path: 'usuario', select: 'nombre' },
-  })
-  const lista = await Dependencia.find()
-    .sort({ nombre: 1 })
-    .populate({ path: 'jefe', select: 'usuario numeroDocumento', populate: { path: 'usuario', select: 'nombre' } })
+  const item = await Dependencia.findById(id)
+  const lista = await Dependencia.find().sort({ nombre: 1 })
   res.json({ success: true, item, lista })
 }
 

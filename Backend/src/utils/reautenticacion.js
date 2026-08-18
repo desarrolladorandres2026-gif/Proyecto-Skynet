@@ -12,7 +12,7 @@ export async function reautenticar(usuarioId, passwordIngresada) {
   if (typeof passwordIngresada !== 'string' || !passwordIngresada) {
     throw new ErrorValidacion('Debes reingresar tu contraseña para confirmar la firma')
   }
-  const usuario = await Usuario.findById(usuarioId).select('password')
+  const usuario = await Usuario.findById(usuarioId).select('+password')
   const ok = usuario && (await bcrypt.compare(passwordIngresada, usuario.password))
   if (!ok) {
     throw new ErrorValidacion('Contraseña incorrecta, no se pudo confirmar la firma')

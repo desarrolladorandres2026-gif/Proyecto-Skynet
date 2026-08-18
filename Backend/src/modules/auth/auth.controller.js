@@ -8,6 +8,7 @@ import { enviarEmailReset } from '../../utils/email.js'
 import { esEmailValido } from '../../utils/regex.js'
 import { DUMMY_HASH, hashPassword, validarPassword } from '../../utils/password.js'
 import { setAuthCookie, clearAuthCookie } from '../../utils/cookies.js'
+import { hashToken } from '../../utils/tokens.js'
 import { keysModulosDesactivados } from '../sistema/sistema.service.js'
 
 // Umbral de bloqueo por fuerza bruta a nivel de cuenta: complementa el rate
@@ -80,6 +81,7 @@ function usuarioPublico(usuario) {
     cargo: usuario.cargo,
     modulos: usuario.modulos,
     estado: usuario.estado,
+    debeCambiarPassword: usuario.debeCambiarPassword === true,
   }
 }
 
@@ -111,7 +113,7 @@ export async function login(req, res) {
 
   // Solo se busca en BD si el email tiene formato válido; el email ya es string.
   const usuario = esEmailValido(email.trim())
-    ? await populateRol(Usuario.findOne({ email: email.trim().toLowerCase() }))
+    ? await populateRol(Usuario.findOne({ email: email.trim().toLowerCase() }).select('+password'))
     : null
 
   const bloqueado = Boolean(usuario?.bloqueadoHasta && usuario.bloqueadoHasta > new Date())
@@ -171,10 +173,12 @@ export async function solicitarReset(req, res) {
     { $set: { usado: true } }
   )
 
+  // El token en texto plano solo viaja en el correo (enviarEmailReset); en
+  // Mongo se guarda su hash (ver utils/tokens.js).
   const token = crypto.randomBytes(32).toString('hex')
   const expira_en = new Date(Date.now() + 60 * 60 * 1000)
 
-  await PasswordResetToken.create({ usuario: usuario._id, token, expira_en })
+  await PasswordResetToken.create({ usuario: usuario._id, token: hashToken(token), expira_en })
 
   try {
     await enviarEmailReset(usuario.email, usuario.nombre, token)
@@ -194,7 +198,7 @@ export async function validarToken(req, res) {
   }
 
   const registro = await PasswordResetToken.findOne({
-    token,
+    token: hashToken(token),
     usado: false,
     expira_en: { $gt: new Date() },
   })
@@ -217,7 +221,7 @@ export async function restablecerPassword(req, res) {
   }
 
   const registro = await PasswordResetToken.findOne({
-    token,
+    token: hashToken(token),
     usado: false,
     expira_en: { $gt: new Date() },
   })
@@ -240,4 +244,40 @@ export async function restablecerPassword(req, res) {
   await registro.save()
 
   res.json({ mensaje: 'Contraseña actualizada correctamente' })
+}
+
+// Autoservicio dentro de una sesión ya autenticada (a diferencia del flujo de
+// reset por email, que no exige conocer la contraseña anterior). Es también
+// cómo se cumple el "debeCambiarPassword" forzado tras un primer login con
+// contraseña de seed/asignada por un admin.
+export async function cambiarPassword(req, res) {
+  const { passwordActual, passwordNueva } = req.body
+
+  if (typeof passwordActual !== 'string' || !passwordActual) {
+    return res.status(400).json({ error: 'Debes ingresar tu contraseña actual' })
+  }
+  const errorPassword = validarPassword(passwordNueva)
+  if (errorPassword) {
+    return res.status(400).json({ error: errorPassword })
+  }
+
+  const usuario = await populateRol(Usuario.findById(req.usuario.id_usuario).select('+password'))
+  if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+  const passwordOk = await bcrypt.compare(passwordActual, usuario.password)
+  if (!passwordOk) {
+    return res.status(401).json({ error: 'La contraseña actual no es correcta' })
+  }
+
+  usuario.password = await hashPassword(passwordNueva)
+  usuario.debeCambiarPassword = false
+  // Invalida cualquier OTRA sesión abierta con la contraseña anterior (mismo
+  // criterio que un reset); la petición actual sigue viva porque abajo se
+  // reemite la cookie con el tokenVersion nuevo.
+  usuario.tokenVersion += 1
+  await usuario.save()
+
+  const token = firmarToken(usuario)
+  setAuthCookie(res, token)
+  res.json({ usuario: await conModulosDesactivados(usuarioPublico(usuario)) })
 }

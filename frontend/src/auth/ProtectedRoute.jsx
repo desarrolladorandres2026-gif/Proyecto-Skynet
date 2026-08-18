@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from './AuthContext.jsx'
 import SkynetLoader from '../components/SkynetLoader.jsx'
+import CambiarPasswordObligatorio from './CambiarPasswordObligatorio.jsx'
 
 export function ProtectedRoute({ children }) {
   const { usuario, cargando } = useAuth()
@@ -10,6 +11,12 @@ export function ProtectedRoute({ children }) {
   }
 
   if (!usuario) return <Navigate to="/login" replace />
+
+  // Contraseña de seed o asignada por un admin: bloquea toda la app (incluido
+  // el sidebar) hasta que la persona elija una propia. No es una ruta aparte
+  // a propósito: evita que quede una URL "de escape" que muestre el resto de
+  // Skynet sin haber cambiado la contraseña.
+  if (usuario.debeCambiarPassword) return <CambiarPasswordObligatorio />
 
   return children
 }

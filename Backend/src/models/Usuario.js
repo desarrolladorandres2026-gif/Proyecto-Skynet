@@ -1,11 +1,19 @@
 import mongoose from 'mongoose'
+import { EMAIL_REGEX } from '../utils/regex.js'
 
 const usuarioSchema = new mongoose.Schema(
   {
     nombre_usuario: { type: String, required: true, unique: true, trim: true },
     nombre: { type: String, required: true, trim: true },
-    password: { type: String, required: true },
-    email: { type: String, required: true, unique: true, trim: true, lowercase: true },
+    // select:false es defensa en profundidad: ningún find()/findOne() trae el
+    // hash salvo que lo pida explícitamente con .select('+password') (login,
+    // reautenticación). Antes dependía 100% de que cada consulta nueva
+    // recordara excluirlo a mano con '-password'.
+    password: { type: String, required: true, select: false },
+    // El controlador ya valida el formato con esEmailValido() antes de tocar
+    // la BD; este `match` es defensa en profundidad para cualquier inserción
+    // que no pase por ahí (script, migración, llamada directa al modelo).
+    email: { type: String, required: true, unique: true, trim: true, lowercase: true, match: EMAIL_REGEX },
     // Referencia al catálogo dinámico de Rol (RBAC granular, ver
     // models/Rol.js). Reemplaza el enum fijo de 2 valores que tenía antes;
     // scripts/migrate-rbac-roles.js migra los documentos legados.
@@ -27,6 +35,11 @@ const usuarioSchema = new mongoose.Schema(
       default: [],
     },
     estado: { type: String, enum: ['activo', 'inactivo'], default: 'activo' },
+
+    // true cuando la contraseña actual la eligió otra persona (seed de
+    // desarrollo, o un admin creando la cuenta) en vez de su dueño: fuerza el
+    // cambio en el siguiente login (ver POST /auth/cambiar-password).
+    debeCambiarPassword: { type: Boolean, default: false },
 
     // Rúbrica manuscrita del usuario, registrada una sola vez desde su perfil
     // ("Mi firma") y reutilizada cada vez que firma un documento. Vive en

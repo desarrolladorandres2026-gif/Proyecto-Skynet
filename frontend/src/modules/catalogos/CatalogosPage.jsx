@@ -2,26 +2,23 @@ import { useEffect, useState } from 'react'
 import { LayoutList } from 'lucide-react'
 import { toast } from 'sonner'
 import { catalogosApi } from '../../api/catalogos.js'
-import { empleadosApi } from '../../api/empleados.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { Btn, Card, ErrorMsg, Input, Select, EmptyState } from '../../components/ui.jsx'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 
-// Edita jerarquía (padre) y jefe de UNA dependencia. Vive aparte de
-// ListaCatalogo (que solo agrega/elimina VALORES) porque son permisos
-// distintos: catalogos:gestionar (Administrador) vs empleados:gestionar
-// (Talento Humano) — ver catalogos.routes.js.
-function EstructuraDependencia({ item, dependencias, empleados, onCambio }) {
+// Edita la jerarquía (padre) de UNA dependencia. Vive aparte de ListaCatalogo
+// (que solo agrega/elimina VALORES) porque edita un campo distinto y tiene
+// sus propias reglas (ciclos) — ver catalogos.routes.js.
+function EstructuraDependencia({ item, dependencias, onCambio }) {
   const [padre, setPadre] = useState(item.padre?._id || item.padre || '')
-  const [jefe, setJefe] = useState(item.jefe?._id || item.jefe || '')
   const [guardando, setGuardando] = useState(false)
 
-  const hayCambios = padre !== (item.padre?._id || item.padre || '') || jefe !== (item.jefe?._id || item.jefe || '')
+  const hayCambios = padre !== (item.padre?._id || item.padre || '')
 
   async function guardar() {
     setGuardando(true)
     try {
-      const data = await catalogosApi.actualizarDependencia(item._id, { padre: padre || '', jefe: jefe || '' })
+      const data = await catalogosApi.actualizarDependencia(item._id, { padre: padre || '' })
       onCambio(data.lista)
       toast.success('Estructura actualizada')
     } catch (err) {
@@ -32,17 +29,11 @@ function EstructuraDependencia({ item, dependencias, empleados, onCambio }) {
   }
 
   return (
-    <div className="mt-1.5 grid gap-1.5 sm:grid-cols-[1fr_1fr_auto]">
+    <div className="mt-1.5 grid gap-1.5 sm:grid-cols-[1fr_auto]">
       <Select value={padre} onChange={(e) => setPadre(e.target.value)} className="!py-1 text-xs">
         <option value="">Sin dependencia padre</option>
         {dependencias.filter((d) => d._id !== item._id).map((d) => (
           <option key={d._id} value={d._id}>{d.nombre}</option>
-        ))}
-      </Select>
-      <Select value={jefe} onChange={(e) => setJefe(e.target.value)} className="!py-1 text-xs">
-        <option value="">Sin jefe asignado</option>
-        {empleados.map((e) => (
-          <option key={e._id} value={e._id}>{e.usuario?.nombre}</option>
         ))}
       </Select>
       {hayCambios && (
@@ -94,8 +85,7 @@ function EstructuraCargo({ item, dependencias, onCambio }) {
 // equipo): un ListaCatalogo genérico reutilizado para Dependencias y Cargos.
 // `puedeGestionarValores` gobierna agregar/eliminar (catalogos:gestionar);
 // `renderEstructura`, si viene, agrega debajo de cada fila el editor de
-// jerarquía/jefe (empleados:gestionar) — ambos son independientes: una
-// persona puede tener uno, otro, ambos o ninguno.
+// jerarquía (mismo permiso).
 function ListaCatalogo({ titulo, tipo, items, onCambio, puedeGestionarValores, renderEstructura }) {
   const [nombre, setNombre] = useState('')
   const [error, setError] = useState('')
@@ -183,10 +173,8 @@ function ListaCatalogo({ titulo, tipo, items, onCambio, puedeGestionarValores, r
 export default function CatalogosPage() {
   const { tienePermiso } = useAuth()
   const puedeGestionarValores = tienePermiso('catalogos:gestionar')
-  const puedeEditarEstructura = tienePermiso('empleados:gestionar')
 
   const [catalogos, setCatalogos] = useState({ dependencias: [], cargos: [] })
-  const [empleadosActivos, setEmpleadosActivos] = useState([])
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -194,17 +182,7 @@ export default function CatalogosPage() {
       .obtener()
       .then(setCatalogos)
       .catch((err) => setError(err.message))
-
-    // Solo se necesita para el select "Jefe"; Administrador (sin
-    // empleados:gestionar) no debería intentar esta consulta y recibir un 403
-    // silencioso en la consola por algo que ni siquiera va a usar.
-    if (puedeEditarEstructura) {
-      empleadosApi
-        .listar({ estado: 'activo' })
-        .then((data) => setEmpleadosActivos(data.empleados))
-        .catch((err) => setError(err.message))
-    }
-  }, [puedeEditarEstructura])
+  }, [])
 
   return (
     <div>
@@ -226,12 +204,11 @@ export default function CatalogosPage() {
           onCambio={(lista) => setCatalogos((c) => ({ ...c, dependencias: lista }))}
           puedeGestionarValores={puedeGestionarValores}
           renderEstructura={
-            puedeEditarEstructura
+            puedeGestionarValores
               ? (item) => (
                   <EstructuraDependencia
                     item={item}
                     dependencias={catalogos.dependencias}
-                    empleados={empleadosActivos}
                     onCambio={(lista) => setCatalogos((c) => ({ ...c, dependencias: lista }))}
                   />
                 )
@@ -245,7 +222,7 @@ export default function CatalogosPage() {
           onCambio={(lista) => setCatalogos((c) => ({ ...c, cargos: lista }))}
           puedeGestionarValores={puedeGestionarValores}
           renderEstructura={
-            puedeEditarEstructura
+            puedeGestionarValores
               ? (item) => (
                   <EstructuraCargo
                     item={item}

@@ -15,9 +15,17 @@ import { LOGO_TERMINAL } from '../modules/induccion/induccionData.js'
 // crossOrigin (InduccionHome, CertificadoPage). Con un data: URL no hay
 // origen que evaluar: nunca tainta el canvas, tanto para el logo local como
 // para la firma de Cloudinary.
+//
+// credentials: 'same-origin' (no 'omit'): /storage/* en el backend exige
+// sesión (verificarToken lee la cookie), así que el fetch del logo necesita
+// mandar la cookie o el backend responde 401 y el PDF sale sin logo — bug
+// real visto en producción (2026-08-18). 'same-origin' cubre ambos casos a
+// la vez: manda la cookie hacia el propio origen (logo) y la omite hacia
+// Cloudinary (firma), evitando además un preflight CORS que Cloudinary no
+// está configurado para aceptar con credenciales.
 function cargarImagen(src) {
   return new Promise((resolve, reject) => {
-    fetch(src, { credentials: 'omit' })
+    fetch(src, { credentials: 'same-origin' })
       .then((res) => {
         if (!res.ok) throw new Error(`No se pudo cargar la imagen (${res.status}): ${src}`)
         return res.blob()

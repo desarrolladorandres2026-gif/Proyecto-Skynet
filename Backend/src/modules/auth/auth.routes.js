@@ -1,4 +1,4 @@
-import { login, logout, me, solicitarReset, validarToken, restablecerPassword } from './auth.controller.js'
+import { login, logout, me, solicitarReset, validarToken, restablecerPassword, cambiarPassword } from './auth.controller.js'
 import { verificarToken } from '../../middleware/auth.js'
 import { loginLimiter, resetLimiter } from '../../middleware/rateLimit.js'
 import { safeRouter } from '../../middleware/safeRouter.js'
@@ -10,6 +10,7 @@ router.post('/login', loginLimiter, login)
 // token ya inválido/expirado (solo borra la cookie del navegador).
 router.post('/logout', logout)
 router.get('/me', verificarToken, me)
+router.post('/cambiar-password', verificarToken, cambiarPassword)
 
 router.post('/solicitar-reset', resetLimiter, solicitarReset)
 router.get('/validar-token', resetLimiter, validarToken)

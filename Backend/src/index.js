@@ -11,6 +11,8 @@ import { sincronizarConfiguracionSLA } from './modules/mantenimiento/ordenes.ser
 import { iniciarWorkerNotificaciones } from './modules/notificaciones/notificaciones.worker.js'
 import { iniciarWorkerAuditoria } from './modules/auditoria/auditoria.worker.js'
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js'
+import { verificarToken } from './middleware/auth.js'
+import { requestId } from './middleware/requestId.js'
 
 const app = express()
 
@@ -29,12 +31,22 @@ if (env.NODE_ENV === 'production') {
   app.set('trust proxy', 1)
 }
 
+app.use(requestId)
+
 // Cabeceras de seguridad (X-Content-Type-Options, HSTS, X-Frame-Options, etc.).
 app.use(helmet())
 
+// Los orígenes de desarrollo (Vite dev/preview) solo se agregan fuera de
+// producción: en el VPS no hay razón para que el navegador de un atacante
+// pueda alegar venir de un localhost que ni siquiera es el suyo.
+const corsOrigins =
+  env.NODE_ENV === 'production'
+    ? [env.CORS_ORIGIN].filter(Boolean)
+    : [env.CORS_ORIGIN, 'http://localhost:5173', 'http://localhost:4173'].filter(Boolean)
+
 app.use(
   cors({
-    origin: [env.CORS_ORIGIN, 'http://localhost:5173', 'http://localhost:4173'].filter(Boolean),
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     // Necesario para que el navegador adjunte/reciba la cookie httpOnly del
@@ -56,7 +68,11 @@ app.use(cookieParser())
 // contra inyección de operadores NoSQL (complementa la validación por endpoint).
 app.use(mongoSanitize())
 
-app.use('/storage', express.static(env.STORAGE_ROOT))
+// Documentos internos (PDFs de OT, evidencias de mantenimiento): requieren
+// sesión igual que el resto de la API. Antes se servían con express.static
+// sin ningún control de acceso — cualquiera con la URL (los nombres son
+// predecibles: `Date.now()_nombre`) podía descargarlos sin login.
+app.use('/storage', verificarToken, express.static(env.STORAGE_ROOT))
 
 app.use('/api', routes)
 
@@ -91,6 +107,12 @@ async function start() {
     console.log(`\n🚀  Backend Skynet corriendo en http://localhost:${env.PORT}`)
     console.log(`📋  API disponible en http://localhost:${env.PORT}/api\n`)
   })
+
+  // Corta conexiones colgadas (slowloris, cliente que nunca termina de mandar
+  // el body, etc.) a los 30s en vez de dejarlas abiertas indefinidamente. El
+  // backup completo (el endpoint más lento del sistema) tarda segundos, no
+  // minutos, así que 30s deja margen de sobra sin dejar la puerta abierta.
+  server.timeout = 30_000
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {

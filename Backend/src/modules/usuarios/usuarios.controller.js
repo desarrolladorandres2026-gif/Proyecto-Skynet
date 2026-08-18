@@ -3,6 +3,7 @@ import Usuario from '../../models/Usuario.js'
 import Rol from '../../models/Rol.js'
 import { escapeRegex, esEmailValido } from '../../utils/regex.js'
 import { hashPassword, validarPassword } from '../../utils/password.js'
+import { registrarAuditoria } from '../../utils/auditoria.js'
 
 const CAMPOS_PUBLICOS = '-password'
 const POPULATE_ROL = { path: 'rol', select: 'nombre slug ambito esSuperAdmin' }
@@ -84,9 +85,24 @@ export async function crearUsuario(req, res) {
     cargo,
     modulos: modulos || [],
     estado: estado || 'activo',
+    // La eligió el admin que crea la cuenta, no su dueño: se fuerza a
+    // cambiarla en el primer login (ver POST /auth/cambiar-password).
+    debeCambiarPassword: true,
   })
 
   const { password: _omit, ...usuarioSinPassword } = usuario.toObject()
+
+  await registrarAuditoria({
+    usuario: req.usuario,
+    accion: 'crear',
+    modulo: 'usuarios',
+    entidad: 'Usuario',
+    entidadId: usuario._id,
+    descripcion: `Usuario creado: ${usuario.nombre_usuario}`,
+    cambios: { despues: usuarioSinPassword },
+    ip: req.ip,
+  })
+
   res.status(201).json({ usuario: usuarioSinPassword })
 }
 
@@ -96,6 +112,9 @@ export async function actualizarUsuario(req, res) {
 
   const usuario = await Usuario.findById(id)
   if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' })
+  // password no viaja aquí (select:false en el schema): el snapshot "antes"
+  // de auditoría nunca puede filtrar el hash por accidente.
+  const antesDeAuditoria = usuario.toObject()
 
   // Cualquier cambio que afecte a lo que un token ya emitido "puede hacer"
   // (contraseña, rol, módulos o pasar a inactivo) invalida sus sesiones
@@ -138,6 +157,8 @@ export async function actualizarUsuario(req, res) {
       return res.status(400).json({ error: errorPassword })
     }
     usuario.password = await hashPassword(password)
+    // La eligió el admin, no su dueño: mismo criterio que crearUsuario.
+    usuario.debeCambiarPassword = true
     invalidarSesiones = true
   }
 
@@ -150,6 +171,18 @@ export async function actualizarUsuario(req, res) {
   await usuario.save()
 
   const { password: _omit, ...usuarioSinPassword } = usuario.toObject()
+
+  await registrarAuditoria({
+    usuario: req.usuario,
+    accion: 'actualizar',
+    modulo: 'usuarios',
+    entidad: 'Usuario',
+    entidadId: usuario._id,
+    descripcion: `Usuario actualizado: ${usuario.nombre_usuario}`,
+    cambios: { antes: antesDeAuditoria, despues: usuarioSinPassword },
+    ip: req.ip,
+  })
+
   res.json({ usuario: usuarioSinPassword })
 }
 
@@ -199,5 +232,16 @@ export async function eliminarUsuario(req, res) {
   }
 
   await Usuario.findByIdAndDelete(id)
+
+  await registrarAuditoria({
+    usuario: req.usuario,
+    accion: 'eliminar',
+    modulo: 'usuarios',
+    entidad: 'Usuario',
+    entidadId: usuario._id,
+    descripcion: `Usuario eliminado: ${usuario.nombre_usuario}`,
+    ip: req.ip,
+  })
+
   res.json({ mensaje: 'Usuario eliminado correctamente' })
 }

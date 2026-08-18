@@ -51,6 +51,11 @@ export function CopilotoButton({
 
   return (
     <div className={cn('relative inline-flex items-center justify-center group select-none', className)}>
+      {/* Estado leído por lectores de pantalla: el tooltip de abajo es solo visual */}
+      <span className="sr-only" role="status" aria-live="polite">
+        {state !== 'IDLE' ? textoBadge : ''}
+      </span>
+
       {/* Tooltip informativo al pasar el cursor */}
       {showTooltip && !isOpen && (
         <div

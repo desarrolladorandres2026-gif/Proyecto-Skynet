@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from './AuthContext.jsx'
 import './login.css'
 
@@ -323,6 +323,18 @@ export default function LoginPage() {
 
             <p className="skynet-mono mt-5 text-center text-[10px] tracking-[0.15em] text-slate-500">
               CONEXIÓN CIFRADA · NODO LOCAL
+            </p>
+
+            <p className="mt-3 text-center text-[11px] text-slate-500">
+              Al continuar aceptas los{' '}
+              <Link to="/legal#terminos" className="text-cyan-400 underline-offset-2 hover:underline">
+                términos y condiciones
+              </Link>{' '}
+              y la{' '}
+              <Link to="/legal#privacidad" className="text-cyan-400 underline-offset-2 hover:underline">
+                política de privacidad
+              </Link>
+              .
             </p>
           </>
         )}

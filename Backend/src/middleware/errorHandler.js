@@ -19,8 +19,10 @@ function mensajeDuplicado(err) {
   return `El valor de "${campo || 'un campo único'}" ya está en uso`
 }
 
-export function errorHandler(err, _req, res, _next) {
-  console.error('Error no controlado:', err)
+export function errorHandler(err, req, res, _next) {
+  // req.id (ver middleware/requestId.js) permite correlacionar este log con
+  // el error genérico que ve el usuario, sin exponerle detalles internos.
+  console.error(`Error no controlado [${req.id || 'sin-id'}]:`, err)
 
   if (err.code === 11000) {
     return res.status(409).json({ error: mensajeDuplicado(err) })
@@ -31,5 +33,7 @@ export function errorHandler(err, _req, res, _next) {
   // internos (mensajes de Mongoose/Mongo, rutas, etc.). Los 4xx son mensajes
   // de validación intencionales y sí se devuelven.
   const mensaje = status < 500 ? err.message : 'Error interno del servidor'
-  res.status(status).json({ error: mensaje })
+  const body = { error: mensaje }
+  if (status >= 500 && req.id) body.requestId = req.id
+  res.status(status).json(body)
 }
