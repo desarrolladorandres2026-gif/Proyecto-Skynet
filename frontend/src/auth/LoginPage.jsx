@@ -326,9 +326,9 @@ export default function LoginPage() {
             </p>
 
             <p className="mt-3 text-center text-[11px] text-slate-500">
-              Al continuar aceptas los{' '}
-              <Link to="/legal#terminos" className="text-cyan-400 underline-offset-2 hover:underline">
-                términos y condiciones
+              Al continuar aceptas las{' '}
+              <Link to="/legal#politica-sgi" className="text-cyan-400 underline-offset-2 hover:underline">
+                políticas del SGI
               </Link>{' '}
               y la{' '}
               <Link to="/legal#privacidad" className="text-cyan-400 underline-offset-2 hover:underline">
