@@ -1,6 +1,6 @@
 import {
   Wrench, Users, ShieldCheck, ScrollText, TriangleAlert,
-  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays, Mail, Bot, LayoutList,
+  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays, Mail, Bot, LayoutList, Brain,
 } from 'lucide-react'
 
 // Registro único de módulos para el sidebar (AppLayout.jsx) y para decidir
@@ -81,6 +81,28 @@ export const MODULOS_REGISTRO = [
       { to: '/ausencias/mias', label: 'Mis ausencias' },
       { to: '/ausencias/bandeja', label: 'Por decidir', permiso: 'ausencias:aprobar' },
       { to: '/ausencias/calendario', label: 'Calendario', permiso: ['ausencias:aprobar', 'ausencias:ver_todas'] },
+    ],
+  },
+  {
+    // publico: ver/responder la pregunta del día y el propio progreso son
+    // capacidad universal (igual que "Reportar daño"), no un permiso — cada
+    // item de gestión (banco, programación, dashboard, plan de refuerzo,
+    // configuración) declara su propio permiso y solo lo ve SIG/HSEQ o Super
+    // Admin. Se agregan aquí mismo a medida que cada fase se construye.
+    key: 'sig_pregunta_dia',
+    label: 'Cuestionarios Programados',
+    icon: Brain,
+    publico: true,
+    items: [
+      { to: '/sig/pregunta-del-dia', label: 'Pregunta del día' },
+      { to: '/sig/mi-historial', label: 'Mi historial' },
+      { to: '/sig/banco', label: 'Banco de preguntas', permiso: 'sig_pregunta_dia:gestionar_banco' },
+      { to: '/sig/programacion', label: 'Programación', permiso: 'sig_pregunta_dia:programar' },
+      { to: '/sig/calendario', label: 'Calendario', permiso: 'sig_pregunta_dia:programar' },
+      { to: '/sig/dashboard', label: 'Dashboard', permiso: 'sig_pregunta_dia:ver_reportes' },
+      { to: '/sig/reportes/individual', label: 'Reporte individual', permiso: 'sig_pregunta_dia:ver_reportes' },
+      { to: '/sig/reportes/plan-refuerzo', label: 'Plan de refuerzo', permiso: 'sig_pregunta_dia:ver_reportes' },
+      { to: '/sig/configuracion', label: 'Configuración', permiso: 'sig_pregunta_dia:configurar' },
     ],
   },
   {

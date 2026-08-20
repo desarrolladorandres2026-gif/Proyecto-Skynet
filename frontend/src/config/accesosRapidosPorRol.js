@@ -1,4 +1,4 @@
-import { UserPlus, FileText, TriangleAlert, ScrollText, Settings, ClipboardList, CalendarDays } from 'lucide-react'
+import { UserPlus, FileText, TriangleAlert, ScrollText, Settings, ClipboardList, CalendarDays, Brain, CalendarClock, LayoutDashboard } from 'lucide-react'
 
 // Atajos curados para el panel denso (Admin/Super Admin/Bodega/Administrativo
 // y Financiero) — la contraparte de escritorio de MOBILE_NAV_POR_ROL
@@ -26,5 +26,10 @@ export const ACCESOS_RAPIDOS_PANEL_DENSO = {
   administrativo_financiero: [
     { to: '/requerimientos/financiero', label: 'Bandeja Financiero', icon: ClipboardList },
     { to: '/ausencias/bandeja', label: 'Ausencias por decidir', icon: CalendarDays },
+  ],
+  sig_hseq: [
+    { to: '/sig/banco', label: 'Banco de preguntas', icon: Brain },
+    { to: '/sig/programacion', label: 'Programación', icon: CalendarClock },
+    { to: '/sig/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   ],
 }

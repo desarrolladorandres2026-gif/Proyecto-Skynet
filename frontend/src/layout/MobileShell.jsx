@@ -1,17 +1,148 @@
-import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
-import { Menu as MenuIcon, LogOut, FileText } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Link, NavLink, useLocation } from 'react-router-dom'
+import { ChevronDown, Menu as MenuIcon, LogOut, FileText, Search } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext.jsx'
-import { useModulosVisibles, useTema, ToggleTema, NavContent } from './AppLayout.jsx'
+import { useModulosVisibles, useTema, ToggleTema } from './AppLayout.jsx'
 import ContenidoRuta from './ContenidoRuta.jsx'
 import { MOBILE_NAV_POR_ROL, INICIO_ITEM } from '../config/mobileNavPorRol.js'
-import { BottomSheet } from '../components/mobileUi.jsx'
+import { BottomSheet, ListRow } from '../components/mobileUi.jsx'
 // panel.css y mobileShell.css se cargan globalmente desde index.css (ver
 // comentario ahí) — las páginas que todavía no pasaron por su etapa de
 // rediseño móvil siguen usando Card/Btn/Input/TablaWrap de components/ui.jsx
 // (variables --panel-*), y este shell necesita sus propias --mobile-*.
 
 import { cn } from '../lib/cn.js'
+
+// Quita tildes tras descomponer NFD (p. ej. "ó" -> "o" + marca de acento
+// U+0301) para que buscar "ordenes" encuentre "Órdenes de trabajo".
+function normalizarTexto(texto) {
+  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+}
+
+// Contenido de la hoja "Más": a diferencia del acordeón de escritorio
+// (NavContent/GrupoNav en AppLayout.jsx), acá cada módulo arranca CERRADO
+// — un rol con muchos módulos (Email trae 6 sub-páginas, por ejemplo) no
+// debe desplegar todo su contenido de una sola vez, solo para navegar a una
+// página. Un tap en el módulo lo abre (y cierra el que estuviera abierto:
+// un solo grupo desplegado a la vez, igual que el sidebar de escritorio),
+// otro tap en su ítem navega. La búsqueda es la excepción: si el usuario ya
+// escribió qué busca, sí queremos la fila final visible sin un tap extra.
+export function MasSheetContent({ modulosVisibles, rutasOcultas, onNavigate }) {
+  const { pathname } = useLocation()
+  const [busqueda, setBusqueda] = useState('')
+
+  // 'dashboard' (→ /dashboard) y cualquier atajo curado de mobileNavPorRol.js
+  // ya viven en la barra inferior a un tap — repetirlos acá sería la misma
+  // ruta dos veces en dos menús distintos.
+  const gruposBase = modulosVisibles
+    .filter((m) => m.key !== 'dashboard')
+    .map((m) => ({ ...m, items: m.items.filter((item) => !rutasOcultas.has(item.to)) }))
+    .filter((m) => m.items.length > 0)
+
+  const totalItems = gruposBase.reduce((n, m) => n + m.items.length, 0)
+  // Un módulo con un solo item de por sí (Usuarios, Roles, Auditoría...) es
+  // "único" sin importar la búsqueda. Ojo: esto NO debe recalcularse sobre
+  // la lista ya filtrada por búsqueda — si "Email" (6 items) queda en 1 tras
+  // escribir "bandeja de entrada", sigue siendo un módulo multi-item, solo
+  // que con un resultado; debe seguir mostrando su encabezado + esa fila con
+  // SU propia etiqueta, no colapsar al link con la etiqueta del módulo.
+  const gruposUnicos = new Set(gruposBase.filter((m) => m.items.length === 1).map((m) => m.key))
+
+  // El módulo que contiene la ruta actual arranca abierto (igual que el
+  // sidebar de escritorio) — si estás en "Bandeja Bodega", "Requerimientos"
+  // ya aparece desplegado en vez de obligarte a buscarlo y abrirlo tú mismo.
+  const grupoConRutaActiva = gruposBase.find((m) =>
+    m.items.some((item) => pathname === item.to || pathname.startsWith(`${item.to}/`))
+  )?.key
+  const [grupoAbierto, setGrupoAbierto] = useState(grupoConRutaActiva)
+  useEffect(() => {
+    if (grupoConRutaActiva) setGrupoAbierto(grupoConRutaActiva)
+  }, [grupoConRutaActiva])
+
+  const query = normalizarTexto(busqueda.trim())
+  const buscando = query.length > 0
+  const grupos = buscando
+    ? gruposBase
+        .map((m) => ({
+          ...m,
+          items: m.items.filter(
+            (item) => normalizarTexto(item.label).includes(query) || normalizarTexto(m.label).includes(query)
+          ),
+        }))
+        .filter((m) => m.items.length > 0)
+    : gruposBase
+
+  return (
+    <div className="flex flex-col gap-2">
+      {/* Con pocos módulos visibles (Bodega, Seguridad, Mantenimiento...) la
+          lista entera ya cabe de un vistazo — el buscador ahí solo sería
+          ruido. Con muchos (Admin, Super Admin...) es la salida rápida a no
+          tener que abrir módulo por módulo para dar con uno. */}
+      {totalItems > 8 && (
+        <div className="relative mb-3">
+          <Search
+            className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-[var(--mobile-text-dim)]"
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar módulo..."
+            className="m-row w-full rounded-2xl py-2.5 pr-3 pl-10 text-sm text-[var(--mobile-text)] placeholder:text-[var(--mobile-text-dim)] focus:outline-none"
+          />
+        </div>
+      )}
+
+      {grupos.length === 0 && (
+        <p className="py-6 text-center text-sm text-[var(--mobile-text-dim)]">
+          Sin resultados para &quot;{busqueda}&quot;
+        </p>
+      )}
+
+      {grupos.map((m) => {
+        const abierto = buscando || grupoAbierto === m.key
+        return (
+          <div key={m.key}>
+            {/* Un solo item (p. ej. "Usuarios" o "Roles"): nada que
+                desplegar, así que el módulo entero navega directo y no
+                finge ser un acordeón de una sola fila. */}
+            {gruposUnicos.has(m.key) ? (
+              <Link to={m.items[0].to} onClick={onNavigate}>
+                <ListRow icon={m.icon} title={m.label} />
+              </Link>
+            ) : (
+              <>
+                <ListRow
+                  icon={m.icon}
+                  title={m.label}
+                  onClick={buscando ? undefined : () => setGrupoAbierto((actual) => (actual === m.key ? null : m.key))}
+                  trailing={
+                    buscando ? undefined : (
+                      <ChevronDown
+                        className={cn('h-4 w-4 shrink-0 text-[var(--mobile-text-dim)] transition-transform', !abierto && '-rotate-90')}
+                        aria-hidden="true"
+                      />
+                    )
+                  }
+                />
+                {abierto && (
+                  <div className="mt-1 mb-1 flex flex-col gap-1 pl-4">
+                    {m.items.map((item) => (
+                      <Link key={item.to} to={item.to} onClick={onNavigate}>
+                        <ListRow title={item.label} className="!border-0 !bg-transparent !shadow-none" />
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 function TabItem({ to, end, icon: Icon, label }) {
   return (
@@ -70,6 +201,9 @@ export default function MobileShell() {
   // a una ruta bloqueada por permiso o por el interruptor de módulos.
   const rutasPermitidas = new Set(modulosVisibles.flatMap((m) => m.items.map((i) => i.to)))
   const accesos = (MOBILE_NAV_POR_ROL[usuario?.rol?.slug] || []).filter((item) => rutasPermitidas.has(item.to))
+  // Todo lo que ya es un tap directo en la barra inferior (Inicio + los
+  // atajos curados de este rol) no necesita repetirse en la hoja "Más".
+  const rutasEnBarra = new Set([INICIO_ITEM.to, ...accesos.map((item) => item.to)])
 
   const iniciales = (usuario?.nombre || '?')
     .trim()
@@ -117,7 +251,11 @@ export default function MobileShell() {
       </nav>
 
       <BottomSheet abierto={masAbierto} titulo="Módulos" onCerrar={() => setMasAbierto(false)}>
-        <NavContent modulosVisibles={modulosVisibles} idPrefix="movil-mas" onNavigate={() => setMasAbierto(false)} />
+        <MasSheetContent
+          modulosVisibles={modulosVisibles}
+          rutasOcultas={rutasEnBarra}
+          onNavigate={() => setMasAbierto(false)}
+        />
       </BottomSheet>
 
       <BottomSheet abierto={cuentaAbierta} titulo="Cuenta" onCerrar={() => setCuentaAbierta(false)}>

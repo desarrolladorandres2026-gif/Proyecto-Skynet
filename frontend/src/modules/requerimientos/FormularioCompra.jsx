@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react'
-import { Btn, Input, TablaWrap, Th, Td } from '../../components/ui.jsx'
+import { Btn, Field, Input, TablaWrap, Th, Td } from '../../components/ui.jsx'
 
 export function filaVaciaCompra() {
   return {
@@ -34,7 +34,57 @@ export default function FormularioCompra({ items, onChange }) {
           <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Agregar producto
         </Btn>
       </div>
-      <TablaWrap>
+      {/* Debajo de sm, la tabla de 4 inputs obliga a scrollear horizontalmente
+          para llenar cada campo (no se ve "Descripción" mientras se escribe
+          "Fecha") — cada producto pasa a ser su propia tarjeta con los campos
+          apilados, mismos Field/Input que ya usa el resto del formulario. */}
+      <div className="grid gap-3 sm:hidden">
+        {items.map((it, i) => (
+          <div key={i} className="space-y-2 rounded-lg border border-cyan-600/15 p-3 dark:border-cyan-400/10">
+            <div className="flex items-center justify-between">
+              <span className="panel-mono text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Producto {i + 1}
+              </span>
+              {items.length > 1 && (
+                <Btn variante="peligro" onClick={() => quitarFila(i)} className="!px-2" title="Quitar producto">
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                </Btn>
+              )}
+            </div>
+            <Field label="Fecha">
+              <Input
+                type="date"
+                required
+                value={it.fechaSolicitud}
+                onChange={(e) => actualizarFila(i, 'fechaSolicitud', e.target.value)}
+              />
+            </Field>
+            <Field label="Descripción del producto">
+              <Input
+                required
+                value={it.descripcionProducto}
+                onChange={(e) => actualizarFila(i, 'descripcionProducto', e.target.value)}
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Cantidad">
+                <Input
+                  type="number"
+                  min="1"
+                  required
+                  value={it.cantidad}
+                  onChange={(e) => actualizarFila(i, 'cantidad', e.target.value)}
+                />
+              </Field>
+              <Field label="Destino">
+                <Input value={it.destino} onChange={(e) => actualizarFila(i, 'destino', e.target.value)} />
+              </Field>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <TablaWrap className="hidden sm:block">
         <thead>
           <tr>
             <Th>Fecha</Th>

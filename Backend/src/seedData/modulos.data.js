@@ -87,6 +87,13 @@ export const MODULOS_SISTEMA = [
     orden: 20,
   },
   {
+    key: 'sig_pregunta_dia',
+    nombre: 'Cuestionarios Programados',
+    descripcion: 'Capacitación diaria del personal: banco de preguntas, programación/campañas, dashboard de desempeño y plan de refuerzo.',
+    esNucleo: false,
+    orden: 17,
+  },
+  {
     key: 'copiloto',
     nombre: 'Skynet',
     descripcion:

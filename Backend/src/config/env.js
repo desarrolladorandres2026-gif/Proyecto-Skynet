@@ -43,6 +43,12 @@ export const env = {
   // de golpe, para que siempre quede historial reciente disponible.
   AUDITORIA_RETENCION_MESES: Number(process.env.AUDITORIA_RETENCION_MESES) || 3,
   AUDITORIA_WORKER_INTERVALO_MS: Number(process.env.AUDITORIA_WORKER_INTERVALO_MS) || 24 * 60 * 60 * 1000,
+  // Publicación automática del módulo Cuestionarios Programados (ver
+  // modules/sig_pregunta_dia/sig.worker.js). 60s es suficiente resolución
+  // para "publicar a la hora programada" (a diferencia del envío de
+  // notificaciones, que sí necesita los 5s de NOTIF_WORKER_INTERVALO_MS).
+  SIG_WORKER_INTERVALO_MS: Number(process.env.SIG_WORKER_INTERVALO_MS) || 60_000,
+  SIG_WORKER_LOTE: Number(process.env.SIG_WORKER_LOTE) || 200,
   STORAGE_ROOT: process.env.STORAGE_ROOT || './storage',
   FILES_PUBLIC_URL: process.env.FILES_PUBLIC_URL || 'http://localhost:3001/storage',
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,

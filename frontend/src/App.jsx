@@ -29,6 +29,17 @@ import RequerimientoDetallePage from './modules/requerimientos/RequerimientoDeta
 import BandejaFinancieroPage from './modules/requerimientos/BandejaFinancieroPage.jsx'
 import BandejaBodegaPage from './modules/requerimientos/BandejaBodegaPage.jsx'
 import TodosRequerimientosPage from './modules/requerimientos/TodosRequerimientosPage.jsx'
+import BancoPreguntasPage from './modules/sig_pregunta_dia/BancoPreguntasPage.jsx'
+import PreguntaDelDiaPage from './modules/sig_pregunta_dia/PreguntaDelDiaPage.jsx'
+import MiHistorialSigPage from './modules/sig_pregunta_dia/MiHistorialSigPage.jsx'
+import ProgramacionesPage from './modules/sig_pregunta_dia/ProgramacionesPage.jsx'
+import CampanasListaPage from './modules/sig_pregunta_dia/CampanasListaPage.jsx'
+import NuevaCampanaWizard from './modules/sig_pregunta_dia/NuevaCampanaWizard.jsx'
+import DashboardSigPage from './modules/sig_pregunta_dia/DashboardSigPage.jsx'
+import ReporteIndividualPage from './modules/sig_pregunta_dia/ReporteIndividualPage.jsx'
+import PlanRefuerzoPage from './modules/sig_pregunta_dia/PlanRefuerzoPage.jsx'
+import ConfiguracionSigPage from './modules/sig_pregunta_dia/ConfiguracionSigPage.jsx'
+import CalendarioSigPage from './modules/sig_pregunta_dia/CalendarioSigPage.jsx'
 import MisAusenciasPage from './modules/ausencias/MisAusenciasPage.jsx'
 import BandejaAusenciasPage from './modules/ausencias/BandejaAusenciasPage.jsx'
 import CalendarioAusenciasPage from './modules/ausencias/CalendarioAusenciasPage.jsx'
@@ -159,6 +170,18 @@ export default function App() {
             <Route path="requerimientos/bodega" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:gestionar_bodega"><BandejaBodegaPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/todos" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:ver_todos"><TodosRequerimientosPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/:id" element={<ModuloActivoRoute modulo="requerimientos"><RequerimientoDetallePage /></ModuloActivoRoute>} />
+
+            <Route path="sig/pregunta-del-dia" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PreguntaDelDiaPage /></ModuloActivoRoute>} />
+            <Route path="sig/mi-historial" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><MiHistorialSigPage /></ModuloActivoRoute>} />
+            <Route path="sig/banco" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:gestionar_banco"><BancoPreguntasPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="sig/programacion" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:programar"><ProgramacionesPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="sig/programacion/campanas" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:programar"><CampanasListaPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="sig/programacion/campanas/nueva" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:programar"><NuevaCampanaWizard /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="sig/dashboard" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:ver_reportes"><DashboardSigPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="sig/reportes/individual" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:ver_reportes"><ReporteIndividualPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="sig/reportes/plan-refuerzo" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:ver_reportes"><PlanRefuerzoPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="sig/configuracion" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:configurar"><ConfiguracionSigPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="sig/calendario" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:programar"><CalendarioSigPage /></PermissionRoute></ModuloActivoRoute>} />
 
             {/* Ausencias: pedir vacaciones y ver las propias son universales
                 (como "Reportar daño"); decidir y ver el calendario del

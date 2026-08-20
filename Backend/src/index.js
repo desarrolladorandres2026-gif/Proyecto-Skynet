@@ -10,6 +10,7 @@ import { sincronizarCatalogoSistema } from './modules/sistema/sistema.service.js
 import { sincronizarConfiguracionSLA } from './modules/mantenimiento/ordenes.service.js'
 import { iniciarWorkerNotificaciones } from './modules/notificaciones/notificaciones.worker.js'
 import { iniciarWorkerAuditoria } from './modules/auditoria/auditoria.worker.js'
+import { iniciarWorkerSig } from './modules/sig_pregunta_dia/sig.worker.js'
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js'
 import { verificarToken } from './middleware/auth.js'
 import { requestId } from './middleware/requestId.js'
@@ -102,6 +103,11 @@ async function start() {
   // ver auditoria.worker.js. Mismo patrón que el worker de notificaciones,
   // sin infraestructura adicional.
   iniciarWorkerAuditoria()
+
+  // Publicación automática del módulo Cuestionarios Programados: ver
+  // sig.worker.js. Mismo patrón que los dos workers de arriba, sin
+  // infraestructura adicional (no hay node-cron en el proyecto).
+  iniciarWorkerSig()
 
   const server = app.listen(env.PORT, () => {
     console.log(`\n🚀  Backend Skynet corriendo en http://localhost:${env.PORT}`)

@@ -1,6 +1,6 @@
 import {
   Home, Wrench, TriangleAlert, GraduationCap, CalendarDays,
-  FileText, ClipboardList,
+  FileText, ClipboardList, Brain,
 } from 'lucide-react'
 
 // Atajos curados a mano para la barra inferior de MobileShell (roles
@@ -22,16 +22,25 @@ import {
 // "Usuario Común" se eliminó del catálogo RBAC (2026-08-05): no otorgaba
 // ningún permiso propio, así que sus usuarios se reasignaron a "Operador"
 // (scripts/eliminar-roles-obsoletos.js) y sus atajos se heredan aquí.
+// 'Cuestionarios Programados' es una tarea diaria universal (todo trabajador
+// autenticado, no un permiso), así que se agrega como atajo donde todavía
+// queda espacio dentro del presupuesto de 3-4 accesos. 'operador' ya tiene 4
+// curados (Reportar/Requerimientos/Vacaciones/Inducción); no se le quita
+// ninguno para sumar este — igual queda a 2 taps vía "Más".
 export const MOBILE_NAV_POR_ROL = {
   mantenimiento: [
     { to: '/mantenimiento/ordenes', label: 'Órdenes', icon: Wrench },
     // No 'Reportar': el técnico no crea reportes, solo ejecuta lo asignado
     // (ver rol Mantenimiento en seedData/rbac.data.js).
     { to: '/danos/mis-tareas', label: 'Mis tareas', icon: ClipboardList },
+    { to: '/sig/pregunta-del-dia', label: 'Cuestionario', icon: Brain },
   ],
-  seguridad: [],
+  seguridad: [
+    { to: '/sig/pregunta-del-dia', label: 'Cuestionario', icon: Brain },
+  ],
   bodega: [
     { to: '/requerimientos/bodega', label: 'Bandeja', icon: ClipboardList },
+    { to: '/sig/pregunta-del-dia', label: 'Cuestionario', icon: Brain },
   ],
   operador: [
     { to: '/danos/reportar', label: 'Reportar', icon: TriangleAlert },

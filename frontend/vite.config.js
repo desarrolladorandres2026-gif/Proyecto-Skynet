@@ -78,6 +78,11 @@ export default defineConfig({
         // Se carga bajo demanda con import() dinámico, que es justo lo que lo
         // mantiene fuera del bundle principal.
         globIgnores: ['**/vosk-*.js'],
+        // El bundle principal (index-*.js) ya pasó el límite por defecto de
+        // Workbox de 2 MiB para precachear un archivo individual. Se sube a
+        // 5 MiB para dar margen mientras el bundle crece, en vez de tener que
+        // tocar esto cada pocas semanas.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
       manifest: {
         name: 'Skynet',

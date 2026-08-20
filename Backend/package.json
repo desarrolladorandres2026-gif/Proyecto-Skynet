@@ -11,12 +11,14 @@
     "seed:operacion": "node scripts/seed-operacion.js",
     "seed:danos": "node scripts/seed-danos.js",
     "seed:requerimientos": "node scripts/seed-requerimientos.js",
+    "seed:sig-preguntas": "node scripts/seed-sig-preguntas.js",
     "migrate:mantenimiento": "node scripts/migrate-mysql-to-mongo.js",
     "migrate:mantenimiento-ot": "node scripts/migrate-mantenimiento-ot.js",
     "test": "vitest run",
     "test:fechas": "node scripts/verificar-fechas-tz.js",
     "test:notificaciones": "node scripts/test-notificaciones.js",
     "test:flujo-notificaciones": "node scripts/test-flujo-notificaciones.js",
+    "test:flujo-sig": "node scripts/test-flujo-sig.js",
     "test:carga": "node scripts/loadtest.js"
   },
   "dependencies": {

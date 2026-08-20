@@ -93,6 +93,19 @@ export const PERMISOS = [
   permiso('ausencias', 'aprobar', 'Aprobar o rechazar solicitudes de vacaciones, permisos e incapacidades'),
   permiso('ausencias', 'ver_todas', 'Ver todas las ausencias del personal (supervisión y calendario)'),
 
+  // Cuestionarios Programados (capacitación diaria, antes "Pregunta SIG del
+  // Día" — el nombre cambió, el key interno 'sig_pregunta_dia' no, ver
+  // criterio de slugs estables más abajo). Ver la pregunta del día,
+  // responderla y consultar el propio progreso/historial son capacidad
+  // universal, mismo principio que "reportar un daño" — no son permisos.
+  // Estos 4 gobiernan la gestión: banco de preguntas, programación
+  // individual/campañas, reportes/dashboard/plan de refuerzo, y
+  // configuración del módulo (niveles de desempeño, horario, notificaciones).
+  permiso('sig_pregunta_dia', 'gestionar_banco', 'Crear, editar y archivar preguntas del banco SIG'),
+  permiso('sig_pregunta_dia', 'programar', 'Programar preguntas individuales y campañas SIG'),
+  permiso('sig_pregunta_dia', 'ver_reportes', 'Ver dashboard, reportes individuales y plan de refuerzo SIG'),
+  permiso('sig_pregunta_dia', 'configurar', 'Configurar niveles de desempeño, horario y notificaciones SIG'),
+
   // Genéricos del rol Operador, redactados igual de amplio que en la
   // especificación original ("Registrar información", "Actualizar datos");
   // se recomienda partirlos en permisos concretos por módulo cuando cada
@@ -251,5 +264,22 @@ export const ROLES = [
     // que sí puede renombrarse o eliminarse desde la pantalla de Roles.
     esSistema: false,
     permisos: ['ausencias:aprobar', 'ausencias:ver_todas'],
+  },
+  {
+    nombre: 'SIG / HSEQ',
+    slug: 'sig_hseq',
+    descripcion: 'Coordina la capacitación diaria del personal: banco de preguntas, programación/campañas, dashboard de desempeño y plan de refuerzo del módulo Cuestionarios Programados.',
+    esSuperAdmin: false,
+    ambito: 'global',
+    // No es esSistema: no viene de la especificación original de 6 roles
+    // (igual que Talento Humano), así que sí puede renombrarse o eliminarse
+    // desde la pantalla de Roles.
+    esSistema: false,
+    permisos: [
+      'sig_pregunta_dia:gestionar_banco',
+      'sig_pregunta_dia:programar',
+      'sig_pregunta_dia:ver_reportes',
+      'sig_pregunta_dia:configurar',
+    ],
   },
 ]

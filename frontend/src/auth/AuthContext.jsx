@@ -182,6 +182,9 @@ export function esRolAdmin(usuario) {
 // 'administrativo_financiero' (Dir. Administrativo y Gestión) se agregó
 // 2026-08-05 a pedido explícito del usuario: quien tenga ese rol trabaja
 // desde computador, con las mismas bandejas y tablas densas que Admin.
+// 'sig_hseq' (SIG/HSEQ) se agregó por el mismo motivo: administrar el banco
+// de preguntas, programar campañas con recurrencia y leer el dashboard de
+// desempeño es trabajo de escritorio, no el feed móvil tipo app social.
 export function usaPanelDenso(usuario) {
-  return esRolAdmin(usuario) || ['bodega', 'administrativo_financiero'].includes(usuario?.rol?.slug)
+  return esRolAdmin(usuario) || ['bodega', 'administrativo_financiero', 'sig_hseq'].includes(usuario?.rol?.slug)
 }

@@ -8,7 +8,8 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { cva } from 'class-variance-authority'
-import { X } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ChevronRight, X } from 'lucide-react'
 import { cn } from '../lib/cn.js'
 
 const inputBase = 'panel-input w-full rounded-lg px-3 py-2 text-sm'
@@ -158,6 +159,14 @@ const BADGE_COLORES = {
   permiso_remunerado: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
   permiso_no_remunerado: 'bg-teal-400/10 text-teal-700 dark:text-teal-300 ring-1 ring-inset ring-teal-400/30',
   incapacidad: 'bg-orange-400/10 text-orange-700 dark:text-orange-300 ring-1 ring-inset ring-orange-400/30',
+  // Cuestionarios Programados: resultado de una respuesta y estado de una
+  // programación/campaña (ver Backend/src/models/RespuestaSig.js,
+  // ProgramacionSig.js, CampanaSig.js). 'activa'/'pausada'/'cancelada' ya
+  // están arriba y se reutilizan tal cual.
+  correcta: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
+  incorrecta: 'bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-400/30',
+  publicada: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
+  finalizada: 'bg-slate-400/10 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-400/30',
 }
 
 // `label` es opcional: por defecto pinta `valor` tal cual (el enum crudo del
@@ -255,7 +264,32 @@ export function EmptyState({ mensaje = 'Sin resultados' }) {
 }
 
 export function Card({ children, className = '' }) {
-  return <div className={cn('panel-card relative rounded-xl p-4', className)}>{children}</div>
+  return <div className={cn('panel-card relative rounded-xl p-3.5 sm:p-4', className)}>{children}</div>
+}
+
+// Fila de lista táctil para reemplazar <table> en pantallas angostas — mismo
+// borde/sombra de Card, pero pensada para que TODA la tarjeta sea el
+// objetivo del toque (en vez de un link de texto suelto de 12px, casi
+// imposible de acertar con el dedo). Usa --panel-card-border-hover, la misma
+// variable que StatCard.jsx ya deja lista para esto (ver panel.css). Solo
+// sirve para navegación simple: si una fila necesita más de una acción (p.
+// ej. "PDF" + "Gestionar" en BandejaBodegaPage), un <button> anidado dentro
+// del <a> que genera <Link> sería HTML inválido — esas filas arman su propio
+// Card con una fila de acciones en vez de usar este componente.
+export function CardLink({ to, children, className = '' }) {
+  return (
+    <Link
+      to={to}
+      className={cn(
+        'panel-card flex items-center gap-3 rounded-xl p-3.5 transition-all duration-200',
+        'hover:border-[var(--panel-card-border-hover)] hover:shadow-soft-md active:scale-[0.99]',
+        className
+      )}
+    >
+      <span className="min-w-0 flex-1">{children}</span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+    </Link>
+  )
 }
 
 export function Th({ children, className = '' }) {
@@ -270,9 +304,9 @@ export function Td({ children, className = '' }) {
   return <td className={cn('panel-td px-3 py-2 text-sm', className)}>{children}</td>
 }
 
-export function TablaWrap({ children }) {
+export function TablaWrap({ children, className = '' }) {
   return (
-    <div className="panel-table-wrap overflow-x-auto rounded-xl">
+    <div className={cn('panel-table-wrap overflow-x-auto rounded-xl', className)}>
       <table className="min-w-full">{children}</table>
     </div>
   )

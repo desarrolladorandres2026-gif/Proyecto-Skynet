@@ -18,6 +18,11 @@ import perfilRoutes from '../modules/perfil/perfil.routes.js'
 import copilotoRoutes from '../modules/copiloto/copiloto.routes.js'
 import backupRoutes from '../modules/backup/backup.routes.js'
 import catalogosRoutes from '../modules/catalogos/catalogos.routes.js'
+import sigBancoRoutes from '../modules/sig_pregunta_dia/sig-banco.routes.js'
+import sigConfiguracionRoutes from '../modules/sig_pregunta_dia/sig-configuracion.routes.js'
+import sigProgramacionRoutes from '../modules/sig_pregunta_dia/sig-programacion.routes.js'
+import sigRespuestasRoutes from '../modules/sig_pregunta_dia/sig-respuestas.routes.js'
+import sigReportesRoutes from '../modules/sig_pregunta_dia/sig-reportes.routes.js'
 
 const router = Router()
 
@@ -49,6 +54,24 @@ router.use('/perfil', perfilRoutes)
 router.use('/copiloto', copilotoRoutes)
 router.use('/backup', backupRoutes)
 router.use('/catalogos', catalogosRoutes)
+// sigRespuestasRoutes (universal, sin permiso) DEBE ir antes que
+// sigProgramacionRoutes: comparten el segmento '/programacion' (la primera
+// expone POST /programacion/:id/responder, la segunda gestiona
+// /programacion/individual bajo requierePermiso('programar')). Mismo bug de
+// forma que /mantenimiento/ordenes vs /mantenimiento de arriba — si
+// sigProgramacionRoutes (montado en '/sig_pregunta_dia/programacion', con su
+// gate de permiso aplicado a CUALQUIER sub-ruta) se registrara primero,
+// capturaría también /programacion/:id/responder antes de que Express
+// pudiera "caer" al router universal, y un trabajador sin el permiso
+// 'programar' nunca podría responder su propia pregunta del día.
+router.use('/sig_pregunta_dia', sigRespuestasRoutes)
+// sigReportesRoutes también va en la raíz de /sig_pregunta_dia, sin colisión
+// con sigRespuestasRoutes: sus rutas (/dashboard, /reportes/*) no comparten
+// ningún segmento con las de arriba.
+router.use('/sig_pregunta_dia', sigReportesRoutes)
+router.use('/sig_pregunta_dia/banco', sigBancoRoutes)
+router.use('/sig_pregunta_dia/configuracion', sigConfiguracionRoutes)
+router.use('/sig_pregunta_dia/programacion', sigProgramacionRoutes)
 // operacion ahora solo expone /dashboard (núcleo, universal para todo rol);
 // se monta en la raíz por eso.
 router.use('/', operacionRoutes)

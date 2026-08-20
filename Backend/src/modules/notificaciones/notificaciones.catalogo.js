@@ -28,6 +28,11 @@ export const CATEGORIAS_NOTIFICACION = [
     nombre: 'Vacaciones y ausencias',
     descripcion: 'Solicitudes de vacaciones, permisos e incapacidades: nuevas solicitudes y su decisión.',
   },
+  {
+    key: 'sig_pregunta_dia',
+    nombre: 'Cuestionarios Programados',
+    descripcion: 'Publicación diaria de la pregunta de capacitación SIG.',
+  },
 ]
 
 export const CLAVES_CATEGORIA = new Set(CATEGORIAS_NOTIFICACION.map((c) => c.key))

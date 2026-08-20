@@ -287,27 +287,23 @@ export default function RequerimientoDetallePage() {
           {puedeEditarFinanciero ? (
             <FormularioCompra items={items} onChange={setItems} />
           ) : (
-            <TablaWrap>
-              <thead>
-                <tr>
-                  <Th>Fecha</Th>
-                  <Th>Descripción</Th>
-                  <Th>Cantidad</Th>
-                  <Th>Destino</Th>
-                  {mostrarColumnaRecibido && <Th>Control de recibido</Th>}
-                </tr>
-              </thead>
-              <tbody>
+            <>
+              <div className="grid gap-2.5 sm:hidden">
                 {(req.itemsCompra || []).map((it, i) => (
-                  <tr key={it._id || i}>
-                    <Td className="whitespace-nowrap">{fmtFecha(it.fechaSolicitud)}</Td>
-                    <Td>{it.descripcionProducto}</Td>
-                    <Td>{it.cantidad}</Td>
-                    <Td>{it.destino || '—'}</Td>
+                  <div key={it._id || i} className="rounded-lg border border-cyan-600/15 p-3 dark:border-cyan-400/10">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{it.descripcionProducto}</p>
+                      <span className="panel-mono shrink-0 text-[11px] text-slate-500 dark:text-slate-400">
+                        {fmtFecha(it.fechaSolicitud)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Cantidad: {it.cantidad} · Destino: {it.destino || '—'}
+                    </p>
                     {mostrarColumnaRecibido && (
-                      <Td>
+                      <div className="mt-2 border-t border-cyan-600/10 pt-2 text-sm dark:border-cyan-400/10">
                         {puedeControlRecibido ? (
-                          <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                          <label className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                             <input
                               type="checkbox"
                               checked={Boolean(it.controlRecibido?.recibido)}
@@ -315,17 +311,57 @@ export default function RequerimientoDetallePage() {
                             />
                             {it.controlRecibido?.recibido ? `Recibido ${fmtFecha(it.controlRecibido.fecha)}` : 'Marcar recibido'}
                           </label>
-                        ) : it.controlRecibido?.recibido ? (
-                          `Recibido ${fmtFecha(it.controlRecibido.fecha)}`
                         ) : (
-                          'Pendiente'
+                          <span className="text-slate-600 dark:text-slate-300">
+                            {it.controlRecibido?.recibido ? `Recibido ${fmtFecha(it.controlRecibido.fecha)}` : 'Pendiente'}
+                          </span>
                         )}
-                      </Td>
+                      </div>
                     )}
-                  </tr>
+                  </div>
                 ))}
-              </tbody>
-            </TablaWrap>
+              </div>
+
+              <TablaWrap className="hidden sm:block">
+                <thead>
+                  <tr>
+                    <Th>Fecha</Th>
+                    <Th>Descripción</Th>
+                    <Th>Cantidad</Th>
+                    <Th>Destino</Th>
+                    {mostrarColumnaRecibido && <Th>Control de recibido</Th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(req.itemsCompra || []).map((it, i) => (
+                    <tr key={it._id || i}>
+                      <Td className="whitespace-nowrap">{fmtFecha(it.fechaSolicitud)}</Td>
+                      <Td>{it.descripcionProducto}</Td>
+                      <Td>{it.cantidad}</Td>
+                      <Td>{it.destino || '—'}</Td>
+                      {mostrarColumnaRecibido && (
+                        <Td>
+                          {puedeControlRecibido ? (
+                            <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(it.controlRecibido?.recibido)}
+                                onChange={(e) => marcarRecibido(it._id, e.target.checked)}
+                              />
+                              {it.controlRecibido?.recibido ? `Recibido ${fmtFecha(it.controlRecibido.fecha)}` : 'Marcar recibido'}
+                            </label>
+                          ) : it.controlRecibido?.recibido ? (
+                            `Recibido ${fmtFecha(it.controlRecibido.fecha)}`
+                          ) : (
+                            'Pendiente'
+                          )}
+                        </Td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </TablaWrap>
+            </>
           )}
         </Card>
       ) : (

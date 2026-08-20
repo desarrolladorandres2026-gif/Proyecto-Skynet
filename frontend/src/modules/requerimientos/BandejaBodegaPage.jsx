@@ -63,37 +63,64 @@ export default function BandejaBodegaPage() {
       ) : lista.length === 0 ? (
         <EmptyState mensaje="No hay requerimientos aprobados por Financiero" />
       ) : (
-        <TablaWrap>
-          <thead>
-            <tr>
-              <Th>Fecha</Th>
-              <Th>Tipo</Th>
-              <Th>Solicitante</Th>
-              <Th>Estado</Th>
-              <Th></Th>
-            </tr>
-          </thead>
-          <tbody>
+        <>
+          <div className="grid gap-2.5 sm:hidden">
             {lista.map((r) => (
-              <tr key={r._id}>
-                <Td className="whitespace-nowrap">{fmtFechaHora(r.fechaSolicitud || r.createdAt)}</Td>
-                <Td className="capitalize">{r.tipo}</Td>
-                <Td>{r.solicitante?.nombre}</Td>
-                <Td><Badge valor={r.bodega?.estado} label={LABEL_ESTADO_BODEGA[r.bodega?.estado] || r.bodega?.estado} /></Td>
-                <Td>
-                  <div className="flex items-center justify-end gap-2">
-                    <Btn variante="fantasma" onClick={() => generarPdfRequerimiento(r)} className="flex items-center gap-1.5 !px-2.5" title="Generar PDF">
-                      <Printer className="h-3.5 w-3.5" aria-hidden="true" /> PDF
-                    </Btn>
-                    <Link to={`/requerimientos/${r._id}`} className="text-sm font-medium text-cyan-700 hover:underline dark:text-cyan-400">
-                      Gestionar
-                    </Link>
-                  </div>
-                </Td>
-              </tr>
+              <Card key={r._id} className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-slate-800 capitalize dark:text-slate-100">
+                    Requerimiento de {r.tipo}
+                  </span>
+                  <Badge valor={r.bodega?.estado} label={LABEL_ESTADO_BODEGA[r.bodega?.estado] || r.bodega?.estado} />
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-300">{r.solicitante?.nombre}</p>
+                <p className="panel-mono text-[11px] text-slate-500 dark:text-slate-400">
+                  {fmtFechaHora(r.fechaSolicitud || r.createdAt)}
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <Btn variante="secundario" onClick={() => generarPdfRequerimiento(r)} className="flex flex-1 items-center justify-center gap-1.5">
+                    <Printer className="h-3.5 w-3.5" aria-hidden="true" /> PDF
+                  </Btn>
+                  <Link to={`/requerimientos/${r._id}`} className="flex-1">
+                    <Btn className="w-full">Gestionar</Btn>
+                  </Link>
+                </div>
+              </Card>
             ))}
-          </tbody>
-        </TablaWrap>
+          </div>
+
+          <TablaWrap className="hidden sm:block">
+            <thead>
+              <tr>
+                <Th>Fecha</Th>
+                <Th>Tipo</Th>
+                <Th>Solicitante</Th>
+                <Th>Estado</Th>
+                <Th></Th>
+              </tr>
+            </thead>
+            <tbody>
+              {lista.map((r) => (
+                <tr key={r._id}>
+                  <Td className="whitespace-nowrap">{fmtFechaHora(r.fechaSolicitud || r.createdAt)}</Td>
+                  <Td className="capitalize">{r.tipo}</Td>
+                  <Td>{r.solicitante?.nombre}</Td>
+                  <Td><Badge valor={r.bodega?.estado} label={LABEL_ESTADO_BODEGA[r.bodega?.estado] || r.bodega?.estado} /></Td>
+                  <Td>
+                    <div className="flex items-center justify-end gap-2">
+                      <Btn variante="fantasma" onClick={() => generarPdfRequerimiento(r)} className="flex items-center gap-1.5 !px-2.5" title="Generar PDF">
+                        <Printer className="h-3.5 w-3.5" aria-hidden="true" /> PDF
+                      </Btn>
+                      <Link to={`/requerimientos/${r._id}`} className="text-sm font-medium text-cyan-700 hover:underline dark:text-cyan-400">
+                        Gestionar
+                      </Link>
+                    </div>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </TablaWrap>
+        </>
       )}
 
       <ExportarRequerimientosModal abierto={modalExportar} onCerrar={() => setModalExportar(false)} />

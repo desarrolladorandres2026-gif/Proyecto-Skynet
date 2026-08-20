@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, Plus } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
-import { Btn, Badge, Card, ErrorMsg, TablaWrap, Th, Td, EmptyState, fmtFechaHora } from '../../components/ui.jsx'
+import { Btn, Badge, Card, CardLink, ErrorMsg, TablaWrap, Th, Td, EmptyState, fmtFechaHora } from '../../components/ui.jsx'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh.js'
 
 function estadoVisible(r) {
@@ -72,32 +72,53 @@ export default function MisRequerimientosPage() {
       ) : lista.length === 0 ? (
         <EmptyState mensaje="Todavía no has creado ningún requerimiento" />
       ) : (
-        <TablaWrap>
-          <thead>
-            <tr>
-              <Th>Fecha</Th>
-              <Th>Tipo</Th>
-              <Th>Área/proceso</Th>
-              <Th>Estado</Th>
-              <Th></Th>
-            </tr>
-          </thead>
-          <tbody>
+        <>
+          <div className="grid gap-2.5 sm:hidden">
             {lista.map((r) => (
-              <tr key={r._id}>
-                <Td className="whitespace-nowrap">{fmtFechaHora(r.fechaSolicitud || r.createdAt)}</Td>
-                <Td className="capitalize">{r.tipo}</Td>
-                <Td>{r.areaOProceso || '—'}</Td>
-                <Td><Badge valor={estadoVisible(r)} label={LABEL_ESTADO[estadoVisible(r)] || estadoVisible(r)} /></Td>
-                <Td>
-                  <Link to={`/requerimientos/${r._id}`} className="text-sm font-medium text-cyan-700 hover:underline dark:text-cyan-400">
-                    Ver detalle
-                  </Link>
-                </Td>
-              </tr>
+              <CardLink key={r._id} to={`/requerimientos/${r._id}`}>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-slate-800 capitalize dark:text-slate-100">
+                    Requerimiento de {r.tipo}
+                  </span>
+                  <span className="panel-mono shrink-0 text-[11px] text-slate-500 dark:text-slate-400">
+                    {fmtFechaHora(r.fechaSolicitud || r.createdAt)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-sm text-slate-600 dark:text-slate-300">{r.areaOProceso || 'Sin área/proceso'}</p>
+                  <Badge valor={estadoVisible(r)} label={LABEL_ESTADO[estadoVisible(r)] || estadoVisible(r)} />
+                </div>
+              </CardLink>
             ))}
-          </tbody>
-        </TablaWrap>
+          </div>
+
+          <TablaWrap className="hidden sm:block">
+            <thead>
+              <tr>
+                <Th>Fecha</Th>
+                <Th>Tipo</Th>
+                <Th>Área/proceso</Th>
+                <Th>Estado</Th>
+                <Th></Th>
+              </tr>
+            </thead>
+            <tbody>
+              {lista.map((r) => (
+                <tr key={r._id}>
+                  <Td className="whitespace-nowrap">{fmtFechaHora(r.fechaSolicitud || r.createdAt)}</Td>
+                  <Td className="capitalize">{r.tipo}</Td>
+                  <Td>{r.areaOProceso || '—'}</Td>
+                  <Td><Badge valor={estadoVisible(r)} label={LABEL_ESTADO[estadoVisible(r)] || estadoVisible(r)} /></Td>
+                  <Td>
+                    <Link to={`/requerimientos/${r._id}`} className="text-sm font-medium text-cyan-700 hover:underline dark:text-cyan-400">
+                      Ver detalle
+                    </Link>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </TablaWrap>
+        </>
       )}
     </div>
   )
