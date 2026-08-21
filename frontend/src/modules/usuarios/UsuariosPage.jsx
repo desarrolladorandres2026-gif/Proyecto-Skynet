@@ -41,6 +41,10 @@ export default function UsuariosPage() {
   const [porEliminar, setPorEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
 
+  const [filtroTexto, setFiltroTexto] = useState('')
+  const [filtroRol, setFiltroRol] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState('')
+
   async function cargar() {
     setCargando(true)
     try {
@@ -141,6 +145,22 @@ export default function UsuariosPage() {
     }
   }
 
+  const listaFiltrada = useMemo(() => {
+    const texto = filtroTexto.trim().toLowerCase()
+    return lista.filter((u) => {
+      if (texto) {
+        const coincide =
+          u.nombre_usuario?.toLowerCase().includes(texto) ||
+          u.nombre?.toLowerCase().includes(texto) ||
+          u.email?.toLowerCase().includes(texto)
+        if (!coincide) return false
+      }
+      if (filtroRol && (u.rol?._id || u.rol) !== filtroRol) return false
+      if (filtroEstado && u.estado !== filtroEstado) return false
+      return true
+    })
+  }, [lista, filtroTexto, filtroRol, filtroEstado])
+
   const columnas = useMemo(
     () => [
       { accessorKey: 'nombre_usuario', header: 'Usuario', cell: (info) => <span className="font-medium">{info.getValue()}</span> },
@@ -194,7 +214,32 @@ export default function UsuariosPage() {
 
       <ErrorMsg>{error}</ErrorMsg>
 
-      <DataTable columns={columnas} data={lista} cargando={cargando} vacio="No hay usuarios registrados" />
+      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        <Field label="Buscar">
+          <Input
+            placeholder="Usuario, nombre o email…"
+            value={filtroTexto}
+            onChange={(e) => setFiltroTexto(e.target.value)}
+          />
+        </Field>
+        <Field label="Rol">
+          <Select value={filtroRol} onChange={(e) => setFiltroRol(e.target.value)}>
+            <option value="">Todos</option>
+            {rolesDisponibles.map((r) => (
+              <option key={r._id} value={r._id}>{r.nombre}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Estado">
+          <Select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
+            <option value="">Todos</option>
+            <option value="activo">activo</option>
+            <option value="inactivo">inactivo</option>
+          </Select>
+        </Field>
+      </div>
+
+      <DataTable columns={columnas} data={listaFiltrada} cargando={cargando} vacio="No hay usuarios que coincidan con el filtro" />
 
       <Modal
         abierto={modalAbierto}

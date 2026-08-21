@@ -1,10 +1,10 @@
 import ConfiguracionSig from '../../models/ConfiguracionSig.js'
 import PreguntaSig from '../../models/PreguntaSig.js'
 import { ErrorValidacion } from '../../utils/errores.js'
-import { auditar, obtenerOCrearConfiguracion } from './comun.js'
+import { auditar, obtenerOCrearConfiguracion, obtenerConfiguracionCacheada, invalidarCacheConfiguracion } from './comun.js'
 
 export async function obtenerConfiguracion() {
-  return obtenerOCrearConfiguracion()
+  return obtenerConfiguracionCacheada()
 }
 
 const HORA_RE = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -93,6 +93,7 @@ export async function actualizarConfiguracion(datos, usuarioActor) {
 
   config.actualizadoPor = usuarioActor.id_usuario
   await config.save()
+  invalidarCacheConfiguracion()
 
   await auditar(usuarioActor, 'configurar', 'ConfiguracionSig', config._id, 'Actualizó la configuración del módulo SIG', {
     antes,

@@ -3,8 +3,10 @@ import ProgramacionSig from '../../models/ProgramacionSig.js'
 import PlanRefuerzoSig from '../../models/PlanRefuerzoSig.js'
 import Usuario from '../../models/Usuario.js'
 import { hoy, rangoDeDias } from '../../utils/fechas.js'
-import { ErrorNoEncontrado } from '../../utils/errores.js'
-import { obtenerOCrearConfiguracion, calcularNivel, resolverAudiencia } from './comun.js'
+import { ErrorNoEncontrado, ErrorValidacion } from '../../utils/errores.js'
+import { obtenerConfiguracionCacheada, calcularNivel, resolverAudiencia, auditar } from './comun.js'
+
+const ESTADOS_PLAN_REFUERZO = ['pendiente', 'en_progreso', 'completado', 'descartado']
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000
 
@@ -40,9 +42,13 @@ export async function obtenerResumenHoy() {
 
   if (!programacionesHoy.length) return { hayPreguntaHoy: false }
 
+  // Antes: `resolverAudiencia` (que hace su propio Usuario.find) se esperaba
+  // en serie por cada publicación de hoy. Normalmente son pocas, pero no hay
+  // motivo para no resolverlas todas en paralelo.
   const idsElegibles = new Set()
-  for (const p of programacionesHoy) {
-    for (const id of await resolverAudiencia(p.audiencia)) idsElegibles.add(String(id))
+  const audienciasDeHoy = await Promise.all(programacionesHoy.map((p) => resolverAudiencia(p.audiencia)))
+  for (const ids of audienciasDeHoy) {
+    for (const id of ids) idsElegibles.add(String(id))
   }
 
   const idsProgramaciones = programacionesHoy.map((p) => p._id)
@@ -68,7 +74,7 @@ export async function obtenerResumenHoy() {
 
 export async function obtenerDashboard(filtros = {}) {
   const matchBase = construirFiltroRespuestas(filtros)
-  const config = await obtenerOCrearConfiguracion()
+  const config = await obtenerConfiguracionCacheada()
 
   const [
     resumenHoy,
@@ -171,7 +177,7 @@ export async function obtenerDashboard(filtros = {}) {
 // debería necesitar además usuarios:gestionar solo para ver a quién reportar.
 export async function listarTrabajadoresParticipantes(filtros = {}) {
   const matchBase = construirFiltroRespuestas(filtros)
-  const config = await obtenerOCrearConfiguracion()
+  const config = await obtenerConfiguracionCacheada()
 
   const agregados = await RespuestaSig.aggregate([
     { $match: matchBase },
@@ -192,6 +198,7 @@ export async function listarTrabajadoresParticipantes(filtros = {}) {
 
   const usuarios = await Usuario.find({ _id: { $in: agregados.map((a) => a._id) } })
     .select('nombre nombre_usuario dependencia cargo estado')
+    .lean()
   const porId = new Map(usuarios.map((u) => [String(u._id), u]))
 
   return agregados
@@ -220,16 +227,21 @@ export async function listarTrabajadoresParticipantes(filtros = {}) {
 }
 
 export async function reporteTrabajador(usuarioId, filtros = {}) {
-  const usuario = await Usuario.findById(usuarioId).select('nombre nombre_usuario cargo dependencia estado')
+  const usuario = await Usuario.findById(usuarioId).select('nombre nombre_usuario cargo dependencia estado').lean()
   if (!usuario) throw new ErrorNoEncontrado('Trabajador no encontrado')
 
   const matchBase = { ...construirFiltroRespuestas(filtros), usuario: usuario._id }
-  const config = await obtenerOCrearConfiguracion()
+  const config = await obtenerConfiguracionCacheada()
 
+  // Sin .limit(): el porcentaje/temasConMasErrores se calculan agregando TODO
+  // el historial filtrado en memoria (abajo) — truncarlo aquí daría
+  // estadísticas incorrectas. .lean() sí es seguro (solo lectura, nunca se
+  // guarda un documento de este array).
   const respuestas = await RespuestaSig.find(matchBase)
     .select('esCorrecta componenteSigSnapshot temaSnapshot fechaProgramada')
     .sort({ fechaProgramada: -1 })
     .populate({ path: 'programacion', select: 'snapshotPregunta' })
+    .lean()
 
   const total = respuestas.length
   const correctas = respuestas.filter((r) => r.esCorrecta).length
@@ -276,7 +288,7 @@ export async function reporteTrabajador(usuarioId, filtros = {}) {
 // un plan que ya esté 'en_progreso'/'completado'/'descartado' a mano.
 // Devuelve la lista vigente (no descartada) con el trabajador poblado.
 export async function recalcularYObtenerPlanRefuerzo(filtros = {}) {
-  const config = await obtenerOCrearConfiguracion()
+  const config = await obtenerConfiguracionCacheada()
   const matchBase = construirFiltroRespuestas(filtros)
 
   const agregados = await RespuestaSig.aggregate([
@@ -300,29 +312,91 @@ export async function recalcularYObtenerPlanRefuerzo(filtros = {}) {
     })
     .filter((c) => c.componenteSig && clavesRefuerzo.has(c.nivel?.clave))
 
-  for (const c of candidatos) {
-    const [peorTema] = await RespuestaSig.aggregate([
-      { $match: { ...matchBase, usuario: c.usuario, componenteSigSnapshot: c.componenteSig, esCorrecta: false } },
-      { $group: { _id: '$temaSnapshot', errores: { $sum: 1 } } },
-      { $sort: { errores: -1 } },
-      { $limit: 1 },
-    ])
+  if (candidatos.length > 0) {
+    // Antes: 2 round-trips secuenciales a Mongo POR candidato (aggregate +
+    // findOneAndUpdate dentro de un `for`) — con N candidatos, 2N queries en
+    // serie en una sola petición HTTP. Ahora: una única agregación agrupada
+    // resuelve "el tema con más errores" para TODOS los candidatos a la vez
+    // (mismo criterio que antes: por candidato, se agrupa por tema, se ordena
+    // por errores descendente y se toma el primero — un empate se resuelve
+    // igual de no-determinista que el `$limit: 1` original), seguida de un
+    // solo bulkWrite con los upserts.
+    const condicionesCandidatos = candidatos.map((c) => ({ usuario: c.usuario, componenteSigSnapshot: c.componenteSig }))
 
-    await PlanRefuerzoSig.findOneAndUpdate(
-      { usuario: c.usuario, componenteSig: c.componenteSig, estado: { $in: ['pendiente', 'en_progreso'] } },
+    const peoresTemas = await RespuestaSig.aggregate([
+      { $match: { ...matchBase, esCorrecta: false, $or: condicionesCandidatos } },
       {
-        $set: {
-          nivelDetectado: c.nivel.clave,
-          porcentajeAcierto: c.porcentaje,
-          fechaDeteccion: new Date(),
-          tema: peorTema?._id || '',
+        $group: {
+          _id: { usuario: '$usuario', componenteSig: '$componenteSigSnapshot', tema: '$temaSnapshot' },
+          errores: { $sum: 1 },
         },
       },
-      { upsert: true }
+      { $sort: { errores: -1 } },
+      {
+        $group: {
+          _id: { usuario: '$_id.usuario', componenteSig: '$_id.componenteSig' },
+          tema: { $first: '$_id.tema' },
+        },
+      },
+    ])
+    const temaPorCandidato = new Map(
+      peoresTemas.map((p) => [`${p._id.usuario}::${p._id.componenteSig}`, p.tema])
+    )
+
+    const ahora = new Date()
+    await PlanRefuerzoSig.bulkWrite(
+      candidatos.map((c) => ({
+        updateOne: {
+          filter: { usuario: c.usuario, componenteSig: c.componenteSig, estado: { $in: ['pendiente', 'en_progreso'] } },
+          update: {
+            $set: {
+              nivelDetectado: c.nivel.clave,
+              porcentajeAcierto: c.porcentaje,
+              fechaDeteccion: ahora,
+              tema: temaPorCandidato.get(`${c.usuario}::${c.componenteSig}`) || '',
+            },
+          },
+          upsert: true,
+        },
+      }))
     )
   }
 
   return PlanRefuerzoSig.find({ estado: { $ne: 'descartado' } })
     .sort({ porcentajeAcierto: 1 })
     .populate('usuario', 'nombre nombre_usuario cargo dependencia')
+    .populate('responsable', 'nombre nombre_usuario')
+    .lean()
+}
+
+// Gestión manual sobre un plan ya detectado: acción de capacitación,
+// fecha programada, observaciones y estado. Quien edita queda como
+// responsable — el módulo no tiene un selector de encargado aparte, así que
+// "responsable" es simplemente quien tomó la acción más reciente.
+export async function actualizarPlanRefuerzo(id, datos, usuarioActor) {
+  const plan = await PlanRefuerzoSig.findById(id)
+  if (!plan) throw new ErrorNoEncontrado('Plan de refuerzo no encontrado')
+  const antes = plan.toObject()
+
+  if (datos.estado !== undefined) {
+    if (!ESTADOS_PLAN_REFUERZO.includes(datos.estado)) throw new ErrorValidacion('Estado inválido')
+    plan.estado = datos.estado
+  }
+  if (datos.accionCapacitacion !== undefined) plan.accionCapacitacion = String(datos.accionCapacitacion).trim()
+  if (datos.observaciones !== undefined) plan.observaciones = String(datos.observaciones).trim()
+  if (datos.fechaProgramada !== undefined) {
+    plan.fechaProgramada = datos.fechaProgramada ? new Date(datos.fechaProgramada) : null
+  }
+  plan.responsable = usuarioActor.id_usuario
+
+  await plan.save()
+  await auditar(usuarioActor, 'gestionar_plan_refuerzo', 'PlanRefuerzoSig', plan._id, 'Actualizó un plan de refuerzo', {
+    antes,
+    despues: plan.toObject(),
+  })
+
+  return plan.populate([
+    { path: 'usuario', select: 'nombre nombre_usuario cargo dependencia' },
+    { path: 'responsable', select: 'nombre nombre_usuario' },
+  ])
 }

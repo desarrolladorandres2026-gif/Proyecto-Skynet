@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Download } from 'lucide-react'
-import { generarPoliticasPdf } from '../pdf/politicasPdf.js'
 
 const ACTUALIZADO = '25 de julio de 2026'
 
@@ -39,14 +38,14 @@ export default function LegalPage() {
           </p>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => generarPoliticasPdf()}
+            <a
+              href="/politicas-sgi.pdf"
+              download="Politicas-SGI-Terminal-Neiva.pdf"
               className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-700"
             >
               <Download className="h-3.5 w-3.5" aria-hidden="true" />
               Descargar PDF
-            </button>
+            </a>
           </div>
 
           <nav className="mt-6 flex flex-wrap gap-2 text-xs font-medium">

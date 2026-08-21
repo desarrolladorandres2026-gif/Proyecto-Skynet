@@ -33,6 +33,11 @@ export async function planRefuerzo(req, res) {
   res.json({ planes })
 }
 
+export async function actualizarPlanRefuerzo(req, res) {
+  const plan = await dashboardService.actualizarPlanRefuerzo(req.params.id, req.body, req.usuario)
+  res.json({ plan })
+}
+
 export async function exportar(req, res) {
   const { buffer, total } = await excelService.exportarRespuestas(filtrosDesdeQuery(req.query))
   res.set({

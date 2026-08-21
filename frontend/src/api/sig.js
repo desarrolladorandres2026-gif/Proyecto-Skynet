@@ -136,6 +136,9 @@ export const sig = {
   planRefuerzo(filtros = {}) {
     return request(`/sig_pregunta_dia/reportes/plan-refuerzo${aQueryString(filtros)}`)
   },
+  actualizarPlanRefuerzo(id, datos) {
+    return request(`/sig_pregunta_dia/reportes/plan-refuerzo/${id}`, { method: 'PATCH', body: JSON.stringify(datos) })
+  },
   // Descarga binaria (xlsx): no usa request() de client.js, igual criterio
   // que requerimientos.exportar().
   exportarExcel(filtros = {}) {

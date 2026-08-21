@@ -38,9 +38,9 @@ export function DataTable({
     ...(paginacionServidor
       ? {}
       : {
-          getPaginationRowModel: getPaginationRowModel(),
-          initialState: { pagination: { pageSize: filasPorPagina } },
-        }),
+        getPaginationRowModel: getPaginationRowModel(),
+        initialState: { pagination: { pageSize: filasPorPagina } },
+      }),
   })
 
   if (cargando) return <SkeletonTable columnas={columns.length} />

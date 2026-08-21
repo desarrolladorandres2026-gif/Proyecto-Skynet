@@ -264,7 +264,7 @@ export function EmptyState({ mensaje = 'Sin resultados' }) {
 }
 
 export function Card({ children, className = '' }) {
-  return <div className={cn('panel-card relative rounded-xl p-3.5 sm:p-4', className)}>{children}</div>
+  return <div className={cn('panel-card relative rounded-xl p-[var(--ui-card-padding)]', className)}>{children}</div>
 }
 
 // Fila de lista táctil para reemplazar <table> en pantallas angostas — mismo

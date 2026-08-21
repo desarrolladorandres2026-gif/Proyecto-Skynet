@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Lock, Power, SlidersHorizontal } from 'lucide-react'
 import { sistema } from '../../api/sistema.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
+import { invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
 import { Btn, Badge, Card, ErrorMsg, OkMsg, EmptyState } from '../../components/ui.jsx'
 
 export default function ModulosSistemaPage() {
@@ -40,6 +41,10 @@ export default function ModulosSistemaPage() {
       // El propio sidebar del Super Admin depende de usuario.modulosDesactivados
       // (/auth/me): se refresca para que el cambio se vea sin recargar.
       await refrescarUsuario()
+      // El resumen del dashboard (tarjetas por módulo) queda cacheado hasta 2
+      // minutos: sin esto, una tarjeta recién desactivada seguía visible al
+      // entrar al Panel hasta que la caché venciera sola.
+      invalidarCachePorPrefijo('dashboard')
     } catch (err) {
       setError(err.message)
     } finally {

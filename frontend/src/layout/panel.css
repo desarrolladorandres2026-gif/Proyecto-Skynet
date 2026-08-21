@@ -14,7 +14,7 @@
    funcionando igual: "!" gana en cualquier capa). */
 @layer components {
 
-/* Tokens de tema: claro (por defecto, :root) y oscuro (:root.dark).
+  /* Tokens de tema: claro (por defecto, :root) y oscuro (:root.dark).
    AppLayout alterna la clase "dark" en <html> (persistida en localStorage),
    la misma clase que ya activa las variantes dark: de Tailwind en las
    páginas de módulo — un solo interruptor para todo el sistema de diseño.
@@ -24,294 +24,342 @@
    panel. Los tintes con transparencia se quedan en rgba() porque son el
    mismo color de la rampa con alpha — más simple y con mejor soporte de
    navegador que la sintaxis rgb(from ...). */
-:root {
-  --panel-bg: #f8fafc;
-  --panel-fg: #1e293b;
+  /* Sistema de densidad responsive: estos tokens NO dependen de tema
+   claro/oscuro (van en :root aparte, no dentro del bloque de colores de
+   abajo) — crecen progresivamente con el viewport vía clamp(), así el
+   panel aprovecha monitores grandes (1920/2K/4K) sin max-width fijo ni
+   transform: scale(). Consumidos como utilidades arbitrarias de Tailwind,
+   ej. p-[var(--ui-content-padding)], gap-[var(--ui-gap)]. */
+  :root {
+    --ui-content-padding: clamp(1rem, 0.6rem + 1.2vw, 3rem);
+    --ui-gap: clamp(0.75rem, 0.5rem + 0.6vw, 1.75rem);
+    --ui-card-padding: clamp(0.875rem, 0.7rem + 0.5vw, 1.5rem);
+    --ui-title-size: clamp(1.125rem, 1rem + 0.35vw, 1.5rem);
+    --ui-body-size: clamp(0.8125rem, 0.78rem + 0.1vw, 0.9375rem);
+    --ui-chart-height: clamp(15rem, 12rem + 10vw, 22rem);
+  }
 
-  --panel-grid-line: rgba(8, 145, 178, 0.06);
-  --panel-bracket-border: rgba(8, 145, 178, 0.55);
+  :root {
+    --panel-bg: #f8fafc;
+    --panel-fg: #1e293b;
 
-  --panel-sidebar-g1: rgba(255, 255, 255, 0.96);
-  --panel-sidebar-g2: rgba(248, 250, 252, 0.98);
-  --panel-sidebar-border: rgba(15, 23, 42, 0.06);
+    --panel-grid-line: rgba(8, 145, 178, 0.06);
+    --panel-bracket-border: rgba(8, 145, 178, 0.55);
 
-  --panel-brand-color: #0e2a35;
-  --panel-brand-glow: rgba(8, 145, 178, 0.25);
+    --panel-sidebar-g1: rgba(255, 255, 255, 0.96);
+    --panel-sidebar-g2: rgba(248, 250, 252, 0.98);
+    --panel-sidebar-border: rgba(15, 23, 42, 0.06);
 
-  --panel-navlink-color: rgba(30, 41, 59, 0.65);
-  --panel-navlink-hover-bg: rgba(8, 145, 178, 0.07);
-  --panel-navlink-hover-color: #0f2733;
-  --panel-navlink-active-bg: rgba(8, 145, 178, 0.1);
-  --panel-navlink-active-color: var(--color-brand-700);
-  --panel-navlink-active-shadow: var(--color-brand-600);
+    --panel-brand-color: #0e2a35;
+    --panel-brand-glow: rgba(8, 145, 178, 0.25);
 
-  --panel-card-g1: #ffffff;
-  --panel-card-g2: #fbfcfd;
-  --panel-card-border: rgba(15, 23, 42, 0.07);
-  --panel-card-border-hover: rgba(8, 145, 178, 0.3);
+    --panel-navlink-color: rgba(30, 41, 59, 0.65);
+    --panel-navlink-hover-bg: rgba(8, 145, 178, 0.07);
+    --panel-navlink-hover-color: #0f2733;
+    --panel-navlink-active-bg: rgba(8, 145, 178, 0.1);
+    --panel-navlink-active-color: var(--color-brand-700);
+    --panel-navlink-active-shadow: var(--color-brand-600);
 
-  --panel-accent-bg: var(--color-brand-600);
-  --panel-accent-fg: #ffffff;
-  --panel-btn-primario-glow: rgba(8, 145, 178, 0.22);
-  --panel-btn-primario-glow-hover: rgba(8, 145, 178, 0.32);
+    --panel-card-g1: #ffffff;
+    --panel-card-g2: #fbfcfd;
+    --panel-card-border: rgba(15, 23, 42, 0.07);
+    --panel-card-border-hover: rgba(8, 145, 178, 0.3);
 
-  --panel-btn-sec-border: rgba(8, 145, 178, 0.3);
-  --panel-btn-sec-color: var(--color-brand-700);
-  --panel-btn-sec-hover-bg: rgba(8, 145, 178, 0.07);
-  --panel-btn-sec-hover-border: rgba(8, 145, 178, 0.45);
+    --panel-accent-bg: var(--color-brand-600);
+    --panel-accent-fg: #ffffff;
+    --panel-btn-primario-glow: rgba(8, 145, 178, 0.22);
+    --panel-btn-primario-glow-hover: rgba(8, 145, 178, 0.32);
 
-  --panel-btn-fantasma-color: var(--color-brand-700);
-  --panel-btn-fantasma-hover-bg: rgba(8, 145, 178, 0.07);
+    --panel-btn-sec-border: rgba(8, 145, 178, 0.3);
+    --panel-btn-sec-color: var(--color-brand-700);
+    --panel-btn-sec-hover-bg: rgba(8, 145, 178, 0.07);
+    --panel-btn-sec-hover-border: rgba(8, 145, 178, 0.45);
 
-  --panel-input-bg: #ffffff;
-  --panel-input-border: rgba(100, 116, 139, 0.28);
-  --panel-input-color: #0f172a;
-  --panel-input-placeholder: rgba(100, 116, 139, 0.5);
-  --panel-input-focus-border: rgba(8, 145, 178, 0.6);
-  --panel-input-focus-bg: rgba(8, 145, 178, 0.04);
-  --panel-input-focus-ring: rgba(8, 145, 178, 0.15);
-  --panel-input-autofill-bg: #eef6f8;
-  /* Fondo SÓLIDO exclusivo del <select>: ver el comentario junto a
+    --panel-btn-fantasma-color: var(--color-brand-700);
+    --panel-btn-fantasma-hover-bg: rgba(8, 145, 178, 0.07);
+
+    --panel-input-bg: #ffffff;
+    --panel-input-border: rgba(100, 116, 139, 0.28);
+    --panel-input-color: #0f172a;
+    --panel-input-placeholder: rgba(100, 116, 139, 0.5);
+    --panel-input-focus-border: rgba(8, 145, 178, 0.6);
+    --panel-input-focus-bg: rgba(8, 145, 178, 0.04);
+    --panel-input-focus-ring: rgba(8, 145, 178, 0.15);
+    --panel-input-autofill-bg: #eef6f8;
+    /* Fondo SÓLIDO exclusivo del <select>: ver el comentario junto a
      "select.panel-input" más abajo — el popup nativo de opciones no puede
      usar un fondo translúcido. */
-  --panel-select-bg: #f8fafc;
+    --panel-select-bg: #f8fafc;
 
-  --panel-table-bg: #ffffff;
-  --panel-table-border: rgba(15, 23, 42, 0.07);
-  --panel-th-color: var(--color-brand-700);
-  --panel-th-border: rgba(15, 23, 42, 0.07);
-  --panel-td-color: #334155;
-  --panel-td-border: rgba(100, 116, 139, 0.12);
-  --panel-row-hover-bg: rgba(8, 145, 178, 0.04);
+    --panel-table-bg: #ffffff;
+    --panel-table-border: rgba(15, 23, 42, 0.07);
+    --panel-th-color: var(--color-brand-700);
+    --panel-th-border: rgba(15, 23, 42, 0.07);
+    --panel-td-color: #334155;
+    --panel-td-border: rgba(100, 116, 139, 0.12);
+    --panel-row-hover-bg: rgba(8, 145, 178, 0.04);
 
-  --panel-navbar-bg: rgba(248, 250, 252, 0.78);
-  --panel-navbar-border: rgba(15, 23, 42, 0.06);
+    --panel-navbar-bg: rgba(248, 250, 252, 0.78);
+    --panel-navbar-border: rgba(15, 23, 42, 0.06);
 
-  --panel-modal-backdrop-bg: rgba(15, 23, 42, 0.4);
-  --panel-modal-g1: #ffffff;
-  --panel-modal-g2: #fbfcfd;
-  --panel-modal-border: rgba(15, 23, 42, 0.08);
-}
+    --panel-modal-backdrop-bg: rgba(15, 23, 42, 0.4);
+    --panel-modal-g1: #ffffff;
+    --panel-modal-g2: #fbfcfd;
+    --panel-modal-border: rgba(15, 23, 42, 0.08);
+  }
 
-:root.dark {
-  --panel-bg: #05070a;
-  --panel-fg: #e2e8f0;
+  :root.dark {
+    --panel-bg: #05070a;
+    --panel-fg: #e2e8f0;
 
-  --panel-grid-line: rgba(0, 229, 255, 0.05);
-  --panel-bracket-border: rgba(34, 211, 238, 0.5);
+    --panel-grid-line: rgba(0, 229, 255, 0.05);
+    --panel-bracket-border: rgba(34, 211, 238, 0.5);
 
-  --panel-sidebar-g1: rgba(13, 18, 26, 0.95);
-  --panel-sidebar-g2: rgba(6, 9, 14, 0.98);
-  --panel-sidebar-border: rgba(34, 211, 238, 0.12);
+    --panel-sidebar-g1: rgba(13, 18, 26, 0.95);
+    --panel-sidebar-g2: rgba(6, 9, 14, 0.98);
+    --panel-sidebar-border: rgba(34, 211, 238, 0.12);
 
-  --panel-brand-color: #ffffff;
-  --panel-brand-glow: rgba(34, 211, 238, 0.4);
+    --panel-brand-color: #ffffff;
+    --panel-brand-glow: rgba(34, 211, 238, 0.4);
 
-  --panel-navlink-color: rgba(226, 232, 240, 0.65);
-  --panel-navlink-hover-bg: rgba(34, 211, 238, 0.06);
-  --panel-navlink-hover-color: #e2e8f0;
-  --panel-navlink-active-bg: rgba(34, 211, 238, 0.1);
-  --panel-navlink-active-color: var(--color-brand-300);
-  --panel-navlink-active-shadow: var(--color-brand-400);
+    --panel-navlink-color: rgba(226, 232, 240, 0.65);
+    --panel-navlink-hover-bg: rgba(34, 211, 238, 0.06);
+    --panel-navlink-hover-color: #e2e8f0;
+    --panel-navlink-active-bg: rgba(34, 211, 238, 0.1);
+    --panel-navlink-active-color: var(--color-brand-300);
+    --panel-navlink-active-shadow: var(--color-brand-400);
 
-  --panel-card-g1: rgba(13, 18, 26, 0.85);
-  --panel-card-g2: rgba(8, 11, 16, 0.9);
-  --panel-card-border: rgba(34, 211, 238, 0.12);
-  --panel-card-border-hover: rgba(34, 211, 238, 0.35);
+    --panel-card-g1: rgba(13, 18, 26, 0.85);
+    --panel-card-g2: rgba(8, 11, 16, 0.9);
+    --panel-card-border: rgba(34, 211, 238, 0.12);
+    --panel-card-border-hover: rgba(34, 211, 238, 0.35);
 
-  /* El acento oscuro pasa de un neón crudo (#00e5ff) a brand-400: mismo
+    /* El acento oscuro pasa de un neón crudo (#00e5ff) a brand-400: mismo
      cian, pero calibrado dentro de la rampa en vez de un tono aparte —
      menos "RGB de gamer", más "producto premium". */
-  --panel-accent-bg: var(--color-brand-400);
-  --panel-accent-fg: #05070a;
-  --panel-btn-primario-glow: rgba(34, 211, 238, 0.5);
-  --panel-btn-primario-glow-hover: rgba(34, 211, 238, 0.7);
+    --panel-accent-bg: var(--color-brand-400);
+    --panel-accent-fg: #05070a;
+    --panel-btn-primario-glow: rgba(34, 211, 238, 0.5);
+    --panel-btn-primario-glow-hover: rgba(34, 211, 238, 0.7);
 
-  --panel-btn-sec-border: rgba(34, 211, 238, 0.25);
-  --panel-btn-sec-color: var(--color-brand-200);
-  --panel-btn-sec-hover-bg: rgba(34, 211, 238, 0.08);
-  --panel-btn-sec-hover-border: rgba(34, 211, 238, 0.4);
+    --panel-btn-sec-border: rgba(34, 211, 238, 0.25);
+    --panel-btn-sec-color: var(--color-brand-200);
+    --panel-btn-sec-hover-bg: rgba(34, 211, 238, 0.08);
+    --panel-btn-sec-hover-border: rgba(34, 211, 238, 0.4);
 
-  --panel-btn-fantasma-color: var(--color-brand-300);
-  --panel-btn-fantasma-hover-bg: rgba(34, 211, 238, 0.08);
+    --panel-btn-fantasma-color: var(--color-brand-300);
+    --panel-btn-fantasma-hover-bg: rgba(34, 211, 238, 0.08);
 
-  --panel-input-bg: rgba(255, 255, 255, 0.03);
-  --panel-input-border: rgba(148, 163, 184, 0.2);
-  --panel-input-color: #f1f5f9;
-  --panel-input-placeholder: rgba(148, 163, 184, 0.4);
-  --panel-input-focus-border: rgba(34, 211, 238, 0.6);
-  --panel-input-focus-bg: rgba(34, 211, 238, 0.04);
-  --panel-input-focus-ring: rgba(34, 211, 238, 0.1);
-  --panel-input-autofill-bg: #0b0f16;
-  --panel-select-bg: #0b0f16;
+    --panel-input-bg: rgba(255, 255, 255, 0.03);
+    --panel-input-border: rgba(148, 163, 184, 0.2);
+    --panel-input-color: #f1f5f9;
+    --panel-input-placeholder: rgba(148, 163, 184, 0.4);
+    --panel-input-focus-border: rgba(34, 211, 238, 0.6);
+    --panel-input-focus-bg: rgba(34, 211, 238, 0.04);
+    --panel-input-focus-ring: rgba(34, 211, 238, 0.1);
+    --panel-input-autofill-bg: #0b0f16;
+    --panel-select-bg: #0b0f16;
 
-  --panel-table-bg: rgba(13, 18, 26, 0.6);
-  --panel-table-border: rgba(34, 211, 238, 0.12);
-  --panel-th-color: var(--color-brand-300);
-  --panel-th-border: rgba(34, 211, 238, 0.12);
-  --panel-td-color: #cbd5e1;
-  --panel-td-border: rgba(148, 163, 184, 0.08);
-  --panel-row-hover-bg: rgba(34, 211, 238, 0.04);
+    --panel-table-bg: rgba(13, 18, 26, 0.6);
+    --panel-table-border: rgba(34, 211, 238, 0.12);
+    --panel-th-color: var(--color-brand-300);
+    --panel-th-border: rgba(34, 211, 238, 0.12);
+    --panel-td-color: #cbd5e1;
+    --panel-td-border: rgba(148, 163, 184, 0.08);
+    --panel-row-hover-bg: rgba(34, 211, 238, 0.04);
 
-  --panel-navbar-bg: rgba(6, 9, 14, 0.72);
-  --panel-navbar-border: rgba(34, 211, 238, 0.1);
+    --panel-navbar-bg: rgba(6, 9, 14, 0.72);
+    --panel-navbar-border: rgba(34, 211, 238, 0.1);
 
-  --panel-modal-backdrop-bg: rgba(2, 4, 7, 0.75);
-  --panel-modal-g1: rgba(15, 20, 28, 0.98);
-  --panel-modal-g2: rgba(7, 10, 15, 0.98);
-  --panel-modal-border: rgba(34, 211, 238, 0.15);
-}
+    --panel-modal-backdrop-bg: rgba(2, 4, 7, 0.75);
+    --panel-modal-g1: rgba(15, 20, 28, 0.98);
+    --panel-modal-g2: rgba(7, 10, 15, 0.98);
+    --panel-modal-border: rgba(34, 211, 238, 0.15);
+  }
 
-.panel-shell {
-  background: var(--panel-bg);
-  color: var(--panel-fg);
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
+  .panel-shell {
+    background: var(--panel-bg);
+    color: var(--panel-fg);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
 
-.panel-mono {
-  font-family: var(--font-mono);
-}
+  .panel-mono {
+    font-family: var(--font-mono);
+  }
 
-/* Grid táctico de fondo, igual que el login pero más tenue: aquí convive
+  /* Grid táctico de fondo, igual que el login pero más tenue: aquí convive
    con contenido denso (tablas), no puede competir por atención. */
-.panel-grid {
-  background-image:
-    linear-gradient(var(--panel-grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--panel-grid-line) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: radial-gradient(ellipse 120% 100% at 0% 0%, black 30%, transparent 85%);
-}
+  .panel-grid {
+    background-image:
+      linear-gradient(var(--panel-grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--panel-grid-line) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: radial-gradient(ellipse 120% 100% at 0% 0%, black 30%, transparent 85%);
+  }
 
-/* Corner brackets: firma HUD original. Ya no se aplican por defecto en
+  /* Corner brackets: firma HUD original. Ya no se aplican por defecto en
    Card/Modal (ver ui.jsx) — quedan disponibles como utilidad opcional para
    quien quiera conservarlas a propósito en una pantalla puntual. */
-.panel-bracket {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid var(--panel-bracket-border);
-  pointer-events: none;
-}
-.panel-bracket--tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-.panel-bracket--tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
-.panel-bracket--bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
-.panel-bracket--br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+  .panel-bracket {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--panel-bracket-border);
+    pointer-events: none;
+  }
 
-/* Sidebar / header */
-.panel-sidebar {
-  background: linear-gradient(180deg, var(--panel-sidebar-g1), var(--panel-sidebar-g2));
-  border-color: var(--panel-sidebar-border);
-}
+  .panel-bracket--tl {
+    top: -1px;
+    left: -1px;
+    border-right: none;
+    border-bottom: none;
+  }
 
-/* Navbar superior (nueva): único lugar con glassmorphism real del panel —
+  .panel-bracket--tr {
+    top: -1px;
+    right: -1px;
+    border-left: none;
+    border-bottom: none;
+  }
+
+  .panel-bracket--bl {
+    bottom: -1px;
+    left: -1px;
+    border-right: none;
+    border-top: none;
+  }
+
+  .panel-bracket--br {
+    bottom: -1px;
+    right: -1px;
+    border-left: none;
+    border-top: none;
+  }
+
+  /* Sidebar / header */
+  .panel-sidebar {
+    background: linear-gradient(180deg, var(--panel-sidebar-g1), var(--panel-sidebar-g2));
+    border-color: var(--panel-sidebar-border);
+  }
+
+  /* Navbar superior (nueva): único lugar con glassmorphism real del panel —
    flota sobre el contenido al hacer scroll, así que necesita distinguirse
    incluso cuando hay una card justo debajo. El resto de superficies
    (sidebar, cards, tabla) se quedan opacas con sombra suave: glassmorphism
    en todos lados a la vez es el error clásico que hace lucir "genérico",
    no premium. */
-.panel-navbar {
-  background: var(--panel-navbar-bg);
-  border-color: var(--panel-navbar-border);
-  backdrop-filter: blur(12px) saturate(1.4);
-  -webkit-backdrop-filter: blur(12px) saturate(1.4);
-}
+  .panel-navbar {
+    background: var(--panel-navbar-bg);
+    border-color: var(--panel-navbar-border);
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  }
 
-.panel-brand {
-  color: var(--panel-brand-color);
-  text-shadow: 0 0 12px var(--panel-brand-glow);
-}
+  .panel-brand {
+    color: var(--panel-brand-color);
+    text-shadow: 0 0 12px var(--panel-brand-glow);
+  }
 
-.panel-nav-link {
-  color: var(--panel-navlink-color);
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-.panel-nav-link:hover {
-  background: var(--panel-navlink-hover-bg);
-  color: var(--panel-navlink-hover-color);
-}
-/* El fondo del activo ya NO va aquí: AppLayout.jsx lo pinta con un
+  .panel-nav-link {
+    color: var(--panel-navlink-color);
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .panel-nav-link:hover {
+    background: var(--panel-navlink-hover-bg);
+    color: var(--panel-navlink-hover-color);
+  }
+
+  /* El fondo del activo ya NO va aquí: AppLayout.jsx lo pinta con un
    motion.span (layoutId compartido entre los NavLink) para que se deslice
    de un ítem al siguiente en vez de aparecer/desaparecer de golpe — el
    "sliding highlight" característico de Linear/Vercel. Si además pintara
    background aquí, competiría con esa animación (un fade instantáneo justo
    cuando la pastilla todavía está llegando). El color de texto sí cambia
    al instante vía transition, eso no compite con nada. */
-.panel-nav-link.is-active {
-  color: var(--panel-navlink-active-color);
-}
+  .panel-nav-link.is-active {
+    color: var(--panel-navlink-active-color);
+  }
 
-/* Tarjeta base: superficie limpia + sombra suave de elevación en vez del
+  /* Tarjeta base: superficie limpia + sombra suave de elevación en vez del
    glow por defecto de antes (el glow ahora es acento puntual: botón
    primario, indicador activo). border-hover queda disponible para quien
    envuelva la Card en un <Link>/<button> (ver DashboardPage.jsx). */
-.panel-card {
-  position: relative;
-  background: linear-gradient(180deg, var(--panel-card-g1), var(--panel-card-g2));
-  border: 1px solid var(--panel-card-border);
-  box-shadow: var(--shadow-soft-sm);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-}
+  .panel-card {
+    position: relative;
+    background: linear-gradient(180deg, var(--panel-card-g1), var(--panel-card-g2));
+    border: 1px solid var(--panel-card-border);
+    box-shadow: var(--shadow-soft-sm);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  }
 
-/* Botón primario: acento sólido de marca */
-.panel-btn-primario {
-  background: var(--panel-accent-bg);
-  color: var(--panel-accent-fg);
-  box-shadow: var(--shadow-soft-xs), 0 0 16px -6px var(--panel-btn-primario-glow);
-  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
-}
-.panel-btn-primario:hover:not(:disabled) {
-  box-shadow: var(--shadow-soft-sm), 0 0 22px -4px var(--panel-btn-primario-glow-hover);
-  transform: translateY(-1px);
-}
-.panel-btn-primario:active:not(:disabled) {
-  transform: translateY(0);
-}
+  /* Botón primario: acento sólido de marca */
+  .panel-btn-primario {
+    background: var(--panel-accent-bg);
+    color: var(--panel-accent-fg);
+    box-shadow: var(--shadow-soft-xs), 0 0 16px -6px var(--panel-btn-primario-glow);
+    transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+  }
 
-.panel-btn-secundario {
-  border: 1px solid var(--panel-btn-sec-border);
-  color: var(--panel-btn-sec-color);
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-.panel-btn-secundario:hover:not(:disabled) {
-  background: var(--panel-btn-sec-hover-bg);
-  border-color: var(--panel-btn-sec-hover-border);
-}
+  .panel-btn-primario:hover:not(:disabled) {
+    box-shadow: var(--shadow-soft-sm), 0 0 22px -4px var(--panel-btn-primario-glow-hover);
+    transform: translateY(-1px);
+  }
 
-.panel-btn-peligro {
-  background: #dc2626;
-  color: white;
-  box-shadow: var(--shadow-soft-xs);
-}
-.panel-btn-peligro:hover:not(:disabled) {
-  box-shadow: var(--shadow-soft-sm), 0 0 18px -8px rgba(220, 38, 38, 0.6);
-}
+  .panel-btn-primario:active:not(:disabled) {
+    transform: translateY(0);
+  }
 
-.panel-btn-fantasma {
-  color: var(--panel-btn-fantasma-color);
-  transition: background-color 0.15s ease;
-}
-.panel-btn-fantasma:hover {
-  background: var(--panel-btn-fantasma-hover-bg);
-}
+  .panel-btn-secundario {
+    border: 1px solid var(--panel-btn-sec-border);
+    color: var(--panel-btn-sec-color);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
 
-/* Inputs */
-.panel-input {
-  background: var(--panel-input-bg);
-  border: 1px solid var(--panel-input-border);
-  color: var(--panel-input-color);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-.panel-input::placeholder {
-  color: var(--panel-input-placeholder);
-}
-.panel-input:focus {
-  outline: none;
-  border-color: var(--panel-input-focus-border);
-  background: var(--panel-input-focus-bg);
-  box-shadow: 0 0 0 3px var(--panel-input-focus-ring);
-}
+  .panel-btn-secundario:hover:not(:disabled) {
+    background: var(--panel-btn-sec-hover-bg);
+    border-color: var(--panel-btn-sec-hover-border);
+  }
 
-/* El <select> cerrado se ve bien con el fondo de --panel-input-bg porque el
+  .panel-btn-peligro {
+    background: #dc2626;
+    color: white;
+    box-shadow: var(--shadow-soft-xs);
+  }
+
+  .panel-btn-peligro:hover:not(:disabled) {
+    box-shadow: var(--shadow-soft-sm), 0 0 18px -8px rgba(220, 38, 38, 0.6);
+  }
+
+  .panel-btn-fantasma {
+    color: var(--panel-btn-fantasma-color);
+    transition: background-color 0.15s ease;
+  }
+
+  .panel-btn-fantasma:hover {
+    background: var(--panel-btn-fantasma-hover-bg);
+  }
+
+  /* Inputs */
+  .panel-input {
+    background: var(--panel-input-bg);
+    border: 1px solid var(--panel-input-border);
+    color: var(--panel-input-color);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+
+  .panel-input::placeholder {
+    color: var(--panel-input-placeholder);
+  }
+
+  .panel-input:focus {
+    outline: none;
+    border-color: var(--panel-input-focus-border);
+    background: var(--panel-input-focus-bg);
+    box-shadow: 0 0 0 3px var(--panel-input-focus-ring);
+  }
+
+  /* El <select> cerrado se ve bien con el fondo de --panel-input-bg porque el
    navegador lo compone sobre el fondo real de la página. El listado de
    opciones desplegado NO: el sistema operativo lo pinta en una superficie
    propia, sin ese fondo detrás, así que un fondo translúcido queda casi
@@ -321,66 +369,74 @@
    necesita un fondo SÓLIDO; inputs y textareas no tienen este problema y no
    se tocan. El bloque `option` es redundante en Chromium/Edge (el popup es
    nativo y ellos ignoran esto) pero SÍ lo respeta Firefox. */
-select.panel-input {
-  background-color: var(--panel-select-bg);
-}
-select.panel-input option {
-  background-color: var(--panel-select-bg);
-  color: var(--panel-input-color);
-}
+  select.panel-input {
+    background-color: var(--panel-select-bg);
+  }
 
-/* Autofill: mismo fix que login.css, necesario en cualquier <input> del panel */
-.panel-input:-webkit-autofill,
-.panel-input:-webkit-autofill:hover,
-.panel-input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px var(--panel-input-autofill-bg) inset;
-  box-shadow: 0 0 0px 1000px var(--panel-input-autofill-bg) inset;
-  -webkit-text-fill-color: var(--panel-input-color);
-  caret-color: var(--panel-input-color);
-  transition: background-color 9999s ease-in-out 0s;
-}
+  select.panel-input option {
+    background-color: var(--panel-select-bg);
+    color: var(--panel-input-color);
+  }
 
-/* Tabla */
-.panel-table-wrap {
-  background: var(--panel-table-bg);
-  border: 1px solid var(--panel-table-border);
-  box-shadow: var(--shadow-soft-xs);
-}
-.panel-th {
-  color: var(--panel-th-color);
-  border-bottom: 1px solid var(--panel-th-border);
-}
-.panel-td {
-  color: var(--panel-td-color);
-  border-bottom: 1px solid var(--panel-td-border);
-}
-.panel-row {
-  transition: background-color 0.15s ease;
-}
-.panel-row:hover {
-  background: var(--panel-row-hover-bg);
-}
+  /* Autofill: mismo fix que login.css, necesario en cualquier <input> del panel */
+  .panel-input:-webkit-autofill,
+  .panel-input:-webkit-autofill:hover,
+  .panel-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px var(--panel-input-autofill-bg) inset;
+    box-shadow: 0 0 0px 1000px var(--panel-input-autofill-bg) inset;
+    -webkit-text-fill-color: var(--panel-input-color);
+    caret-color: var(--panel-input-color);
+    transition: background-color 9999s ease-in-out 0s;
+  }
 
-/* Modal */
-.panel-modal-backdrop {
-  background: var(--panel-modal-backdrop-bg);
-  backdrop-filter: blur(2px);
-}
-.panel-modal {
-  position: relative;
-  background: linear-gradient(180deg, var(--panel-modal-g1), var(--panel-modal-g2));
-  border: 1px solid var(--panel-modal-border);
-  box-shadow: var(--shadow-soft-lg);
-}
+  /* Tabla */
+  .panel-table-wrap {
+    background: var(--panel-table-bg);
+    border: 1px solid var(--panel-table-border);
+    box-shadow: var(--shadow-soft-xs);
+  }
 
-/* prefers-reduced-motion: los componentes nuevos (Radix Dialog/Popover/
+  .panel-th {
+    color: var(--panel-th-color);
+    border-bottom: 1px solid var(--panel-th-border);
+  }
+
+  .panel-td {
+    color: var(--panel-td-color);
+    border-bottom: 1px solid var(--panel-td-border);
+  }
+
+  .panel-row {
+    transition: background-color 0.15s ease;
+  }
+
+  .panel-row:hover {
+    background: var(--panel-row-hover-bg);
+  }
+
+  /* Modal */
+  .panel-modal-backdrop {
+    background: var(--panel-modal-backdrop-bg);
+    backdrop-filter: blur(2px);
+  }
+
+  .panel-modal {
+    position: relative;
+    background: linear-gradient(180deg, var(--panel-modal-g1), var(--panel-modal-g2));
+    border: 1px solid var(--panel-modal-border);
+    box-shadow: var(--shadow-soft-lg);
+  }
+
+  /* prefers-reduced-motion: los componentes nuevos (Radix Dialog/Popover/
    Tooltip/DropdownMenu, CommandPalette) usan las utilidades .animate-* de
    index.css, que ya tienen su propio bloque @media — este solo cubre las
    animaciones que quedan definidas aquí mismo, en panel.css. */
-@media (prefers-reduced-motion: reduce) {
-  .panel-btn-primario:hover:not(:disabled) {
-    transform: none;
+  @media (prefers-reduced-motion: reduce) {
+    .panel-btn-primario:hover:not(:disabled) {
+      transform: none;
+    }
   }
+
 }
 
-} /* @layer components */
+/* @layer components */

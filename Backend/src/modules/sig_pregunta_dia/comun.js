@@ -20,10 +20,39 @@ export function auditar(usuarioActor, accion, entidad, entidadId, descripcion, c
 // Documento único de configuración (ver ConfiguracionSig.js): se crea con
 // sus defaults la primera vez que algo lo necesita, nunca en el arranque del
 // servidor — mismo patrón que ConfiguracionIA.
+//
+// Este devuelve el documento Mongoose REAL (no cacheado): lo usa
+// actualizarConfiguracion() de sig-configuracion.service.js para mutarlo y
+// hacer config.save(), y necesita partir siempre del estado más reciente en
+// Mongo. Las lecturas de solo consulta (dashboard, reportes) deben usar
+// obtenerConfiguracionCacheada() en su lugar.
 export async function obtenerOCrearConfiguracion() {
   let config = await ConfiguracionSig.findOne({})
   if (!config) config = await ConfiguracionSig.create({})
   return config
+}
+
+// ── Caché de la configuración para lecturas de solo consulta ───────────────
+// obtenerDashboard/listarTrabajadoresParticipantes/reporteTrabajador/
+// recalcularYObtenerPlanRefuerzo la llamaban sin caché, una vez cada una, en
+// cada carga del dashboard SIG — 4 round-trips a Mongo por un documento único
+// que casi nunca cambia. Mismo patrón de Set/TTL en memoria que
+// keysModulosDesactivados() en sistema.service.js.
+const CACHE_TTL_MS = 30_000
+let cacheConfig = null
+let cacheExpira = 0
+
+export async function obtenerConfiguracionCacheada() {
+  if (!cacheConfig || Date.now() > cacheExpira) {
+    const config = await obtenerOCrearConfiguracion()
+    cacheConfig = config.toObject()
+    cacheExpira = Date.now() + CACHE_TTL_MS
+  }
+  return cacheConfig
+}
+
+export function invalidarCacheConfiguracion() {
+  cacheConfig = null
 }
 
 // Resuelve una `audiencia` (de ProgramacionSig o CampanaSig) a la lista de
@@ -39,7 +68,7 @@ export async function resolverAudiencia(audiencia) {
     if (audiencia?.cargos?.length) condiciones.push({ cargo: { $in: audiencia.cargos } })
     filtro.$or = condiciones.length ? condiciones : [{ _id: null }] // audiencia vacía = nadie
   }
-  const usuarios = await Usuario.find(filtro).select('_id')
+  const usuarios = await Usuario.find(filtro).select('_id').lean()
   return usuarios.map((u) => u._id)
 }
 

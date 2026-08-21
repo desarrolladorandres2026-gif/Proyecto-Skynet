@@ -390,195 +390,195 @@ export default function AppLayout() {
   const inicialUsuario = (usuario?.nombre || '?').trim().charAt(0).toUpperCase()
 
   return (
-      <div className="panel-shell flex h-svh flex-col md:flex-row">
-        <Toaster
-          position="bottom-right"
-          theme={tema}
-          toastOptions={{
-            classNames: {
-              toast: 'panel-modal !rounded-xl',
-              title: '!text-slate-900 dark:!text-white text-sm font-medium',
-              description: '!text-slate-500 dark:!text-slate-400 text-xs',
-            },
-          }}
-        />
-        <CommandPalette abierto={paletaAbierta} onAbrirCambio={setPaletaAbierta} modulosVisibles={modulosVisibles} />
+    <div className="panel-shell flex h-svh flex-col md:flex-row">
+      <Toaster
+        position="bottom-right"
+        theme={tema}
+        toastOptions={{
+          classNames: {
+            toast: 'panel-modal !rounded-xl',
+            title: '!text-slate-900 dark:!text-white text-sm font-medium',
+            description: '!text-slate-500 dark:!text-slate-400 text-xs',
+          },
+        }}
+      />
+      <CommandPalette abierto={paletaAbierta} onAbrirCambio={setPaletaAbierta} modulosVisibles={modulosVisibles} />
 
-        {/* Header móvil */}
-        <header className="panel-sidebar flex items-center justify-between border-b px-4 py-3 md:hidden">
-          <span className="panel-mono panel-brand text-sm font-bold tracking-[0.2em]">SKYNET</span>
-          <div className="flex items-center gap-2">
-            <ToggleTema tema={tema} onToggle={alternarTema} />
-            <button
-              onClick={() => setMenuAbierto((v) => !v)}
-              className="panel-btn-secundario rounded-lg px-3 py-1.5 text-sm"
-            >
-              Menú
-            </button>
-          </div>
-        </header>
-        {menuAbierto && (
-          <div className="panel-sidebar max-h-[70svh] overflow-y-auto overscroll-contain border-b md:hidden">
-            <NavContent modulosVisibles={modulosVisibles} idPrefix="movil" onNavigate={() => setMenuAbierto(false)} />
-          </div>
+      {/* Header móvil */}
+      <header className="panel-sidebar flex items-center justify-between border-b px-4 py-3 md:hidden">
+        <span className="panel-mono panel-brand text-sm font-bold tracking-[0.2em]">SKYNET</span>
+        <div className="flex items-center gap-2">
+          <ToggleTema tema={tema} onToggle={alternarTema} />
+          <button
+            onClick={() => setMenuAbierto((v) => !v)}
+            className="panel-btn-secundario rounded-lg px-3 py-1.5 text-sm"
+          >
+            Menú
+          </button>
+        </div>
+      </header>
+      {menuAbierto && (
+        <div className="panel-sidebar max-h-[70svh] overflow-y-auto overscroll-contain border-b md:hidden">
+          <NavContent modulosVisibles={modulosVisibles} idPrefix="movil" onNavigate={() => setMenuAbierto(false)} />
+        </div>
+      )}
+
+      {/* Sidebar desktop */}
+      <aside
+        className={cn(
+          'panel-sidebar relative hidden shrink-0 border-r transition-[width] duration-200 ease-out md:flex md:flex-col',
+          colapsado ? 'w-[4.5rem]' : 'w-60 4xl:w-72'
         )}
-
-        {/* Sidebar desktop */}
-        <aside
+      >
+        <div className="panel-grid pointer-events-none absolute inset-0" aria-hidden="true" />
+        <div
           className={cn(
-            'panel-sidebar relative hidden shrink-0 border-r transition-[width] duration-200 ease-out md:flex md:flex-col',
-            colapsado ? 'w-[4.5rem]' : 'w-60'
+            'relative flex items-center border-b border-slate-900/6 px-4 py-4 dark:border-white/8',
+            colapsado ? 'justify-center' : 'justify-between'
           )}
         >
-          <div className="panel-grid pointer-events-none absolute inset-0" aria-hidden="true" />
-          <div
-            className={cn(
-              'relative flex items-center border-b border-slate-900/6 px-4 py-4 dark:border-white/8',
-              colapsado ? 'justify-center' : 'justify-between'
-            )}
-          >
-            {!colapsado && <span className="panel-mono panel-brand text-lg font-bold tracking-[0.2em]">SKYNET</span>}
-            <Tooltip label={colapsado ? 'Expandir' : 'Colapsar'} side="right">
+          {!colapsado && <span className="panel-mono panel-brand text-lg font-bold tracking-[0.2em]">SKYNET</span>}
+          <Tooltip label={colapsado ? 'Expandir' : 'Colapsar'} side="right">
+            <button
+              onClick={alternarColapsado}
+              aria-label={colapsado ? 'Expandir panel lateral' : 'Colapsar panel lateral'}
+              className="panel-btn-fantasma shrink-0 rounded-lg p-1.5"
+            >
+              {colapsado ? (
+                <ChevronsRight className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <ChevronsLeft className="h-4 w-4" aria-hidden="true" />
+              )}
+            </button>
+          </Tooltip>
+        </div>
+        <div className="relative flex-1 overflow-y-auto overscroll-contain">
+          <NavContent modulosVisibles={modulosVisibles} idPrefix="escritorio" colapsado={colapsado} />
+        </div>
+        <div className="relative border-t border-slate-900/6 p-3 dark:border-white/8">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <button
-                onClick={alternarColapsado}
-                aria-label={colapsado ? 'Expandir panel lateral' : 'Colapsar panel lateral'}
-                className="panel-btn-fantasma shrink-0 rounded-lg p-1.5"
+                type="button"
+                className={cn(
+                  'flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors hover:bg-brand-600/5 dark:hover:bg-brand-400/5',
+                  colapsado && 'justify-center'
+                )}
               >
-                {colapsado ? (
-                  <ChevronsRight className="h-4 w-4" aria-hidden="true" />
-                ) : (
-                  <ChevronsLeft className="h-4 w-4" aria-hidden="true" />
+                <span className="panel-mono flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600/10 text-xs font-bold text-brand-700 dark:bg-brand-400/10 dark:text-brand-300">
+                  {inicialUsuario}
+                </span>
+                {!colapsado && (
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-slate-700 dark:text-slate-200">
+                      {usuario?.nombre}
+                    </span>
+                    <span className="panel-mono block truncate text-[10px] tracking-wide text-brand-700/70 uppercase dark:text-brand-400/60">
+                      {usuario?.rol?.nombre}
+                    </span>
+                  </span>
                 )}
               </button>
-            </Tooltip>
-          </div>
-          <div className="relative flex-1 overflow-y-auto overscroll-contain">
-            <NavContent modulosVisibles={modulosVisibles} idPrefix="escritorio" colapsado={colapsado} />
-          </div>
-          <div className="relative border-t border-slate-900/6 p-3 dark:border-white/8">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    'flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors hover:bg-brand-600/5 dark:hover:bg-brand-400/5',
-                    colapsado && 'justify-center'
-                  )}
-                >
-                  <span className="panel-mono flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600/10 text-xs font-bold text-brand-700 dark:bg-brand-400/10 dark:text-brand-300">
-                    {inicialUsuario}
-                  </span>
-                  {!colapsado && (
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-slate-700 dark:text-slate-200">
-                        {usuario?.nombre}
-                      </span>
-                      <span className="panel-mono block truncate text-[10px] tracking-wide text-brand-700/70 uppercase dark:text-brand-400/60">
-                        {usuario?.rol?.nombre}
-                      </span>
-                    </span>
-                  )}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-56">
-                <DropdownMenuLabel>{usuario?.nombre}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/notificaciones">
-                    <Settings className="h-4 w-4" aria-hidden="true" />
-                    Preferencias de notificaciones
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/legal">
-                    <FileText className="h-4 w-4" aria-hidden="true" />
-                    Términos y privacidad
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {/* logout() ahora espera al backend y devuelve el mensaje de
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-56">
+              <DropdownMenuLabel>{usuario?.nombre}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/notificaciones">
+                  <Settings className="h-4 w-4" aria-hidden="true" />
+                  Preferencias de notificaciones
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/legal">
+                  <FileText className="h-4 w-4" aria-hidden="true" />
+                  Términos y privacidad
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {/* logout() ahora espera al backend y devuelve el mensaje de
                     error si la cookie de sesión no se pudo borrar. Sin este
                     aviso, un fallo de red dejaba la sesión viva en el servidor
                     mientras la UI decía que se había cerrado. */}
-                <DropdownMenuItem
-                  destructivo
-                  onClick={async () => {
-                    const error = await logout()
-                    if (error) toast.error(error)
-                  }}
-                >
-                  <LogOut className="h-4 w-4" aria-hidden="true" />
-                  Cerrar sesión
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </aside>
+              <DropdownMenuItem
+                destructivo
+                onClick={async () => {
+                  const error = await logout()
+                  if (error) toast.error(error)
+                }}
+              >
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+                Cerrar sesión
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          {/* Navbar: no existía antes — cada página pintaba su propio <h1>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Navbar: no existía antes — cada página pintaba su propio <h1>
               suelto dentro de <main>. Único lugar del panel con
               glassmorphism real (panel-navbar en panel.css): flota sobre el
               contenido al hacer scroll. */}
-          <header className="panel-navbar sticky top-0 z-30 hidden items-center justify-between gap-4 border-b border-slate-200/80 dark:border-cyan-500/25 px-6 py-3 md:flex backdrop-blur-xl bg-white/80 dark:bg-slate-950/80 shadow-[0_4px_25px_rgba(6,182,212,0.08)] transition-colors duration-300">
-            <Breadcrumb items={breadcrumbItems} />
-            <div className="flex shrink-0 items-center gap-2">
-              {/* Botón de Búsqueda (Buscar, Ctrl K) con resplandor cibernético neón */}
-              <button
-                type="button"
-                onClick={() => setPaletaAbierta(true)}
-                className="panel-mono group relative flex items-center gap-2.5 rounded-xl border border-slate-200 dark:border-cyan-500/30 bg-slate-100/80 dark:bg-slate-900/80 px-3.5 py-1.5 text-xs text-slate-600 dark:text-cyan-300/90 transition-all duration-300 hover:border-cyan-400 dark:hover:border-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-200 dark:shadow-[0_0_15px_rgba(6,182,212,0.25)] hover:shadow-[0_0_22px_rgba(34,211,238,0.4)]"
-              >
-                <Search className="h-3.5 w-3.5 text-cyan-500 dark:text-cyan-400 transition-transform duration-300 group-hover:scale-110" aria-hidden="true" />
-                <span className="font-semibold">Buscar</span>
-                <kbd className="rounded-md border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600 dark:text-cyan-300 shadow-xs">
-                  Ctrl K
-                </kbd>
-              </button>
+        <header className="panel-navbar sticky top-0 z-30 hidden items-center justify-between gap-4 border-b border-slate-200/80 dark:border-cyan-500/25 px-6 py-3 md:flex backdrop-blur-xl bg-white/80 dark:bg-slate-950/80 shadow-[0_4px_25px_rgba(6,182,212,0.08)] transition-colors duration-300">
+          <Breadcrumb items={breadcrumbItems} />
+          <div className="flex shrink-0 items-center gap-2">
+            {/* Botón de Búsqueda (Buscar, Ctrl K) con resplandor cibernético neón */}
+            <button
+              type="button"
+              onClick={() => setPaletaAbierta(true)}
+              className="panel-mono group relative flex items-center gap-2.5 rounded-xl border border-slate-200 dark:border-cyan-500/30 bg-slate-100/80 dark:bg-slate-900/80 px-3.5 py-1.5 text-xs text-slate-600 dark:text-cyan-300/90 transition-all duration-300 hover:border-cyan-400 dark:hover:border-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-200 dark:shadow-[0_0_15px_rgba(6,182,212,0.25)] hover:shadow-[0_0_22px_rgba(34,211,238,0.4)]"
+            >
+              <Search className="h-3.5 w-3.5 text-cyan-500 dark:text-cyan-400 transition-transform duration-300 group-hover:scale-110" aria-hidden="true" />
+              <span className="font-semibold">Buscar</span>
+              <kbd className="rounded-md border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600 dark:text-cyan-300 shadow-xs">
+                Ctrl K
+              </kbd>
+            </button>
 
-              <EstadoConexion />
+            <EstadoConexion />
 
-              {tienePermiso('sistema:gestionar_modulos') && modulosApagados > 0 && (
-                <Tooltip label="Módulos desactivados por el Super Admin" side="bottom">
-                  <Link
-                    to="/sistema/modulos"
-                    className="panel-mono flex items-center gap-1 rounded-full bg-amber-400/10 border border-amber-500/30 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]"
-                  >
-                    {modulosApagados} apagado{modulosApagados === 1 ? '' : 's'}
-                  </Link>
-                </Tooltip>
-              )}
-
-              {/* Botón de Notificaciones con efecto flotante neón */}
-              <Tooltip label="Notificaciones" side="bottom">
+            {tienePermiso('sistema:gestionar_modulos') && modulosApagados > 0 && (
+              <Tooltip label="Módulos desactivados por el Super Admin" side="bottom">
                 <Link
-                  to="/notificaciones"
-                  className="group relative flex shrink-0 items-center justify-center rounded-xl p-2 transition-all duration-300 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-cyan-500/30 text-slate-700 dark:text-cyan-300 hover:border-cyan-400 dark:hover:border-cyan-400 dark:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:scale-105 active:scale-95"
+                  to="/sistema/modulos"
+                  className="panel-mono flex items-center gap-1 rounded-full bg-amber-400/10 border border-amber-500/30 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]"
                 >
-                  <Bell className="h-4 w-4 text-cyan-600 dark:text-cyan-400 group-hover:rotate-12 transition-transform duration-300" aria-hidden="true" />
+                  {modulosApagados} apagado{modulosApagados === 1 ? '' : 's'}
                 </Link>
               </Tooltip>
-              <ToggleTema tema={tema} onToggle={alternarTema} />
-            </div>
-          </header>
+            )}
 
-          <main className="relative flex-1 overflow-y-auto overscroll-contain p-4 md:p-6">
-            {/* Igual que en el sidebar: el grid decorativo va en una capa
+            {/* Botón de Notificaciones con efecto flotante neón */}
+            <Tooltip label="Notificaciones" side="bottom">
+              <Link
+                to="/notificaciones"
+                className="group relative flex shrink-0 items-center justify-center rounded-xl p-2 transition-all duration-300 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-cyan-500/30 text-slate-700 dark:text-cyan-300 hover:border-cyan-400 dark:hover:border-cyan-400 dark:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:scale-105 active:scale-95"
+              >
+                <Bell className="h-4 w-4 text-cyan-600 dark:text-cyan-400 group-hover:rotate-12 transition-transform duration-300" aria-hidden="true" />
+              </Link>
+            </Tooltip>
+            <ToggleTema tema={tema} onToggle={alternarTema} />
+          </div>
+        </header>
+
+        <main className="relative flex-1 overflow-y-auto overscroll-contain p-[var(--ui-content-padding)]">
+          {/* Igual que en el sidebar: el grid decorativo va en una capa
                 aparte, no en el propio <main> — su mask-image difumina TODO
                 lo que pinta el elemento, y aquí eso incluye el contenido
                 real de cada módulo. */}
-            <div className="panel-grid pointer-events-none absolute inset-0" aria-hidden="true" />
-            <motion.div
-              key={pathname}
-              initial={prefiereReducido ? false : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-              className="relative"
-            >
-              <ContenidoRuta />
-            </motion.div>
-          </main>
-        </div>
+          <div className="panel-grid pointer-events-none absolute inset-0" aria-hidden="true" />
+          <motion.div
+            key={pathname}
+            initial={prefiereReducido ? false : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            className="relative"
+          >
+            <ContenidoRuta />
+          </motion.div>
+        </main>
       </div>
+    </div>
   )
 }

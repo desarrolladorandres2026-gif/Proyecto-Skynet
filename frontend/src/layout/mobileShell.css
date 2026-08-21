@@ -60,12 +60,15 @@
   color: var(--mobile-text-dim);
   transition: color 0.15s ease, transform 0.15s ease;
 }
+
 .m-navitem.is-active {
   color: var(--mobile-accent);
 }
+
 .m-navitem:active {
   transform: scale(0.94);
 }
+
 /* Puntito con glow bajo el ícono activo: la misma firma visual del
    box-shadow inset cian que ya usa .panel-nav-link.is-active en el panel
    de escritorio, aquí traducida a lenguaje de barra inferior de app. */
@@ -73,6 +76,7 @@
   background: transparent;
   transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
+
 .m-navitem.is-active .m-navdot {
   background: var(--mobile-accent);
   box-shadow: 0 0 8px 1px var(--mobile-accent);
@@ -89,6 +93,7 @@
   border: 1px solid var(--mobile-border);
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
+
 .m-row:active {
   transform: scale(0.985);
   background: var(--mobile-surface-2);
@@ -101,6 +106,7 @@
   transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   white-space: nowrap;
 }
+
 .m-chip.is-active {
   background: var(--mobile-accent-soft);
   color: var(--mobile-accent);
@@ -113,6 +119,7 @@
   box-shadow: 0 12px 28px -10px var(--mobile-accent);
   transition: transform 0.15s ease, box-shadow 0.2s ease;
 }
+
 .m-fab:active {
   transform: scale(0.95);
 }
@@ -121,26 +128,39 @@
   background: var(--mobile-backdrop);
   backdrop-filter: blur(2px);
 }
+
 .m-sheet {
   background: var(--mobile-surface);
   border-top: 1px solid var(--mobile-border);
   box-shadow: 0 -20px 50px -20px var(--mobile-shadow);
   animation: m-sheet-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
 .m-sheet-handle {
   background: var(--mobile-border);
 }
 
 @keyframes m-sheet-in {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .m-sheet {
     animation: none !important;
   }
-  .m-navitem, .m-row, .m-fab, .m-chip {
+
+  .m-navitem,
+  .m-row,
+  .m-fab,
+  .m-chip {
     transition: none !important;
   }
 }

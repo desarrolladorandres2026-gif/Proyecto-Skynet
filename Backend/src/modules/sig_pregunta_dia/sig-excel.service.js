@@ -2,6 +2,15 @@ import ExcelJS from 'exceljs'
 import RespuestaSig from '../../models/RespuestaSig.js'
 import { rangoDeDias } from '../../utils/fechas.js'
 
+// Sin `desde`/`hasta` el filtro no acota nada más (dependencia/cargo/
+// componente/tema pueden estar vacíos también), así que exportar sin ningún
+// filtro traía la colección `RespuestaSig` COMPLETA — que crece sin límite de
+// retención por diseño (ver RespuestaSig.js). Un tope aquí es la misma
+// protección que ya existe en otros exports pesados del sistema (ver
+// backupLimiter), aplicada al dato en vez de solo a la frecuencia de la
+// petición.
+const LIMITE_FILAS_SIN_RANGO = 20_000
+
 // Exporta las respuestas filtradas, una fila por respuesta — el admin puede
 // pivotear en Excel para el reporte diario/semanal/mensual/por componente/
 // por trabajador que necesite, sin construir cada variante en el backend
@@ -14,10 +23,19 @@ export async function exportarRespuestas({ desde, hasta, dependencia, cargo, com
   if (componenteSig) filtro.componenteSigSnapshot = componenteSig
   if (tema) filtro.temaSnapshot = tema
 
-  const respuestas = await RespuestaSig.find(filtro)
+  const hayRango = Boolean(desde && hasta)
+
+  let query = RespuestaSig.find(filtro)
+    .select('fechaProgramada dependenciaSnapshot cargoSnapshot componenteSigSnapshot temaSnapshot esCorrecta respondidaEn usuario programacion')
     .sort({ fechaProgramada: -1 })
     .populate({ path: 'usuario', select: 'nombre nombre_usuario' })
-    .populate({ path: 'programacion', select: 'snapshotPregunta' })
+    .populate({ path: 'programacion', select: 'snapshotPregunta.enunciado' })
+    .lean()
+  if (!hayRango) query = query.limit(LIMITE_FILAS_SIN_RANGO + 1)
+
+  const respuestas = await query
+  const truncado = !hayRango && respuestas.length > LIMITE_FILAS_SIN_RANGO
+  if (truncado) respuestas.length = LIMITE_FILAS_SIN_RANGO
 
   const workbook = new ExcelJS.Workbook()
   workbook.creator = 'Skynet'
