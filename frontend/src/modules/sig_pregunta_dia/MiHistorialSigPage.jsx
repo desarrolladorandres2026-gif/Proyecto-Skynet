@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { History, CircleCheck, CircleX } from 'lucide-react'
 import { sig } from '../../api/sig.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Card, ErrorMsg, EmptyState, Pager, fmtFecha } from '../../components/ui.jsx'
 import { ListRow, SectionHeader } from '../../components/mobileUi.jsx'
 
@@ -8,23 +9,16 @@ import { ListRow, SectionHeader } from '../../components/mobileUi.jsx'
 // mismo criterio que MisAusenciasPage.jsx: no vale la pena una página aparte
 // solo para el resumen.
 export default function MiHistorialSigPage() {
-  const [progreso, setProgreso] = useState(null)
-  const [historial, setHistorial] = useState(null)
   const [page, setPage] = useState(1)
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
 
-  useEffect(() => {
-    setCargando(true)
-    Promise.all([sig.miProgreso(), sig.miHistorial({ page, limit: 20 })])
-      .then(([p, h]) => {
-        setProgreso(p)
-        setHistorial(h)
-        setError('')
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setCargando(false))
-  }, [page])
+  const { data, cargando, error } = useDatosConCache(
+    `sig:miHistorial:${page}`,
+    () => Promise.all([sig.miProgreso(), sig.miHistorial({ page, limit: 20 })])
+      .then(([p, h]) => ({ progreso: p, historial: h })),
+    { ttlMs: 60_000 },
+  )
+  const progreso = data?.progreso || null
+  const historial = data?.historial || null
 
   return (
     <div className="mx-auto max-w-lg">

@@ -69,16 +69,52 @@ Herramientas y acciones:
  * @param {object} usuario  El de req.usuario.
  * @param {Array<{clave:string, valor:string}>} hechos  Memoria larga.
  * @param {string[]} temas  Temas ya tratados en esta conversación.
+ * @param {object|null} estado  Estado conversacional (ver copiloto.estados.js).
  */
-export function instruccionSistema(usuario, hechos = [], temas = []) {
+export function instruccionSistema(usuario, hechos = [], temas = [], estado = null) {
   const capas = [BASE, perfil(usuario)]
 
   if (hechos.length) capas.push(memoria(hechos))
   // Los temas son memoria CORTA barata: le dan continuidad al hilo sin
   // reenviar los turnos viejos que ya se recortaron. Cuestan una línea.
   if (temas.length) capas.push(`En esta conversación ya hablaron de: ${temas.join(', ')}.`)
+  const capaEstado = estadoConversacion(estado)
+  if (capaEstado) capas.push(capaEstado)
 
   return capas.join('\n\n')
+}
+
+/**
+ * Resume el estado conversacional en una capa de prompt.
+ *
+ * Existe para que un "sí", "urgente" o "también agrega instalación" no
+ * dependa de que el modelo relea 8 turnos de prosa para entender a qué se
+ * refiere: el servidor ya sabe si hay una pregunta pendiente o un borrador en
+ * curso, y se lo dice en una línea. El modelo sigue siendo quien decide qué
+ * hacer con eso — esto es contexto, no una orden.
+ */
+function estadoConversacion(estado) {
+  if (!estado || estado.flujo === 'IDLE') return null
+
+  const partes = [`Flujo activo de esta conversación: ${estado.flujo}.`]
+
+  if (estado.ultimaPregunta) {
+    partes.push(
+      `Tu última pregunta al usuario fue: "${estado.ultimaPregunta}". Si el mensaje que sigue es corto o ambiguo ("sí", "también", "urgente", "mañana", "ese"), interprétalo primero como respuesta a ESA pregunta antes que como un mensaje nuevo sin contexto.`
+    )
+  }
+
+  if (estado.entidadActiva) {
+    partes.push(`Entidad activa: ${estado.entidadActiva.tipo}${estado.entidadActiva.id ? ` (id ${estado.entidadActiva.id})` : ''}.`)
+  }
+
+  if (estado.borrador) {
+    partes.push(
+      `Ya existe un borrador en curso, armado con la herramienta de preparación correspondiente:\n${JSON.stringify(estado.borrador)}\nSi el usuario pide agregar, quitar o cambiar algo de esto, vuelve a llamar esa misma herramienta con la lista COMPLETA ya actualizada (lo que ya había más el cambio) — no le pidas que repita lo que ya dijo antes.`
+    )
+  }
+
+  return partes.join('\n')
 }
 
 function perfil(usuario) {

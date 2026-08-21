@@ -139,6 +139,32 @@ export const sig = {
   actualizarPlanRefuerzo(id, datos) {
     return request(`/sig_pregunta_dia/reportes/plan-refuerzo/${id}`, { method: 'PATCH', body: JSON.stringify(datos) })
   },
+  // Capacitaciones por tema (sig_pregunta_dia:programar): a diferencia del
+  // plan de refuerzo (automático, por trabajador que falló), esto lo programa
+  // a mano quien gestiona SIG para reforzar un tema con un grupo o con todos.
+  capacitaciones: {
+    listar({ estado } = {}) {
+      const params = new URLSearchParams()
+      if (estado) params.set('estado', estado)
+      const qs = params.toString()
+      return request(`/sig_pregunta_dia/capacitaciones${qs ? `?${qs}` : ''}`)
+    },
+    detalle(id) {
+      return request(`/sig_pregunta_dia/capacitaciones/${id}`)
+    },
+    crear(datos) {
+      return request('/sig_pregunta_dia/capacitaciones', { method: 'POST', body: JSON.stringify(datos) })
+    },
+    actualizar(id, datos) {
+      return request(`/sig_pregunta_dia/capacitaciones/${id}`, { method: 'PATCH', body: JSON.stringify(datos) })
+    },
+    marcarParticipante(id, usuarioId, completado) {
+      return request(`/sig_pregunta_dia/capacitaciones/${id}/participantes/${usuarioId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ completado }),
+      })
+    },
+  },
   // Descarga binaria (xlsx): no usa request() de client.js, igual criterio
   // que requerimientos.exportar().
   exportarExcel(filtros = {}) {

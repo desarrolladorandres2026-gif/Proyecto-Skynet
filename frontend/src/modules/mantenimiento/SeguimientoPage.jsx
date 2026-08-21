@@ -1,29 +1,19 @@
-import { useEffect, useState } from 'react'
 import { seguimientoApi } from '../../api/mantenimiento.js'
 import { Card, ErrorMsg, EmptyState, fmtFechaHora, Badge } from '../../components/ui.jsx'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
+import { useAutoRefresh } from '../../hooks/useAutoRefresh.js'
 
 // Seguimiento en Tiempo Real (CMMS Fase 3.1): coordinación, no vigilancia —
 // "última actividad" viene de eventos que el propio técnico ya registró, no
 // de un mecanismo nuevo de presencia continua (ver diseño aprobado).
 export default function SeguimientoPage() {
-  const [tecnicos, setTecnicos] = useState(null)
-  const [error, setError] = useState('')
+  const { data: tecnicos, error, recargarSilencioso } = useDatosConCache(
+    'mantenimiento:seguimientoTecnicos',
+    () => seguimientoApi.tecnicos().then((d) => d.tecnicos),
+    { ttlMs: 30_000 },
+  )
 
-  async function cargar() {
-    try {
-      const d = await seguimientoApi.tecnicos()
-      setTecnicos(d.tecnicos)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  useEffect(() => {
-    cargar()
-    const t = setInterval(cargar, 30_000)
-    return () => clearInterval(t)
-  }, [])
+  useAutoRefresh(recargarSilencioso, { intervalMs: 30_000 })
 
   return (
     <div>

@@ -14,7 +14,9 @@ import {
   turnosParaContexto,
   obtenerHechos,
   sanearTexto,
+  actualizarEstado,
 } from './copiloto.memoria.js'
+import { ESTADOS } from './copiloto.estados.js'
 import { registrarPendiente, consumirPendiente } from './copiloto.confirmaciones.js'
 import { ErrorValidacion, ErrorConflicto, ErrorAplicacion } from '../../utils/errores.js'
 
@@ -130,7 +132,7 @@ export async function* responderStream({ mensaje, conversacionId, signal, ip }, 
 
   // ── Camino normal: el modelo ─────────────────────────────────────────────
   const config = {
-    systemInstruction: instruccionSistema(usuario, hechos, conv.temas),
+    systemInstruction: instruccionSistema(usuario, hechos, conv.temas, conv.estado),
     temperature: TEMPERATURA,
     maxOutputTokens: MAX_TOKENS_RESPUESTA,
     // Aborta la lectura del stream cuando el usuario cierra el chat o hace
@@ -187,6 +189,17 @@ export async function* responderStream({ mensaje, conversacionId, signal, ip }, 
     if (!llamadas.length) {
       const textoRespuesta = textoTurno.trim() || 'No tengo una respuesta para eso.'
       registrarIntercambio(conv, { pregunta: texto, respuesta: textoRespuesta })
+      // Si el turno terminó en pregunta, el flujo queda esperando la
+      // respuesta del usuario y se guarda la pregunta textual para que el
+      // próximo mensaje corto ("sí", "urgente") se pueda leer en su contexto
+      // (ver estadoConversacion en copiloto.prompt.js). Si no, el flujo que
+      // hubiera en curso se da por cerrado — la entidad activa y el borrador
+      // se conservan (por si el usuario retoma), pero deja de "esperar" nada.
+      if (/\?\s*$/.test(textoRespuesta)) {
+        actualizarEstado(conv, { flujo: ESTADOS.WAITING_USER_RESPONSE, ultimaPregunta: textoRespuesta })
+      } else if (conv.estado?.flujo && conv.estado.flujo !== ESTADOS.IDLE) {
+        actualizarEstado(conv, { flujo: ESTADOS.COMPLETED, ultimaPregunta: null })
+      }
       yield { tipo: 'fin', via: 'modelo' }
       return
     }
@@ -260,6 +273,7 @@ export async function* responderStream({ mensaje, conversacionId, signal, ip }, 
     // guardar o de confirmar nunca pasa por él.
     for (const r of resultados) {
       if (r.confirmacion) {
+        actualizarEstado(conv, { flujo: ESTADOS.CONFIRMING })
         yield {
           tipo: 'confirmacion',
           herramienta: r.name,
@@ -270,6 +284,14 @@ export async function* responderStream({ mensaje, conversacionId, signal, ip }, 
         continue
       }
       if (r.name === 'preparar_requerimiento_compra' && r.response?.resultado?.borrador) {
+        // Había ya un borrador de este mismo tipo → es una edición sobre lo
+        // que existía (EDITING), no un borrador nuevo (CREATING).
+        const yaHabiaBorrador = conv.estado?.entidadActiva?.tipo === 'requerimiento_compra'
+        actualizarEstado(conv, {
+          flujo: yaHabiaBorrador ? ESTADOS.EDITING : ESTADOS.CREATING,
+          entidadActiva: { tipo: 'requerimiento_compra', id: null },
+          borrador: r.response.resultado,
+        })
         yield { tipo: 'accion', accion: 'requerimiento_compra_borrador', datos: r.response.resultado }
       }
       // La navegación la marca la propia herramienta con `navegacion: true`

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { Link } from 'react-router-dom'
 import { Plus, Wrench, Camera, Images, X } from 'lucide-react'
 import { ordenesApi, mantenimientoApi, indicadoresApi } from '../../api/mantenimiento.js'
+import { useDatosConCache, invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { normalizarFoto } from '../../utils/normalizarFoto.js'
 import {
@@ -143,11 +145,7 @@ const FORM_PROGRAMAR_VACIO = { equipoId: '', fecha: '', tipo: '', tecnicoId: '',
 // Indicadores Personales del Técnico (Fase 3.1) — panel de desarrollo, no de
 // sanción: solo se muestran los propios, nunca comparados con otros técnicos.
 function TarjetaIndicadoresPersonales() {
-  const [datos, setDatos] = useState(null)
-
-  useEffect(() => {
-    indicadoresApi.mios().then(setDatos).catch(() => {})
-  }, [])
+  const { data: datos } = useDatosConCache('mantenimiento:indicadoresMios', () => indicadoresApi.mios(), { ttlMs: 60_000 })
 
   if (!datos) return null
 
@@ -177,13 +175,30 @@ function TarjetaIndicadoresPersonales() {
 
 export default function OrdenesTrabajoPage() {
   const { usuario, tienePermiso } = useAuth()
-  const [datos, setDatos] = useState({ ordenes: [], total: 0, pages: 1, page: 1 })
   const [estadoFiltro, setEstadoFiltro] = useState('')
   const [page, setPage] = useState(1)
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
   const [ok, setOk] = useState('')
-  const [tecnicos, setTecnicos] = useState([])
+
+  const puedeAsignar = tienePermiso('mantenimiento:asignar')
+
+  // Clave por filtro+página: volver a un filtro/página ya visto en esta
+  // sesión muestra la tabla de inmediato en vez de "Cargando…".
+  const { data: datos, cargando, error, recargar } = useDatosConCache(
+    `mantenimiento:ordenes:${estadoFiltro}:${page}`,
+    () => ordenesApi.listar({ estado: estadoFiltro, page }),
+    { ttlMs: 20_000 },
+  )
+  function recargarTodo() {
+    invalidarCachePorPrefijo('mantenimiento:ordenes:')
+    recargar()
+  }
+
+  const { data: tecnicosData } = useDatosConCache(
+    'mantenimiento:tecnicos',
+    () => (puedeAsignar ? ordenesApi.tecnicos().then((d) => d.tecnicos) : Promise.resolve([])),
+    { ttlMs: 5 * 60_000 },
+  )
+  const tecnicos = tecnicosData || []
 
   const [modalReportar, setModalReportar] = useState(false)
   const [formReportar, setFormReportar] = useState(FORM_REPORTAR_VACIO)
@@ -200,46 +215,18 @@ export default function OrdenesTrabajoPage() {
   const inputCamaraRef = useRef(null)
   const inputGaleriaRef = useRef(null)
 
-  const puedeAsignar = tienePermiso('mantenimiento:asignar')
-
-  async function cargar() {
-    setCargando(true)
-    try {
-      const data = await ordenesApi.listar({ estado: estadoFiltro, page })
-      setDatos(data)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    cargar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [estadoFiltro, page])
-
-  useEffect(() => {
-    if (puedeAsignar) {
-      ordenesApi.tecnicos().then((d) => setTecnicos(d.tecnicos)).catch(() => {})
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [puedeAsignar])
-
   function cambiarFiltro(v) {
     setEstadoFiltro(v)
     setPage(1)
   }
 
   async function ejecutarSimple(fn, mensajeOk) {
-    setError('')
     try {
       await fn()
       setOk(mensajeOk)
-      cargar()
+      recargarTodo()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -276,7 +263,7 @@ export default function OrdenesTrabajoPage() {
       setOk('Problema reportado')
       setModalReportar(false)
       setFormReportar(FORM_REPORTAR_VACIO)
-      cargar()
+      recargarTodo()
     } catch (err) {
       setErrorForm(err.message)
     } finally {
@@ -293,7 +280,7 @@ export default function OrdenesTrabajoPage() {
       setOk('Preventivo programado')
       setModalProgramar(false)
       setFormProgramar(FORM_PROGRAMAR_VACIO)
-      cargar()
+      recargarTodo()
     } catch (err) {
       setErrorForm(err.message)
     } finally {
@@ -309,7 +296,7 @@ export default function OrdenesTrabajoPage() {
       const { advertencias } = await ordenesApi.asignar(modalAsignar._id, tecnicoElegido)
       setOk(advertencias?.length ? `Técnico asignado — ${advertencias.join(' ')}` : 'Técnico asignado')
       setModalAsignar(null)
-      cargar()
+      recargarTodo()
     } catch (err) {
       setErrorForm(err.message)
     } finally {
@@ -331,7 +318,7 @@ export default function OrdenesTrabajoPage() {
       setOk(`${cfg.titulo}: hecho`)
       setModalMotivo(null)
       setFotoMotivo(null)
-      cargar()
+      recargarTodo()
     } catch (err) {
       setErrorForm(err.message)
     } finally {
@@ -362,7 +349,7 @@ export default function OrdenesTrabajoPage() {
 
       {cargando ? (
         <p className="text-sm text-[var(--mobile-text-dim)]">Cargando…</p>
-      ) : datos.ordenes.length === 0 ? (
+      ) : !datos || datos.ordenes.length === 0 ? (
         <EmptyState mensaje="No hay órdenes de trabajo en esta vista" />
       ) : (
         <>

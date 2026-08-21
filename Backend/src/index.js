@@ -3,6 +3,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 import mongoSanitize from 'express-mongo-sanitize'
+import compression from 'compression'
 import { env } from './config/env.js'
 import { connectDB } from './config/db.js'
 import routes from './routes/index.js'
@@ -14,6 +15,7 @@ import { iniciarWorkerSig } from './modules/sig_pregunta_dia/sig.worker.js'
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js'
 import { verificarToken } from './middleware/auth.js'
 import { requestId } from './middleware/requestId.js'
+import { monitorLentos } from './middleware/monitorLentos.js'
 
 const app = express()
 
@@ -33,9 +35,28 @@ if (env.NODE_ENV === 'production') {
 }
 
 app.use(requestId)
+app.use(monitorLentos)
 
 // Cabeceras de seguridad (X-Content-Type-Options, HSTS, X-Frame-Options, etc.).
 app.use(helmet())
+
+// Comprime las respuestas JSON (dashboard, reportes, listados) que hoy viajan
+// sin comprimir. Se excluyen explícitamente los binarios que YA vienen
+// comprimidos internamente (xlsx/zip de exportaciones y backup, PDFs) y las
+// imágenes: recomprimirlos con gzip no reduce su tamaño y solo gasta CPU del
+// proceso. Las fotos/firmas/evidencias en Cloudinary ni siquiera pasan por
+// aquí (se sirven directo desde res.cloudinary.com), así que no las toca este
+// filtro — se excluyen igual por si algún día vuelve a haber imágenes locales
+// bajo /storage.
+app.use(
+  compression({
+    filter: (req, res) => {
+      const contentType = String(res.getHeader('Content-Type') || '')
+      if (/spreadsheetml|zip|pdf|^image\//.test(contentType)) return false
+      return compression.filter(req, res)
+    },
+  })
+)
 
 // Los orígenes de desarrollo (Vite dev/preview) solo se agregan fuera de
 // producción: en el VPS no hay razón para que el navegador de un atacante
@@ -134,4 +155,17 @@ async function start() {
   })
 }
 
-start()
+// Sin este .catch(), un fallo de start() (p. ej. connectDB() lanzando por
+// credenciales inválidas, IP no permitida en Atlas, o cualquier error que no
+// sea el fallback de DNS SRV que ya maneja db.js) terminaba en un unhandled
+// promise rejection: un stack trace poco claro y, según versión/flags de
+// Node, el proceso podía quedar colgado en vez de terminar. Como es un fallo
+// de arranque (Mongo no disponible, no un error de un request ya en marcha),
+// lo correcto es terminar el proceso de forma controlada — PM2 (ver
+// deploy/ecosystem.config.cjs) lo reinicia solo; no hay reintento manual
+// aquí a propósito, para no encadenar conexiones/procesos si Mongo sigue
+// caído.
+start().catch((err) => {
+  console.error('❌  El backend no pudo arrancar:', err.message)
+  process.exit(1)
+})

@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { UserRoundSearch, Search, ArrowLeft, ChevronRight } from 'lucide-react'
 import { sig } from '../../api/sig.js'
 import { catalogosApi } from '../../api/catalogos.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import {
   Btn, Card, ErrorMsg, Input, Badge, TablaWrap, Th, Td, EmptyState, fmtFecha,
 } from '../../components/ui.jsx'
@@ -18,56 +20,42 @@ function normalizar(texto) {
 }
 
 export default function ReporteIndividualPage() {
-  const [trabajadores, setTrabajadores] = useState([])
-  const [cargandoLista, setCargandoLista] = useState(true)
   const [busqueda, setBusqueda] = useState('')
-
   const [usuarioId, setUsuarioId] = useState('')
-  const [componentes, setComponentes] = useState([])
-  const [catalogos, setCatalogos] = useState({ dependencias: [], cargos: [] })
   const [filtros, setFiltros] = useState(FILTROS_VACIOS)
   const [reporte, setReporte] = useState(null)
   const [cargando, setCargando] = useState(false)
-  const [error, setError] = useState('')
 
-  useEffect(() => {
-    Promise.all([sig.configuracion.obtener(), catalogosApi.obtener()])
-      .then(([config, cat]) => {
-        setComponentes(config.configuracion.componentes)
-        setCatalogos(cat)
-      })
-      .catch((err) => setError(err.message))
-  }, [])
+  const { data: configYCatalogos } = useDatosConCache(
+    'sig:reporteIndividual:configYCatalogos',
+    () => Promise.all([sig.configuracion.obtener(), catalogosApi.obtener()])
+      .then(([config, cat]) => ({ componentes: config.configuracion.componentes, catalogos: cat })),
+    { ttlMs: 5 * 60_000 },
+  )
+  const componentes = configYCatalogos?.componentes || []
+  const catalogos = configYCatalogos?.catalogos || { dependencias: [], cargos: [] }
 
   // La lista respeta los mismos filtros que el detalle: si no, la tabla diría
   // "48 respondidas" y al abrir a esa persona con el rango aplicado saldrían
   // 12, y no habría forma de saber cuál de los dos número es el bueno.
-  async function cargarLista(filtrosActuales = filtros) {
-    setCargandoLista(true)
-    try {
-      const { trabajadores: lista } = await sig.trabajadoresParticipantes(filtrosActuales)
-      setTrabajadores(lista)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargandoLista(false)
-    }
-  }
-
-  useEffect(() => {
-    cargarLista(FILTROS_VACIOS)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const {
+    data: trabajadores,
+    cargando: cargandoLista,
+    error,
+    recargar: recargarLista,
+  } = useDatosConCache(
+    `sig:reporteIndividual:lista:${JSON.stringify(filtros)}`,
+    () => sig.trabajadoresParticipantes(filtros).then((d) => d.trabajadores),
+    { ttlMs: 30_000 },
+  )
 
   async function consultarDetalle(id = usuarioId, filtrosActuales = filtros) {
     if (!id) return
     setCargando(true)
-    setError('')
     try {
       setReporte(await sig.reporteTrabajador(id, filtrosActuales))
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
       setReporte(null)
     } finally {
       setCargando(false)
@@ -75,7 +63,7 @@ export default function ReporteIndividualPage() {
   }
 
   function aplicarFiltros() {
-    cargarLista()
+    recargarLista()
     if (usuarioId) consultarDetalle()
   }
 
@@ -91,9 +79,10 @@ export default function ReporteIndividualPage() {
   }
 
   const visibles = useMemo(() => {
+    const lista = trabajadores || []
     const texto = normalizar(busqueda.trim())
-    if (!texto) return trabajadores
-    return trabajadores.filter(
+    if (!texto) return lista
+    return lista.filter(
       (t) =>
         normalizar(t.nombre).includes(texto) ||
         normalizar(t.nombre_usuario).includes(texto) ||
@@ -145,7 +134,7 @@ export default function ReporteIndividualPage() {
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
               {cargandoLista
                 ? 'Cargando…'
-                : `${visibles.length} de ${trabajadores.length} trabajador${trabajadores.length === 1 ? '' : 'es'} con respuestas registradas`}
+                : `${visibles.length} de ${(trabajadores || []).length} trabajador${(trabajadores || []).length === 1 ? '' : 'es'} con respuestas registradas`}
             </p>
           </Card>
 
@@ -154,7 +143,7 @@ export default function ReporteIndividualPage() {
           ) : visibles.length === 0 ? (
             <EmptyState
               mensaje={
-                trabajadores.length === 0
+                (trabajadores || []).length === 0
                   ? 'Todavía nadie ha respondido dentro de los filtros aplicados'
                   : 'Ningún trabajador coincide con la búsqueda'
               }

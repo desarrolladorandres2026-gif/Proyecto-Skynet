@@ -1,38 +1,23 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Landmark, Download } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
 import { Btn, Card, CardLink, ErrorMsg, TablaWrap, Th, Td, EmptyState, fmtFechaHora } from '../../components/ui.jsx'
 import ExportarRequerimientosModal from './ExportarRequerimientosModal.jsx'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 
 export default function BandejaFinancieroPage() {
-  const [lista, setLista] = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
   const [modalExportar, setModalExportar] = useState(false)
 
-  const cargar = useCallback((silencioso = false) => {
-    if (!silencioso) setCargando(true)
-    return requerimientosApi
-      .bandejaFinanciero()
-      .then((data) => {
-        setLista(data.requerimientos)
-        if (!silencioso) setError('')
-      })
-      .catch((err) => {
-        if (!silencioso) setError(err.message)
-      })
-      .finally(() => {
-        if (!silencioso) setCargando(false)
-      })
-  }, [])
+  const { data, cargando, error, recargarSilencioso } = useDatosConCache(
+    'requerimientos:bandejaFinanciero',
+    () => requerimientosApi.bandejaFinanciero().then((data) => data.requerimientos),
+    { ttlMs: 30_000 },
+  )
+  const lista = data || []
 
-  useEffect(() => {
-    cargar()
-  }, [cargar])
-
-  useAutoRefresh(() => cargar(true))
+  useAutoRefresh(recargarSilencioso)
 
   return (
     <div className="mx-auto max-w-5xl">

@@ -2,6 +2,7 @@ import mongoose from 'mongoose'
 import ConversacionCopiloto from '../../models/ConversacionCopiloto.js'
 import MemoriaCopiloto from '../../models/MemoriaCopiloto.js'
 import { cacheConversaciones } from './copiloto.cache.js'
+import { ESTADO_INICIAL } from './copiloto.estados.js'
 
 // Memoria del copiloto en tres niveles, cada uno con una vida y un costo
 // distintos:
@@ -90,6 +91,7 @@ export async function abrirConversacion(conversacionId, usuario) {
         usuarioId,
         turnos: doc.turnos || [],
         temas: doc.temas || [],
+        estado: { ...ESTADO_INICIAL, ...(doc.estado || {}) },
       }
       cacheConversaciones.guardar(claveCache(conv.id), conv)
       return conv
@@ -100,7 +102,7 @@ export async function abrirConversacion(conversacionId, usuario) {
   }
 
   const doc = await ConversacionCopiloto.create({ usuario: usuario.id_usuario, turnos: [], temas: [] })
-  const conv = { id: String(doc._id), usuarioId, turnos: [], temas: [] }
+  const conv = { id: String(doc._id), usuarioId, turnos: [], temas: [], estado: { ...ESTADO_INICIAL } }
   cacheConversaciones.guardar(claveCache(conv.id), conv)
   return conv
 }
@@ -135,6 +137,29 @@ export function registrarIntercambio(conv, { pregunta, respuesta, tema }) {
 /** Los turnos que de verdad viajan al modelo. */
 export function turnosParaContexto(conv) {
   return conv.turnos.slice(-TURNOS_EN_CONTEXTO)
+}
+
+/**
+ * Aplica cambios parciales al estado conversacional (flujo, entidad activa,
+ * última pregunta, borrador) y los persiste.
+ *
+ * Igual que `registrarIntercambio`, la escritura en Mongo no se espera: el
+ * estado ya vive actualizado en la caché del proceso, que es de donde lo lee
+ * el resto del turno y el siguiente mensaje si llega antes de que Mongo
+ * confirme.
+ *
+ * @param {object} conv     La conversación abierta con `abrirConversacion`.
+ * @param {Partial<{flujo:string, entidadActiva:object|null, ultimaPregunta:string|null, borrador:object|null}>} cambios
+ *        Solo las claves presentes se sobrescriben; el resto del estado
+ *        anterior se conserva.
+ */
+export function actualizarEstado(conv, cambios = {}) {
+  conv.estado = { ...ESTADO_INICIAL, ...conv.estado, ...cambios }
+  cacheConversaciones.guardar(claveCache(conv.id), conv)
+
+  ConversacionCopiloto.updateOne({ _id: conv.id }, { $set: { estado: conv.estado } }).catch((err) => {
+    console.error('[copiloto] no se pudo persistir el estado de la conversación:', err.message)
+  })
 }
 
 // ── Memoria larga ───────────────────────────────────────────────────────────

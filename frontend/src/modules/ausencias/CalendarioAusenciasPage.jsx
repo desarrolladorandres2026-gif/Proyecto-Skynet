@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { CalendarCheck, ChevronLeft, ChevronRight } from 'lucide-react'
 import { ausencias as ausenciasApi } from '../../api/ausencias.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Badge, Card, ErrorMsg, EmptyState, fmtFecha } from '../../components/ui.jsx'
 import { TIPOS_AUSENCIA } from '../../config/ausenciasConstants.js'
 
@@ -61,33 +62,21 @@ export default function CalendarioAusenciasPage() {
   }, [])
   const [mesActual, setMesActual] = useState(() => new Date(hoy.getFullYear(), hoy.getMonth(), 1))
   const [diaSeleccionado, setDiaSeleccionado] = useState(aISO(hoy))
-  const [lista, setLista] = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
 
   const grilla = useMemo(() => construirGrilla(mesActual), [mesActual])
+  const desde = aISO(grilla[0])
+  const hasta = aISO(grilla[grilla.length - 1])
 
-  useEffect(() => {
-    let vigente = true
-    setCargando(true)
-    const desde = aISO(grilla[0])
-    const hasta = aISO(grilla[grilla.length - 1])
-    ausenciasApi
-      .calendario({ desde, hasta })
-      .then((datos) => {
-        // Evita que una respuesta lenta de un mes anterior pise al mes que
-        // el usuario ya navegó a ver.
-        if (vigente) {
-          setLista(datos.ausencias)
-          setError('')
-        }
-      })
-      .catch((err) => vigente && setError(err.message))
-      .finally(() => vigente && setCargando(false))
-    return () => {
-      vigente = false
-    }
-  }, [grilla])
+  // Clave por rango visible: volver a un mes ya visto en esta sesión (ej.
+  // "Hoy" tras mirar otro mes) muestra el calendario de inmediato. El propio
+  // hook ya protege contra que una respuesta lenta de un mes anterior pise el
+  // mes al que el usuario ya navegó (ver claveVigenteRef en useDatosConCache).
+  const { data, cargando, error } = useDatosConCache(
+    `ausencias:calendario:${desde}:${hasta}`,
+    () => ausenciasApi.calendario({ desde, hasta }).then((d) => d.ausencias),
+    { ttlMs: 60_000 },
+  )
+  const lista = data || []
 
   const porDia = useMemo(() => {
     const mapa = new Map()

@@ -61,7 +61,7 @@ export function invalidarCacheConfiguracion() {
 // quienes coincidan en dependencia O cargo (reutiliza Usuario.dependencia
 // como "área", igual que el resto de la plataforma — sin campo nuevo).
 export async function resolverAudiencia(audiencia) {
-  const filtro = { estado: 'activo' }
+  const filtro = { estado: 'activo', esPrueba: false }
   if (!audiencia?.todos) {
     const condiciones = []
     if (audiencia?.dependencias?.length) condiciones.push({ dependencia: { $in: audiencia.dependencias } })

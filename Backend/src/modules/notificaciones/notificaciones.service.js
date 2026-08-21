@@ -2,6 +2,7 @@ import Usuario from '../../models/Usuario.js'
 import PushSubscription from '../../models/PushSubscription.js'
 import PreferenciaNotificacion from '../../models/PreferenciaNotificacion.js'
 import EnvioNotificacion from '../../models/EnvioNotificacion.js'
+import Notificacion from '../../models/Notificacion.js'
 import webpush from '../../utils/webpush.js'
 import { enviarEmailGenerico } from '../../utils/email.js'
 import { plantillaNotificacion, plantillaNotificacionTexto, headersListaBaja } from './notificaciones.plantillas.js'
@@ -51,6 +52,15 @@ export async function notificar({
   }
 
   const filas = []
+  // Notificación interna (centro de notificaciones / campana): una fila por
+  // destinatario, siempre que la categoría esté activa — a propósito NO
+  // sujeta a pref.email.activo/pref.push.activo (esos gobiernan si algo debe
+  // interrumpir a la persona fuera de la app; el registro interno es su
+  // bandeja dentro de Skynet, y apagar el correo o el push no debería
+  // vaciarla). No depende de ningún módulo activable (a diferencia de
+  // AvisoIA/avisarIA, ver ia.service.js): por eso vive aquí, en el motor
+  // central, no en un módulo que el Super Admin puede apagar.
+  const filasInternas = []
   for (const u of usuariosDocs) {
     if (u.estado === 'inactivo') continue
     const id = String(u._id)
@@ -75,10 +85,23 @@ export async function notificar({
     if (emailActivo && u.email) {
       filas.push({ usuario: u._id, canal: 'email', categoria, tipo, transaccional, titulo, cuerpo, url, emailDestino: u.email })
     }
+    filasInternas.push({ usuario: u._id, categoria, tipo, titulo, cuerpo, url })
   }
 
-  if (!filas.length) return []
-  return EnvioNotificacion.insertMany(filas)
+  const resultado = filas.length ? await EnvioNotificacion.insertMany(filas) : []
+
+  // Best-effort con su propio try/catch: un fallo escribiendo el registro
+  // interno no debe perder ni bloquear los push/email que ya se encolaron
+  // arriba (mismo criterio de resiliencia que el resto del archivo).
+  if (filasInternas.length) {
+    try {
+      await Notificacion.insertMany(filasInternas)
+    } catch (err) {
+      console.error('No se pudo escribir la notificación interna:', err.message)
+    }
+  }
+
+  return resultado
 }
 
 // Backoff entre reintentos cuando un envío falla por algo no concluyente

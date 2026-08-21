@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
-import { ShieldAlert, Pencil } from 'lucide-react'
+import { useState } from 'react'
+import { ShieldAlert, Pencil, Play } from 'lucide-react'
+import { toast } from 'sonner'
 import { sig } from '../../api/sig.js'
 import { catalogosApi } from '../../api/catalogos.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import {
   Card,
   ErrorMsg,
@@ -104,36 +106,48 @@ function ModalGestionPlan({ plan, onCerrar, onGuardado }) {
 
 export default function PlanRefuerzoPage() {
   const [filtros, setFiltros] = useState(FILTROS_VACIOS)
-  const [componentes, setComponentes] = useState([])
-  const [catalogos, setCatalogos] = useState({ dependencias: [], cargos: [] })
-  const [planes, setPlanes] = useState(null)
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
   const [planEditando, setPlanEditando] = useState(null)
+  const [iniciando, setIniciando] = useState(null)
 
-  async function cargar() {
-    setCargando(true)
+  // Componentes/catálogos casi no cambian entre sesiones: caché de 5 minutos
+  // aparte de los planes, que sí dependen del filtro aplicado.
+  const { data: configYCatalogos } = useDatosConCache(
+    'sig:planRefuerzo:configYCatalogos',
+    () => Promise.all([sig.configuracion.obtener(), catalogosApi.obtener()])
+      .then(([config, cat]) => ({ componentes: config.configuracion.componentes, catalogos: cat })),
+    { ttlMs: 5 * 60_000 },
+  )
+  const componentes = configYCatalogos?.componentes || []
+  const catalogos = configYCatalogos?.catalogos || { dependencias: [], cargos: [] }
+
+  // Clave por filtro: cada combinación de filtros tiene su propia entrada de
+  // caché, así que volver a un filtro ya consultado no repite la petición.
+  const {
+    data: planes,
+    cargando,
+    error,
+    recargar,
+    actualizarLocal: actualizarPlanes,
+  } = useDatosConCache(
+    `sig:planRefuerzo:planes:${JSON.stringify(filtros)}`,
+    () => sig.planRefuerzo(filtros).then((p) => p.planes),
+    { ttlMs: 30_000 },
+  )
+
+  // Atajo para el caso más común: pasar de 'pendiente' a 'en_progreso' sin
+  // abrir el modal completo de gestión (que sigue disponible para cargar
+  // acción de capacitación, fecha y observaciones).
+  async function iniciarRefuerzo(plan) {
+    setIniciando(plan._id)
     try {
-      const [p, config, cat] = await Promise.all([
-        sig.planRefuerzo(filtros),
-        sig.configuracion.obtener(),
-        catalogosApi.obtener(),
-      ])
-      setPlanes(p.planes)
-      setComponentes(config.configuracion.componentes)
-      setCatalogos(cat)
-      setError('')
+      const { plan: actualizado } = await sig.actualizarPlanRefuerzo(plan._id, { estado: 'en_progreso' })
+      actualizarPlanes((lista) => lista.map((p) => (p._id === actualizado._id ? actualizado : p)))
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     } finally {
-      setCargando(false)
+      setIniciando(null)
     }
   }
-
-  useEffect(() => {
-    cargar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   return (
     <div>
@@ -147,7 +161,7 @@ export default function PlanRefuerzoPage() {
       <FiltrosDashboardSig
         filtros={filtros}
         onChange={setFiltros}
-        onAplicar={cargar}
+        onAplicar={recargar}
         componentes={componentes}
         catalogos={catalogos}
         mostrarResultado={false}
@@ -183,7 +197,13 @@ export default function PlanRefuerzoPage() {
                 <Td>{p.porcentajeAcierto}%</Td>
                 <Td className="whitespace-nowrap">{fmtFecha(p.fechaDeteccion)}</Td>
                 <Td><Badge valor={p.estado} label={ESTADO_LABEL[p.estado]} /></Td>
-                <Td>
+                <Td className="whitespace-nowrap">
+                  {p.estado === 'pendiente' && (
+                    <Btn variante="fantasma" onClick={() => iniciarRefuerzo(p)} disabled={iniciando === p._id}>
+                      <Play className="h-4 w-4" aria-hidden="true" />
+                      {iniciando === p._id ? 'Iniciando…' : 'Iniciar refuerzo'}
+                    </Btn>
+                  )}
                   <Btn variante="fantasma" onClick={() => setPlanEditando(p)}>
                     <Pencil className="h-4 w-4" aria-hidden="true" />
                     Gestionar
@@ -200,7 +220,7 @@ export default function PlanRefuerzoPage() {
           plan={planEditando}
           onCerrar={() => setPlanEditando(null)}
           onGuardado={(actualizado) => {
-            setPlanes((lista) => lista.map((p) => (p._id === actualizado._id ? actualizado : p)))
+            actualizarPlanes((lista) => lista.map((p) => (p._id === actualizado._id ? actualizado : p)))
             setPlanEditando(null)
           }}
         />

@@ -4,6 +4,7 @@ import { FilePlus2, ShoppingCart, Wrench, TriangleAlert } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
 import { danos as danosApi } from '../../api/danos.js'
 import { catalogosApi } from '../../api/catalogos.js'
+import { invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { Btn, Card, ErrorMsg, Field, Input } from '../../components/ui.jsx'
 import { CatalogoSelect } from '../../components/CatalogoSelect.jsx'
@@ -56,6 +57,7 @@ export default function NuevoRequerimientoPage() {
       if (origenDano) payload.origenDano = origenDano
 
       const { requerimiento } = await requerimientosApi.crear(payload)
+      invalidarCachePorPrefijo('requerimientos:')
       navigate(`/requerimientos/${requerimiento._id}`)
     } catch (err) {
       setError(err.message)

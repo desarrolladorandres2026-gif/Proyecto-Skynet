@@ -24,5 +24,11 @@ const registroAuditoriaSchema = new mongoose.Schema(
 
 registroAuditoriaSchema.index({ modulo: 1, creadoEn: -1 })
 registroAuditoriaSchema.index({ usuario: 1, creadoEn: -1 })
+// Optimiza RegistroAuditoria.countDocuments({ creadoEn: { $gte: ... } }) en
+// el dashboard universal (tarjeta "auditoriaHoy") y la purga por retención
+// (auditoria.worker.js): ambas filtran solo por creadoEn, sin igualdad previa
+// en modulo/usuario, así que ninguno de los 2 índices compuestos de arriba
+// era utilizable para esa consulta — quedaba en COLLSCAN.
+registroAuditoriaSchema.index({ creadoEn: -1 })
 
 export default mongoose.model('RegistroAuditoria', registroAuditoriaSchema)

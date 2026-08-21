@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
+import { toast } from 'sonner'
 import {
   Wrench, Camera, Images, X, History, RefreshCw, MapPin,
 } from 'lucide-react'
 import { danos as danosApi } from '../../api/danos.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { normalizarFoto } from '../../utils/normalizarFoto.js'
 import {
   Btn, Badge, ErrorMsg, OkMsg, Field, Select, Input, Textarea,
@@ -289,49 +291,36 @@ function HojaDetalle({ reporte, onCerrar, onCambiarEstado }) {
 // ── Página ───────────────────────────────────────────────────────────────
 
 export default function MisTareasPage() {
-  const [reportes, setReportes] = useState([])
-  const [resumen, setResumen] = useState({})
   const [tab, setTab] = useState('')
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
   const [ok, setOk] = useState('')
   const [detalle, setDetalle] = useState(null)
   const [cambiando, setCambiando] = useState(null)
 
-  const cargar = useCallback(async () => {
-    setCargando(true)
-    try {
-      // asignado:'mi' es solo un gesto de intención — el backend fuerza este
-      // alcance de todas formas para quien no tiene danos:gestionar.
-      const data = await danosApi.listar({ estado: tab || undefined, asignado: 'mi' })
-      setReportes(data.reportes)
-      setResumen(data.resumen)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }, [tab])
-
-  useEffect(() => { cargar() }, [cargar])
+  // asignado:'mi' es solo un gesto de intención — el backend fuerza este
+  // alcance de todas formas para quien no tiene danos:gestionar.
+  const { data, cargando, error, recargar } = useDatosConCache(
+    `danos:misTareas:${tab}`,
+    () => danosApi.listar({ estado: tab || undefined, asignado: 'mi' }),
+    { ttlMs: 20_000 },
+  )
+  const reportes = data?.reportes || []
+  const resumen = data?.resumen || {}
 
   async function confirmarEstado(reporte, cambios) {
-    setOk(''); setError('')
+    setOk('')
     await danosApi.cambiarEstado(reporte._id, cambios)
     setOk(`Actualizado a "${ESTADO_LABELS[cambios.estado] || cambios.estado}".`)
     setCambiando(null)
     setDetalle(null)
-    await cargar()
+    recargar()
   }
 
   async function abrirDetalle(reporte) {
-    setError('')
     try {
       const { reporte: completo } = await danosApi.detalle(reporte._id)
       setDetalle(completo)
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 

@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarClock, Plus, Ban, X, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { sig } from '../../api/sig.js'
 import { catalogosApi } from '../../api/catalogos.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import {
   Btn, Badge, Card, ErrorMsg, Field, Input, Switch, Modal,
   TablaWrap, Th, Td, EmptyState, fmtFecha, fmtFechaHora,
@@ -34,11 +35,22 @@ function GrupoCampos({ rotulo, children }) {
 }
 
 export default function ProgramacionesPage() {
-  const [programaciones, setProgramaciones] = useState([])
-  const [preguntasActivas, setPreguntasActivas] = useState([])
-  const [catalogos, setCatalogos] = useState({ dependencias: [], cargos: [] })
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
+  const { data, cargando, error, recargar } = useDatosConCache(
+    'sig:programaciones',
+    () => Promise.all([
+      sig.programacion.listarIndividual(),
+      sig.banco.listar({ estado: 'activa' }),
+      catalogosApi.obtener(),
+    ]).then(([datosProg, datosBanco, datosCatalogos]) => ({
+      programaciones: datosProg.programaciones,
+      preguntasActivas: datosBanco.preguntas,
+      catalogos: datosCatalogos,
+    })),
+    { ttlMs: 30_000 },
+  )
+  const programaciones = data?.programaciones || []
+  const preguntasActivas = data?.preguntasActivas || []
+  const catalogos = data?.catalogos || { dependencias: [], cargos: [] }
 
   const [modalAbierto, setModalAbierto] = useState(false)
   const [form, setForm] = useState(FORM_VACIO)
@@ -48,29 +60,6 @@ export default function ProgramacionesPage() {
 
   const [porCancelar, setPorCancelar] = useState(null)
   const [cancelando, setCancelando] = useState(false)
-
-  async function cargar() {
-    setCargando(true)
-    try {
-      const [datosProg, datosBanco, datosCatalogos] = await Promise.all([
-        sig.programacion.listarIndividual(),
-        sig.banco.listar({ estado: 'activa' }),
-        catalogosApi.obtener(),
-      ])
-      setProgramaciones(datosProg.programaciones)
-      setPreguntasActivas(datosBanco.preguntas)
-      setCatalogos(datosCatalogos)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    cargar()
-  }, [])
 
   // La lista viene ordenada por fecha de publicación desde el backend; aquí se
   // parte en bloques por día para que se vea de un golpe cuántas preguntas
@@ -147,7 +136,7 @@ export default function ProgramacionesPage() {
         creadas.length === 1 ? 'Pregunta programada' : `${creadas.length} preguntas programadas para el mismo día`
       )
       setModalAbierto(false)
-      cargar()
+      recargar()
     } catch (err) {
       setErrorForm(err.message)
     } finally {
@@ -161,7 +150,7 @@ export default function ProgramacionesPage() {
     try {
       await sig.programacion.cancelarIndividual(porCancelar._id, '')
       toast.success('Programación cancelada')
-      cargar()
+      recargar()
     } catch (err) {
       toast.error(err.message)
     } finally {

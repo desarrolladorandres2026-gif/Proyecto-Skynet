@@ -1,18 +1,10 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { mantenimientoApi } from '../../api/mantenimiento.js'
 import { Card, ErrorMsg } from '../../components/ui.jsx'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 
 export default function MantenimientoHome() {
-  const [panel, setPanel] = useState(null)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    mantenimientoApi
-      .panel()
-      .then(setPanel)
-      .catch((err) => setError(err.message))
-  }, [])
+  const { data: panel, error } = useDatosConCache('mantenimiento:panel', () => mantenimientoApi.panel(), { ttlMs: 60_000 })
 
   return (
     <div>

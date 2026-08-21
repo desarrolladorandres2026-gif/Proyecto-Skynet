@@ -2,6 +2,7 @@ import { verificarToken } from '../../middleware/auth.js'
 import { requierePermiso } from '../../middleware/permisos.js'
 import { requiereModuloActivo } from '../../middleware/moduloActivo.js'
 import { safeRouter } from '../../middleware/safeRouter.js'
+import { sigExportarLimiter } from '../../middleware/rateLimit.js'
 import { dashboard, trabajadoresParticipantes, reporteTrabajador, planRefuerzo, actualizarPlanRefuerzo, exportar } from './sig-reportes.controller.js'
 
 // No colisiona con sig-respuestas.routes.js (también montado en la raíz de
@@ -17,6 +18,6 @@ router.get('/reportes/trabajadores', trabajadoresParticipantes)
 router.get('/reportes/trabajador/:usuarioId', reporteTrabajador)
 router.get('/reportes/plan-refuerzo', planRefuerzo)
 router.patch('/reportes/plan-refuerzo/:id', actualizarPlanRefuerzo)
-router.get('/reportes/exportar', exportar)
+router.get('/reportes/exportar', sigExportarLimiter, exportar)
 
 export default router

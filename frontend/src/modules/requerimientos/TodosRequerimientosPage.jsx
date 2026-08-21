@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LayoutList, Download, Trash2 } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
@@ -7,6 +7,7 @@ import { Badge, Btn, Card, CardLink, ErrorMsg, OkMsg, Select, TablaWrap, Th, Td,
 import ExportarRequerimientosModal from './ExportarRequerimientosModal.jsx'
 import EliminarRequerimientosModal from './EliminarRequerimientosModal.jsx'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 
 const ESTADOS = [
   { valor: '', label: 'Todos los estados' },
@@ -34,39 +35,22 @@ const TIPOS = [
 
 export default function TodosRequerimientosPage() {
   const { usuario } = useAuth()
-  const [lista, setLista] = useState([])
   const [estado, setEstado] = useState('')
   const [tipo, setTipo] = useState('')
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
   const [ok, setOk] = useState('')
   const [modalExportar, setModalExportar] = useState(false)
   const [modalEliminar, setModalEliminar] = useState(false)
 
-  // `silencioso` evita tocar los estados de carga/error en los refrescos
-  // automáticos de fondo (ver useAutoRefresh) — solo la carga inicial o un
-  // cambio de filtro muestran "Cargando…" o un error visible.
-  const cargar = useCallback(
-    async (silencioso = false) => {
-      if (!silencioso) setCargando(true)
-      try {
-        const data = await requerimientosApi.listarTodos({ estado: estado || undefined, tipo: tipo || undefined })
-        setLista(data.requerimientos)
-        if (!silencioso) setError('')
-      } catch (err) {
-        if (!silencioso) setError(err.message)
-      } finally {
-        if (!silencioso) setCargando(false)
-      }
-    },
-    [estado, tipo]
+  // Una entrada de caché por combinación de filtro: volver a "Todos" (sin
+  // haber cambiado filtro) muestra la lista de inmediato en vez de "Cargando…".
+  const { data, cargando, error, recargar, recargarSilencioso } = useDatosConCache(
+    `requerimientos:todos:${estado}:${tipo}`,
+    () => requerimientosApi.listarTodos({ estado: estado || undefined, tipo: tipo || undefined }).then((data) => data.requerimientos),
+    { ttlMs: 30_000 },
   )
+  const lista = data || []
 
-  useEffect(() => {
-    cargar()
-  }, [cargar])
-
-  useAutoRefresh(() => cargar(true))
+  useAutoRefresh(recargarSilencioso)
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -173,7 +157,7 @@ export default function TodosRequerimientosPage() {
         onCerrar={() => setModalEliminar(false)}
         onEliminado={(eliminados) => {
           setOk(`Se eliminaron ${eliminados} requerimiento(s)`)
-          cargar()
+          recargar()
         }}
       />
     </div>

@@ -36,6 +36,14 @@ const usuarioSchema = new mongoose.Schema(
     },
     estado: { type: String, enum: ['activo', 'inactivo'], default: 'activo' },
 
+    // Separa cuentas de prueba/desarrollo del personal real del Terminal.
+    // Todo el código que representa personal real (dashboards, estadísticas,
+    // selectores de trabajador, notificaciones, conteos) debe filtrar
+    // { esPrueba: false }. Nuevos usuarios (creados a mano o por import)
+    // siempre nacen con esPrueba:false; solo la migración inicial marcó los
+    // 16 usuarios preexistentes como true.
+    esPrueba: { type: Boolean, default: false },
+
     // true cuando la contraseña actual la eligió otra persona (seed de
     // desarrollo, o un admin creando la cuenta) en vez de su dueño: fuerza el
     // cambio en el siguiente login (ver POST /auth/cambiar-password).
@@ -70,5 +78,16 @@ const usuarioSchema = new mongoose.Schema(
   },
   { timestamps: true }
 )
+
+// Optimiza Usuario.countDocuments({ estado: 'activo' }) / .find({ estado:
+// 'activo', ... }) — usado en cada carga del dashboard universal y del
+// dashboard SIG (tarjeta "usuarios", indicador "totalTrabajadores") y en
+// resolverAudiencia() (sig_pregunta_dia/comun.js, cada publicación). Sin este
+// índice, cada una de esas consultas escaneaba la colección completa.
+usuarioSchema.index({ estado: 1 })
+// Casi toda consulta de "personal real" combina esPrueba:false con otro
+// filtro (estado, rol) — ver usuarios.controller.js, dashboard.service.js,
+// sig_pregunta_dia/comun.js, etc.
+usuarioSchema.index({ esPrueba: 1 })
 
 export default mongoose.model('Usuario', usuarioSchema)

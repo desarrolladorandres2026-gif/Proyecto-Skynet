@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { Link } from 'react-router-dom'
 import { mantenimientoApi } from '../../api/mantenimiento.js'
 import { catalogosApi } from '../../api/catalogos.js'
+import { useDatosConCache, invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
 import { CatalogoSelect } from '../../components/CatalogoSelect.jsx'
 import {
   Btn, Card, ErrorMsg, OkMsg, Field, Input, Select, Textarea, Modal,
@@ -31,16 +33,36 @@ const FORM_VACIO = {
 }
 
 export default function EquiposPage() {
-  const [datos, setDatos] = useState({ equipos: [], total: 0, pages: 1, page: 1 })
   const [q, setQ] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const [page, setPage] = useState(1)
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
   const [ok, setOk] = useState('')
 
-  const [catalogos, setCatalogos] = useState({ tipos: [], marcas: [] })
-  const [dependencias, setDependencias] = useState([])
+  // Clave por página+búsqueda: volver a una página/búsqueda ya vista en esta
+  // sesión muestra la tabla de inmediato en vez de "Cargando…".
+  const { data: datos, cargando, error, recargar } = useDatosConCache(
+    `mantenimiento:equipos:lista:${page}:${busqueda}`,
+    () => mantenimientoApi.equipos.listar({ page, q: busqueda }),
+    { ttlMs: 30_000 },
+  )
+
+  // Catálogos de tipos/marcas y dependencias casi no cambian — TTL largo,
+  // independiente de la paginación de la tabla.
+  const { data: catalogosMant } = useDatosConCache(
+    'mantenimiento:equipos:catalogos',
+    () => mantenimientoApi.catalogos.obtener(),
+    { ttlMs: 5 * 60_000 },
+  )
+  const { data: dependenciasData } = useDatosConCache(
+    'mantenimiento:equipos:dependencias',
+    () => catalogosApi.obtener().then(({ dependencias }) => dependencias),
+    { ttlMs: 5 * 60_000 },
+  )
+  const catalogos = catalogosMant || { tipos: [], marcas: [] }
+  const dependenciasBase = dependenciasData || []
+  const [dependenciasOverride, setDependenciasOverride] = useState(null)
+  const dependencias = dependenciasOverride ?? dependenciasBase
+
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
   const [form, setForm] = useState(FORM_VACIO)
@@ -49,28 +71,6 @@ export default function EquiposPage() {
 
   const [porEliminar, setPorEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
-
-  async function cargar() {
-    setCargando(true)
-    try {
-      const data = await mantenimientoApi.equipos.listar({ page, q: busqueda })
-      setDatos(data)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    cargar()
-  }, [page, busqueda])
-
-  useEffect(() => {
-    mantenimientoApi.catalogos.obtener().then(setCatalogos).catch(() => {})
-    catalogosApi.obtener().then(({ dependencias }) => setDependencias(dependencias)).catch(() => {})
-  }, [])
 
   function buscar(e) {
     e.preventDefault()
@@ -123,7 +123,10 @@ export default function EquiposPage() {
         setOk('Equipo creado correctamente')
       }
       setModalAbierto(false)
-      cargar()
+      // Crear/editar puede afectar el total y otras páginas de la lista, no
+      // solo la actual — se invalida todo el prefijo en vez de solo esta clave.
+      invalidarCachePorPrefijo('mantenimiento:equipos:lista:')
+      recargar()
     } catch (err) {
       setErrorForm(err.message)
     } finally {
@@ -133,14 +136,15 @@ export default function EquiposPage() {
 
   async function confirmarEliminar() {
     if (!porEliminar) return
-    setOk(''); setError('')
+    setOk('')
     setEliminando(true)
     try {
       await mantenimientoApi.equipos.eliminar(porEliminar._id)
       setOk('Equipo eliminado')
-      cargar()
+      invalidarCachePorPrefijo('mantenimiento:equipos:lista:')
+      recargar()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     } finally {
       // Se cierra pase lo que pase: el aviso vive en la página y el overlay
       // del diálogo lo taparía.
@@ -173,7 +177,7 @@ export default function EquiposPage() {
 
       {cargando ? (
         <Card>Cargando…</Card>
-      ) : datos.equipos.length === 0 ? (
+      ) : !datos || datos.equipos.length === 0 ? (
         <EmptyState mensaje={busqueda ? `Sin resultados para "${busqueda}"` : 'No hay equipos registrados'} />
       ) : (
         <>
@@ -298,7 +302,7 @@ export default function EquiposPage() {
                 valor={form.dependencia}
                 onChange={(nombre) => setForm((f) => ({ ...f, dependencia: nombre }))}
                 opciones={dependencias}
-                onCrear={setDependencias}
+                onCrear={setDependenciasOverride}
               />
             </Field>
           </div>

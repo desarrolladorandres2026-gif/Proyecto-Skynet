@@ -111,5 +111,13 @@ reporteDanoSchema.index({ reportadoPor: 1, createdAt: -1 })
 // Cola de trabajo del técnico ("mis tareas") y conteo de carga por técnico
 // que usa la asignación automática.
 reporteDanoSchema.index({ asignadoA: 1, estado: 1 })
+// Optimiza el bloque "cola prioritaria" del dashboard universal:
+// ReporteDano.find({ estado:{$nin:[...]}, prioridad:{$in:['critica','alta']} })
+//   .sort({ createdAt: -1 }).limit(4)
+// El filtro por `prioridad` es selectivo y el índice ya deja el resultado
+// ordenado por createdAt, así que Mongo puede resolver el $in + sort sin un
+// paso de sort en memoria; `estado` ($nin, poco selectivo) se sigue evaluando
+// como filtro adicional sobre ese subconjunto ya reducido.
+reporteDanoSchema.index({ prioridad: 1, createdAt: -1 })
 
 export default mongoose.model('ReporteDano', reporteDanoSchema)

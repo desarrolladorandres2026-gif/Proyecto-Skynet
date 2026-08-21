@@ -20,6 +20,15 @@ async function validarRol(rolId) {
   return null
 }
 
+// El listado y la búsqueda de la pantalla de Usuarios son también la fuente
+// que otros módulos (selectores de trabajador, etc.) copian como referencia:
+// por eso el filtro de prueba se resuelve acá en un solo lugar en vez de en
+// cada caller. `?esPrueba=true` es exclusivo de la vista "🧪 Usuarios de
+// prueba"; cualquier otro valor (incluida su ausencia) es la vista real.
+function filtroEsPrueba(query) {
+  return { esPrueba: query.esPrueba === 'true' }
+}
+
 export async function buscarUsuarios(req, res) {
   const { q } = req.query
   if (!q || q.trim().length < 2) {
@@ -28,6 +37,7 @@ export async function buscarUsuarios(req, res) {
 
   const usuarios = await Usuario.find({
     nombre_usuario: { $regex: escapeRegex(q.trim()), $options: 'i' },
+    ...filtroEsPrueba(req.query),
   })
     .select(CAMPOS_PUBLICOS)
     .populate(POPULATE_ROL)
@@ -36,12 +46,17 @@ export async function buscarUsuarios(req, res) {
   res.json({ usuarios })
 }
 
-export async function listarUsuarios(_req, res) {
-  const usuarios = await Usuario.find()
+export async function listarUsuarios(req, res) {
+  const usuarios = await Usuario.find(filtroEsPrueba(req.query))
     .select(CAMPOS_PUBLICOS)
     .populate(POPULATE_ROL)
     .sort({ _id: 1 })
-  res.json({ usuarios })
+  const conteos = await Usuario.aggregate([
+    { $group: { _id: '$esPrueba', total: { $sum: 1 } } },
+  ])
+  const totalReales = conteos.find((c) => c._id === false)?.total || 0
+  const totalPrueba = conteos.find((c) => c._id === true)?.total || 0
+  res.json({ usuarios, conteos: { reales: totalReales, prueba: totalPrueba } })
 }
 
 export async function crearUsuario(req, res) {
@@ -70,6 +85,16 @@ export async function crearUsuario(req, res) {
 
   const existenteEmail = await Usuario.findOne({ email: email.trim().toLowerCase() })
   if (existenteEmail) {
+    // Si el correo ya pertenece a un usuario de prueba, no se crea una cuenta
+    // duplicada para el mismo trabajador: el admin debe usar
+    // POST /usuarios/:id/convertir-real en su lugar (ver requerimiento de no
+    // duplicar personal al cargar el listado oficial del Terminal).
+    if (existenteEmail.esPrueba) {
+      return res.status(409).json({
+        error: 'El email ya pertenece a un usuario de prueba. Conviértelo en usuario real en vez de crear una cuenta nueva.',
+        usuarioPruebaId: existenteEmail._id,
+      })
+    }
     return res.status(409).json({ error: 'El email ya está registrado' })
   }
 
@@ -88,6 +113,11 @@ export async function crearUsuario(req, res) {
     // La eligió el admin que crea la cuenta, no su dueño: se fuerza a
     // cambiarla en el primer login (ver POST /auth/cambiar-password).
     debeCambiarPassword: true,
+    // Todo usuario creado por este flujo (o por cualquier import futuro que
+    // reutilice crearUsuario) es siempre personal real, sin importar qué
+    // venga en el body: esPrueba solo se activa por la migración inicial o
+    // se desactiva vía convertirUsuarioReal.
+    esPrueba: false,
   })
 
   const { password: _omit, ...usuarioSinPassword } = usuario.toObject()
@@ -204,6 +234,35 @@ export async function quedaOtroSuperAdminActivo(idExcluido) {
     .select('rol')
     .lean()
   return otrosActivos.some((u) => u.rol?.esSuperAdmin)
+}
+
+// Convierte un usuario de prueba en real (esPrueba:true -> false). No toca
+// contraseña, email, rol ni ningún otro dato: es exactamente el "moverlo de
+// sección", no una recreación de la cuenta.
+export async function convertirUsuarioReal(req, res) {
+  const { id } = req.params
+
+  const usuario = await Usuario.findById(id)
+  if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' })
+  if (!usuario.esPrueba) {
+    return res.status(409).json({ error: 'Este usuario ya es un usuario real' })
+  }
+
+  usuario.esPrueba = false
+  await usuario.save()
+
+  await registrarAuditoria({
+    usuario: req.usuario,
+    accion: 'actualizar',
+    modulo: 'usuarios',
+    entidad: 'Usuario',
+    entidadId: usuario._id,
+    descripcion: `Usuario de prueba convertido en real: ${usuario.nombre_usuario}`,
+    ip: req.ip,
+  })
+
+  const { password: _omit, ...usuarioSinPassword } = usuario.toObject()
+  res.json({ usuario: usuarioSinPassword })
 }
 
 export async function eliminarUsuario(req, res) {

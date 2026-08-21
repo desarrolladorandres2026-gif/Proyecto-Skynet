@@ -33,6 +33,33 @@ const turnoSchema = new mongoose.Schema(
   { _id: false, timestamps: { createdAt: 'en', updatedAt: false } }
 )
 
+// Estado conversacional (ver copiloto.estados.js): en qué punto de una tarea
+// va el hilo. `borrador` guarda tal cual lo último que devolvió una
+// herramienta de preparación (hoy, `preparar_requerimiento_compra`) para que
+// un mensaje de seguimiento ("también agrega instalación") se pueda mostrar
+// en el prompt como edición de ESE borrador en vez de depender de que el
+// modelo lo reconstruya leyendo su propia prosa de turnos anteriores.
+const estadoSchema = new mongoose.Schema(
+  {
+    flujo: {
+      type: String,
+      enum: ['IDLE', 'CREATING', 'EDITING', 'ASKING', 'WAITING_USER_RESPONSE', 'CONFIRMING', 'COMPLETED'],
+      default: 'IDLE',
+    },
+    entidadActiva: {
+      type: new mongoose.Schema({ tipo: String, id: String }, { _id: false }),
+      default: null,
+    },
+    ultimaPregunta: { type: String, default: null },
+    // Sin `type` explícito de subesquema porque la forma depende de la
+    // herramienta que lo produjo (hoy, el borrador de requerimiento de
+    // compra); es un volcado de lo que esa herramienta ya validó, no un dato
+    // que este documento vuelva a interpretar.
+    borrador: { type: mongoose.Schema.Types.Mixed, default: null },
+  },
+  { _id: false }
+)
+
 const conversacionSchema = new mongoose.Schema(
   {
     usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true, index: true },
@@ -42,6 +69,7 @@ const conversacionSchema = new mongoose.Schema(
     // resumir con IA costaría una petición extra de la cuota compartida por
     // cada mensaje, que es justo lo que este módulo intenta ahorrar.
     temas: { type: [String], default: [] },
+    estado: { type: estadoSchema, default: () => ({}) },
   },
   { timestamps: { createdAt: 'creadoEn', updatedAt: 'actualizadoEn' } }
 )

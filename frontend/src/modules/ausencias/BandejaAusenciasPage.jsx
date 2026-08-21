@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Inbox, Check, X, Stethoscope } from 'lucide-react'
 import { ausencias as ausenciasApi } from '../../api/ausencias.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { MOTIVO_LICENCIA_LABELS } from '../../config/ausenciasConstants.js'
 import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Textarea, Modal,
@@ -8,9 +9,12 @@ import {
 } from '../../components/ui.jsx'
 
 export default function BandejaAusenciasPage() {
-  const [lista, setLista] = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
+  const { data, cargando, error, recargar } = useDatosConCache(
+    'ausencias:bandeja',
+    () => ausenciasApi.bandeja().then((d) => d.ausencias),
+    { ttlMs: 20_000 },
+  )
+  const lista = data || []
   const [ok, setOk] = useState('')
 
   // Una sola pieza de estado para el modal: guarda a la vez QUÉ solicitud se
@@ -20,23 +24,6 @@ export default function BandejaAusenciasPage() {
   const [texto, setTexto] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [errorForm, setErrorForm] = useState('')
-
-  async function cargar() {
-    setCargando(true)
-    try {
-      const datos = await ausenciasApi.bandeja()
-      setLista(datos.ausencias)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    cargar()
-  }, [])
 
   function abrir(ausencia, accion) {
     setDecision({ ausencia, accion })
@@ -57,7 +44,7 @@ export default function BandejaAusenciasPage() {
         setOk('Solicitud rechazada')
       }
       setDecision(null)
-      cargar()
+      recargar()
     } catch (err) {
       setErrorForm(err.message)
     } finally {

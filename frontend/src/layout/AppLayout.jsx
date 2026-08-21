@@ -17,6 +17,7 @@ import {
 } from '../components/DropdownMenu.jsx'
 import { Breadcrumb } from '../components/Breadcrumb.jsx'
 import { CommandPalette, useCommandPalette } from '../components/CommandPalette.jsx'
+import { NotificacionesBell } from '../components/notificaciones/NotificacionesBell.jsx'
 // panel.css se importa una sola vez, globalmente, desde index.css — junto
 // con mobileShell.css — para que páginas universales (ej. Reportar daño)
 // tengan sus tokens sin importar qué shell (AppShell.jsx) las envuelva.
@@ -549,15 +550,11 @@ export default function AppLayout() {
               </Tooltip>
             )}
 
-            {/* Botón de Notificaciones con efecto flotante neón */}
-            <Tooltip label="Notificaciones" side="bottom">
-              <Link
-                to="/notificaciones"
-                className="group relative flex shrink-0 items-center justify-center rounded-xl p-2 transition-all duration-300 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-cyan-500/30 text-slate-700 dark:text-cyan-300 hover:border-cyan-400 dark:hover:border-cyan-400 dark:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:scale-105 active:scale-95"
-              >
-                <Bell className="h-4 w-4 text-cyan-600 dark:text-cyan-400 group-hover:rotate-12 transition-transform duration-300" aria-hidden="true" />
-              </Link>
-            </Tooltip>
+            {/* Centro de notificaciones: contador de no leídas + lista +
+                marcar leída/todas leídas (ver components/notificaciones). La
+                pantalla de preferencias sigue accesible desde el menú del
+                usuario, más abajo. */}
+            <NotificacionesBell />
             <ToggleTema tema={tema} onToggle={alternarTema} />
           </div>
         </header>

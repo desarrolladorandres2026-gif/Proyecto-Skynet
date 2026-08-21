@@ -51,6 +51,20 @@ export const backupLimiter = rateLimit({
 // manda los resets de password) como el envío desde la cuenta ya conectada
 // del usuario. Sin límite, una sola cuenta podría agotar la reputación/cupo
 // del remitente compartido y afectar los correos de TODOS los usuarios.
+// Exportar respuestas SIG a Excel recorre potencialmente miles de documentos
+// y arma el .xlsx completo en memoria (ver sig-excel.service.js) — igual de
+// pesado en espíritu que el backup completo, aunque de menor alcance (una
+// sola colección). Ventana/tope menos estrictos que backupLimiter porque es
+// una acción de uso más frecuente para SIG/HSEQ, pero igual evita que un
+// doble clic o un script lo dispare en bucle.
+export const sigExportarLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutos
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas exportaciones seguidas. Espera unos minutos antes de volver a intentarlo.' },
+})
+
 export const emailAccionLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
   max: 20,

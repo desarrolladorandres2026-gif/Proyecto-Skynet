@@ -1,23 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Brain, Plus, Pencil, Archive, ArchiveRestore, Trash2, Search, Filter, FileUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { sig } from '../../api/sig.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Btn, Badge, Card, ErrorMsg, Input, Select, TablaWrap, Th, Td, EmptyState } from '../../components/ui.jsx'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 import FormularioPreguntaModal from './FormularioPreguntaModal.jsx'
 import ImportarPreguntasModal from './ImportarPreguntasModal.jsx'
 
 export default function BancoPreguntasPage() {
-  const [preguntas, setPreguntas] = useState([])
-  const [componentes, setComponentes] = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
-
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false)
   const [filtroComponente, setFiltroComponente] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('')
   const [filtroTema, setFiltroTema] = useState('')
   const [filtroTexto, setFiltroTexto] = useState('')
+  // El texto libre solo se aplica al pulsar "Buscar" (no en cada tecla) — se
+  // guarda aparte para que solo ESE valor entre en la clave de caché.
+  const [textoBuscado, setTextoBuscado] = useState('')
 
   const [modalAbierto, setModalAbierto] = useState(false)
   const [modalImportarAbierto, setModalImportarAbierto] = useState(false)
@@ -25,27 +24,19 @@ export default function BancoPreguntasPage() {
   const [porEliminar, setPorEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
 
-  async function cargar() {
-    setCargando(true)
-    try {
-      const [datosPreguntas, datosConfig] = await Promise.all([
-        sig.banco.listar({ componenteSig: filtroComponente, estado: filtroEstado, tema: filtroTema, texto: filtroTexto }),
-        sig.configuracion.obtener(),
-      ])
-      setPreguntas(datosPreguntas.preguntas)
-      setComponentes(datosConfig.configuracion.componentes)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    cargar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtroComponente, filtroEstado, filtroTema])
+  const { data, cargando, error, recargar } = useDatosConCache(
+    `sig:banco:${filtroComponente}:${filtroEstado}:${filtroTema}:${textoBuscado}`,
+    () => Promise.all([
+      sig.banco.listar({ componenteSig: filtroComponente, estado: filtroEstado, tema: filtroTema, texto: textoBuscado }),
+      sig.configuracion.obtener(),
+    ]).then(([datosPreguntas, datosConfig]) => ({
+      preguntas: datosPreguntas.preguntas,
+      componentes: datosConfig.configuracion.componentes,
+    })),
+    { ttlMs: 30_000 },
+  )
+  const preguntas = data?.preguntas || []
+  const componentes = data?.componentes || []
 
   // Sugerencias del datalist "Tema" en el formulario: temas ya usados en el
   // banco, sin duplicados — evita que cada admin escriba el mismo tema con
@@ -55,7 +46,7 @@ export default function BancoPreguntasPage() {
 
   function buscar(e) {
     e.preventDefault()
-    cargar()
+    setTextoBuscado(filtroTexto)
   }
 
   function abrirNueva() {
@@ -77,14 +68,14 @@ export default function BancoPreguntasPage() {
       toast.success('Pregunta creada')
     }
     setModalAbierto(false)
-    cargar()
+    recargar()
   }
 
   async function alternarArchivar(pregunta) {
     try {
       await sig.banco.archivar(pregunta._id, pregunta.estado === 'activa')
       toast.success(pregunta.estado === 'activa' ? 'Pregunta archivada' : 'Pregunta reactivada')
-      cargar()
+      recargar()
     } catch (err) {
       toast.error(err.message)
     }
@@ -96,7 +87,7 @@ export default function BancoPreguntasPage() {
     try {
       await sig.banco.eliminar(porEliminar._id)
       toast.success('Pregunta eliminada')
-      cargar()
+      recargar()
     } catch (err) {
       toast.error(err.message)
     } finally {
@@ -229,7 +220,7 @@ export default function BancoPreguntasPage() {
       <ImportarPreguntasModal
         abierto={modalImportarAbierto}
         onCerrar={() => setModalImportarAbierto(false)}
-        onImportado={cargar}
+        onImportado={recargar}
         componentes={componentes}
       />
 

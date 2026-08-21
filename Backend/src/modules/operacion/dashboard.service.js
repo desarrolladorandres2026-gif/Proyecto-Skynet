@@ -6,7 +6,7 @@ import Rol from '../../models/Rol.js'
 import RegistroAuditoria from '../../models/RegistroAuditoria.js'
 import Mantenimiento from '../../models/mantenimiento/Mantenimiento.js'
 import { estaModuloActivo } from '../sistema/sistema.service.js'
-import { hoy } from '../../utils/fechas.js'
+import { hoy, restarMeses } from '../../utils/fechas.js'
 
 // Mapeo: cada tarjeta solo se calcula si su módulo está activo.
 // Las tarjetas sin módulo (ej: misDanosReportados) siempre se incluyen.
@@ -21,6 +21,25 @@ const TARJETA_A_MODULO = {
 // OTs que ya no requieren atención: cerradas por el flujo CMMS o por el
 // esquema legado que este modelo todavía acepta (ver Mantenimiento.js).
 const ESTADOS_OT_CERRADOS = ['finalizado', 'cerrada', 'cancelada']
+
+// Ventana para las 3 agregaciones de "analitica.*" de abajo (distribución de
+// daños, flujo de requerimientos, estados de mantenimiento): antes agrupaban
+// la colección COMPLETA sin ningún $match, así que cada carga del dashboard
+// escaneaba/agrupaba TODO el histórico de daños/requerimientos/OTs. Hoy
+// (2026-08) `analitica.*` no se renderiza en ningún componente activo del
+// frontend — GraficasOperativas.jsx la consume pero no está montado en
+// ContenidoRuta/DashboardPage — así que no hay "valor esperado por la
+// interfaz" que se pueda romper con esto. Se acota a 3 meses (misma ventana
+// que la retención de auditoría, ver auditoria.worker.js) en vez de
+// eliminarlas, para que sigan siendo útiles si ese panel se reactiva más
+// adelante, y para no dejar `analitica` con datos vacíos.
+// Los CONTADORES reales de las tarjetas (danosPendientes,
+// requerimientosPendientes, mantenimientoAbiertas, etc.), que sí se muestran
+// hoy en el KPI ribbon, NO se tocan: siguen siendo countDocuments sobre el
+// histórico completo, exactamente igual que antes.
+function haceVentanaAnalitica() {
+  return restarMeses(new Date(), 3)
+}
 
 export async function calcularResumen(usuario) {
   const puede = (...codigos) =>
@@ -51,7 +70,7 @@ export async function calcularResumen(usuario) {
   // 1. Tarjetas base y conteos
   if (esAdmin || puede('usuarios:gestionar')) {
     tareas.push(async () => {
-      tarjetas.usuarios = await Usuario.countDocuments({ estado: 'activo' })
+      tarjetas.usuarios = await Usuario.countDocuments({ estado: 'activo', esPrueba: false })
     })
   }
 
@@ -61,6 +80,7 @@ export async function calcularResumen(usuario) {
       const [pendientes, estados, criticidades, criticosRecientes] = await Promise.all([
         ReporteDano.countDocuments({ estado: { $nin: ['resuelto', 'cancelado'] } }),
         ReporteDano.aggregate([
+          { $match: { createdAt: { $gte: haceVentanaAnalitica() } } },
           { $group: { _id: '$estado', total: { $sum: 1 } } }
         ]),
         ReporteDano.aggregate([
@@ -126,6 +146,7 @@ export async function calcularResumen(usuario) {
           estado: { $in: ['pendiente_financiero', 'pendiente_bodega'] },
         }),
         Requerimiento.aggregate([
+          { $match: { createdAt: { $gte: haceVentanaAnalitica() } } },
           { $group: { _id: '$estado', total: { $sum: 1 } } }
         ]),
         Requerimiento.find({ estado: { $in: ['pendiente_financiero', 'pendiente_bodega'] } })
@@ -219,7 +240,10 @@ export async function calcularResumen(usuario) {
     tareas.push(async () => {
       const [abiertas, estadosOT] = await Promise.all([
         Mantenimiento.countDocuments({ estado: { $nin: ESTADOS_OT_CERRADOS } }),
+        // Mantenimiento.js usa `timestamps: { createdAt: 'creado_en' }` (campo
+        // legado en snake_case) — NO `createdAt` como los demás modelos.
         Mantenimiento.aggregate([
+          { $match: { creado_en: { $gte: haceVentanaAnalitica() } } },
           { $group: { _id: '$estado', total: { $sum: 1 } } }
         ])
       ])
@@ -366,8 +390,24 @@ export async function calcularResumen(usuario) {
 
   analitica.saludGeneral = Math.max(45, Math.min(100, scoreSalud))
 
-  // Si no hubo alertas críticas y la salud es alta, agregar recomendación de estado óptimo
-  if (recomendaciones.length === 0) {
+  // Si no hubo alertas críticas y la salud es alta, agregar recomendación de estado óptimo.
+  // Solo para usuarios que de hecho tienen permiso de ver análisis/recomendaciones
+  // (los mismos permisos que habilitan los bloques de recomendaciones de arriba);
+  // de lo contrario un usuario común sin ningún permiso de gestión terminaba
+  // viendo igual la sección porque `recomendaciones` le quedaba vacía.
+  const puedeVerAnalisis = esAdmin || puede(
+    'danos:gestionar',
+    'requerimientos:ver_todos',
+    'requerimientos:gestionar_bodega',
+    'ausencias:aprobar',
+    'ausencias:ver_todas',
+    'mantenimiento:ver_todas',
+    'mantenimiento:asignar',
+    'mantenimiento:aprobar_cerrar',
+    'mantenimiento:ejecutar',
+  )
+
+  if (recomendaciones.length === 0 && puedeVerAnalisis) {
     recomendaciones.push({
       id: 'estado-optimo',
       tipo: 'optimizacion',

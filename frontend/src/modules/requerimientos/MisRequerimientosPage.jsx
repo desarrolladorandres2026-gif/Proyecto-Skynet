@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, Plus } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
 import { Btn, Badge, Card, CardLink, ErrorMsg, TablaWrap, Th, Td, EmptyState, fmtFechaHora } from '../../components/ui.jsx'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 
 function estadoVisible(r) {
   if (r.estado === 'pendiente_bodega' && r.bodega?.estado && r.bodega.estado !== 'pendiente') return r.bodega.estado
@@ -21,35 +21,16 @@ const LABEL_ESTADO = {
 }
 
 export default function MisRequerimientosPage() {
-  const [lista, setLista] = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
+  // Compartido: volver de /requerimientos/:id o de otro módulo ya no repite
+  // la petición ni muestra "Cargando…" mientras la caché siga vigente.
+  const { data, cargando, error, recargarSilencioso } = useDatosConCache(
+    'requerimientos:mios',
+    () => requerimientosApi.mios().then((data) => data.requerimientos),
+    { ttlMs: 30_000 },
+  )
+  const lista = data || []
 
-  // `silencioso` evita tocar los estados de carga/error en los refrescos
-  // automáticos de fondo — solo la carga inicial muestra "Cargando…" o un
-  // error visible; un refresco fallido en segundo plano simplemente se
-  // reintenta en el próximo tick, sin interrumpir al usuario.
-  const cargar = useCallback((silencioso = false) => {
-    if (!silencioso) setCargando(true)
-    return requerimientosApi
-      .mios()
-      .then((data) => {
-        setLista(data.requerimientos)
-        if (!silencioso) setError('')
-      })
-      .catch((err) => {
-        if (!silencioso) setError(err.message)
-      })
-      .finally(() => {
-        if (!silencioso) setCargando(false)
-      })
-  }, [])
-
-  useEffect(() => {
-    cargar()
-  }, [cargar])
-
-  useAutoRefresh(() => cargar(true))
+  useAutoRefresh(recargarSilencioso)
 
   return (
     <div className="mx-auto max-w-5xl">

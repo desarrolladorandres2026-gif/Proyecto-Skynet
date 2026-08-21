@@ -62,7 +62,7 @@ export async function usuariosConPermiso(codigo, { incluirSuperAdmin = true } = 
   if (permiso) condiciones.push({ permisos: permiso._id })
   const filtroRol = condiciones.length ? { $or: condiciones } : { _id: null }
   const roles = await Rol.find(filtroRol).select('_id')
-  const usuarios = await Usuario.find({ rol: { $in: roles.map((r) => r._id) }, estado: 'activo' }).select('_id')
+  const usuarios = await Usuario.find({ rol: { $in: roles.map((r) => r._id) }, estado: 'activo', esPrueba: false }).select('_id')
   return usuarios.map((u) => u._id)
 }
 

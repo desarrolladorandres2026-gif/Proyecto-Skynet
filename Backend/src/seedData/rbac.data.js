@@ -18,6 +18,12 @@ export const PERMISOS = [
   permiso('configuracion', 'gestionar', 'Configuración general'),
   permiso('auditoria', 'leer', 'Auditoría y registros'),
   permiso('sistema', 'gestionar_modulos', 'Activar/desactivar módulos del sistema'),
+  // Historial administrativo de envíos (push/email) — ver
+  // modules/notificaciones/historial.service.js. Exclusivo de Super
+  // Admin en la especificación original (esSuperAdmin ya bypassa), se deja
+  // el permiso explícito por si se delega a otro rol más adelante, mismo
+  // criterio que auditoria:leer.
+  permiso('notificaciones', 'ver_historial', 'Ver historial de envíos de notificaciones'),
   // Catálogos de Dependencia y Cargo (selects reutilizados en Usuarios,
   // Requerimientos y Equipos). Ver que existan o listarlos es universal para
   // todo autenticado (mismo principio que danos:gestionar); este permiso solo

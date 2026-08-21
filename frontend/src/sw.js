@@ -6,12 +6,17 @@ import { precacheAndRoute } from 'workbox-precaching'
 // deshabilitada en dev, ver swKillSwitch en vite.config.js).
 precacheAndRoute(self.__WB_MANIFEST)
 
-// El cliente (virtual:pwa-register, registerType:'autoUpdate') manda este
-// mensaje cuando detecta una versión nueva del SW esperando: sin este
-// listener, el SW nuevo se queda en estado "waiting" indefinidamente y el
-// usuario sigue viendo la versión vieja de la app.
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting()
+// CAUSA RAÍZ del "hay que hacer Ctrl+Shift+R": con strategies:'injectManifest'
+// nada activa el SW nuevo automáticamente (a diferencia de generateSW). Sin
+// estas dos líneas, cada deploy instalaba un SW nuevo que se quedaba en
+// estado "waiting" PARA SIEMPRE — nunca disparaba el evento 'activated' que
+// escucha src/pwa/actualizacionAutomatica.js (registerType:'autoUpdate') para
+// recargar la pestaña sola. skipWaiting() lo activa en cuanto termina de
+// instalar; clients.claim() hace que tome control de las pestañas ya
+// abiertas sin esperar a que se cierren y vuelvan a abrir.
+self.skipWaiting()
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim())
 })
 
 // Sin este listener, un push que el backend manda (ver
@@ -31,13 +36,23 @@ self.addEventListener('push', (event) => {
   const { title = 'Skynet', body = '', url = '/', tag } = payload
 
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      tag,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
-      data: { url },
-    })
+    Promise.all([
+      self.registration.showNotification(title, {
+        body,
+        tag,
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        data: { url },
+      }),
+      // Le avisa a cada pestaña/ventana abierta de la PWA que llegó un push
+      // real, para que la campana (useCentroNotificaciones.js) refresque su
+      // contador de una vez en vez de esperar hasta 45s al próximo tick de
+      // su polling de respaldo. `includeUncontrolled` porque una pestaña
+      // abierta ANTES de que este SW tomara control también debe enterarse.
+      self.clients
+        .matchAll({ type: 'window', includeUncontrolled: true })
+        .then((clientes) => clientes.forEach((c) => c.postMessage({ type: 'SKYNET_PUSH_RECEIVED' }))),
+    ])
   )
 })
 

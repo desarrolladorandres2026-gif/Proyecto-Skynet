@@ -13,6 +13,23 @@ export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: process.env.PORT || 3001,
   MONGO_URI: process.env.MONGO_URI,
+  // El backend corre como UN SOLO proceso Node (ver deploy/ecosystem.config.cjs,
+  // exec_mode 'fork', instances 1) con límite de memoria de 400M en un VPS
+  // compartido — no necesita ni le conviene el pool por defecto de Mongoose
+  // (maxPoolSize: 100). 20 alcanza de sobra para los ~10-15 queries en
+  // paralelo que dispara una carga de dashboard más el resto de tráfico
+  // concurrente, sin arriesgarse a agotar el límite de conexiones del cluster
+  // de Atlas si el tier es bajo.
+  MONGO_MAX_POOL_SIZE: Number(process.env.MONGO_MAX_POOL_SIZE) || 20,
+  // Default de Mongoose es 30s: si Atlas no está disponible, cada request que
+  // toque Mongo se queda colgado medio minuto antes de fallar. 10s falla
+  // notoriamente más rápido sin ser tan agresivo como para dar falsos
+  // negativos ante una conexión momentáneamente lenta.
+  MONGO_SERVER_SELECTION_TIMEOUT_MS: Number(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS) || 10_000,
+  // Deja margen a operaciones legítimamente largas (backup completo, export
+  // de Excel de hasta 20k filas) sin dejar un socket colgado indefinidamente
+  // si la red hacia Atlas se cae a mitad de una operación.
+  MONGO_SOCKET_TIMEOUT_MS: Number(process.env.MONGO_SOCKET_TIMEOUT_MS) || 45_000,
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '8h',
   CORS_ORIGIN: process.env.CORS_ORIGIN,

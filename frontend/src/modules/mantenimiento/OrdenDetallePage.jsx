@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import {
   ordenesApi, hallazgosApi, bitacoraApi, plantillasApi, inventarioApi, conocimientoApi, mensajesApi,
 } from '../../api/mantenimiento.js'
+import { useDatosConCache, invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Select, Textarea,
@@ -1143,41 +1144,36 @@ function SeccionMensajes({ orden, usuario }) {
 export default function OrdenDetallePage() {
   const { id } = useParams()
   const { usuario, tienePermiso } = useAuth()
-  const [orden, setOrden] = useState(null)
-  const [hallazgos, setHallazgos] = useState([])
-  const [tecnicos, setTecnicos] = useState([])
-  const [error, setError] = useState('')
   const [ok, setOk] = useState('')
 
-  async function cargar() {
-    try {
-      const [{ orden: o }, { hallazgos: h }] = await Promise.all([
-        ordenesApi.obtener(id),
-        hallazgosApi.listarDeOrden(id).catch(() => ({ hallazgos: [] })),
-      ])
-      setOrden(o)
-      setHallazgos(h)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    }
-  }
+  const { data, error, recargar } = useDatosConCache(
+    `mantenimiento:ordenDetalle:${id}`,
+    () => Promise.all([
+      ordenesApi.obtener(id),
+      hallazgosApi.listarDeOrden(id).catch(() => ({ hallazgos: [] })),
+    ]).then(([{ orden: o }, { hallazgos: h }]) => ({ orden: o, hallazgos: h })),
+    { ttlMs: 15_000 },
+  )
+  const orden = data?.orden || null
+  const hallazgos = data?.hallazgos || []
 
-  useEffect(() => {
-    cargar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
-
-  useEffect(() => {
-    if (tienePermiso('mantenimiento:asignar')) {
-      ordenesApi.tecnicos().then((d) => setTecnicos(d.tecnicos)).catch(() => {})
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Mismos datos y misma clave de caché que OrdenesTrabajoPage.jsx: entrar
+  // aquí desde esa lista no repite la petición de técnicos.
+  const puedeAsignar = tienePermiso('mantenimiento:asignar')
+  const { data: tecnicosData } = useDatosConCache(
+    'mantenimiento:tecnicos',
+    () => (puedeAsignar ? ordenesApi.tecnicos().then((d) => d.tecnicos) : Promise.resolve([])),
+    { ttlMs: 5 * 60_000 },
+  )
+  const tecnicos = tecnicosData || []
 
   function onCambio() {
     setOk('Cambios guardados')
-    cargar()
+    // Un cambio aquí (aprobar, resolver, asignar, etc.) también puede alterar
+    // lo que muestra la lista de OrdenesTrabajoPage — se invalida esa caché
+    // además de refrescar el detalle.
+    invalidarCachePorPrefijo('mantenimiento:ordenes:')
+    recargar()
   }
 
   if (error) return <ErrorMsg>{error}</ErrorMsg>

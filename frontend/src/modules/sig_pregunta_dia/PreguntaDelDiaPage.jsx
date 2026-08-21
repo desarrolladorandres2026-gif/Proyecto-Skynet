@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Brain, CircleCheck, CircleX, History } from 'lucide-react'
+import { toast } from 'sonner'
 import { sig } from '../../api/sig.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Btn, Badge, Card, ErrorMsg, EmptyState, fmtFecha } from '../../components/ui.jsx'
 import { cn } from '../../lib/cn.js'
 
@@ -97,48 +99,35 @@ function TarjetaPregunta({ pregunta, indice, total, seleccion, onSeleccionar, on
 // por eso usa las primitivas universales de components/ui.jsx, sin nada
 // específico de un solo shell.
 export default function PreguntaDelDiaPage() {
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
-  const [data, setData] = useState(null)
   // Selección pendiente por programación: { [programacionId]: indiceOpcion }.
   const [seleccion, setSeleccion] = useState({})
   const [enviandoId, setEnviandoId] = useState(null)
-  const [progreso, setProgreso] = useState(null)
 
-  async function cargar() {
-    setCargando(true)
-    try {
-      const [dia, miProgreso] = await Promise.all([sig.preguntaDelDia(), sig.miProgreso()])
-      setData(dia)
-      setProgreso(miProgreso)
-      setSeleccion({})
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    cargar()
-  }, [])
+  const { data, cargando, error, recargar } = useDatosConCache(
+    'sig:preguntaDelDia',
+    () => sig.preguntaDelDia(),
+    { ttlMs: 60_000 },
+  )
+  const { data: progreso, recargar: recargarProgreso } = useDatosConCache(
+    'sig:miProgreso',
+    () => sig.miProgreso(),
+    { ttlMs: 60_000 },
+  )
 
   async function responder(programacionId) {
     const indice = seleccion[programacionId]
     if (indice === undefined) return
     setEnviandoId(programacionId)
-    setError('')
     try {
       await sig.responder(programacionId, indice)
       // Se recarga el día completo en vez de parchear la tarjeta en memoria:
       // el backend es la única fuente de la corrección y de la
       // retroalimentación, y así también se refleja cualquier otra pregunta
       // que se haya publicado mientras la pantalla estaba abierta.
-      setData(await sig.preguntaDelDia())
-      sig.miProgreso().then(setProgreso).catch(() => {})
+      await recargar()
+      recargarProgreso()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     } finally {
       setEnviandoId(null)
     }

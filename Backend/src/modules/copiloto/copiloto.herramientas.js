@@ -132,7 +132,7 @@ function catalogoHerramientas(usuario, contexto = {}) {
       declaracion: {
         name: 'preparar_requerimiento_compra',
         description:
-          'Arma un BORRADOR de requerimiento de compra con los productos que pida el usuario. NO lo crea ni lo envía a nadie — solo prepara un resumen para que el usuario lo revise y confirme con un botón en la interfaz. Úsala en cuanto tengas al menos un producto con su cantidad; si falta el área/proceso o la fecha de algún ítem, usa un valor razonable (fecha de hoy) y dile al usuario qué asumiste para que lo corrija si hace falta.',
+          'Arma un BORRADOR de requerimiento de compra con los productos que pida el usuario. NO lo crea ni lo envía a nadie — solo prepara un resumen para que el usuario lo revise y confirme con un botón en la interfaz. Úsala en cuanto tengas al menos un producto con su cantidad; si falta el área/proceso o la fecha de algún ítem, usa un valor razonable (fecha de hoy) y dile al usuario qué asumiste para que lo corrija si hace falta. Si ya existe un borrador en curso (te lo recuerda el estado de la conversación) y el usuario pide agregar, quitar o cambiar algo, llama esta herramienta de nuevo con la lista COMPLETA de items ya actualizada — los que ya había más el cambio — no solo el item nuevo.',
         parameters: {
           type: Type.OBJECT,
           properties: {

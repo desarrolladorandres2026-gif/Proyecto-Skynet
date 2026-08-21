@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { Link } from 'react-router-dom'
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line,
   CartesianGrid, XAxis, YAxis, Tooltip, Legend,
 } from 'recharts'
 import { ordenesApi, supervisorApi, plantillasApi, inventarioApi } from '../../api/mantenimiento.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Select, Textarea,
   TablaWrap, Th, Td, EmptyState, fmtFecha,
@@ -38,12 +40,7 @@ const ESTADOS_KANBAN = ['reportado', 'asignada', 'en_progreso', 'en_espera', 'pe
 
 // ── Centro de Control ────────────────────────────────────────────────────
 function TabCentroControl() {
-  const [datos, setDatos] = useState(null)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    supervisorApi.centroControl().then(setDatos).catch((e) => setError(e.message))
-  }, [])
+  const { data: datos, error } = useDatosConCache('mantenimiento:supervisor:control', () => supervisorApi.centroControl(), { ttlMs: 30_000 })
 
   if (error) return <ErrorMsg>{error}</ErrorMsg>
   if (!datos) return <Card>Cargando…</Card>
@@ -77,12 +74,8 @@ function TabCentroControl() {
 
 // ── Tablero Kanban ───────────────────────────────────────────────────────
 function TabKanban() {
-  const [ordenes, setOrdenes] = useState([])
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    ordenesApi.listar({ page: 1 }).then((d) => setOrdenes(d.ordenes)).catch((e) => setError(e.message))
-  }, [])
+  const { data, error } = useDatosConCache('mantenimiento:supervisor:kanban', () => ordenesApi.listar({ page: 1 }).then((d) => d.ordenes), { ttlMs: 20_000 })
+  const ordenes = data || []
 
   if (error) return <ErrorMsg>{error}</ErrorMsg>
 
@@ -108,14 +101,7 @@ function TabKanban() {
 
 // ── Balance de Carga ─────────────────────────────────────────────────────
 function TabBalanceCarga() {
-  const [tecnicos, setTecnicos] = useState(null)
-  const [error, setError] = useState('')
-
-  function cargar() {
-    supervisorApi.balanceCarga().then((d) => setTecnicos(d.tecnicos)).catch((e) => setError(e.message))
-  }
-
-  useEffect(cargar, [])
+  const { data: tecnicos, error } = useDatosConCache('mantenimiento:supervisor:balanceCarga', () => supervisorApi.balanceCarga().then((d) => d.tecnicos), { ttlMs: 30_000 })
 
   if (error) return <ErrorMsg>{error}</ErrorMsg>
   if (!tecnicos) return <Card>Cargando…</Card>
@@ -145,23 +131,16 @@ function TabBalanceCarga() {
 
 // ── Centro de Aprobaciones ───────────────────────────────────────────────
 function TabAprobaciones() {
-  const [datos, setDatos] = useState(null)
-  const [error, setError] = useState('')
   const [ok, setOk] = useState('')
-
-  function cargar() {
-    supervisorApi.aprobaciones().then(setDatos).catch((e) => setError(e.message))
-  }
-
-  useEffect(cargar, [])
+  const { data: datos, error, recargar } = useDatosConCache('mantenimiento:supervisor:aprobaciones', () => supervisorApi.aprobaciones(), { ttlMs: 20_000 })
 
   async function aprobarCierre(id) {
     try {
       await ordenesApi.aprobar(id, '')
       setOk('Orden aprobada y cerrada')
-      cargar()
+      recargar()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -169,9 +148,9 @@ function TabAprobaciones() {
     try {
       await ordenesApi.aprobarRepuestos(otId, solicitudId)
       setOk('Repuestos aprobados')
-      cargar()
+      recargar()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -232,12 +211,7 @@ function TabAprobaciones() {
 
 // ── Calendario Operativo ─────────────────────────────────────────────────
 function TabCalendario() {
-  const [ordenes, setOrdenes] = useState(null)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    supervisorApi.calendario().then((d) => setOrdenes(d.ordenes)).catch((e) => setError(e.message))
-  }, [])
+  const { data: ordenes, error } = useDatosConCache('mantenimiento:supervisor:calendario', () => supervisorApi.calendario().then((d) => d.ordenes), { ttlMs: 60_000 })
 
   if (error) return <ErrorMsg>{error}</ErrorMsg>
   if (!ordenes) return <Card>Cargando…</Card>
@@ -260,12 +234,7 @@ function TabCalendario() {
 
 // ── Centro de SLA ────────────────────────────────────────────────────────
 function TabSLA() {
-  const [datos, setDatos] = useState(null)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    supervisorApi.sla().then(setDatos).catch((e) => setError(e.message))
-  }, [])
+  const { data: datos, error } = useDatosConCache('mantenimiento:supervisor:sla', () => supervisorApi.sla(), { ttlMs: 30_000 })
 
   if (error) return <ErrorMsg>{error}</ErrorMsg>
   if (!datos) return <Card>Cargando…</Card>
@@ -302,12 +271,7 @@ function TabSLA() {
 
 // ── Centro de Hallazgos ──────────────────────────────────────────────────
 function TabHallazgos() {
-  const [datos, setDatos] = useState(null)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    supervisorApi.centroHallazgos().then(setDatos).catch((e) => setError(e.message))
-  }, [])
+  const { data: datos, error } = useDatosConCache('mantenimiento:supervisor:hallazgos', () => supervisorApi.centroHallazgos(), { ttlMs: 30_000 })
 
   if (error) return <ErrorMsg>{error}</ErrorMsg>
   if (!datos) return <Card>Cargando…</Card>
@@ -339,16 +303,12 @@ function TabHallazgos() {
 
 // ── Centro de Activos ────────────────────────────────────────────────────
 function TabActivos() {
-  const [problematicos, setProblematicos] = useState(null)
+  const { data: problematicos } = useDatosConCache('mantenimiento:supervisor:activosProblematicos', () => supervisorApi.activosProblematicos().then((d) => d.activos), { ttlMs: 60_000 })
   const [equipoId, setEquipoId] = useState('')
   const [ficha, setFicha] = useState(null)
   const [form, setForm] = useState({ criticidad: 'estandar', garantia_fecha_fin: '', garantia_proveedor: '', vida_util_anios: '' })
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
-
-  useEffect(() => {
-    supervisorApi.activosProblematicos().then((d) => setProblematicos(d.activos)).catch((e) => setError(e.message))
-  }, [])
 
   async function verFicha(id) {
     setEquipoId(id)
@@ -419,12 +379,7 @@ function TabActivos() {
 
 // ── Alertas Operativas ───────────────────────────────────────────────────
 function TabAlertas() {
-  const [alertas, setAlertas] = useState(null)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    supervisorApi.alertas().then((d) => setAlertas(d.alertas)).catch((e) => setError(e.message))
-  }, [])
+  const { data: alertas, error } = useDatosConCache('mantenimiento:supervisor:alertas', () => supervisorApi.alertas().then((d) => d.alertas), { ttlMs: 30_000 })
 
   if (error) return <ErrorMsg>{error}</ErrorMsg>
   if (!alertas) return <Card>Cargando…</Card>
@@ -444,12 +399,7 @@ function TabAlertas() {
 
 // ── Dashboard Gerencial ──────────────────────────────────────────────────
 function TabDashboard() {
-  const [datos, setDatos] = useState(null)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    supervisorApi.dashboard().then(setDatos).catch((e) => setError(e.message))
-  }, [])
+  const { data: datos, error } = useDatosConCache('mantenimiento:supervisor:dashboard', () => supervisorApi.dashboard(), { ttlMs: 60_000 })
 
   if (error) return <ErrorMsg>{error}</ErrorMsg>
   if (!datos) return <Card>Cargando…</Card>

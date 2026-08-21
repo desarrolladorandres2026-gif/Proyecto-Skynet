@@ -23,6 +23,7 @@ import sigConfiguracionRoutes from '../modules/sig_pregunta_dia/sig-configuracio
 import sigProgramacionRoutes from '../modules/sig_pregunta_dia/sig-programacion.routes.js'
 import sigRespuestasRoutes from '../modules/sig_pregunta_dia/sig-respuestas.routes.js'
 import sigReportesRoutes from '../modules/sig_pregunta_dia/sig-reportes.routes.js'
+import sigCapacitacionesRoutes from '../modules/sig_pregunta_dia/sig-capacitaciones.routes.js'
 
 const router = Router()
 
@@ -72,6 +73,7 @@ router.use('/sig_pregunta_dia', sigReportesRoutes)
 router.use('/sig_pregunta_dia/banco', sigBancoRoutes)
 router.use('/sig_pregunta_dia/configuracion', sigConfiguracionRoutes)
 router.use('/sig_pregunta_dia/programacion', sigProgramacionRoutes)
+router.use('/sig_pregunta_dia/capacitaciones', sigCapacitacionesRoutes)
 // operacion ahora solo expone /dashboard (núcleo, universal para todo rol);
 // se monta en la raíz por eso.
 router.use('/', operacionRoutes)

@@ -127,7 +127,7 @@ async function tecnicosDeMantenimiento() {
   if (!permiso) return []
   const roles = await Rol.find({ permisos: permiso._id }).select('_id')
   if (!roles.length) return []
-  return Usuario.find({ rol: { $in: roles.map((r) => r._id) }, estado: 'activo' })
+  return Usuario.find({ rol: { $in: roles.map((r) => r._id) }, estado: 'activo', esPrueba: false })
     .select('nombre nombre_usuario email dependencia cargo')
     .sort({ nombre: 1 })
 }

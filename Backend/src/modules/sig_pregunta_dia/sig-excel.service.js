@@ -69,5 +69,5 @@ export async function exportarRespuestas({ desde, hasta, dependencia, cargo, com
     })
   }
 
-  return { buffer: await workbook.xlsx.writeBuffer(), total: respuestas.length }
+  return { buffer: await workbook.xlsx.writeBuffer(), total: respuestas.length, truncado }
 }

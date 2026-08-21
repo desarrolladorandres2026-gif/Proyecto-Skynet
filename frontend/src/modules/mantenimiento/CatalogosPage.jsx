@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { mantenimientoApi } from '../../api/mantenimiento.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Btn, Card, ErrorMsg, OkMsg, Input, EmptyState } from '../../components/ui.jsx'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 
@@ -83,16 +84,13 @@ function ListaCatalogo({ titulo, tipo, items, onCambio }) {
 }
 
 export default function CatalogosPage() {
-  const [catalogos, setCatalogos] = useState({ tipos: [], marcas: [] })
-  const [error, setError] = useState('')
   const [ok, setOk] = useState('')
-
-  useEffect(() => {
-    mantenimientoApi.catalogos
-      .obtener()
-      .then(setCatalogos)
-      .catch((err) => setError(err.message))
-  }, [])
+  const { data, error, actualizarLocal } = useDatosConCache(
+    'mantenimiento:equipos:catalogos',
+    () => mantenimientoApi.catalogos.obtener(),
+    { ttlMs: 5 * 60_000 },
+  )
+  const catalogos = data || { tipos: [], marcas: [] }
 
   return (
     <div>
@@ -109,13 +107,13 @@ export default function CatalogosPage() {
           titulo="Tipos de equipo"
           tipo="tipo"
           items={catalogos.tipos}
-          onCambio={(lista) => setCatalogos((c) => ({ ...c, tipos: lista }))}
+          onCambio={(lista) => actualizarLocal((c) => ({ ...(c || catalogos), tipos: lista }))}
         />
         <ListaCatalogo
           titulo="Marcas"
           tipo="marca"
           items={catalogos.marcas}
-          onCambio={(lista) => setCatalogos((c) => ({ ...c, marcas: lista }))}
+          onCambio={(lista) => actualizarLocal((c) => ({ ...(c || catalogos), marcas: lista }))}
         />
       </div>
     </div>

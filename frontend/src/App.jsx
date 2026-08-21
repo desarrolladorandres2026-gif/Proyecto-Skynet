@@ -38,6 +38,7 @@ import NuevaCampanaWizard from './modules/sig_pregunta_dia/NuevaCampanaWizard.js
 import DashboardSigPage from './modules/sig_pregunta_dia/DashboardSigPage.jsx'
 import ReporteIndividualPage from './modules/sig_pregunta_dia/ReporteIndividualPage.jsx'
 import PlanRefuerzoPage from './modules/sig_pregunta_dia/PlanRefuerzoPage.jsx'
+import CapacitacionesTemaPage from './modules/sig_pregunta_dia/CapacitacionesTemaPage.jsx'
 import ConfiguracionSigPage from './modules/sig_pregunta_dia/ConfiguracionSigPage.jsx'
 import CalendarioSigPage from './modules/sig_pregunta_dia/CalendarioSigPage.jsx'
 import MisAusenciasPage from './modules/ausencias/MisAusenciasPage.jsx'
@@ -55,6 +56,8 @@ import InstallBanner from './pwa/InstallBanner.jsx'
 import CookieConsent from './legal/CookieConsent.jsx'
 import LegalPage from './legal/LegalPage.jsx'
 import PreferenciasNotificacionesPage from './modules/notificaciones/PreferenciasNotificacionesPage.jsx'
+import CentroNotificacionesPage from './modules/notificaciones/CentroNotificacionesPage.jsx'
+import HistorialEnviosPage from './modules/notificaciones/HistorialEnviosPage.jsx'
 import AsistentePage from './escritorio/AsistentePage.jsx'
 import DiagnosticoPage from './escritorio/DiagnosticoPage.jsx'
 
@@ -147,6 +150,18 @@ export default function App() {
                 Super Admin (/sistema/modulos); el dashboard es núcleo. */}
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="notificaciones" element={<PreferenciasNotificacionesPage />} />
+            {/* Centro de notificaciones (campana): universal, cada quien ve
+                solo lo suyo — el backend nunca confía en un usuarioId del
+                cliente (ver notificaciones.routes.js). */}
+            <Route path="notificaciones/centro" element={<CentroNotificacionesPage />} />
+            <Route
+              path="notificaciones/historial"
+              element={
+                <PermissionRoute permiso="notificaciones:ver_historial">
+                  <HistorialEnviosPage />
+                </PermissionRoute>
+              }
+            />
             <Route path="ia/preferencias" element={<ModuloActivoRoute modulo="ia"><PreferenciasIAPage /></ModuloActivoRoute>} />
             <Route path="ia/configuracion" element={<ModuloActivoRoute modulo="ia"><PermissionRoute permiso="ia:configurar"><ConfiguracionIAPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="danos/reportar" element={<ModuloActivoRoute modulo="danos"><ReportarDanoPage /></ModuloActivoRoute>} />
@@ -180,6 +195,7 @@ export default function App() {
             <Route path="sig/dashboard" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:ver_reportes"><DashboardSigPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="sig/reportes/individual" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:ver_reportes"><ReporteIndividualPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="sig/reportes/plan-refuerzo" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:ver_reportes"><PlanRefuerzoPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="sig/capacitaciones" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:programar"><CapacitacionesTemaPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="sig/configuracion" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:configurar"><ConfiguracionSigPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="sig/calendario" element={<ModuloActivoRoute modulo="sig_pregunta_dia"><PermissionRoute permiso="sig_pregunta_dia:programar"><CalendarioSigPage /></PermissionRoute></ModuloActivoRoute>} />
 

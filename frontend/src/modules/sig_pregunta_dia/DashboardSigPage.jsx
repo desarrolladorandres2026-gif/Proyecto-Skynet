@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { toast } from 'sonner'
 import {
   ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell,
   CartesianGrid, XAxis, YAxis, Tooltip, Legend,
@@ -7,6 +8,7 @@ import {
 import { LayoutDashboard, Download, Users, CircleCheck, CircleX, ClipboardList } from 'lucide-react'
 import { sig } from '../../api/sig.js'
 import { catalogosApi } from '../../api/catalogos.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Card, ErrorMsg, EmptyState, Btn } from '../../components/ui.jsx'
 import FiltrosDashboardSig from '../../components/sig/FiltrosDashboardSig.jsx'
 
@@ -41,35 +43,23 @@ const FILTROS_VACIOS = { desde: '', hasta: '', dependencia: '', cargo: '', compo
 
 export default function DashboardSigPage() {
   const [filtros, setFiltros] = useState(FILTROS_VACIOS)
-  const [componentes, setComponentes] = useState([])
-  const [catalogos, setCatalogos] = useState({ dependencias: [], cargos: [] })
-  const [datos, setDatos] = useState(null)
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
 
-  async function cargar() {
-    setCargando(true)
-    try {
-      const [d, config, cat] = await Promise.all([
-        sig.dashboard(filtros),
-        sig.configuracion.obtener(),
-        catalogosApi.obtener(),
-      ])
-      setDatos(d)
-      setComponentes(config.configuracion.componentes)
-      setCatalogos(cat)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
+  const { data: configYCatalogos } = useDatosConCache(
+    'sig:dashboard:configYCatalogos',
+    () => Promise.all([sig.configuracion.obtener(), catalogosApi.obtener()])
+      .then(([config, cat]) => ({ componentes: config.configuracion.componentes, catalogos: cat })),
+    { ttlMs: 5 * 60_000 },
+  )
+  const componentes = configYCatalogos?.componentes || []
+  const catalogos = configYCatalogos?.catalogos || { dependencias: [], cargos: [] }
 
-  useEffect(() => {
-    cargar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Clave por filtro: volver a un rango/filtro ya consultado en esta sesión
+  // muestra el dashboard de inmediato en vez de "Cargando…".
+  const { data: datos, cargando, error, recargar } = useDatosConCache(
+    `sig:dashboard:datos:${JSON.stringify(filtros)}`,
+    () => sig.dashboard(filtros),
+    { ttlMs: 60_000 },
+  )
 
   async function exportar() {
     try {
@@ -81,7 +71,7 @@ export default function DashboardSigPage() {
       a.click()
       URL.revokeObjectURL(url)
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -110,7 +100,7 @@ export default function DashboardSigPage() {
       <FiltrosDashboardSig
         filtros={filtros}
         onChange={setFiltros}
-        onAplicar={cargar}
+        onAplicar={recargar}
         componentes={componentes}
         catalogos={catalogos}
       />

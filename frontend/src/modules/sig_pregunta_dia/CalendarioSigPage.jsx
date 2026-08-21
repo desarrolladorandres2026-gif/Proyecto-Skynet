@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react'
 import { sig } from '../../api/sig.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Badge, Card, ErrorMsg, EmptyState } from '../../components/ui.jsx'
 
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -47,27 +48,20 @@ export default function CalendarioSigPage() {
   }, [])
   const [mesActual, setMesActual] = useState(() => new Date(hoy.getFullYear(), hoy.getMonth(), 1))
   const [diaSeleccionado, setDiaSeleccionado] = useState(aISO(hoy))
-  const [lista, setLista] = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
 
   const grilla = useMemo(() => construirGrilla(mesActual), [mesActual])
+  const desde = aISO(grilla[0])
+  const hasta = aISO(grilla[grilla.length - 1])
 
-  useEffect(() => {
-    let vigente = true
-    setCargando(true)
-    sig.programacion
-      .calendario({ desde: aISO(grilla[0]), hasta: aISO(grilla[grilla.length - 1]) })
-      .then((datos) => {
-        if (vigente) {
-          setLista(datos.programaciones)
-          setError('')
-        }
-      })
-      .catch((err) => vigente && setError(err.message))
-      .finally(() => vigente && setCargando(false))
-    return () => { vigente = false }
-  }, [grilla])
+  // Clave por rango visible: volver a un mes ya visto en esta sesión lo
+  // muestra de inmediato (el hook ya protege contra que una respuesta lenta
+  // de un mes anterior pise el mes al que el usuario ya navegó).
+  const { data, cargando, error } = useDatosConCache(
+    `sig:calendario:${desde}:${hasta}`,
+    () => sig.programacion.calendario({ desde, hasta }).then((d) => d.programaciones),
+    { ttlMs: 60_000 },
+  )
+  const lista = data || []
 
   const porDia = useMemo(() => {
     const mapa = new Map()

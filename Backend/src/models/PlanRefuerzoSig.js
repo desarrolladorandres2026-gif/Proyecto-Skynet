@@ -31,5 +31,10 @@ const planRefuerzoSigSchema = new mongoose.Schema(
 )
 
 planRefuerzoSigSchema.index({ usuario: 1, componenteSig: 1, estado: 1 })
+// Optimiza el listado del dashboard de Plan de Refuerzo:
+// PlanRefuerzoSig.find({ estado: { $ne: 'descartado' } }).sort({ porcentajeAcierto: 1 })
+// El índice de arriba empieza por `usuario`, así que no sirve para este
+// patrón (filtra/ordena sin agrupar por usuario primero).
+planRefuerzoSigSchema.index({ estado: 1, porcentajeAcierto: 1 })
 
 export default mongoose.model('PlanRefuerzoSig', planRefuerzoSigSchema)

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Settings, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { sig } from '../../api/sig.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Btn, Card, ErrorMsg, Field, Input, Switch } from '../../components/ui.jsx'
 
 function ListaComponentes({ componentes, onChange }) {
@@ -71,21 +72,19 @@ function TablaNiveles({ niveles, onChange }) {
 }
 
 export default function ConfiguracionSigPage() {
-  const [config, setConfig] = useState(null)
-  const [cargando, setCargando] = useState(true)
+  const { data: config, cargando, error, actualizarLocal } = useDatosConCache(
+    'sig:configuracion',
+    () => sig.configuracion.obtener().then((d) => d.configuracion),
+    { ttlMs: 5 * 60_000 },
+  )
   const [guardando, setGuardando] = useState(false)
-  const [error, setError] = useState('')
 
-  useEffect(() => {
-    sig.configuracion.obtener()
-      .then((data) => setConfig(data.configuracion))
-      .catch((err) => setError(err.message))
-      .finally(() => setCargando(false))
-  }, [])
+  function setConfig(nuevo) {
+    actualizarLocal(nuevo)
+  }
 
   async function guardar() {
     setGuardando(true)
-    setError('')
     try {
       const { configuracion } = await sig.configuracion.actualizar({
         horaPublicacionDefecto: config.horaPublicacionDefecto,
@@ -94,10 +93,10 @@ export default function ConfiguracionSigPage() {
         ventanaDesempenoDias: config.ventanaDesempenoDias,
         notificarAlPublicar: config.notificarAlPublicar,
       })
-      setConfig(configuracion)
+      actualizarLocal(configuracion)
       toast.success('Configuración guardada')
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     } finally {
       setGuardando(false)
     }

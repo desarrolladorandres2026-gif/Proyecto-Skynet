@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { mantenimientoApi } from '../../api/mantenimiento.js'
+import { useDatosConCache, invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
 import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Textarea, Modal,
   TablaWrap, Th, Td, EmptyState, Pager, fmtFecha, aInputFecha,
@@ -82,13 +84,10 @@ const FORM_EDITAR = { fecha: '', tipo: '', tecnico: '', descripcion: '', fecha_r
 
 export default function MantenimientosPage() {
   const [tab, setTab] = useState('pendientes')
-  const [lista, setLista] = useState([])
   const [pagInfo, setPagInfo] = useState({ page: 1, pages: 1 })
   const [page, setPage] = useState(1)
   const [busqueda, setBusqueda] = useState('')
   const [q, setQ] = useState('')
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
   const [ok, setOk] = useState('')
 
   const [modal, setModal] = useState(null) // 'programar' | 'realizado' | 'editar'
@@ -100,29 +99,30 @@ export default function MantenimientosPage() {
   const [confirmacion, setConfirmacion] = useState(null) // { accion, item }
   const [ejecutando, setEjecutando] = useState(false)
 
-  async function cargar() {
-    setCargando(true)
-    try {
-      let data
+  // Clave por pestaña+página+búsqueda: cambiar de pestaña y volver ya no
+  // repite la petición si la caché sigue vigente.
+  const { data: lista, cargando, error, recargar } = useDatosConCache(
+    `mantenimiento:mantenimientos:${tab}:${page}:${busqueda}`,
+    async () => {
       if (tab === 'programados') {
-        data = await mantenimientoApi.mantenimientos.programados({ page, busqueda })
+        const data = await mantenimientoApi.mantenimientos.programados({ page, busqueda })
         setPagInfo({ page: data.page, pages: data.pages })
-      } else {
-        data = await mantenimientoApi.mantenimientos[tab]()
-        setPagInfo({ page: 1, pages: 1 })
+        return data.mantenimientos
       }
-      setLista(data.mantenimientos)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
+      const data = await mantenimientoApi.mantenimientos[tab]()
+      setPagInfo({ page: 1, pages: 1 })
+      return data.mantenimientos
+    },
+    { ttlMs: 30_000 },
+  )
 
-  useEffect(() => {
-    cargar()
-  }, [tab, page, busqueda])
+  // Las mutaciones (programar/registrar/editar/finalizar/eliminar/PDF) pueden
+  // mover un ítem entre pestañas (ej. pendiente → finalizado) — se invalida
+  // todo el prefijo en vez de solo la pestaña/página actual.
+  function recargarTodo() {
+    invalidarCachePorPrefijo('mantenimiento:mantenimientos:')
+    recargar()
+  }
 
   function cambiarTab(t) {
     setTab(t)
@@ -165,7 +165,7 @@ export default function MantenimientosPage() {
         setOk('Mantenimiento actualizado')
       }
       setModal(null)
-      cargar()
+      recargarTodo()
     } catch (err) {
       setErrorForm(err.message)
     } finally {
@@ -176,14 +176,14 @@ export default function MantenimientosPage() {
   async function confirmarAccion() {
     if (!confirmacion) return
     const { ejecutar, exito } = CONFIRMACIONES[confirmacion.accion]
-    setOk(''); setError('')
+    setOk('')
     setEjecutando(true)
     try {
       await ejecutar(confirmacion.item._id)
       setOk(exito)
-      cargar()
+      recargarTodo()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     } finally {
       // Se cierra pase lo que pase: el aviso vive en la página y el overlay
       // del diálogo lo taparía.
@@ -201,9 +201,9 @@ export default function MantenimientosPage() {
         await mantenimientoApi.mantenimientos.subirPdf(m._id, file)
       }
       setOk('PDF adjuntado correctamente')
-      cargar()
+      recargarTodo()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -259,7 +259,7 @@ export default function MantenimientosPage() {
 
       {cargando ? (
         <Card>Cargando…</Card>
-      ) : lista.length === 0 ? (
+      ) : !lista || lista.length === 0 ? (
         <EmptyState mensaje="No hay mantenimientos en esta vista" />
       ) : (
         <>

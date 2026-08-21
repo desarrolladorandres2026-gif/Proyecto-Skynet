@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
 import { BellRing, Smartphone, Trash2, TriangleAlert } from 'lucide-react'
 import { notificaciones as notificacionesApi } from '../../api/notificaciones.js'
 import { usePushNotifications } from '../../pwa/usePushNotifications.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Card, Switch, ErrorMsg, EmptyState, Btn, fmtFechaHora } from '../../components/ui.jsx'
 
 const ETIQUETA_PERMISO = {
@@ -12,39 +12,39 @@ const ETIQUETA_PERMISO = {
 }
 
 export default function PreferenciasNotificacionesPage() {
-  const [preferencias, setPreferencias] = useState(null)
-  const [categorias, setCategorias] = useState([])
-  const [dispositivos, setDispositivos] = useState(null)
-  const [error, setError] = useState('')
+  const { data, error, actualizarLocal } = useDatosConCache(
+    'notificaciones:preferencias',
+    () => Promise.all([notificacionesApi.preferencias(), notificacionesApi.categorias(), notificacionesApi.misDispositivos()])
+      .then(([prefs, cats, disp]) => ({ preferencias: prefs, categorias: cats.categorias, dispositivos: disp.dispositivos })),
+    { ttlMs: 60_000 },
+  )
+  const preferencias = data?.preferencias || null
+  const categorias = data?.categorias || []
+  const dispositivos = data?.dispositivos || null
 
   const push = usePushNotifications()
 
-  useEffect(() => {
-    Promise.all([notificacionesApi.preferencias(), notificacionesApi.categorias(), notificacionesApi.misDispositivos()])
-      .then(([prefs, cats, disp]) => {
-        setPreferencias(prefs)
-        setCategorias(cats.categorias)
-        setDispositivos(disp.dispositivos)
-      })
-      .catch((err) => setError(err.message))
-  }, [])
-
   async function guardar(cambios, aplicarLocal) {
-    setPreferencias((p) => aplicarLocal(p))
+    actualizarLocal((d) => ({ ...d, preferencias: aplicarLocal(d.preferencias) }))
     try {
       await notificacionesApi.actualizarPreferencias(cambios)
     } catch (err) {
-      setError(err.message)
-      notificacionesApi.preferencias().then(setPreferencias).catch(() => {})
+      // El optimista ya se aplicó — si el backend rechaza el cambio, se
+      // vuelve a pedir el estado real en vez de dejar la UI desincronizada.
+      notificacionesApi.preferencias()
+        .then((prefs) => actualizarLocal((d) => ({ ...d, preferencias: prefs })))
+        .catch(() => {})
     }
   }
 
   async function olvidarDispositivo(id) {
     try {
       await notificacionesApi.olvidarDispositivo(id)
-      setDispositivos((lista) => lista.filter((d) => d._id !== id))
+      actualizarLocal((d) => ({ ...d, dispositivos: d.dispositivos.filter((x) => x._id !== id) }))
     } catch (err) {
-      setError(err.message)
+      // No hay banner de error aparte en esta tarjeta — sí importa que quien
+      // hizo clic se entere de que no se pudo olvidar el dispositivo.
+      console.error(err)
     }
   }
 

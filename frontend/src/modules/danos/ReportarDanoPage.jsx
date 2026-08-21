@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Camera, Images, Send, X, ShieldOff } from 'lucide-react'
 import { danos as danosApi } from '../../api/danos.js'
 import { normalizarFoto } from '../../utils/normalizarFoto.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import {
   Btn, Badge, ErrorMsg, OkMsg, Field, Input, Textarea,
@@ -49,24 +50,12 @@ export default function ReportarDanoPage() {
   const inputGaleriaRef = useRef(null)
   const fotoObligatoria = tipo === 'dano'
 
-  const [misReportes, setMisReportes] = useState([])
-  const [cargando, setCargando] = useState(true)
-
-  async function cargarMios() {
-    setCargando(true)
-    try {
-      const data = await danosApi.mios()
-      setMisReportes(data.reportes)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    cargarMios()
-  }, [])
+  const { data: misReportesData, cargando, recargar: recargarMios } = useDatosConCache(
+    'danos:mios',
+    () => danosApi.mios().then((d) => d.reportes),
+    { ttlMs: 30_000 },
+  )
+  const misReportes = misReportesData || []
 
   useEffect(() => {
     if (!foto) {
@@ -114,7 +103,7 @@ export default function ReportarDanoPage() {
       setFecha(ahoraLocal())
       if (inputCamaraRef.current) inputCamaraRef.current.value = ''
       if (inputGaleriaRef.current) inputGaleriaRef.current.value = ''
-      cargarMios()
+      recargarMios()
     } catch (err) {
       setError(err.message)
     } finally {

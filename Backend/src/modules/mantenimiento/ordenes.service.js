@@ -80,7 +80,7 @@ export async function listarTecnicos() {
   if (!permiso) return []
   const roles = await Rol.find({ permisos: permiso._id }).select('_id')
   if (!roles.length) return []
-  return Usuario.find({ rol: { $in: roles.map((r) => r._id) }, estado: 'activo' }).select('nombre nombre_usuario email')
+  return Usuario.find({ rol: { $in: roles.map((r) => r._id) }, estado: 'activo', esPrueba: false }).select('nombre nombre_usuario email')
 }
 
 export async function obtenerOrdenDetalle(id, usuarioActor) {

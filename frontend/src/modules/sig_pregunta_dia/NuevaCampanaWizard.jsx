@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Rocket, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { sig } from '../../api/sig.js'
 import { catalogosApi } from '../../api/catalogos.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import {
   Btn, Card, ErrorMsg, Field, Input, Select, Textarea, Switch,
   TablaWrap, Th, Td, EmptyState,
@@ -41,22 +42,20 @@ const FORM_INICIAL = {
 export default function NuevaCampanaWizard() {
   const navigate = useNavigate()
   const [form, setForm] = useState(FORM_INICIAL)
-  const [preguntasActivas, setPreguntasActivas] = useState([])
-  const [catalogos, setCatalogos] = useState({ dependencias: [], cargos: [] })
   const [error, setError] = useState('')
 
   const [previsualizando, setPrevisualizando] = useState(false)
   const [previsualizacion, setPrevisualizacion] = useState(null)
   const [programando, setProgramando] = useState(false)
 
-  useEffect(() => {
-    Promise.all([sig.banco.listar({ estado: 'activa' }), catalogosApi.obtener()])
-      .then(([b, c]) => {
-        setPreguntasActivas(b.preguntas)
-        setCatalogos(c)
-      })
-      .catch((err) => setError(err.message))
-  }, [])
+  const { data } = useDatosConCache(
+    'sig:nuevaCampana:preguntasYCatalogos',
+    () => Promise.all([sig.banco.listar({ estado: 'activa' }), catalogosApi.obtener()])
+      .then(([b, c]) => ({ preguntasActivas: b.preguntas, catalogos: c })),
+    { ttlMs: 5 * 60_000 },
+  )
+  const preguntasActivas = data?.preguntasActivas || []
+  const catalogos = data?.catalogos || { dependencias: [], cargos: [] }
 
   function alternarPregunta(id) {
     setForm((f) => ({

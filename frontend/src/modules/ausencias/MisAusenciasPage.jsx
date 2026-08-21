@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { CalendarDays, Plus, Ban, Clock, CircleCheck, Paperclip } from 'lucide-react'
 import { ausencias as ausenciasApi } from '../../api/ausencias.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { TIPOS_AUSENCIA, TIPO_AUSENCIA_LABELS, MOTIVOS_PERMISO_REMUNERADO } from '../../config/ausenciasConstants.js'
 import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Select, Textarea, Modal,
@@ -49,9 +51,12 @@ function duracionEstimada(horaInicio, horaFin) {
 }
 
 export default function MisAusenciasPage() {
-  const [lista, setLista] = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
+  const { data, cargando, error, recargar } = useDatosConCache(
+    'ausencias:mias',
+    () => ausenciasApi.mias().then((d) => d.ausencias),
+    { ttlMs: 30_000 },
+  )
+  const lista = data || []
   const [ok, setOk] = useState('')
 
   const [modalAbierto, setModalAbierto] = useState(false)
@@ -61,23 +66,6 @@ export default function MisAusenciasPage() {
 
   const [porCancelar, setPorCancelar] = useState(null)
   const [cancelando, setCancelando] = useState(false)
-
-  async function cargar() {
-    setCargando(true)
-    try {
-      const datosLista = await ausenciasApi.mias()
-      setLista(datosLista.ausencias)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    cargar()
-  }, [])
 
   function abrirNueva() {
     setForm(FORM_VACIO)
@@ -112,7 +100,7 @@ export default function MisAusenciasPage() {
       await ausenciasApi.crear(payload)
       setOk('Solicitud enviada. Te avisaremos cuando haya una decisión.')
       setModalAbierto(false)
-      cargar()
+      recargar()
     } catch (err) {
       setErrorForm(err.message)
     } finally {
@@ -122,14 +110,14 @@ export default function MisAusenciasPage() {
 
   async function confirmarCancelar() {
     if (!porCancelar) return
-    setOk(''); setError('')
+    setOk('')
     setCancelando(true)
     try {
       await ausenciasApi.cancelar(porCancelar._id)
       setOk('Solicitud cancelada')
-      cargar()
+      recargar()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     } finally {
       // Se cierra pase lo que pase: el aviso (OkMsg/ErrorMsg) vive en la
       // página y el overlay del diálogo lo taparía.

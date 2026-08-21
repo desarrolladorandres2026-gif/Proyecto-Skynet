@@ -25,7 +25,7 @@ async function usuariosAdminYFinanciero() {
     Rol.find({ $or: [{ esSuperAdmin: true }, { slug: 'administrador' }] }).select('_id'),
     usuariosConPermiso('requerimientos:aprobar_financiero'),
   ])
-  const admins = await Usuario.find({ rol: { $in: rolesAdmin.map((r) => r._id) }, estado: 'activo' }).select('_id')
+  const admins = await Usuario.find({ rol: { $in: rolesAdmin.map((r) => r._id) }, estado: 'activo', esPrueba: false }).select('_id')
   return [...admins.map((u) => u._id), ...financieros]
 }
 

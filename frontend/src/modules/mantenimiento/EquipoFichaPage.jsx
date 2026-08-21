@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { mantenimientoApi } from '../../api/mantenimiento.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Textarea, Modal,
   TablaWrap, Th, Td, EmptyState, fmtFecha,
@@ -15,29 +16,19 @@ const FORM_VACIO = { fecha: '', tipo: '', tecnico: '', descripcion: '' }
 
 export default function EquipoFichaPage() {
   const { id } = useParams()
-  const [ficha, setFicha] = useState(null)
-  const [error, setError] = useState('')
   const [ok, setOk] = useState('')
+
+  const { data: ficha, error, recargar } = useDatosConCache(
+    `mantenimiento:equipoFicha:${id}`,
+    () => mantenimientoApi.equipos.ficha(id),
+    { ttlMs: 30_000 },
+  )
 
   const [modalAbierto, setModalAbierto] = useState(false)
   const [form, setForm] = useState(FORM_VACIO)
   const [archivo, setArchivo] = useState(null)
   const [guardando, setGuardando] = useState(false)
   const [errorForm, setErrorForm] = useState('')
-
-  async function cargar() {
-    try {
-      const data = await mantenimientoApi.equipos.ficha(id)
-      setFicha(data)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  useEffect(() => {
-    cargar()
-  }, [id])
 
   async function registrar(e) {
     e.preventDefault()
@@ -49,7 +40,7 @@ export default function EquipoFichaPage() {
       setModalAbierto(false)
       setForm(FORM_VACIO)
       setArchivo(null)
-      cargar()
+      recargar()
     } catch (err) {
       setErrorForm(err.message)
     } finally {

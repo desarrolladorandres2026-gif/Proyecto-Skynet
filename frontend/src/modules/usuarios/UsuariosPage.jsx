@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, Users, Eye, EyeOff } from 'lucide-react'
+import { Plus, Users, FlaskConical, Eye, EyeOff, Undo2 } from 'lucide-react'
 import { usuarios as usuariosApi } from '../../api/usuarios.js'
 import { roles as rolesApi } from '../../api/roles.js'
 import { catalogosApi } from '../../api/catalogos.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Btn, Badge, ErrorMsg, Field, Input, Select, Modal } from '../../components/ui.jsx'
 import { CatalogoSelect } from '../../components/CatalogoSelect.jsx'
 import { DataTable } from '../../components/DataTable.jsx'
@@ -24,12 +25,39 @@ const FORM_VACIO = {
 }
 
 export default function UsuariosPage() {
-  const [lista, setLista] = useState([])
-  const [rolesDisponibles, setRolesDisponibles] = useState([])
-  const [dependenciasDisponibles, setDependenciasDisponibles] = useState([])
-  const [cargosDisponibles, setCargosDisponibles] = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
+  // 'reales' = 👥 Usuarios (personal del Terminal), 'prueba' = 🧪 Usuarios de
+  // prueba. Son vistas completamente separadas en el backend (cada una pide
+  // ?esPrueba=…): un usuario de prueba nunca aparece mezclado en la vista real.
+  const [vista, setVista] = useState('reales')
+  const esPrueba = vista === 'prueba'
+
+  // Compartida entre módulos (fresca por 1 minuto): volver a esta página tras
+  // visitar otra ya no repite las 3 peticiones ni muestra "Cargando..." si la
+  // caché sigue vigente. La clave incluye la vista para que cambiar de pestaña
+  // dispare su propia carga en vez de reusar la lista de la otra pestaña.
+  const { data: resumen, cargando, error, recargar } = useDatosConCache(
+    `usuarios:resumen:${vista}`,
+    () => Promise.all([usuariosApi.listar({ esPrueba }), rolesApi.listar(), catalogosApi.obtener()])
+      .then(([data, rolesData, catalogosData]) => ({
+        lista: data.usuarios,
+        conteos: data.conteos,
+        rolesDisponibles: rolesData.roles,
+        dependenciasDisponibles: catalogosData.dependencias,
+        cargosDisponibles: catalogosData.cargos,
+      })),
+    { ttlMs: 60_000 },
+  )
+  const lista = resumen?.lista || []
+  const conteos = resumen?.conteos || { reales: 0, prueba: 0 }
+  const rolesDisponibles = resumen?.rolesDisponibles || []
+  // catalogosApi.agregar (ver CatalogoSelect) devuelve la lista completa ya
+  // actualizada — se guarda como override para que un catálogo creado "al
+  // vuelo" en el modal se vea de inmediato, sin esperar a que venza el caché
+  // compartido de 'usuarios:resumen'.
+  const [dependenciasOverride, setDependenciasOverride] = useState(null)
+  const [cargosOverride, setCargosOverride] = useState(null)
+  const dependenciasDisponibles = dependenciasOverride ?? resumen?.dependenciasDisponibles ?? []
+  const cargosDisponibles = cargosOverride ?? resumen?.cargosDisponibles ?? []
 
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editandoId, setEditandoId] = useState(null)
@@ -41,33 +69,12 @@ export default function UsuariosPage() {
   const [porEliminar, setPorEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
 
+  const [porConvertir, setPorConvertir] = useState(null)
+  const [convirtiendo, setConvirtiendo] = useState(false)
+
   const [filtroTexto, setFiltroTexto] = useState('')
   const [filtroRol, setFiltroRol] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('')
-
-  async function cargar() {
-    setCargando(true)
-    try {
-      const [data, rolesData, catalogosData] = await Promise.all([
-        usuariosApi.listar(),
-        rolesApi.listar(),
-        catalogosApi.obtener(),
-      ])
-      setLista(data.usuarios)
-      setRolesDisponibles(rolesData.roles)
-      setDependenciasDisponibles(catalogosData.dependencias)
-      setCargosDisponibles(catalogosData.cargos)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    cargar()
-  }, [])
 
   function abrirCrear() {
     setEditandoId(null)
@@ -123,7 +130,7 @@ export default function UsuariosPage() {
         toast.success('Usuario creado correctamente')
       }
       setModalAbierto(false)
-      cargar()
+      recargar()
     } catch (err) {
       setErrorForm(err.message)
     } finally {
@@ -137,11 +144,25 @@ export default function UsuariosPage() {
       await usuariosApi.eliminar(porEliminar._id)
       toast.success('Usuario eliminado')
       setPorEliminar(null)
-      cargar()
+      recargar()
     } catch (err) {
       toast.error(err.message)
     } finally {
       setEliminando(false)
+    }
+  }
+
+  async function confirmarConvertir() {
+    setConvirtiendo(true)
+    try {
+      await usuariosApi.convertirReal(porConvertir._id)
+      toast.success(`${porConvertir.nombre_usuario} ahora es un usuario real`)
+      setPorConvertir(null)
+      recargar()
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setConvirtiendo(false)
     }
   }
 
@@ -163,7 +184,20 @@ export default function UsuariosPage() {
 
   const columnas = useMemo(
     () => [
-      { accessorKey: 'nombre_usuario', header: 'Usuario', cell: (info) => <span className="font-medium">{info.getValue()}</span> },
+      {
+        accessorKey: 'nombre_usuario',
+        header: 'Usuario',
+        cell: (info) => (
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{info.getValue()}</span>
+            {esPrueba && (
+              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                Prueba
+              </span>
+            )}
+          </div>
+        ),
+      },
       { accessorKey: 'nombre', header: 'Nombre' },
       { accessorKey: 'email', header: 'Email' },
       { id: 'rol', header: 'Rol', accessorFn: (u) => u.rol?.slug, cell: (info) => <Badge valor={info.getValue()} /> },
@@ -188,6 +222,12 @@ export default function UsuariosPage() {
         enableSorting: false,
         cell: ({ row }) => (
           <div className="flex justify-end gap-1.5">
+            {esPrueba && (
+              <Btn variante="fantasma" onClick={() => setPorConvertir(row.original)}>
+                <Undo2 className="h-3.5 w-3.5" aria-hidden="true" />
+                Convertir en real
+              </Btn>
+            )}
             <Btn variante="fantasma" onClick={() => abrirEditar(row.original)}>Editar</Btn>
             <Btn variante="fantasma" className="!text-red-600 dark:!text-red-400" onClick={() => setPorEliminar(row.original)}>
               Eliminar
@@ -196,21 +236,62 @@ export default function UsuariosPage() {
         ),
       },
     ],
-    []
+    [esPrueba]
   )
 
   return (
     <div>
       <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <Users className="h-5 w-5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Usuarios</h1>
+          {esPrueba ? (
+            <FlaskConical className="h-5 w-5 text-amber-500" aria-hidden="true" />
+          ) : (
+            <Users className="h-5 w-5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
+          )}
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {esPrueba ? 'Usuarios de prueba' : 'Usuarios'}
+          </h1>
         </div>
-        <Btn onClick={abrirCrear}>
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          Nuevo usuario
-        </Btn>
+        {!esPrueba && (
+          <Btn onClick={abrirCrear}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Nuevo usuario
+          </Btn>
+        )}
       </div>
+
+      <div className="mb-4 flex gap-2 border-b border-slate-200 dark:border-slate-800">
+        <button
+          type="button"
+          onClick={() => setVista('reales')}
+          className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+            vista === 'reales'
+              ? 'border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+          }`}
+        >
+          <Users className="h-4 w-4" aria-hidden="true" />
+          Usuarios <span className="text-xs opacity-70">({conteos.reales})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setVista('prueba')}
+          className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+            vista === 'prueba'
+              ? 'border-amber-500 text-amber-600 dark:text-amber-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+          }`}
+        >
+          <FlaskConical className="h-4 w-4" aria-hidden="true" />
+          Usuarios de prueba <span className="text-xs opacity-70">({conteos.prueba})</span>
+        </button>
+      </div>
+
+      {esPrueba && (
+        <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300">
+          Estos usuarios están aislados del personal real: no aparecen en dashboards, estadísticas, reportes ni selectores de trabajador. Puedes convertirlos en usuarios reales cuando correspondan a un trabajador oficial del Terminal.
+        </p>
+      )}
 
       <ErrorMsg>{error}</ErrorMsg>
 
@@ -313,7 +394,7 @@ export default function UsuariosPage() {
                 valor={form.dependencia}
                 onChange={(nombre) => setForm({ ...form, dependencia: nombre })}
                 opciones={dependenciasDisponibles}
-                onCrear={setDependenciasDisponibles}
+                onCrear={setDependenciasOverride}
               />
             </Field>
             <Field label="Cargo">
@@ -323,7 +404,7 @@ export default function UsuariosPage() {
                 valor={form.cargo}
                 onChange={(nombre) => setForm({ ...form, cargo: nombre })}
                 opciones={cargosDisponibles}
-                onCrear={setCargosDisponibles}
+                onCrear={setCargosOverride}
               />
             </Field>
             <Field label="Estado">
@@ -364,6 +445,16 @@ export default function UsuariosPage() {
         titulo={`¿Eliminar al usuario "${porEliminar?.nombre_usuario}"?`}
         descripcion="Esta acción no se puede deshacer."
         confirmarLabel="Eliminar"
+      />
+
+      <ConfirmDialog
+        abierto={Boolean(porConvertir)}
+        onCancelar={() => setPorConvertir(null)}
+        onConfirmar={confirmarConvertir}
+        cargando={convirtiendo}
+        titulo={`¿Convertir a "${porConvertir?.nombre_usuario}" en usuario real?`}
+        descripcion="Pasará a la sección de Usuarios y dejará de aparecer en Usuarios de prueba. No se modifican su contraseña, correo ni rol."
+        confirmarLabel="Convertir en real"
       />
     </div>
   )

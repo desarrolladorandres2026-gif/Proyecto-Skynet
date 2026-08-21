@@ -1,4 +1,4 @@
-import { ShieldCheck, AlertTriangle, CheckCircle2, RotateCcw, SlidersHorizontal, RefreshCw } from 'lucide-react'
+import { ShieldCheck, RotateCcw, SlidersHorizontal, RefreshCw } from 'lucide-react'
 import { AccesoRapidoDenso } from './AccesoRapidoDenso.jsx'
 import { cn } from '../../lib/cn.js'
 
@@ -9,15 +9,8 @@ function saludo() {
   return 'Buenas noches'
 }
 
-function getSaludColor(salud = 100) {
-  if (salud >= 90) return { texto: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-500/10 border-emerald-500/30', label: 'Operación Estable', icono: CheckCircle2 }
-  if (salud >= 75) return { texto: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-500/10 border-amber-500/30', label: 'Atención Requerida', icono: AlertTriangle }
-  return { texto: 'text-rose-700 dark:text-rose-300', bg: 'bg-rose-500/10 border-rose-500/30', label: 'Crítico / Alertas', icono: AlertTriangle }
-}
-
 export function DashboardHeader({
   usuario,
-  salud = 95,
   accesos = [],
   personalizando,
   setPersonalizando,
@@ -25,8 +18,6 @@ export function DashboardHeader({
   onRefrescar,
   cargando = false,
 }) {
-  const saludInfo = getSaludColor(salud)
-  const SaludIcon = saludInfo.icono
   const hoyStr = new Intl.DateTimeFormat('es-CO', {
     weekday: 'short',
     day: 'numeric',
@@ -60,40 +51,8 @@ export function DashboardHeader({
           </div>
         </div>
 
-        {/* Lado derecho: Medidor de Salud + Controles */}
+        {/* Lado derecho: Controles */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Badge de Salud Operativa */}
-          <div className={cn('flex items-center gap-2 rounded-lg border px-2.5 py-1 backdrop-blur-sm', saludInfo.bg)}>
-            <div className="relative flex h-7 w-7 items-center justify-center">
-              <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
-                <path
-                  className="text-slate-200 dark:text-slate-700/60"
-                  strokeWidth="3.5"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <path
-                  className={cn('transition-all duration-1000 ease-out', saludInfo.texto)}
-                  strokeDasharray={`${salud}, 100`}
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
-              <span className="panel-mono absolute text-[10px] font-bold text-slate-900 dark:text-white">{salud}%</span>
-            </div>
-            <div className="hidden xs:block">
-              <p className="panel-mono text-[9px] uppercase tracking-wider text-slate-500 dark:text-slate-400">Salud</p>
-              <p className={cn('flex items-center gap-1 text-[11px] font-semibold leading-none', saludInfo.texto)}>
-                <SaludIcon className="h-3 w-3" />
-                {saludInfo.label}
-              </p>
-            </div>
-          </div>
-
           {/* Atajos rápidos en línea si existen */}
           {accesos.length > 0 && (
             <div className="hidden md:flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-800 pl-2">

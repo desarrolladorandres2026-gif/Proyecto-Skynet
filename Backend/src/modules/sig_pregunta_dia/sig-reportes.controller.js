@@ -39,12 +39,16 @@ export async function actualizarPlanRefuerzo(req, res) {
 }
 
 export async function exportar(req, res) {
-  const { buffer, total } = await excelService.exportarRespuestas(filtrosDesdeQuery(req.query))
+  const { buffer, total, truncado } = await excelService.exportarRespuestas(filtrosDesdeQuery(req.query))
   res.set({
     'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'Content-Disposition': `attachment; filename="pregunta-sig-respuestas-${new Date().toISOString().slice(0, 10)}.xlsx"`,
     'X-Total-Exportado': String(total),
-    'Access-Control-Expose-Headers': 'X-Total-Exportado, Content-Disposition',
+    // Solo se envía cuando de verdad se truncó (sin desde/hasta y por encima
+    // del límite) — su ausencia significa "exportación completa", igual que
+    // antes de agregar el límite.
+    ...(truncado ? { 'X-Exportacion-Truncada': 'true' } : {}),
+    'Access-Control-Expose-Headers': 'X-Total-Exportado, X-Exportacion-Truncada, Content-Disposition',
   })
   res.send(buffer)
 }

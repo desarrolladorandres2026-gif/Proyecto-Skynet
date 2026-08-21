@@ -110,7 +110,7 @@ export async function obtenerDashboard(filtros = {}) {
       { $match: matchBase },
       { $group: { _id: '$usuario', total: { $sum: 1 }, correctas: { $sum: { $cond: ['$esCorrecta', 1, 0] } } } },
     ]),
-    Usuario.countDocuments({ estado: 'activo' }),
+    Usuario.countDocuments({ estado: 'activo', esPrueba: false }),
     ProgramacionSig.countDocuments({
       estado: 'publicada',
       ...(filtros.desde && filtros.hasta ? { fechaProgramada: rangoDeDias(filtros.desde, filtros.hasta) } : {}),
@@ -196,16 +196,27 @@ export async function listarTrabajadoresParticipantes(filtros = {}) {
     },
   ])
 
-  const usuarios = await Usuario.find({ _id: { $in: agregados.map((a) => a._id) } })
-    .select('nombre nombre_usuario dependencia cargo estado')
-    .lean()
+  const idsRespondieron = agregados.map((a) => a._id)
+  // Se traen con y sin filtro de esPrueba: `idsExistentes` dice si el
+  // usuario todavía existe en Mongo (para distinguir "borrado" de "de
+  // prueba"), y `usuarios` (solo esPrueba:false) es lo que realmente se
+  // muestra en la tabla.
+  const [usuarios, idsExistentes] = await Promise.all([
+    Usuario.find({ _id: { $in: idsRespondieron }, esPrueba: false })
+      .select('nombre nombre_usuario dependencia cargo estado')
+      .lean(),
+    Usuario.find({ _id: { $in: idsRespondieron } }).select('_id').lean(),
+  ])
   const porId = new Map(usuarios.map((u) => [String(u._id), u]))
+  const idsExistentesSet = new Set(idsExistentes.map((u) => String(u._id)))
 
   return agregados
+    // Un usuario de prueba existe pero no entra a `porId` (esPrueba:true se
+    // excluyó arriba): esa fila se descarta. Un usuario real ya borrado no
+    // entra a `idsExistentesSet` tampoco, así que esa sí se conserva con el
+    // snapshot histórico de la respuesta.
+    .filter((a) => !idsExistentesSet.has(String(a._id)) || porId.has(String(a._id)))
     .map((a) => {
-      // Un usuario eliminado después de responder sigue teniendo respuestas
-      // históricas (RespuestaSig es inmutable): la fila no desaparece, se cae
-      // al snapshot que quedó guardado en la respuesta.
       const usuario = porId.get(String(a._id))
       const porcentaje = a.total ? Math.round((a.correctas / a.total) * 100) : 0
       return {

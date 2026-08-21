@@ -8,26 +8,14 @@ import { Card } from '../ui.jsx'
 
 const TONO_ICONO = {
   brand: 'bg-brand-500/15 text-brand-600 dark:text-brand-300 border border-brand-500/25',
-  emerald: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/25',
-  amber: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/25',
-  rose: 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border border-rose-500/25',
-  violet: 'bg-violet-500/15 text-violet-600 dark:text-violet-300 border border-violet-500/25',
 }
 
 const TONO_NUMERO = {
   brand: 'text-slate-900 dark:text-white',
-  emerald: 'text-emerald-600 dark:text-emerald-300',
-  amber: 'text-amber-600 dark:text-amber-300',
-  rose: 'text-rose-600 dark:text-rose-300',
-  violet: 'text-violet-600 dark:text-violet-300',
 }
 
 const TONO_LINEA = {
   brand: 'bg-brand-500/40 group-hover:bg-brand-400',
-  emerald: 'bg-emerald-500/40 group-hover:bg-emerald-400',
-  amber: 'bg-amber-500/40 group-hover:bg-amber-400',
-  rose: 'bg-rose-500/40 group-hover:bg-rose-400',
-  violet: 'bg-violet-500/40 group-hover:bg-violet-400',
 }
 
 function useConteoAnimado(valor, duracionMs = 700) {

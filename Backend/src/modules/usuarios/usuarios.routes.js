@@ -3,6 +3,7 @@ import {
   listarUsuarios,
   crearUsuario,
   actualizarUsuario,
+  convertirUsuarioReal,
   eliminarUsuario,
 } from './usuarios.controller.js'
 import { verificarToken, soloAdmin } from '../../middleware/auth.js'
@@ -16,6 +17,7 @@ router.get('/buscar', buscarUsuarios)
 router.get('/', listarUsuarios)
 router.post('/', crearUsuario)
 router.put('/:id', actualizarUsuario)
+router.post('/:id/convertir-real', convertirUsuarioReal)
 router.delete('/:id', eliminarUsuario)
 
 export default router

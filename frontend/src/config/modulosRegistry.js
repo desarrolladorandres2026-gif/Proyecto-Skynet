@@ -102,6 +102,7 @@ export const MODULOS_REGISTRO = [
       { to: '/sig/dashboard', label: 'Dashboard', permiso: 'sig_pregunta_dia:ver_reportes' },
       { to: '/sig/reportes/individual', label: 'Reporte individual', permiso: 'sig_pregunta_dia:ver_reportes' },
       { to: '/sig/reportes/plan-refuerzo', label: 'Plan de refuerzo', permiso: 'sig_pregunta_dia:ver_reportes' },
+      { to: '/sig/capacitaciones', label: 'Capacitaciones por tema', permiso: 'sig_pregunta_dia:programar' },
       { to: '/sig/configuracion', label: 'Configuración', permiso: 'sig_pregunta_dia:configurar' },
     ],
   },
@@ -184,6 +185,13 @@ export const MODULOS_REGISTRO = [
     icon: ScrollText,
     permiso: 'auditoria:leer',
     items: [{ to: '/auditoria', label: 'Registros' }],
+  },
+  {
+    key: 'notificaciones_historial',
+    label: 'Notificaciones',
+    icon: Bell,
+    permiso: 'notificaciones:ver_historial',
+    items: [{ to: '/notificaciones/historial', label: 'Historial de envíos' }],
   },
   {
     key: 'sistema',

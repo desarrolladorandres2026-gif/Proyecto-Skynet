@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
 import {
   ClipboardList, Users, UserPlus, RefreshCw, Eye, Trash2, PackagePlus,
   CircleCheck, CircleDot, ChevronDown, Bot, History,
 } from 'lucide-react'
 import { danos as danosApi } from '../../api/danos.js'
+import { useDatosConCache, invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Select, Field, Textarea, Modal,
@@ -471,13 +473,7 @@ export default function TareasDanosPage() {
   const navigate = useNavigate()
   const puedeAsignarAOtros = tienePermiso('mantenimiento:asignar')
 
-  const [reportes, setReportes] = useState([])
-  const [resumen, setResumen] = useState({})
-  const [tecnicos, setTecnicos] = useState([])
-  const [cargandoTecnicos, setCargandoTecnicos] = useState(true)
   const [filtros, setFiltros] = useState({ estado: '', tipo: '', asignado: '' })
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
   const [ok, setOk] = useState('')
 
   const [asignando, setAsignando] = useState(null)
@@ -486,73 +482,67 @@ export default function TareasDanosPage() {
   const [porEliminar, setPorEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
 
-  const cargar = useCallback(async () => {
-    setCargando(true)
-    try {
-      const data = await danosApi.listar(filtros)
-      setReportes(data.reportes)
-      setResumen(data.resumen)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }, [filtros])
+  // Clave por filtro: cambiar de pestaña de filtro y volver ya no repite la
+  // petición si la caché sigue vigente.
+  const { data, cargando, error, recargar } = useDatosConCache(
+    `danos:tareas:${filtros.estado}:${filtros.tipo}:${filtros.asignado}`,
+    () => danosApi.listar(filtros),
+    { ttlMs: 20_000 },
+  )
+  const reportes = data?.reportes || []
+  const resumen = data?.resumen || {}
 
   // La carga del equipo va aparte de la de reportes: cambiar un filtro no
   // debería volver a pedir la plantilla entera, pero sí hay que refrescarla
   // después de asignar (cambian los contadores de carga).
-  const cargarTecnicos = useCallback(async () => {
-    setCargandoTecnicos(true)
-    try {
-      const data = await danosApi.tecnicos()
-      setTecnicos(data.tecnicos)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargandoTecnicos(false)
-    }
-  }, [])
+  const { data: tecnicosData, cargando: cargandoTecnicos, recargar: recargarTecnicos } = useDatosConCache(
+    'danos:tecnicos',
+    () => danosApi.tecnicos().then((d) => d.tecnicos),
+    { ttlMs: 30_000 },
+  )
+  const tecnicos = tecnicosData || []
 
-  useEffect(() => { cargar() }, [cargar])
-  useEffect(() => { cargarTecnicos() }, [cargarTecnicos])
+  function recargarTodo() {
+    invalidarCachePorPrefijo('danos:tareas:')
+    recargar()
+    recargarTecnicos()
+  }
 
   function setFiltro(clave, valor) {
     setFiltros((f) => ({ ...f, [clave]: valor }))
   }
 
   async function confirmarAsignacion(reporte, tecnicoId, nota, forzar) {
-    setOk(''); setError('')
+    setOk('')
     try {
       const { reporte: actualizado } = await danosApi.asignar(reporte._id, tecnicoId, nota, forzar)
       setOk(`Reporte asignado a ${actualizado.asignadoA?.nombre}. Se le envió una notificación.`)
       setAsignando(null)
-      await Promise.all([cargar(), cargarTecnicos()])
+      recargarTodo()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
   async function confirmarEstado(reporte, cambios) {
-    setOk(''); setError('')
+    setOk('')
     try {
       await danosApi.cambiarEstado(reporte._id, cambios)
       setOk(`Reporte actualizado a "${cambios.estado}".`)
       setCambiando(null)
-      await Promise.all([cargar(), cargarTecnicos()])
+      recargarTodo()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
   async function verDetalle(reporte) {
-    setError('')
+    setErrorDetalle('')
     try {
       const { reporte: completo } = await danosApi.detalle(reporte._id)
       setDetalle(completo)
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -565,14 +555,14 @@ export default function TareasDanosPage() {
 
   async function confirmarEliminar() {
     if (!porEliminar) return
-    setOk(''); setError('')
+    setOk('')
     setEliminando(true)
     try {
       await danosApi.eliminar(porEliminar._id)
       setOk('Reporte eliminado')
-      await Promise.all([cargar(), cargarTecnicos()])
+      recargarTodo()
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     } finally {
       // Se cierra pase lo que pase: el aviso de error vive en la página
       // (ErrorMsg) y el overlay del diálogo lo taparía.

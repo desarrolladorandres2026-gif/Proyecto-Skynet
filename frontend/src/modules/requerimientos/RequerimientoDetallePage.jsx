@@ -5,6 +5,7 @@ import { requerimientos as requerimientosApi } from '../../api/requerimientos.js
 import { perfil as perfilApi } from '../../api/perfil.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh.js'
+import { invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
 import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Select, Textarea, Modal,
   TablaWrap, Th, Td, fmtFecha, fmtFechaHora, aInputFecha,
@@ -153,6 +154,11 @@ export default function RequerimientoDetallePage() {
     )
     setReq(requerimiento)
     setOk('Requerimiento aprobado y firmado')
+    // Las bandejas/listas cacheadas (Mis requerimientos, Bandeja Financiero,
+    // Bandeja Bodega, Todos) quedarían con el estado viejo hasta que
+    // vencieran solas — se invalidan para que la próxima vista las traiga
+    // frescas en vez de esperar el TTL.
+    invalidarCachePorPrefijo('requerimientos:')
   }
 
   async function rechazar() {
@@ -163,6 +169,7 @@ export default function RequerimientoDetallePage() {
       setReq(requerimiento)
       setModalRechazo(false)
       setOk('Requerimiento rechazado')
+      invalidarCachePorPrefijo('requerimientos:')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -194,6 +201,7 @@ export default function RequerimientoDetallePage() {
       const { requerimiento } = await requerimientosApi.marcarEstadoBodega(id, estado, observacion)
       setReq(requerimiento)
       setOk(`Requerimiento marcado como "${labelEstadoBodega(estado)}"`)
+      invalidarCachePorPrefijo('requerimientos:')
     } catch (err) {
       setError(err.message)
     }
@@ -203,6 +211,7 @@ export default function RequerimientoDetallePage() {
     const { requerimiento } = await requerimientosApi.marcarEstadoBodega(id, 'aprobada', undefined, password)
     setReq(requerimiento)
     setOk('Requerimiento despachado')
+    invalidarCachePorPrefijo('requerimientos:')
   }
 
   async function confirmarNoDespacho() {
@@ -214,6 +223,7 @@ export default function RequerimientoDetallePage() {
       setReq(requerimiento)
       setModalNoDespacho(false)
       setOk('Requerimiento marcado como "No se puede despachar" — se notificó al solicitante, Financiero y Admin')
+      invalidarCachePorPrefijo('requerimientos:')
     } catch (err) {
       setError(err.message)
     } finally {

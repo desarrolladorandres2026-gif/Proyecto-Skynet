@@ -1,36 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Rocket, Plus, Pause, Play, Ban, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { sig } from '../../api/sig.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Btn, Badge, Card, ErrorMsg, Modal, TablaWrap, Th, Td, EmptyState, fmtFecha, fmtFechaHora } from '../../components/ui.jsx'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 
 export default function CampanasListaPage() {
-  const [campanas, setCampanas] = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
+  const { data: campanas, cargando, error, recargar } = useDatosConCache(
+    'sig:campanas',
+    () => sig.programacion.listarCampanas().then((d) => d.campanas),
+    { ttlMs: 30_000 },
+  )
 
   const [detalle, setDetalle] = useState(null)
   const [porCancelar, setPorCancelar] = useState(null)
   const [cancelando, setCancelando] = useState(false)
-
-  async function cargar() {
-    setCargando(true)
-    try {
-      const { campanas: lista } = await sig.programacion.listarCampanas()
-      setCampanas(lista)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    cargar()
-  }, [])
 
   async function verDetalle(campana) {
     try {
@@ -45,7 +31,7 @@ export default function CampanasListaPage() {
     try {
       await sig.programacion.pausarCampana(id)
       toast.success('Campaña pausada')
-      cargar()
+      recargar()
     } catch (err) {
       toast.error(err.message)
     }
@@ -55,7 +41,7 @@ export default function CampanasListaPage() {
     try {
       await sig.programacion.reanudarCampana(id)
       toast.success('Campaña reanudada')
-      cargar()
+      recargar()
     } catch (err) {
       toast.error(err.message)
     }
@@ -67,7 +53,7 @@ export default function CampanasListaPage() {
     try {
       await sig.programacion.cancelarCampana(porCancelar._id, '')
       toast.success('Campaña cancelada')
-      cargar()
+      recargar()
     } catch (err) {
       toast.error(err.message)
     } finally {
@@ -99,7 +85,7 @@ export default function CampanasListaPage() {
 
       {cargando ? (
         <Card>Cargando…</Card>
-      ) : campanas.length === 0 ? (
+      ) : !campanas || campanas.length === 0 ? (
         <EmptyState mensaje="Todavía no hay campañas programadas" />
       ) : (
         <TablaWrap>

@@ -21,15 +21,15 @@ import { ACCESOS_RAPIDOS_PANEL_DENSO } from '../../config/accesosRapidosPorRol.j
 
 const TARJETAS = [
   { clave: 'usuarios', label: 'Usuarios activos', icon: Users, to: '/usuarios', tono: 'brand' },
-  { clave: 'danosPendientes', label: 'Daños pendientes', icon: Wrench, to: '/danos/tareas', tono: 'rose' },
-  { clave: 'requerimientosPendientes', label: 'Requerimientos en trámite', icon: FileText, to: '/requerimientos/todos', tono: 'amber' },
-  { clave: 'requerimientosPorDespachar', label: 'Por despachar (Bodega)', icon: FileText, to: '/requerimientos/bodega', tono: 'violet' },
-  { clave: 'ausenciasPendientes', label: 'Ausencias por decidir', icon: CalendarDays, to: '/ausencias/bandeja', tono: 'amber' },
+  { clave: 'danosPendientes', label: 'Daños pendientes', icon: Wrench, to: '/danos/tareas', tono: 'brand' },
+  { clave: 'requerimientosPendientes', label: 'Requerimientos en trámite', icon: FileText, to: '/requerimientos/todos', tono: 'brand' },
+  { clave: 'requerimientosPorDespachar', label: 'Por despachar (Bodega)', icon: FileText, to: '/requerimientos/bodega', tono: 'brand' },
+  { clave: 'ausenciasPendientes', label: 'Ausencias por decidir', icon: CalendarDays, to: '/ausencias/bandeja', tono: 'brand' },
   { clave: 'mantenimientoAbiertas', label: 'Órdenes de trabajo abiertas', icon: Wrench, to: '/mantenimiento/ordenes', tono: 'brand' },
-  { clave: 'rolesActivos', label: 'Roles activos', icon: ShieldCheck, to: '/roles', tono: 'emerald' },
+  { clave: 'rolesActivos', label: 'Roles activos', icon: ShieldCheck, to: '/roles', tono: 'brand' },
   { clave: 'auditoriaHoy', label: 'Eventos de auditoría hoy', icon: ScrollText, to: '/auditoria', tono: 'brand' },
-  { clave: 'misDanosReportados', label: 'Mis daños sin resolver', icon: Wrench, to: '/danos/reportar', tono: 'rose' },
-  { clave: 'misTareasMantenimiento', label: 'Mis tareas asignadas', icon: Wrench, to: '/danos/mis-tareas', tono: 'amber' },
+  { clave: 'misDanosReportados', label: 'Mis daños sin resolver', icon: Wrench, to: '/danos/reportar', tono: 'brand' },
+  { clave: 'misTareasMantenimiento', label: 'Mis tareas asignadas', icon: Wrench, to: '/danos/mis-tareas', tono: 'brand' },
 ]
 
 const ANCHO_CLASES = {
@@ -41,10 +41,6 @@ const ANCHO_CLASES = {
 
 const TONOS_MOVIL = {
   brand: 'text-[var(--mobile-accent)]',
-  emerald: 'text-emerald-600 dark:text-emerald-400',
-  amber: 'text-amber-600 dark:text-amber-400',
-  rose: 'text-rose-600 dark:text-rose-400',
-  violet: 'text-violet-600 dark:text-violet-400',
 }
 
 function HomeFeed({ usuario, visibles, data, onRefrescar, cargando }) {
@@ -52,14 +48,13 @@ function HomeFeed({ usuario, visibles, data, onRefrescar, cargando }) {
   const rutasPermitidas = new Set(modulosVisibles.flatMap((m) => m.items.map((i) => i.to)))
   const accesos = (MOBILE_NAV_POR_ROL[usuario?.rol?.slug] || []).filter((a) => rutasPermitidas.has(a.to))
 
-  const { tarjetas, recomendaciones, analitica, colaPrioritaria } = data
+  const { tarjetas, recomendaciones, colaPrioritaria } = data
 
   return (
     <div className="mx-auto max-w-md space-y-6 pb-6">
       {/* Header móvil enriquecido */}
       <DashboardHeader
         usuario={usuario}
-        salud={analitica?.saludGeneral ?? 95}
         accesos={[]}
         onRefrescar={onRefrescar}
         cargando={cargando}
@@ -116,7 +111,7 @@ function PanelDenso({ usuario, visibles, data, onRefrescar, cargando }) {
   const rutasPermitidas = new Set(modulosVisibles.flatMap((m) => m.items.map((i) => i.to)))
   const accesos = (ACCESOS_RAPIDOS_PANEL_DENSO[usuario?.rol?.slug] || []).filter((a) => rutasPermitidas.has(a.to))
 
-  const { tarjetas, analitica, recomendaciones, colaPrioritaria } = data
+  const { tarjetas, recomendaciones, colaPrioritaria } = data
 
   const {
     modalAbierto,
@@ -140,7 +135,6 @@ function PanelDenso({ usuario, visibles, data, onRefrescar, cargando }) {
       {/* 1. Header Ejecutivo Compacto con botón de Personalizar */}
       <DashboardHeader
         usuario={usuario}
-        salud={analitica?.saludGeneral ?? 95}
         accesos={accesos}
         setPersonalizando={() => setModalAbierto(true)}
         onRefrescar={onRefrescar}
