@@ -9,6 +9,7 @@
 // de los emojis decorativos dentro de los strings `html` de cada sección,
 // que son contenido editorial del curso y quedan fuera de esa regla.
 import { Building2, ClipboardList, Shield, Siren, Leaf, TrafficCone } from 'lucide-react'
+import logoTerminal from '../../assets/logo_terminal.png'
 
 export const RUTA_ASSETS = '/storage/induccion'
 
@@ -17,7 +18,14 @@ const I = RUTA_ASSETS + '/images'
 const V = RUTA_ASSETS + '/videos'
 const D = RUTA_ASSETS + '/docs'
 
-export const LOGO_TERMINAL = `${L}/logo_terminal.png`
+// Empaquetado por Vite (no /storage): a diferencia del resto de assets de
+// inducción, este logo también lo usa requerimientoPdf.js y necesitaba estar
+// disponible SIN sesión — /storage/* exige verificarToken (index.js), lo que
+// causaba PDFs sin logo cuando la cookie no viajaba en el fetch (bug real,
+// ver el comentario de cargarImagen en requerimientoPdf.js). Al vivir en
+// src/assets, Vite lo emite a /assets/ con hash y sin auth, además de quedar
+// versionado en git (storage/ está en .gitignore).
+export const LOGO_TERMINAL = logoTerminal
 export const AGENTE_IA = `${L}/agente.png`
 
 export const MODULOS = [

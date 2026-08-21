@@ -89,9 +89,17 @@ async function dibujarEncabezado(pdf, tipo) {
 
   try {
     const { dataUrl, width, height } = await cargarImagen(LOGO_TERMINAL)
-    const logoW = anchoLogo - 8
-    const logoH = (height / width) * logoW
-    pdf.addImage(dataUrl, 'PNG', MARGIN + 4, MARGIN + (altoCaja - logoH) / 2, logoW, logoH)
+    // Ajuste por contención (ancho Y alto, no solo ancho): el logo actual es
+    // cuadrado y llenaría exactamente los 24 mm de altoCaja si solo se
+    // escalara por ancho, pegándose a las líneas de arriba/abajo sin margen.
+    // min() con el presupuesto más ajustado de los dos ejes evita además que
+    // un logo futuro más alto que ancho se desborde de la caja.
+    const anchoDisponible = anchoLogo - 8
+    const altoDisponible = altoCaja - 4
+    const escala = Math.min(anchoDisponible / width, altoDisponible / height)
+    const logoW = width * escala
+    const logoH = height * escala
+    pdf.addImage(dataUrl, 'PNG', MARGIN + (anchoLogo - logoW) / 2, MARGIN + (altoCaja - logoH) / 2, logoW, logoH)
   } catch (err) {
     // Sin logo disponible: la caja queda vacía, no bloquea la generación del PDF.
     console.error('No se pudo cargar el logo en el PDF de requerimiento:', err)
