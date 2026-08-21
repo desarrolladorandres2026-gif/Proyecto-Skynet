@@ -12,6 +12,7 @@
     "seed:danos": "node scripts/seed-danos.js",
     "seed:requerimientos": "node scripts/seed-requerimientos.js",
     "seed:sig-preguntas": "node scripts/seed-sig-preguntas.js",
+    "import:usuarios": "node scripts/importar-usuarios.js",
     "migrate:mantenimiento": "node scripts/migrate-mysql-to-mongo.js",
     "migrate:mantenimiento-ot": "node scripts/migrate-mantenimiento-ot.js",
     "migrate:usuarios-prueba": "node scripts/marcar-usuarios-prueba.js",
