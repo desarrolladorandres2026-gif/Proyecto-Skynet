@@ -1,9 +1,13 @@
 import * as service from './sig-programaciones.service.js'
 import * as campanasService from './sig-campanas.service.js'
 
+// Devuelve siempre `programaciones` (lista), porque un solo envío puede
+// programar varias preguntas para el mismo día. `programacion` se mantiene
+// apuntando a la primera para no romper a ningún cliente viejo que lea el
+// campo singular.
 export async function crearIndividual(req, res) {
-  const programacion = await service.crearProgramacionIndividual(req.body, req.usuario)
-  res.status(201).json({ programacion })
+  const programaciones = await service.crearProgramacionIndividual(req.body, req.usuario)
+  res.status(201).json({ programaciones, programacion: programaciones[0] })
 }
 
 export async function listarIndividual(req, res) {

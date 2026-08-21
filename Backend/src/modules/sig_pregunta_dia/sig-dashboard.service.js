@@ -156,14 +156,67 @@ export async function obtenerDashboard(filtros = {}) {
   }
 }
 
-// Lista de trabajadores que ya respondieron al menos una vez — el selector
-// de "Reporte individual" se arma a partir de aquí en vez de reusar
-// GET /usuarios/buscar (soloAdmin, ver usuarios.routes.js): SIG/HSEQ tiene su
-// propio permiso de reportes y no debería necesitar además usuarios:gestionar
-// solo para elegir a quién le va a ver el reporte.
-export async function listarTrabajadoresParticipantes() {
-  const ids = await RespuestaSig.distinct('usuario')
-  return Usuario.find({ _id: { $in: ids } }).select('nombre nombre_usuario dependencia cargo').sort({ nombre: 1 })
+// Lista de trabajadores que ya respondieron al menos una vez, CON su
+// desempeño resumido — es la tabla que abre "Reporte individual": se ve de una
+// quiénes participaron y cómo van, sin tener que abrir uno por uno para
+// enterarse. Al hacer clic en una fila se pide el reporte detallado de esa
+// persona (reporteTrabajador, abajo).
+//
+// Acepta los mismos filtros combinables que el dashboard, así que el resumen
+// de cada fila corresponde al rango/área/componente filtrado y no al histórico
+// completo — si no, la tabla y el detalle mostrarían números distintos.
+//
+// Se arma a partir de RespuestaSig y no de GET /usuarios/buscar (soloAdmin,
+// ver usuarios.routes.js): SIG/HSEQ tiene su propio permiso de reportes y no
+// debería necesitar además usuarios:gestionar solo para ver a quién reportar.
+export async function listarTrabajadoresParticipantes(filtros = {}) {
+  const matchBase = construirFiltroRespuestas(filtros)
+  const config = await obtenerOCrearConfiguracion()
+
+  const agregados = await RespuestaSig.aggregate([
+    { $match: matchBase },
+    // El $sort previo hace que $last sea determinista: el área y el cargo que
+    // tenía la persona en su respuesta MÁS RECIENTE, no una cualquiera.
+    { $sort: { respondidaEn: 1 } },
+    {
+      $group: {
+        _id: '$usuario',
+        total: { $sum: 1 },
+        correctas: { $sum: { $cond: ['$esCorrecta', 1, 0] } },
+        ultimaRespuesta: { $last: '$respondidaEn' },
+        dependenciaSnapshot: { $last: '$dependenciaSnapshot' },
+        cargoSnapshot: { $last: '$cargoSnapshot' },
+      },
+    },
+  ])
+
+  const usuarios = await Usuario.find({ _id: { $in: agregados.map((a) => a._id) } })
+    .select('nombre nombre_usuario dependencia cargo estado')
+  const porId = new Map(usuarios.map((u) => [String(u._id), u]))
+
+  return agregados
+    .map((a) => {
+      // Un usuario eliminado después de responder sigue teniendo respuestas
+      // históricas (RespuestaSig es inmutable): la fila no desaparece, se cae
+      // al snapshot que quedó guardado en la respuesta.
+      const usuario = porId.get(String(a._id))
+      const porcentaje = a.total ? Math.round((a.correctas / a.total) * 100) : 0
+      return {
+        _id: a._id,
+        nombre: usuario?.nombre || usuario?.nombre_usuario || '(usuario eliminado)',
+        nombre_usuario: usuario?.nombre_usuario || '',
+        dependencia: usuario?.dependencia || a.dependenciaSnapshot || '',
+        cargo: usuario?.cargo || a.cargoSnapshot || '',
+        activo: usuario ? usuario.estado === 'activo' : false,
+        total: a.total,
+        correctas: a.correctas,
+        incorrectas: a.total - a.correctas,
+        porcentaje,
+        nivel: calcularNivel(porcentaje, config.nivelesDesempeno),
+        ultimaRespuesta: a.ultimaRespuesta,
+      }
+    })
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
 }
 
 export async function reporteTrabajador(usuarioId, filtros = {}) {

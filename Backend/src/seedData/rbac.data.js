@@ -197,6 +197,32 @@ export const ROLES = [
     permisos: [],
   },
   {
+    // Reinstaurado (2026-08-20) tras eliminarse el 2026-08-05. El motivo de
+    // aquel retiro era correcto a medias: es verdad que este rol no otorga
+    // ningún permiso RBAC propio, porque reportar daños, crear
+    // requerimientos, solicitar ausencias y responder el cuestionario del
+    // día ya son capacidades universales de cualquier autenticado. Pero el
+    // reemplazo elegido entonces ('Operador') NO es un rol vacío: trae
+    // pqrs:gestionar, publicaciones:gestionar y reportes:ver_basicos, así
+    // que mandar allí a todo el personal sin funciones administrativas era
+    // una escalada de privilegios silenciosa. Un catálogo RBAC necesita un
+    // hogar explícito de privilegio cero para el trabajador que solo usa
+    // las capacidades universales; ese es este rol, y por eso `permisos`
+    // vacío aquí es intencional y no un pendiente por llenar.
+    nombre: 'Usuario Común',
+    slug: 'usuario_comun',
+    descripcion: 'Trabajador sin funciones administrativas. Solo usa las capacidades universales de cualquier persona autenticada: reportar daños, crear requerimientos, solicitar ausencias y responder el cuestionario del día.',
+    esSuperAdmin: false,
+    ambito: 'global',
+    // esSistema: es el piso de privilegios del catálogo — protegerlo de
+    // borrado y de cambio de slug es justamente lo que evita repetir el
+    // episodio de 2026-08-05. Como los roles de sistema tampoco admiten
+    // cambiar esSuperAdmin (ver roles.service.js:actualizarRol), el rol
+    // vacío no puede convertirse en total por accidente desde RolesPage.
+    esSistema: true,
+    permisos: [],
+  },
+  {
     nombre: 'Operador',
     slug: 'operador',
     descripcion: 'Personal administrativo del terminal.',

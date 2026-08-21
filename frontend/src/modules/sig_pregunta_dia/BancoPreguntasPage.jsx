@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Brain, Plus, Pencil, Archive, ArchiveRestore, Trash2, Search, Filter } from 'lucide-react'
+import { Brain, Plus, Pencil, Archive, ArchiveRestore, Trash2, Search, Filter, FileUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { sig } from '../../api/sig.js'
 import { Btn, Badge, Card, ErrorMsg, Input, Select, TablaWrap, Th, Td, EmptyState } from '../../components/ui.jsx'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 import FormularioPreguntaModal from './FormularioPreguntaModal.jsx'
+import ImportarPreguntasModal from './ImportarPreguntasModal.jsx'
 
 export default function BancoPreguntasPage() {
   const [preguntas, setPreguntas] = useState([])
@@ -19,6 +20,7 @@ export default function BancoPreguntasPage() {
   const [filtroTexto, setFiltroTexto] = useState('')
 
   const [modalAbierto, setModalAbierto] = useState(false)
+  const [modalImportarAbierto, setModalImportarAbierto] = useState(false)
   const [preguntaEditando, setPreguntaEditando] = useState(null)
   const [porEliminar, setPorEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
@@ -125,6 +127,13 @@ export default function BancoPreguntasPage() {
               </span>
             )}
           </Btn>
+          <Btn
+            variante="secundario"
+            className="flex items-center gap-1.5"
+            onClick={() => setModalImportarAbierto(true)}
+          >
+            <FileUp className="h-4 w-4" aria-hidden="true" /> Importar Excel
+          </Btn>
           <Btn className="flex items-center gap-1.5" onClick={abrirNueva}>
             <Plus className="h-4 w-4" aria-hidden="true" /> Nueva pregunta
           </Btn>
@@ -216,6 +225,13 @@ export default function BancoPreguntasPage() {
           </tbody>
         </TablaWrap>
       )}
+
+      <ImportarPreguntasModal
+        abierto={modalImportarAbierto}
+        onCerrar={() => setModalImportarAbierto(false)}
+        onImportado={cargar}
+        componentes={componentes}
+      />
 
       <FormularioPreguntaModal
         abierto={modalAbierto}

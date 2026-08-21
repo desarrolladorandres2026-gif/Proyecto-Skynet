@@ -19,9 +19,12 @@ import {
 // junto con el módulo flota/despachos/horarios/novedades — sus atajos
 // (despachos, plataformas, vehículos) ya no tienen ruta a la que apuntar.
 //
-// "Usuario Común" se eliminó del catálogo RBAC (2026-08-05): no otorgaba
-// ningún permiso propio, así que sus usuarios se reasignaron a "Operador"
-// (scripts/eliminar-roles-obsoletos.js) y sus atajos se heredan aquí.
+// "Usuario Común" volvió al catálogo RBAC el 2026-08-20 (estuvo eliminado
+// desde el 2026-08-05, cuando sus atajos se heredaron a 'operador'), así que
+// recupera su propia entrada: es el rol de privilegio cero, sus 4 atajos son
+// exactamente las capacidades universales de cualquier autenticado y ninguna
+// depende de un permiso, por lo que el filtro contra useModulosVisibles()
+// nunca se los va a quitar.
 // 'Cuestionarios Programados' es una tarea diaria universal (todo trabajador
 // autenticado, no un permiso), así que se agrega como atajo donde todavía
 // queda espacio dentro del presupuesto de 3-4 accesos. 'operador' ya tiene 4
@@ -40,6 +43,16 @@ export const MOBILE_NAV_POR_ROL = {
   ],
   bodega: [
     { to: '/requerimientos/bodega', label: 'Bandeja', icon: ClipboardList },
+    { to: '/sig/pregunta-del-dia', label: 'Cuestionario', icon: Brain },
+  ],
+  // Mismo presupuesto de 4 que 'operador', pero cambiando Inducción (que se
+  // recorre una vez, al entrar) por el Cuestionario (que se responde todos
+  // los días): para el trabajador sin funciones administrativas esa es la
+  // tarea recurrente. Inducción sigue a 2 taps vía "Más".
+  usuario_comun: [
+    { to: '/danos/reportar', label: 'Reportar', icon: TriangleAlert },
+    { to: '/requerimientos/nuevo', label: 'Requerimientos', icon: FileText },
+    { to: '/ausencias/mias', label: 'Vacaciones', icon: CalendarDays },
     { to: '/sig/pregunta-del-dia', label: 'Cuestionario', icon: Brain },
   ],
   operador: [

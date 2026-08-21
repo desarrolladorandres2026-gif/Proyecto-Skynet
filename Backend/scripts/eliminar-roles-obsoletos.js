@@ -23,12 +23,14 @@ const MAPEO_REASIGNACION = {
   // Retirados junto con el módulo de flota/despachos/horarios/novedades.
   despachador: 'operador',
   empresa_transportadora: 'operador',
-  // 'Usuario Común' se eliminó (2026-08-05): no otorgaba ningún permiso
-  // propio (permisos:[] — reportar daños, crear requerimientos y solicitar
-  // ausencias ya son universales para cualquier autenticado), así que
-  // 'Operador' es el rol menos privilegiado del catálogo que queda como
-  // hogar por defecto.
-  usuario_comun: 'operador',
+  // OJO: 'usuario_comun' NO va en este mapeo. Estuvo aquí entre el
+  // 2026-08-05 y el 2026-08-20 mandando sus usuarios a 'operador', y fue un
+  // error: 'Operador' trae pqrs:gestionar, publicaciones:gestionar y
+  // reportes:ver_basicos, así que la reasignación subía privilegios en vez
+  // de conservarlos, y de paso dejaba el catálogo sin ninguna opción de
+  // privilegio cero que asignar al editar un usuario. 'Usuario Común' está
+  // de vuelta en seedData/rbac.data.js como rol de sistema: si lo agregas
+  // aquí otra vez, este script lo borrará en la siguiente corrida.
   // El rol dedicado 'Financiero' se fusionó en 'Dir. Administrativo y
   // Gestión' (slug administrativo_financiero, mismo slug de antes de
   // renombrarse) el 2026-08-05: cualquier usuario que quedara con el rol

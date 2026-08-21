@@ -1,4 +1,5 @@
 import * as service from './sig-banco.service.js'
+import * as importacion from './sig-importacion.service.js'
 
 export async function crear(req, res) {
   const pregunta = await service.crearPregunta(req.body, req.usuario)
@@ -34,4 +35,24 @@ export async function archivar(req, res) {
 export async function eliminar(req, res) {
   const resultado = await service.eliminarPregunta(req.params.id, req.usuario)
   res.json(resultado)
+}
+
+// Carga masiva desde Excel. Devuelve 201 aunque haya filas rechazadas: la
+// importación es parcial por diseño (ver sig-importacion.service.js), así que
+// el "éxito" es haber procesado el archivo, y el detalle de qué entró, qué se
+// omitió por duplicado y qué falló viaja en el cuerpo para que la UI lo
+// muestre fila por fila.
+export async function importarExcel(req, res) {
+  const resultado = await importacion.importarPreguntasDesdeExcel(req.file?.buffer, req.usuario)
+  res.status(201).json(resultado)
+}
+
+export async function plantillaExcel(_req, res) {
+  const buffer = await importacion.generarPlantillaExcel()
+  res.set({
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'Content-Disposition': 'attachment; filename="plantilla-preguntas-sig.xlsx"',
+    'Access-Control-Expose-Headers': 'Content-Disposition',
+  })
+  res.send(Buffer.from(buffer))
 }

@@ -10,41 +10,119 @@ import { auditar, obtenerOCrearConfiguracion, resolverAudiencia, normalizarAudie
 const notificarUsuarios = (userIds, payload) => _notificarUsuarios(userIds, payload, 'sig_pregunta_dia')
 
 // ── Programación individual ─────────────────────────────────────────────
+
+// El endpoint acepta tres formas de entrada y todas se normalizan a la misma
+// lista [{ preguntaId, hora }] antes de tocar nada más:
+//
+//   { preguntaId }                        una sola pregunta (forma histórica)
+//   { preguntaIds: [...] }                varias, todas a la misma hora
+//   { preguntas: [{ preguntaId, hora }] } varias, cada una a su propia hora
+//
+// Así el resto de la función tiene un solo caso que manejar en vez de tres, y
+// las llamadas viejas de un solo `preguntaId` siguen funcionando sin cambios.
+function normalizarEntradaPreguntas({ preguntaId, preguntaIds, preguntas }) {
+  if (Array.isArray(preguntas) && preguntas.length) {
+    return preguntas.map((p) => ({ preguntaId: p?.preguntaId, hora: p?.hora }))
+  }
+  if (Array.isArray(preguntaIds) && preguntaIds.length) {
+    return preguntaIds.map((preguntaId) => ({ preguntaId, hora: undefined }))
+  }
+  return preguntaId ? [{ preguntaId, hora: undefined }] : []
+}
+
+// Programa UNA O VARIAS preguntas para un mismo día. Varias preguntas
+// distintas el mismo día es exactamente el caso de uso que habilita esta
+// función; la MISMA pregunta dos veces el mismo día no lo es — sería la misma
+// tarjeta repetida en el Terminal del trabajador, así que se rechaza tanto
+// dentro del mismo envío como contra lo que ya estuviera programado ese día.
+//
+// La validación completa ocurre ANTES de crear nada: o entra el lote entero o
+// no entra ninguna. Un lote a medias dejaría al administrador sin saber
+// cuáles de sus 5 preguntas quedaron programadas y cuáles no.
 export async function crearProgramacionIndividual(datos, usuarioActor) {
-  const { preguntaId, fecha, hora, audiencia } = datos
+  const { fecha, hora, audiencia } = datos
 
-  const pregunta = await PreguntaSig.findById(preguntaId)
-  if (!pregunta) throw new ErrorNoEncontrado('Pregunta no encontrada')
-  if (pregunta.estado !== 'activa') throw new ErrorValidacion('Solo se pueden programar preguntas activas')
-
+  const items = normalizarEntradaPreguntas(datos)
+  if (!items.length) throw new ErrorValidacion('Debes elegir al menos una pregunta')
   if (!fecha) throw new ErrorValidacion('Debes indicar la fecha de publicación')
-  const config = await obtenerOCrearConfiguracion()
-  const horaFinal = hora?.trim() || config.horaPublicacionDefecto
 
   const fechaProgramada = inicioDelDia(fecha)
-  const fechaHoraPublicacion = instanteLocal(`${fecha}T${horaFinal}`)
-  if (!fechaProgramada || !fechaHoraPublicacion) throw new ErrorValidacion('La fecha o la hora no son válidas')
-  if (fechaHoraPublicacion.getTime() < Date.now() - 60_000) {
-    throw new ErrorValidacion('La fecha y hora de publicación deben ser futuras')
+  if (!fechaProgramada) throw new ErrorValidacion('La fecha de publicación no es válida')
+
+  const config = await obtenerOCrearConfiguracion()
+  const audienciaNormalizada = normalizarAudiencia(audiencia)
+
+  const vistas = new Set()
+  const preparadas = []
+
+  for (const item of items) {
+    if (!item.preguntaId) throw new ErrorValidacion('Hay una pregunta sin identificar en la lista')
+
+    const clave = String(item.preguntaId)
+    if (vistas.has(clave)) {
+      throw new ErrorValidacion('Repetiste una misma pregunta en la lista; elige preguntas distintas')
+    }
+    vistas.add(clave)
+
+    const pregunta = await PreguntaSig.findById(item.preguntaId)
+    if (!pregunta) throw new ErrorNoEncontrado('Pregunta no encontrada')
+    if (pregunta.estado !== 'activa') {
+      throw new ErrorValidacion(`"${pregunta.enunciado.slice(0, 40)}…" está archivada y no se puede programar`)
+    }
+
+    const horaFinal = item.hora?.trim() || hora?.trim() || config.horaPublicacionDefecto
+    const fechaHoraPublicacion = instanteLocal(`${fecha}T${horaFinal}`)
+    if (!fechaHoraPublicacion) throw new ErrorValidacion(`La hora "${horaFinal}" no es válida`)
+    if (fechaHoraPublicacion.getTime() < Date.now() - 60_000) {
+      throw new ErrorValidacion('La fecha y hora de publicación deben ser futuras')
+    }
+
+    preparadas.push({ pregunta, horaFinal, fechaHoraPublicacion })
   }
 
-  const doc = await ProgramacionSig.create({
-    pregunta: pregunta._id,
+  // Choque contra lo que ya está en la agenda de ese día. Se ignoran las
+  // canceladas: una programación cancelada libera el cupo de esa pregunta
+  // para volver a programarla el mismo día.
+  const yaEnEseDia = await ProgramacionSig.find({
     fechaProgramada,
-    fechaHoraPublicacion,
-    audiencia: normalizarAudiencia(audiencia),
-    creadoPor: usuarioActor.id_usuario,
-  })
+    estado: { $ne: 'cancelada' },
+    pregunta: { $in: preparadas.map((p) => p.pregunta._id) },
+  }).select('pregunta')
 
-  await auditar(
-    usuarioActor,
-    'programar',
-    'ProgramacionSig',
-    doc._id,
-    `Programó la pregunta "${pregunta.enunciado.slice(0, 60)}" para el ${fecha} a las ${horaFinal}`
+  if (yaEnEseDia.length) {
+    const repetida = preparadas.find((p) =>
+      yaEnEseDia.some((e) => String(e.pregunta) === String(p.pregunta._id))
+    )
+    throw new ErrorConflicto(
+      `"${repetida.pregunta.enunciado.slice(0, 40)}…" ya está programada para ese día`
+    )
+  }
+
+  const docs = await ProgramacionSig.insertMany(
+    preparadas.map((p) => ({
+      pregunta: p.pregunta._id,
+      fechaProgramada,
+      fechaHoraPublicacion: p.fechaHoraPublicacion,
+      audiencia: audienciaNormalizada,
+      creadoPor: usuarioActor.id_usuario,
+    }))
   )
 
-  return doc.populate('pregunta', 'enunciado componenteSig')
+  await Promise.all(
+    docs.map((doc, indice) =>
+      auditar(
+        usuarioActor,
+        'programar',
+        'ProgramacionSig',
+        doc._id,
+        `Programó la pregunta "${preparadas[indice].pregunta.enunciado.slice(0, 60)}" para el ${fecha} a las ${preparadas[indice].horaFinal}`
+      )
+    )
+  )
+
+  return ProgramacionSig.find({ _id: { $in: docs.map((d) => d._id) } })
+    .sort({ fechaHoraPublicacion: 1 })
+    .populate('pregunta', 'enunciado componenteSig')
 }
 
 export async function listarProgramacionesIndividuales({ desde, hasta, estado } = {}) {
@@ -100,18 +178,43 @@ async function actorDesdeCreador(creadoPorId) {
   }
 }
 
-async function avisarPublicacion(doc) {
+// Un solo push por audiencia y por tick, no uno por pregunta: desde que se
+// pueden programar varias preguntas para el mismo día a la misma hora, avisar
+// por cada una haría sonar el teléfono del trabajador 4 veces seguidas para
+// decirle lo mismo. Se agrupan por audiencia (dos publicaciones dirigidas a
+// áreas distintas sí son dos avisos distintos, cada uno a su gente) y el
+// texto se ajusta al plural cuando hay más de una.
+async function avisarPublicaciones(docs) {
+  if (!docs.length) return
   const config = await obtenerOCrearConfiguracion()
   if (!config.notificarAlPublicar) return
 
-  const destinatarios = await resolverAudiencia(doc.audiencia)
-  if (!destinatarios.length) return
+  const grupos = new Map()
+  for (const doc of docs) {
+    const audiencia = doc.audiencia || { todos: true }
+    const clave = audiencia.todos
+      ? 'todos'
+      : `dirigida:${[...(audiencia.dependencias || [])].sort().join('|')}::${[...(audiencia.cargos || [])].sort().join('|')}`
+    const grupo = grupos.get(clave) || { audiencia, componentes: new Set(), total: 0 }
+    grupo.componentes.add(doc.snapshotPregunta.componenteSig)
+    grupo.total += 1
+    grupos.set(clave, grupo)
+  }
 
-  await notificarUsuarios(destinatarios, {
-    title: '🧠 Nuevo Cuestionario Programado',
-    body: `Ya está disponible tu pregunta de capacitación de hoy. Componente: ${doc.snapshotPregunta.componenteSig}`,
-    url: '/sig/pregunta-del-dia',
-  })
+  for (const grupo of grupos.values()) {
+    const destinatarios = await resolverAudiencia(grupo.audiencia)
+    if (!destinatarios.length) continue
+
+    const componentes = [...grupo.componentes].join(', ')
+    await notificarUsuarios(destinatarios, {
+      title: '🧠 Nuevo Cuestionario Programado',
+      body:
+        grupo.total === 1
+          ? `Ya está disponible tu pregunta de capacitación de hoy. Componente: ${componentes}`
+          : `Ya tienes ${grupo.total} preguntas de capacitación para hoy. Componentes: ${componentes}`,
+      url: '/sig/pregunta-del-dia',
+    })
+  }
 }
 
 // Publica cada ProgramacionSig cuya fechaHoraPublicacion ya llegó. El
@@ -126,7 +229,7 @@ export async function publicarPendientes(lote = 200) {
     .limit(lote)
     .select('_id pregunta audiencia creadoPor campana')
 
-  let publicadas = 0
+  const publicadas = []
   for (const candidata of candidatas) {
     // Una programación que pertenece a una campaña PAUSADA o CANCELADA se
     // salta sin tocarla (sigue en 'programada'): si la campaña se reanuda
@@ -158,7 +261,7 @@ export async function publicarPendientes(lote = 200) {
     )
     if (!publicada) continue // otro tick/instancia ya ganó la carrera
 
-    publicadas++
+    publicadas.push(publicada)
 
     const actor = await actorDesdeCreador(publicada.creadoPor)
     await auditar(
@@ -168,8 +271,10 @@ export async function publicarPendientes(lote = 200) {
       publicada._id,
       `Publicación automática a la hora programada: "${snapshotPregunta.enunciado.slice(0, 60)}"`
     )
-    await avisarPublicacion(publicada)
   }
 
-  return publicadas
+  // Fuera del bucle a propósito: ver avisarPublicaciones().
+  await avisarPublicaciones(publicadas)
+
+  return publicadas.length
 }

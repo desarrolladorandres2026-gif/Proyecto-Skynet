@@ -22,43 +22,23 @@ function coincideAudiencia(audiencia, usuario) {
   return Boolean(enDependencia || enCargo)
 }
 
-// ── Pregunta del día ────────────────────────────────────────────────────
-export async function obtenerPreguntaDelDia(usuarioActor) {
-  const usuario = await Usuario.findById(usuarioActor.id_usuario).select('dependencia cargo')
-  const inicioHoy = hoy()
-  const finHoy = new Date(inicioHoy.getTime() + MS_POR_DIA)
+// ── Preguntas del día ───────────────────────────────────────────────────
 
-  // Normalmente hay una sola publicada por día para el Terminal; si hay más
-  // de una (audiencias distintas dirigidas a áreas distintas), se toma la
-  // más reciente que sí le corresponda a este trabajador.
-  const candidatas = await ProgramacionSig.find({
-    estado: 'publicada',
-    fechaProgramada: { $gte: inicioHoy, $lt: finHoy },
-  })
-    .sort({ fechaHoraPublicacion: -1 })
-    .populate('pregunta', 'retroalimentacion')
-
-  const programacion = candidatas.find((p) => coincideAudiencia(p.audiencia, usuario))
-  if (!programacion) return { disponible: false }
-
-  const respuesta = await RespuestaSig.findOne({ programacion: programacion._id, usuario: usuarioActor.id_usuario })
-
+// Arma la tarjeta que ve el trabajador a partir del snapshot congelado, ya
+// resuelta contra su respuesta (si existe). La respuesta correcta nunca viaja
+// al frontend antes de responder — solo se revela una vez que ya existe una
+// RespuestaSig de esta persona para esta programación.
+function aTarjeta(programacion, respuesta) {
   return {
-    disponible: true,
-    programacion: {
-      _id: programacion._id,
-      fechaProgramada: programacion.fechaProgramada,
-      componenteSig: programacion.snapshotPregunta.componenteSig,
-      tema: programacion.snapshotPregunta.tema,
-      enunciado: programacion.snapshotPregunta.enunciado,
-      // La respuesta correcta nunca viaja al frontend antes de responder —
-      // solo se revela una vez que ya existe una RespuestaSig de esta
-      // persona para esta programación.
-      opciones: programacion.snapshotPregunta.opciones.map((o) => ({
-        texto: o.texto,
-        ...(respuesta ? { esCorrecta: o.esCorrecta } : {}),
-      })),
-    },
+    _id: programacion._id,
+    fechaProgramada: programacion.fechaProgramada,
+    componenteSig: programacion.snapshotPregunta.componenteSig,
+    tema: programacion.snapshotPregunta.tema,
+    enunciado: programacion.snapshotPregunta.enunciado,
+    opciones: programacion.snapshotPregunta.opciones.map((o) => ({
+      texto: o.texto,
+      ...(respuesta ? { esCorrecta: o.esCorrecta } : {}),
+    })),
     yaRespondida: Boolean(respuesta),
     miRespuesta: respuesta
       ? {
@@ -69,6 +49,57 @@ export async function obtenerPreguntaDelDia(usuarioActor) {
             : programacion.pregunta?.retroalimentacion?.incorrecta,
         }
       : null,
+  }
+}
+
+// Devuelve TODAS las preguntas publicadas hoy que le corresponden a este
+// trabajador, en el orden en que se publicaron. Antes se devolvía solo una
+// (la más reciente): desde que la programación individual admite varias
+// preguntas para el mismo día, quedarse con una sola escondería el resto del
+// cuestionario del día.
+//
+// Los campos `programacion`, `yaRespondida` y `miRespuesta` se conservan
+// apuntando a la PRIMERA pregunta sin responder (o a la última del día si ya
+// las respondió todas), para que cualquier cliente que aún lea la forma
+// singular siga mostrando algo correcto.
+export async function obtenerPreguntaDelDia(usuarioActor) {
+  const usuario = await Usuario.findById(usuarioActor.id_usuario).select('dependencia cargo')
+  const inicioHoy = hoy()
+  const finHoy = new Date(inicioHoy.getTime() + MS_POR_DIA)
+
+  const candidatas = await ProgramacionSig.find({
+    estado: 'publicada',
+    fechaProgramada: { $gte: inicioHoy, $lt: finHoy },
+  })
+    .sort({ fechaHoraPublicacion: 1 })
+    .populate('pregunta', 'retroalimentacion')
+
+  const mias = candidatas.filter((p) => coincideAudiencia(p.audiencia, usuario))
+  if (!mias.length) return { disponible: false, preguntas: [], totalPendientes: 0 }
+
+  // Una sola consulta para todas las respuestas del día en vez de una por
+  // pregunta: con 5 preguntas programadas serían 5 viajes a Mongo por cada
+  // carga de la pantalla principal del trabajador.
+  const respuestas = await RespuestaSig.find({
+    programacion: { $in: mias.map((p) => p._id) },
+    usuario: usuarioActor.id_usuario,
+  })
+  const respuestaPorProgramacion = new Map(respuestas.map((r) => [String(r.programacion), r]))
+
+  const preguntas = mias.map((p) => aTarjeta(p, respuestaPorProgramacion.get(String(p._id))))
+  const pendientes = preguntas.filter((p) => !p.yaRespondida)
+  const foco = pendientes[0] || preguntas[preguntas.length - 1]
+
+  return {
+    disponible: true,
+    preguntas,
+    total: preguntas.length,
+    totalPendientes: pendientes.length,
+    totalRespondidas: preguntas.length - pendientes.length,
+    // Forma singular heredada (ver comentario de arriba).
+    programacion: foco,
+    yaRespondida: foco.yaRespondida,
+    miRespuesta: foco.miRespuesta,
   }
 }
 

@@ -37,8 +37,23 @@ export const sig = {
     eliminar(id) {
       return request(`/sig_pregunta_dia/banco/${id}`, { method: 'DELETE' })
     },
+    // Carga masiva: el .xlsx viaja como FormData (campo 'archivo'), igual que
+    // los soportes de ausencias. La respuesta trae el detalle fila por fila.
+    importar(archivo) {
+      const formData = new FormData()
+      formData.append('archivo', archivo)
+      return request('/sig_pregunta_dia/banco/importar', { method: 'POST', body: formData })
+    },
+    // Descarga binaria: no usa request() de client.js, mismo criterio que
+    // sig.exportarExcel() de más abajo.
+    descargarPlantilla() {
+      return descargarBinario('/sig_pregunta_dia/banco/plantilla', 'plantilla-preguntas-sig.xlsx')
+    },
   },
   programacion: {
+    // datos: { fecha, hora?, audiencia?, ... } más UNA de estas tres formas de
+    // indicar qué programar: { preguntaId }, { preguntaIds: [...] } o
+    // { preguntas: [{ preguntaId, hora }] }. Ver el service del backend.
     crearIndividual(datos) {
       return request('/sig_pregunta_dia/programacion/individual', { method: 'POST', body: JSON.stringify(datos) })
     },
@@ -110,8 +125,10 @@ export const sig = {
   dashboard(filtros = {}) {
     return request(`/sig_pregunta_dia/dashboard${aQueryString(filtros)}`)
   },
-  trabajadoresParticipantes() {
-    return request('/sig_pregunta_dia/reportes/trabajadores')
+  // Devuelve la lista completa de quienes ya respondieron, cada uno con su
+  // desempeño resumido dentro de los filtros dados.
+  trabajadoresParticipantes(filtros = {}) {
+    return request(`/sig_pregunta_dia/reportes/trabajadores${aQueryString(filtros)}`)
   },
   reporteTrabajador(usuarioId, filtros = {}) {
     return request(`/sig_pregunta_dia/reportes/trabajador/${usuarioId}${aQueryString(filtros)}`)
@@ -121,17 +138,27 @@ export const sig = {
   },
   // Descarga binaria (xlsx): no usa request() de client.js, igual criterio
   // que requerimientos.exportar().
-  async exportarExcel(filtros = {}) {
-    const BASE = import.meta.env.VITE_API_URL || '/api'
-    const res = await fetch(`${BASE}/sig_pregunta_dia/reportes/exportar${aQueryString(filtros)}`, { credentials: 'include' })
-    if (!res.ok) {
-      const data = await res.json().catch(() => null)
-      throw new Error(data?.error || `Error ${res.status}`)
-    }
-    const blob = await res.blob()
-    const nombreCabecera = res.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1]
-    return { blob, nombre: nombreCabecera || 'pregunta-sig-respuestas.xlsx' }
+  exportarExcel(filtros = {}) {
+    return descargarBinario(
+      `/sig_pregunta_dia/reportes/exportar${aQueryString(filtros)}`,
+      'pregunta-sig-respuestas.xlsx'
+    )
   },
+}
+
+// Compartido por la exportación de respuestas y la descarga de la plantilla
+// del banco: request() de client.js siempre hace res.json(), así que un .xlsx
+// tiene que pedirse con fetch directo.
+async function descargarBinario(path, nombrePorDefecto) {
+  const BASE = import.meta.env.VITE_API_URL || '/api'
+  const res = await fetch(`${BASE}${path}`, { credentials: 'include' })
+  if (!res.ok) {
+    const data = await res.json().catch(() => null)
+    throw new Error(data?.error || `Error ${res.status}`)
+  }
+  const blob = await res.blob()
+  const nombreCabecera = res.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1]
+  return { blob, nombre: nombreCabecera || nombrePorDefecto }
 }
 
 function aQueryString(filtros) {

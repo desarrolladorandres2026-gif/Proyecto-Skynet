@@ -1,16 +1,27 @@
-import { useEffect, useState } from 'react'
-import { UserRoundSearch } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { UserRoundSearch, Search, ArrowLeft, ChevronRight } from 'lucide-react'
 import { sig } from '../../api/sig.js'
 import { catalogosApi } from '../../api/catalogos.js'
 import {
-  Card, ErrorMsg, Field, Select, Badge, TablaWrap, Th, Td, EmptyState, fmtFecha,
+  Btn, Card, ErrorMsg, Input, Badge, TablaWrap, Th, Td, EmptyState, fmtFecha,
 } from '../../components/ui.jsx'
 import FiltrosDashboardSig from '../../components/sig/FiltrosDashboardSig.jsx'
 
 const FILTROS_VACIOS = { desde: '', hasta: '', dependencia: '', cargo: '', componenteSig: '', tema: '', resultado: '' }
 
+// Sin tildes y en minúsculas: buscar "jose" tiene que encontrar a "José".
+function normalizar(texto) {
+  return String(texto || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+}
+
 export default function ReporteIndividualPage() {
   const [trabajadores, setTrabajadores] = useState([])
+  const [cargandoLista, setCargandoLista] = useState(true)
+  const [busqueda, setBusqueda] = useState('')
+
   const [usuarioId, setUsuarioId] = useState('')
   const [componentes, setComponentes] = useState([])
   const [catalogos, setCatalogos] = useState({ dependencias: [], cargos: [] })
@@ -20,22 +31,41 @@ export default function ReporteIndividualPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    Promise.all([sig.trabajadoresParticipantes(), sig.configuracion.obtener(), catalogosApi.obtener()])
-      .then(([t, config, cat]) => {
-        setTrabajadores(t.trabajadores)
+    Promise.all([sig.configuracion.obtener(), catalogosApi.obtener()])
+      .then(([config, cat]) => {
         setComponentes(config.configuracion.componentes)
         setCatalogos(cat)
       })
       .catch((err) => setError(err.message))
   }, [])
 
-  async function consultar() {
-    if (!usuarioId) return
+  // La lista respeta los mismos filtros que el detalle: si no, la tabla diría
+  // "48 respondidas" y al abrir a esa persona con el rango aplicado saldrían
+  // 12, y no habría forma de saber cuál de los dos número es el bueno.
+  async function cargarLista(filtrosActuales = filtros) {
+    setCargandoLista(true)
+    try {
+      const { trabajadores: lista } = await sig.trabajadoresParticipantes(filtrosActuales)
+      setTrabajadores(lista)
+      setError('')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCargandoLista(false)
+    }
+  }
+
+  useEffect(() => {
+    cargarLista(FILTROS_VACIOS)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function consultarDetalle(id = usuarioId, filtrosActuales = filtros) {
+    if (!id) return
     setCargando(true)
     setError('')
     try {
-      const data = await sig.reporteTrabajador(usuarioId, filtros)
-      setReporte(data)
+      setReporte(await sig.reporteTrabajador(id, filtrosActuales))
     } catch (err) {
       setError(err.message)
       setReporte(null)
@@ -44,43 +74,151 @@ export default function ReporteIndividualPage() {
     }
   }
 
-  useEffect(() => {
-    if (usuarioId) consultar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usuarioId])
+  function aplicarFiltros() {
+    cargarLista()
+    if (usuarioId) consultarDetalle()
+  }
+
+  function abrirTrabajador(id) {
+    setUsuarioId(id)
+    setReporte(null)
+    consultarDetalle(id)
+  }
+
+  function volverAlListado() {
+    setUsuarioId('')
+    setReporte(null)
+  }
+
+  const visibles = useMemo(() => {
+    const texto = normalizar(busqueda.trim())
+    if (!texto) return trabajadores
+    return trabajadores.filter(
+      (t) =>
+        normalizar(t.nombre).includes(texto) ||
+        normalizar(t.nombre_usuario).includes(texto) ||
+        normalizar(t.cargo).includes(texto) ||
+        normalizar(t.dependencia).includes(texto)
+    )
+  }, [trabajadores, busqueda])
 
   return (
     <div>
       <div className="mb-4 flex items-center gap-2.5">
+        {usuarioId && (
+          <Btn variante="fantasma" className="flex items-center gap-1.5 !px-2" onClick={volverAlListado}>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Listado
+          </Btn>
+        )}
         <UserRoundSearch className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
-        <h1 className="panel-mono text-lg font-semibold tracking-wide text-slate-900 dark:text-white">Reporte individual</h1>
+        <h1 className="panel-mono text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
+          Reporte individual
+        </h1>
       </div>
 
       <ErrorMsg>{error}</ErrorMsg>
 
-      <Card className="mb-4">
-        <Field label="Trabajador">
-          <Select value={usuarioId} onChange={(e) => setUsuarioId(e.target.value)}>
-            <option value="">Selecciona un trabajador que ya haya respondido…</option>
-            {trabajadores.map((t) => (
-              <option key={t._id} value={t._id}>{t.nombre} — {t.cargo || 'sin cargo'} ({t.dependencia || 'sin dependencia'})</option>
-            ))}
-          </Select>
-        </Field>
-      </Card>
-
-      {usuarioId && (
-        <FiltrosDashboardSig
-          filtros={filtros}
-          onChange={setFiltros}
-          onAplicar={consultar}
-          componentes={componentes}
-          catalogos={catalogos}
-        />
-      )}
+      <FiltrosDashboardSig
+        filtros={filtros}
+        onChange={setFiltros}
+        onAplicar={aplicarFiltros}
+        componentes={componentes}
+        catalogos={catalogos}
+      />
 
       {!usuarioId ? (
-        <EmptyState mensaje="Selecciona un trabajador para ver su reporte" />
+        <>
+          <Card className="mb-4">
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-slate-400"
+                aria-hidden="true"
+              />
+              <Input
+                className="!pl-8"
+                placeholder="Filtrar por nombre, cargo o dependencia…"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                aria-label="Filtrar el listado por nombre"
+              />
+            </div>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              {cargandoLista
+                ? 'Cargando…'
+                : `${visibles.length} de ${trabajadores.length} trabajador${trabajadores.length === 1 ? '' : 'es'} con respuestas registradas`}
+            </p>
+          </Card>
+
+          {cargandoLista ? (
+            <Card>Cargando…</Card>
+          ) : visibles.length === 0 ? (
+            <EmptyState
+              mensaje={
+                trabajadores.length === 0
+                  ? 'Todavía nadie ha respondido dentro de los filtros aplicados'
+                  : 'Ningún trabajador coincide con la búsqueda'
+              }
+            />
+          ) : (
+            <TablaWrap>
+              <thead>
+                <tr>
+                  <Th>Trabajador</Th>
+                  <Th>Cargo</Th>
+                  <Th>Dependencia</Th>
+                  <Th>Respondidas</Th>
+                  <Th>Acierto</Th>
+                  <Th>Nivel</Th>
+                  <Th>Última respuesta</Th>
+                  <Th></Th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibles.map((t) => (
+                  <tr
+                    key={t._id}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Ver el reporte de ${t.nombre}`}
+                    className="cursor-pointer transition-colors hover:bg-cyan-500/5 focus-visible:bg-cyan-500/10 focus-visible:outline-none"
+                    onClick={() => abrirTrabajador(t._id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        abrirTrabajador(t._id)
+                      }
+                    }}
+                  >
+                    <Td>
+                      <span className="font-medium text-slate-800 dark:text-slate-100">{t.nombre}</span>
+                      {!t.activo && (
+                        <span className="ml-1.5 text-[11px] text-slate-400">(inactivo)</span>
+                      )}
+                    </Td>
+                    <Td>{t.cargo || '—'}</Td>
+                    <Td>{t.dependencia || '—'}</Td>
+                    <Td className="whitespace-nowrap">
+                      {t.total}
+                      <span className="text-xs text-slate-400"> ({t.correctas}✓ / {t.incorrectas}✗)</span>
+                    </Td>
+                    <Td className="font-semibold whitespace-nowrap">{t.porcentaje}%</Td>
+                    <Td className="whitespace-nowrap">
+                      {t.nivel ? (
+                        <span className="font-semibold" style={{ color: t.nivel.color }}>{t.nivel.nombre}</span>
+                      ) : (
+                        '—'
+                      )}
+                    </Td>
+                    <Td className="whitespace-nowrap">{fmtFecha(t.ultimaRespuesta)}</Td>
+                    <Td className="text-right">
+                      <ChevronRight className="ml-auto h-4 w-4 text-slate-400" aria-hidden="true" />
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </TablaWrap>
+          )}
+        </>
       ) : cargando || !reporte ? (
         <Card>Cargando…</Card>
       ) : (

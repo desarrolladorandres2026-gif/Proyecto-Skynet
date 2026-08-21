@@ -18,8 +18,8 @@ export async function dashboard(req, res) {
   res.json(resultado)
 }
 
-export async function trabajadoresParticipantes(_req, res) {
-  const trabajadores = await dashboardService.listarTrabajadoresParticipantes()
+export async function trabajadoresParticipantes(req, res) {
+  const trabajadores = await dashboardService.listarTrabajadoresParticipantes(filtrosDesdeQuery(req.query))
   res.json({ trabajadores })
 }
 
