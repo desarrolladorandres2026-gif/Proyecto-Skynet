@@ -2,6 +2,7 @@ import { Component } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { TriangleAlert, RotateCcw, House } from 'lucide-react'
 import { Btn } from '../components/ui.jsx'
+import BannerMantenimiento from '../plataforma/BannerMantenimiento.jsx'
 
 // Envuelve el contenido de cada ruta (el <Outlet/> de AppLayout y MobileShell).
 //
@@ -78,11 +79,22 @@ export default function ContenidoRuta() {
   // error de render suele venir de datos ya en memoria; volver a montar el
   // mismo componente con el mismo estado fallaría igual.
   return (
-    <LimiteDeError
-      key={pathname}
-      fallback={(error) => <PantallaDeError error={error} onReintentar={() => window.location.reload()} />}
-    >
-      <Outlet />
-    </LimiteDeError>
+    <>
+      {/* Aviso de mantenimiento programado. Vive aquí y no en cada shell
+          porque ContenidoRuta es el único punto por el que pasan TODAS las
+          rutas de los dos shells (AppLayout de escritorio y MobileShell): un
+          solo montaje cubre los dos, sin duplicar el componente ni arriesgarse
+          a que uno de los dos se quede sin el aviso.
+
+          Va FUERA del límite de error a propósito: si una pantalla revienta,
+          el aviso de que la plataforma se cae en 10 minutos sigue visible. */}
+      <BannerMantenimiento />
+      <LimiteDeError
+        key={pathname}
+        fallback={(error) => <PantallaDeError error={error} onReintentar={() => window.location.reload()} />}
+      >
+        <Outlet />
+      </LimiteDeError>
+    </>
   )
 }

@@ -66,6 +66,19 @@ export const env = {
   // notificaciones, que sí necesita los 5s de NOTIF_WORKER_INTERVALO_MS).
   SIG_WORKER_INTERVALO_MS: Number(process.env.SIG_WORKER_INTERVALO_MS) || 60_000,
   SIG_WORKER_LOTE: Number(process.env.SIG_WORKER_LOTE) || 200,
+  // ── Estado de plataforma / mantenimiento ──────────────────────────────
+  // Cada cuánto el worker persiste las transiciones (iniciar/finalizar) y
+  // dispara las notificaciones. NO es la resolución del bloqueo: el gate se
+  // deriva del reloj en cada petición (ver derivarEstado en
+  // plataforma.service.js), así que subir este número no deja a nadie
+  // trabajando después de la hora anunciada — solo retrasa el aviso.
+  // 20s da una notificación de inicio razonablemente puntual sin castigar al
+  // VPS compartido con una consulta cada segundo.
+  PLATAFORMA_WORKER_INTERVALO_MS: Number(process.env.PLATAFORMA_WORKER_INTERVALO_MS) || 20_000,
+  // Antelación del aviso "Skynet entra en mantenimiento en N minutos". 15 min
+  // es el punto en que a alguien todavía le da tiempo de cerrar lo que está
+  // haciendo sin que el aviso llegue tan pronto que se olvide.
+  PLATAFORMA_AVISO_PREVIO_MIN: Number(process.env.PLATAFORMA_AVISO_PREVIO_MIN) || 15,
   STORAGE_ROOT: process.env.STORAGE_ROOT || './storage',
   FILES_PUBLIC_URL: process.env.FILES_PUBLIC_URL || 'http://localhost:3001/storage',
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,

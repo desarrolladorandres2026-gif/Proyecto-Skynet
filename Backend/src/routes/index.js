@@ -13,6 +13,7 @@ import iaRoutes from '../modules/ia/ia.routes.js'
 import ausenciasRoutes from '../modules/ausencias/ausencias.routes.js'
 import operacionRoutes from '../modules/operacion/operacion.routes.js'
 import sistemaRoutes from '../modules/sistema/sistema.routes.js'
+import plataformaRoutes from '../modules/plataforma/plataforma.routes.js'
 import notificacionesRoutes from '../modules/notificaciones/notificaciones.routes.js'
 import perfilRoutes from '../modules/perfil/perfil.routes.js'
 import copilotoRoutes from '../modules/copiloto/copiloto.routes.js'
@@ -50,6 +51,10 @@ router.use('/email', emailRoutes)
 router.use('/ia', iaRoutes)
 router.use('/ausencias', ausenciasRoutes)
 router.use('/sistema', sistemaRoutes)
+// Estado de plataforma (mantenimiento). Es el ÚNICO router con una ruta
+// pública (GET /estado, sin verificarToken): la pantalla de login debe poder
+// consultarlo sin sesión. El resto exige permiso 'plataforma:gestionar'.
+router.use('/plataforma', plataformaRoutes)
 router.use('/notificaciones', notificacionesRoutes)
 router.use('/perfil', perfilRoutes)
 router.use('/copiloto', copilotoRoutes)

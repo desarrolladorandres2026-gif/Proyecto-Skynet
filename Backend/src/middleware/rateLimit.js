@@ -72,3 +72,24 @@ export const emailAccionLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Demasiadas solicitudes de correo en poco tiempo. Inténtalo de nuevo más tarde.' },
 })
+
+// GET /api/plataforma/estado es el ÚNICO endpoint del sistema que responde
+// sin autenticación alguna (la pantalla de login necesita consultarlo antes
+// de que exista sesión) y además el frontend lo consulta por polling. Esa
+// combinación lo convierte en el candidato natural a amplificador, así que
+// lleva límite propio.
+//
+// El tope es deliberadamente alto: el Terminal puede salir a internet detrás
+// de una sola IP pública, así que TODOS los navegadores abiertos comparten
+// contador. Con ~25 personas sondeando cada 15s (la cadencia de la pantalla
+// de mantenimiento, la más agresiva) son ~100 peticiones por minuto; 240 deja
+// el doble de margen y aun así corta en seco un bucle de abuso, que haría
+// miles. La respuesta se sirve de una caché en memoria de 5s, así que ni
+// siquiera toca Mongo.
+export const estadoLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 240,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas consultas de estado. Espera un momento.' },
+})

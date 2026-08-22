@@ -10,6 +10,8 @@ import { DUMMY_HASH, hashPassword, validarPassword } from '../../utils/password.
 import { setAuthCookie, clearAuthCookie } from '../../utils/cookies.js'
 import { hashToken } from '../../utils/tokens.js'
 import { keysModulosDesactivados } from '../sistema/sistema.service.js'
+import { estadoEfectivo } from '../plataforma/plataforma.service.js'
+import { aEstadoPublico } from '../plataforma/plataforma.dto.js'
 
 // Umbral de bloqueo por fuerza bruta a nivel de cuenta: complementa el rate
 // limiting por IP (Backend/src/middleware/rateLimit.js), que no detiene un
@@ -97,6 +99,25 @@ async function conModulosDesactivados(usuario) {
   return { ...usuario, modulosDesactivados: [...(await keysModulosDesactivados())] }
 }
 
+// ── Gate de mantenimiento en el login ───────────────────────────────────────
+// El middleware global (middleware/mantenimientoPlataforma.js) deja pasar
+// /auth/login a propósito, y el corte real se hace AQUÍ, después de validar
+// credenciales. La razón es concreta: si el bloqueo fuera antes de
+// autenticar, un administrador cuya cookie caducó durante la ventana no
+// podría entrar a finalizar el mantenimiento — quedaría encerrado fuera de su
+// propia plataforma, con la única salida de tocar Mongo a mano.
+//
+// Autenticando primero se puede distinguir a quién dejar pasar. Para todos
+// los demás la sesión NO se emite: no se llama a setAuthCookie, así que el
+// navegador se queda sin token y no hay nada que "aprovechar" después.
+//
+// Requiere que `usuario.rol` venga populado con sus permisos (lo hace
+// populateRol en el propio login).
+function puedeEntrarEnMantenimiento(usuario) {
+  if (usuario.rol?.esSuperAdmin === true) return true
+  return (usuario.rol?.permisos || []).some((p) => p.codigo === 'plataforma:gestionar')
+}
+
 export async function login(req, res) {
   const { email, password } = req.body
   const credencialInvalida = { error: 'Usuario o contraseña incorrectos' }
@@ -134,6 +155,19 @@ export async function login(req, res) {
   }
 
   await limpiarIntentosFallidos(usuario)
+
+  // Credenciales correctas, pero la plataforma está en mantenimiento: solo
+  // pasan quienes pueden administrarlo. Se responde 503 con el mismo cuerpo
+  // que el middleware global, para que el frontend pinte la pantalla de
+  // mantenimiento con un único camino de código.
+  const { doc, enMantenimiento } = await estadoEfectivo()
+  if (enMantenimiento && !puedeEntrarEnMantenimiento(usuario)) {
+    return res.status(503).json({
+      error: 'La plataforma está en mantenimiento',
+      mantenimiento: true,
+      estado: aEstadoPublico(doc),
+    })
+  }
 
   const token = firmarToken(usuario)
   setAuthCookie(res, token)

@@ -12,8 +12,11 @@ import { sincronizarConfiguracionSLA } from './modules/mantenimiento/ordenes.ser
 import { iniciarWorkerNotificaciones } from './modules/notificaciones/notificaciones.worker.js'
 import { iniciarWorkerAuditoria } from './modules/auditoria/auditoria.worker.js'
 import { iniciarWorkerSig } from './modules/sig_pregunta_dia/sig.worker.js'
+import { iniciarWorkerPlataforma } from './modules/plataforma/plataforma.worker.js'
+import { evaluarTransiciones } from './modules/plataforma/plataforma.service.js'
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js'
 import { verificarToken } from './middleware/auth.js'
+import { bloqueoMantenimiento } from './middleware/mantenimientoPlataforma.js'
 import { requestId } from './middleware/requestId.js'
 import { monitorLentos } from './middleware/monitorLentos.js'
 
@@ -90,6 +93,17 @@ app.use(cookieParser())
 // contra inyección de operadores NoSQL (complementa la validación por endpoint).
 app.use(mongoSanitize())
 
+// Gate global de mantenimiento de plataforma. Va AQUÍ, después de
+// cookieParser (lo necesita para leer la cookie de sesión al evaluar la
+// excepción de administrador) y ANTES de /storage y /api: así cubre TODA la
+// superficie del backend de una sola vez, incluidos los documentos internos,
+// en vez de depender de que cada router nuevo se acuerde de montarlo.
+//
+// Cuando no hay mantenimiento activo (el caso normal) resuelve con una
+// lectura de caché en memoria y llama a next() — no agrega ni una consulta a
+// Mongo al camino feliz.
+app.use(bloqueoMantenimiento)
+
 // Documentos internos (PDFs de OT, evidencias de mantenimiento): requieren
 // sesión igual que el resto de la API. Antes se servían con express.static
 // sin ningún control de acceso — cualquiera con la URL (los nombres son
@@ -129,6 +143,25 @@ async function start() {
   // sig.worker.js. Mismo patrón que los dos workers de arriba, sin
   // infraestructura adicional (no hay node-cron en el proyecto).
   iniciarWorkerSig()
+
+  // Estado de plataforma: persiste las transiciones programadas (iniciar /
+  // finalizar), registra el historial y dispara las notificaciones.
+  //
+  // La evaluación INMEDIATA antes de arrancar el temporizador es la que hace
+  // que el mantenimiento sobreviva a un reinicio de Node/PM2: si el proceso
+  // estuvo caído justo cuando vencía la ventana, esto lo resuelve al arrancar
+  // en vez de dejar la plataforma bloqueada hasta el primer tick (o, peor,
+  // abierta durante una ventana que ya debería estar activa).
+  //
+  // Va dentro de un try/catch propio: un fallo aquí no debe impedir que el
+  // servidor levante — el gate de cada petición deriva el estado por su
+  // cuenta, así que la plataforma se comporta bien aunque esta pasada falle.
+  try {
+    await evaluarTransiciones()
+  } catch (err) {
+    console.error('No se pudieron evaluar las transiciones de mantenimiento al arrancar:', err.message)
+  }
+  iniciarWorkerPlataforma()
 
   const server = app.listen(env.PORT, () => {
     console.log(`\n🚀  Backend Skynet corriendo en http://localhost:${env.PORT}`)

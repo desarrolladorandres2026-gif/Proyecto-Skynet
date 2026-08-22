@@ -21,6 +21,7 @@
     "test:notificaciones": "node scripts/test-notificaciones.js",
     "test:flujo-notificaciones": "node scripts/test-flujo-notificaciones.js",
     "test:flujo-sig": "node scripts/test-flujo-sig.js",
+    "test:flujo-mantenimiento": "node scripts/test-flujo-mantenimiento.js",
     "test:carga": "node scripts/loadtest.js"
   },
   "dependencies": {

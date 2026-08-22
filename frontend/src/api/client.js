@@ -114,6 +114,27 @@ export async function request(path, options = {}) {
   }
 
   const data = await res.json().catch(() => null)
+
+  // Mantenimiento de plataforma: el backend responde 503 con
+  // {mantenimiento: true, estado} en CUALQUIER endpoint bloqueado (y también
+  // en /auth/login tras validar credenciales). Se avisa a toda la app con un
+  // evento global para que la pantalla de mantenimiento aparezca de
+  // inmediato, sin esperar al siguiente sondeo periódico.
+  //
+  // Se comprueba la bandera `mantenimiento` y no el status 503 a secas: un
+  // 503 puede venir también de nginx o del propio VPS cuando el backend se
+  // está reiniciando, y ese caso NO debe pintar una pantalla de mantenimiento
+  // programado que nadie configuró.
+  if (res.status === 503 && data?.mantenimiento === true) {
+    window.dispatchEvent(new CustomEvent('skynet:mantenimiento', { detail: data.estado || null }))
+    const err = new Error(data?.error || 'La plataforma está en mantenimiento')
+    // Se adjunta para que quien llame (p. ej. LoginPage) pueda reaccionar sin
+    // tener que interpretar el texto del mensaje.
+    err.mantenimiento = true
+    err.estado = data.estado || null
+    throw err
+  }
+
   if (!res.ok) throw new Error(data?.error || `Error ${res.status}`)
   return data
 }

@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext.jsx'
+import { PlataformaProvider } from './plataforma/PlataformaContext.jsx'
+import GateMantenimiento from './plataforma/GateMantenimiento.jsx'
 import { ProtectedRoute, ModuleRoute, PermissionRoute, ModuloActivoRoute, SuperAdminRoute } from './auth/ProtectedRoute.jsx'
 import LoginPage from './auth/LoginPage.jsx'
 import AppShell from './layout/AppShell.jsx'
@@ -49,6 +51,7 @@ import RolesPage from './modules/roles/RolesPage.jsx'
 import DependenciasCargosPage from './modules/catalogos/CatalogosPage.jsx'
 import AuditoriaPage from './modules/auditoria/AuditoriaPage.jsx'
 import ModulosSistemaPage from './modules/sistema/ModulosSistemaPage.jsx'
+import EstadoPlataformaPage from './modules/sistema/EstadoPlataformaPage.jsx'
 import BackupPage from './modules/backup/BackupPage.jsx'
 import InduccionHome from './modules/induccion/InduccionHome.jsx'
 import CertificadoPage from './modules/induccion/CertificadoPage.jsx'
@@ -64,6 +67,17 @@ import DiagnosticoPage from './escritorio/DiagnosticoPage.jsx'
 export default function App() {
   return (
     <AuthProvider>
+      {/* PlataformaProvider envuelve TODO y va por fuera de BrowserRouter: el
+          estado de mantenimiento no depende de la ruta, y GateMantenimiento
+          necesita poder sustituir la aplicación entera —incluido el login—
+          por la pantalla de mantenimiento.
+
+          Que el router quede desmontado durante la ventana es deliberado:
+          además de impedir el acceso, detiene de golpe todos los sondeos y
+          temporizadores de las pantallas abiertas, que si no seguirían
+          golpeando un backend que solo va a devolverles 503. */}
+      <PlataformaProvider>
+        <GateMantenimiento>
       <BrowserRouter>
         <CookieConsent />
         <InstallBanner />
@@ -211,6 +225,7 @@ export default function App() {
             <Route path="catalogos" element={<PermissionRoute permiso="catalogos:gestionar"><DependenciasCargosPage /></PermissionRoute>} />
             <Route path="auditoria" element={<PermissionRoute permiso="auditoria:leer"><AuditoriaPage /></PermissionRoute>} />
             <Route path="sistema/modulos" element={<PermissionRoute permiso="sistema:gestionar_modulos"><ModulosSistemaPage /></PermissionRoute>} />
+            <Route path="sistema/plataforma" element={<PermissionRoute permiso="plataforma:gestionar"><EstadoPlataformaPage /></PermissionRoute>} />
             <Route path="sistema/backup" element={<SuperAdminRoute><BackupPage /></SuperAdminRoute>} />
 
             <Route path="induccion" element={<InduccionHome />} />
@@ -225,6 +240,8 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+        </GateMantenimiento>
+      </PlataformaProvider>
     </AuthProvider>
   )
 }

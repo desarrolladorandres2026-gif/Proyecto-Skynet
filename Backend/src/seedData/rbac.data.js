@@ -18,6 +18,15 @@ export const PERMISOS = [
   permiso('configuracion', 'gestionar', 'Configuración general'),
   permiso('auditoria', 'leer', 'Auditoría y registros'),
   permiso('sistema', 'gestionar_modulos', 'Activar/desactivar módulos del sistema'),
+  // Estado de plataforma: programar/activar/finalizar ventanas de
+  // mantenimiento. Igual que sistema:gestionar_modulos, no se asigna a ningún
+  // rol del seed (esSuperAdmin ya bypassa) — existe para poder delegarlo
+  // explícitamente desde la pantalla Roles.
+  //
+  // Asignarlo tiene un efecto extra que conviene tener presente al delegarlo:
+  // quien lo tenga es también quien puede SEGUIR USANDO la plataforma durante
+  // un mantenimiento activo (ver middleware/mantenimientoPlataforma.js).
+  permiso('plataforma', 'gestionar', 'Programar y controlar el mantenimiento de la plataforma'),
   // Historial administrativo de envíos (push/email) — ver
   // modules/notificaciones/historial.service.js. Exclusivo de Super
   // Admin en la especificación original (esSuperAdmin ya bypassa), se deja

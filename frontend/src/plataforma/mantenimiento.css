@@ -1,0 +1,140 @@
+/* Complemento de auth/login.css, no un tema nuevo.
+   La pantalla de mantenimiento SUSTITUYE al login, así que reutiliza su
+   lenguaje visual (fondo HUD, rejilla, tarjeta con esquinas, tipografía mono)
+   y aquí solo se agrega lo que el login no tiene: el emblema animado, el
+   contador y la barra de progreso de la ventana.
+
+   El acento pasa de cian a ámbar deliberadamente: es la señal de "en obra"
+   sin caer en el rojo de error — esto no es una caída, es trabajo planificado. */
+
+.mant-emblema {
+  position: relative;
+  width: 104px;
+  height: 104px;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+/* Dos anillos contrarrotantes: leen como maquinaria en movimiento, que es
+   justo la idea de "se está trabajando en esto ahora mismo". */
+.mant-anillo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-top-color: rgba(251, 191, 36, 0.9);
+  animation: mant-girar 3.2s linear infinite;
+}
+
+.mant-anillo--interior {
+  inset: 14px;
+  border-color: rgba(251, 191, 36, 0.18);
+  border-bottom-color: rgba(251, 191, 36, 0.65);
+  border-top-color: transparent;
+  animation-duration: 2.1s;
+  animation-direction: reverse;
+}
+
+.mant-nucleo {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 35%, rgba(251, 191, 36, 0.22), rgba(120, 53, 15, 0.12));
+  box-shadow: 0 0 24px rgba(251, 191, 36, 0.25), inset 0 0 12px rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  animation: mant-latido 2.6s ease-in-out infinite;
+}
+
+@keyframes mant-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes mant-latido {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 24px rgba(251, 191, 36, 0.22), inset 0 0 12px rgba(251, 191, 36, 0.14);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 34px rgba(251, 191, 36, 0.38), inset 0 0 16px rgba(251, 191, 36, 0.22);
+  }
+}
+
+/* Contador: cifras tabulares para que los dígitos no "bailen" de ancho al
+   cambiar cada segundo — sin esto, un 11 seguido de un 00 desplaza toda la
+   línea y el contador se ve nervioso. */
+.mant-contador {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #fde68a;
+  text-shadow: 0 0 18px rgba(251, 191, 36, 0.35);
+}
+
+.mant-barra {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.12);
+  overflow: hidden;
+}
+
+.mant-barra-relleno {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.5), #fbbf24);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.5);
+  transition: width 1s linear;
+}
+
+/* Barra indeterminada: para mantenimientos sin hora de fin. Comunica
+   "trabajando" sin mentir con un porcentaje que nadie puede calcular. */
+.mant-barra-indeterminada {
+  width: 35%;
+  animation: mant-vaiven 1.8s ease-in-out infinite;
+}
+
+@keyframes mant-vaiven {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+/* Banner de aviso previo dentro de la app. Entra desde arriba una sola vez;
+   no parpadea ni pulsa, porque tiene que convivir con el trabajo del usuario
+   durante horas sin volverse insoportable. */
+.mant-banner {
+  animation: mant-banner-entrar 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes mant-banner-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Respeta a quien pidió menos movimiento en su sistema operativo: se congelan
+   las animaciones decorativas y queda una pantalla estática perfectamente
+   legible. El contador sigue actualizándose porque es información, no adorno. */
+@media (prefers-reduced-motion: reduce) {
+  .mant-anillo,
+  .mant-nucleo,
+  .mant-barra-indeterminada,
+  .mant-banner {
+    animation: none;
+  }
+}

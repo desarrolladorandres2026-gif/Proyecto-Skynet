@@ -197,9 +197,15 @@ export const MODULOS_REGISTRO = [
     key: 'sistema',
     label: 'Sistema',
     icon: SlidersHorizontal,
-    permiso: 'sistema:gestionar_modulos',
+    // Array de alternativas (ver useModulosVisibles en AppLayout.jsx): el
+    // grupo aparece si se tiene CUALQUIERA de los dos permisos, y luego el
+    // filtro por item decide qué entradas se ven. Sin esto, delegar solo
+    // 'plataforma:gestionar' a un rol le daría el permiso pero ningún enlace
+    // por el que llegar a la pantalla.
+    permiso: ['sistema:gestionar_modulos', 'plataforma:gestionar'],
     items: [
-      { to: '/sistema/modulos', label: 'Módulos del sistema' },
+      { to: '/sistema/modulos', label: 'Módulos del sistema', permiso: 'sistema:gestionar_modulos' },
+      { to: '/sistema/plataforma', label: 'Estado de plataforma', permiso: 'plataforma:gestionar' },
       // soloSuperAdmin, no permiso: ver la nota en useModulosVisibles
       // (AppLayout.jsx) — el backup completo no debe quedar delegable.
       { to: '/sistema/backup', label: 'Copia de seguridad', soloSuperAdmin: true },

@@ -33,6 +33,11 @@ export const CATEGORIAS_NOTIFICACION = [
     nombre: 'Cuestionarios Programados',
     descripcion: 'Publicación diaria de la pregunta de capacitación SIG.',
   },
+  {
+    key: 'plataforma',
+    nombre: 'Estado de la plataforma',
+    descripcion: 'Mantenimientos programados de Skynet y aviso de que la plataforma volvió a estar disponible.',
+  },
 ]
 
 export const CLAVES_CATEGORIA = new Set(CATEGORIAS_NOTIFICACION.map((c) => c.key))
