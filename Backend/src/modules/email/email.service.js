@@ -9,6 +9,7 @@ import { registrarAuditoria } from '../../utils/auditoria.js'
 import { cifrar } from '../../utils/cifrado.js'
 import { hashToken } from '../../utils/tokens.js'
 import { enviarEmailConexionGmail } from '../../utils/email.js'
+import { ErrorAplicacion } from '../../utils/errores.js'
 import { MockEmailProvider } from './providers/MockEmailProvider.js'
 import { clienteOAuth, GMAIL_SCOPES, GmailProvider } from './providers/GmailProvider.js'
 
@@ -16,10 +17,51 @@ import { clienteOAuth, GMAIL_SCOPES, GmailProvider } from './providers/GmailProv
 // usuario tenga conectada (o MockEmailProvider si no conectó ninguna). El
 // resto del módulo programa contra EmailProvider, así que agregar
 // OutlookProvider/IMAPProvider más adelante solo toca esta función.
-async function obtenerProvider(usuario) {
+async function obtenerCuentaYProvider(usuario) {
   const cuenta = await EmailCuenta.findOne({ usuario: usuario.id_usuario })
-  if (cuenta?.proveedor === 'gmail') return new GmailProvider(cuenta)
-  return new MockEmailProvider()
+  const provider = cuenta?.proveedor === 'gmail' ? new GmailProvider(cuenta) : new MockEmailProvider()
+  return { cuenta, provider }
+}
+
+async function obtenerProvider(usuario) {
+  return (await obtenerCuentaYProvider(usuario)).provider
+}
+
+// Google responde "invalid_grant" cuando el refresh token guardado ya no
+// sirve (el dueño lo revocó en myaccount.google.com/permissions, una
+// política de reautorización de Workspace lo venció, o cambió la
+// contraseña). estadoConexion() nunca llama a Google — solo mira si hay
+// una fila en Mongo — así que sin esto la UI se queda mostrando "Conectado"
+// para siempre aunque cada operación real falle, y el error crudo de Gaxios
+// (con su propio `status` 400) se le mostraba tal cual al usuario porque
+// errorHandler.js expone el mensaje en cualquier status < 500. Al primer
+// fallo real desconectamos la cuenta rota para que el estado se autocorrija
+// y el usuario reciba un mensaje que sí explica qué hacer.
+function esTokenInvalido(err) {
+  return err?.response?.data?.error === 'invalid_grant' || /invalid_grant/i.test(err?.message || '')
+}
+
+async function conProvider(usuario, fn) {
+  const { cuenta, provider } = await obtenerCuentaYProvider(usuario)
+  try {
+    return await fn(provider)
+  } catch (err) {
+    if (cuenta?.proveedor === 'gmail' && esTokenInvalido(err)) {
+      await EmailCuenta.deleteOne({ _id: cuenta._id })
+      await registrarAuditoria({
+        usuario,
+        accion: 'desconectar',
+        modulo: 'email',
+        entidad: 'EmailCuenta',
+        entidadId: cuenta._id,
+        descripcion: `Se desconectó automáticamente la cuenta de Gmail ${cuenta.correo}: Google rechazó el token (invalid_grant)`,
+      })
+      throw new ErrorAplicacion(
+        `La conexión con Gmail (${cuenta.correo}) ya no es válida: Google revocó o venció el acceso. Ve a Configuración de Email y vuelve a conectarla.`
+      )
+    }
+    throw err
+  }
 }
 
 export async function estadoConexion(usuario) {
@@ -27,16 +69,16 @@ export async function estadoConexion(usuario) {
 }
 
 export async function listar(usuario, { carpeta = 'entrada', limite = 50 } = {}) {
-  return (await obtenerProvider(usuario)).listar({ carpeta, limite })
+  return conProvider(usuario, (provider) => provider.listar({ carpeta, limite }))
 }
 
 export async function buscar(usuario, { query, limite = 50 }) {
   if (!query?.trim()) return []
-  return (await obtenerProvider(usuario)).buscar({ query: query.trim(), limite })
+  return conProvider(usuario, (provider) => provider.buscar({ query: query.trim(), limite }))
 }
 
 export async function obtener(usuario, id) {
-  return (await obtenerProvider(usuario)).obtener(id)
+  return conProvider(usuario, (provider) => provider.obtener(id))
 }
 
 // Acción sensible: enviar. El controller ya exige confirmar=true antes de
@@ -44,8 +86,7 @@ export async function obtener(usuario, id) {
 // la envíe?" del punto 7 de la especificación, aplicado también a la API,
 // no solo a la conversación con Skynet.
 export async function enviar(usuario, mensaje) {
-  const provider = await obtenerProvider(usuario)
-  const resultado = await provider.enviar(mensaje)
+  const resultado = await conProvider(usuario, (provider) => provider.enviar(mensaje))
   await registrarAuditoria({
     usuario,
     accion: 'enviar',
@@ -58,8 +99,7 @@ export async function enviar(usuario, mensaje) {
 }
 
 export async function eliminar(usuario, id) {
-  const provider = await obtenerProvider(usuario)
-  await provider.eliminar(id)
+  await conProvider(usuario, (provider) => provider.eliminar(id))
   await registrarAuditoria({
     usuario,
     accion: 'eliminar',
@@ -71,12 +111,11 @@ export async function eliminar(usuario, id) {
 }
 
 export async function marcarLeido(usuario, id, leido) {
-  return (await obtenerProvider(usuario)).marcarLeido(id, leido)
+  return conProvider(usuario, (provider) => provider.marcarLeido(id, leido))
 }
 
 export async function archivar(usuario, id) {
-  const provider = await obtenerProvider(usuario)
-  await provider.archivar(id)
+  await conProvider(usuario, (provider) => provider.archivar(id))
   await registrarAuditoria({
     usuario,
     accion: 'archivar',

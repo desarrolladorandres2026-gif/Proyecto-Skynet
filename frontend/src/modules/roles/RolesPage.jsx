@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Lock, Plus, ShieldCheck } from 'lucide-react'
 import { roles as rolesApi } from '../../api/roles.js'
 import { permisos as permisosApi } from '../../api/permisos.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import {
   Btn, Badge, ErrorMsg, Field, Input, Select, Textarea, Modal,
 } from '../../components/ui.jsx'
@@ -20,10 +21,14 @@ const FORM_VACIO = {
 }
 
 export default function RolesPage() {
-  const [lista, setLista] = useState([])
-  const [modulosPermisos, setModulosPermisos] = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
+  const { data, cargando, error, recargar } = useDatosConCache(
+    'roles:lista',
+    () => Promise.all([rolesApi.listar(), permisosApi.listarAgrupados()])
+      .then(([rolesData, permisosData]) => ({ lista: rolesData.roles, modulosPermisos: permisosData.modulos })),
+    { ttlMs: 60_000 },
+  )
+  const lista = data?.lista || []
+  const modulosPermisos = data?.modulosPermisos || []
 
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editando, setEditando] = useState(null)
@@ -33,27 +38,6 @@ export default function RolesPage() {
 
   const [porEliminar, setPorEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
-
-  async function cargar() {
-    setCargando(true)
-    try {
-      const [rolesData, permisosData] = await Promise.all([
-        rolesApi.listar(),
-        permisosApi.listarAgrupados(),
-      ])
-      setLista(rolesData.roles)
-      setModulosPermisos(permisosData.modulos)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    cargar()
-  }, [])
 
   function abrirCrear() {
     setEditando(null)
@@ -98,7 +82,7 @@ export default function RolesPage() {
         toast.success('Rol creado correctamente')
       }
       setModalAbierto(false)
-      cargar()
+      recargar()
     } catch (err) {
       setErrorForm(err.message)
     } finally {
@@ -112,7 +96,7 @@ export default function RolesPage() {
       await rolesApi.eliminar(porEliminar._id)
       toast.success('Rol eliminado')
       setPorEliminar(null)
-      cargar()
+      recargar()
     } catch (err) {
       toast.error(err.message)
     } finally {

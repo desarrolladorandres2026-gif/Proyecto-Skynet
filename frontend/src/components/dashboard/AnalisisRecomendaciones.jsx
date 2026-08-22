@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Sparkles, AlertCircle, AlertTriangle, CheckCircle, Info, ChevronRight } from 'lucide-react'
+import { AlertCircle, AlertTriangle, CheckCircle, Info, ChevronRight } from 'lucide-react'
 import { cn } from '../../lib/cn.js'
 
 const ESTILOS_TIPO = {
@@ -54,9 +54,6 @@ export function AnalisisRecomendaciones({ recomendaciones = [], className = '' }
     <div className={cn('flex flex-col rounded-xl border border-slate-200 bg-white/95 p-4 shadow-soft-sm backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/70 w-full', className)}>
       <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-800/80">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-tr from-brand-600 to-cyan-400 text-slate-950 shadow-sm">
-            <Sparkles className="h-4 w-4" />
-          </div>
           <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
             Análisis & Recomendaciones
             <span className="panel-mono text-[10px] font-semibold bg-brand-500/10 text-brand-700 border border-brand-500/20 px-2 py-0.5 rounded-full dark:bg-brand-500/20 dark:text-brand-300 dark:border-brand-500/30">

@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ScrollText, Trash2 } from 'lucide-react'
 import { auditoria as auditoriaApi } from '../../api/auditoria.js'
+import { useDatosConCache, invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { Badge, Btn, ErrorMsg, Field, Input, Select, Modal, fmtFechaHora } from '../../components/ui.jsx'
 import { DataTable } from '../../components/DataTable.jsx'
@@ -16,14 +17,43 @@ export default function AuditoriaPage() {
   const { usuario } = useAuth()
   const esSuperAdmin = Boolean(usuario?.esSuperAdmin)
 
-  const [registros, setRegistros] = useState([])
   const [page, setPage] = useState(1)
-  const [pages, setPages] = useState(1)
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
-
   const [filtros, setFiltros] = useState(FILTROS_VACIOS)
-  const [opcionesFiltro, setOpcionesFiltro] = useState({ modulos: [], acciones: [] })
+  // Los filtros solo se aplican al enviar el formulario (Buscar/Limpiar), no
+  // en cada tecla — se guardan aparte para que solo ESE valor entre en la
+  // clave de caché.
+  const [filtrosAplicados, setFiltrosAplicados] = useState(FILTROS_VACIOS)
+
+  const { data, cargando, error, recargar } = useDatosConCache(
+    `auditoria:lista:${page}:${JSON.stringify(filtrosAplicados)}`,
+    () => {
+      const f = filtrosAplicados
+      return auditoriaApi.listar({
+        page,
+        modulo: f.modulo || undefined,
+        accion: f.accion || undefined,
+        resultado: f.resultado || undefined,
+        usuario: f.usuario || undefined,
+        desde: f.desde || undefined,
+        hasta: f.hasta || undefined,
+      })
+    },
+    { ttlMs: 30_000 },
+  )
+  const registros = data?.registros || []
+  const pages = data?.pages || 1
+
+  function recargarTodo() {
+    invalidarCachePorPrefijo('auditoria:lista:')
+    recargar()
+  }
+
+  const { data: opcionesFiltroData } = useDatosConCache(
+    'auditoria:filtros',
+    () => auditoriaApi.obtenerFiltros(),
+    { ttlMs: 5 * 60_000 },
+  )
+  const opcionesFiltro = opcionesFiltroData || { modulos: [], acciones: [] }
 
   const [porEliminar, setPorEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
@@ -38,56 +68,18 @@ export default function AuditoriaPage() {
     setFiltros((f) => ({ ...f, [campo]: valor }))
   }
 
-  // Acepta overrides explícitos (no lee siempre el state por closure) para
-  // que "Limpiar" pueda refetchear con los filtros ya vacíos sin depender
-  // de que el próximo render ya haya aplicado el setFiltros.
-  async function cargar(override = {}) {
-    setCargando(true)
-    try {
-      const f = { ...filtros, ...override }
-      const data = await auditoriaApi.listar({
-        page: override.page ?? page,
-        modulo: f.modulo || undefined,
-        accion: f.accion || undefined,
-        resultado: f.resultado || undefined,
-        usuario: f.usuario || undefined,
-        desde: f.desde || undefined,
-        hasta: f.hasta || undefined,
-      })
-      setRegistros(data.registros)
-      setPages(data.pages)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    cargar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page])
-
-  useEffect(() => {
-    auditoriaApi
-      .obtenerFiltros()
-      .then(setOpcionesFiltro)
-      .catch(() => {})
-  }, [])
-
   function buscar(e) {
     e.preventDefault()
     setPage(1)
     setSeleccionados(new Set())
-    cargar({ page: 1 })
+    setFiltrosAplicados(filtros)
   }
 
   function limpiar() {
     setFiltros(FILTROS_VACIOS)
     setPage(1)
     setSeleccionados(new Set())
-    cargar({ ...FILTROS_VACIOS, page: 1 })
+    setFiltrosAplicados(FILTROS_VACIOS)
   }
 
   const hayFiltrosActivos = Object.values(filtros).some(Boolean)
@@ -126,7 +118,7 @@ export default function AuditoriaPage() {
         siguiente.delete(porEliminar._id)
         return siguiente
       })
-      cargar()
+      recargarTodo()
     } catch (err) {
       toast.error(err.message)
     } finally {
@@ -153,7 +145,7 @@ export default function AuditoriaPage() {
       toast.success(`${eliminados} registro(s) eliminados`)
       setSeleccionados(new Set())
       setLoteAbierto(false)
-      cargar()
+      recargarTodo()
     } catch (err) {
       setErrorLote(err.message)
     } finally {

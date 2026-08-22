@@ -13,7 +13,7 @@ const NUEVO = '__nuevo__'
 // La autorización real (permiso catalogos:gestionar) la sigue validando el
 // backend: si quien usa el formulario no puede crear valores nuevos, el
 // intento simplemente falla con el mensaje de error del servidor.
-export function CatalogoSelect({ tipo, valor, onChange, opciones, onCrear, placeholder = 'Selecciona…', required }) {
+export function CatalogoSelect({ tipo, valor, onChange, opciones, onCrear, placeholder = 'Selecciona…', required, permitirCrear = true }) {
   const [creando, setCreando] = useState(false)
   const [nuevoNombre, setNuevoNombre] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -81,7 +81,7 @@ export function CatalogoSelect({ tipo, valor, onChange, opciones, onCrear, place
       {valor && !opciones.some((o) => o.nombre === valor) && (
         <option value={valor}>{valor}</option>
       )}
-      <option value={NUEVO}>+ Agregar nuevo…</option>
+      {permitirCrear && <option value={NUEVO}>+ Agregar nuevo…</option>}
     </Select>
   )
 }

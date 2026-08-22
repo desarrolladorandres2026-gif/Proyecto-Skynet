@@ -5,6 +5,7 @@ import Ausencia from '../../models/Ausencia.js'
 import Rol from '../../models/Rol.js'
 import RegistroAuditoria from '../../models/RegistroAuditoria.js'
 import Mantenimiento from '../../models/mantenimiento/Mantenimiento.js'
+import Notificacion from '../../models/Notificacion.js'
 import { estaModuloActivo } from '../sistema/sistema.service.js'
 import { hoy, restarMeses } from '../../utils/fechas.js'
 
@@ -68,6 +69,18 @@ export async function calcularResumen(usuario) {
   const colaPrioritaria = []
 
   // 1. Tarjetas base y conteos
+
+  // Notificaciones sin leer: universal, no depende de ningún permiso ni
+  // módulo — es la bandeja propia del usuario (mismo dato que la campana de
+  // AppLayout.jsx), y en el shell móvil (usuarios comunes) es la única forma
+  // de verla desde el Resumen Operativo, ya que ese shell no tiene campana.
+  tareas.push(async () => {
+    tarjetas.notificaciones = await Notificacion.countDocuments({
+      usuario: usuario.id_usuario,
+      leida: false,
+    })
+  })
+
   if (esAdmin || puede('usuarios:gestionar')) {
     tareas.push(async () => {
       tarjetas.usuarios = await Usuario.countDocuments({ estado: 'activo', esPrueba: false })
@@ -275,8 +288,9 @@ export async function calcularResumen(usuario) {
 
   const esTecnicoPuro = usuario.permisos.has('mantenimiento:ejecutar') && !usuario.esSuperAdmin && !usuario.permisos.has('danos:gestionar')
   const esBodega = usuario.rol?.slug === 'bodega' && !usuario.esSuperAdmin
+  const esUsuarioComun = usuario.rol?.slug === 'usuario_comun' && !usuario.esSuperAdmin
 
-  if (!esTecnicoPuro && !esBodega) {
+  if (!esTecnicoPuro && !esBodega && !esUsuarioComun) {
     tareas.push(async () => {
       tarjetas.misDanosReportados = await ReporteDano.countDocuments({
         reportadoPor: usuario.id_usuario,

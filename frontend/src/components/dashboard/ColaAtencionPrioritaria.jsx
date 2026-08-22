@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Flame, ArrowRight, Clock, ShieldAlert } from 'lucide-react'
+import { ArrowRight, Clock, ShieldAlert } from 'lucide-react'
 import { cn } from '../../lib/cn.js'
 
 const PRIORIDAD_COLORES = {
@@ -16,9 +16,6 @@ export function ColaAtencionPrioritaria({ cola = [], className = '' }) {
     <div className={cn('flex flex-col rounded-xl border border-slate-200 bg-white/95 p-4 shadow-soft-sm backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/70 w-full', className)}>
       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800/80">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-rose-500/10 text-rose-600 border border-rose-500/20 shadow-xs dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/30">
-            <Flame className="h-4 w-4" />
-          </div>
           <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
             Cola de Atención Prioritaria
             <span className="panel-mono text-[10px] font-semibold bg-rose-500/10 text-rose-700 border border-rose-500/20 px-2 py-0.5 rounded-full dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30">

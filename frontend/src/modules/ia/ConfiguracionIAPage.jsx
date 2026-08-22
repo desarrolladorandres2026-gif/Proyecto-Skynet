@@ -1,33 +1,32 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { SlidersHorizontal } from 'lucide-react'
 import { ia as iaApi } from '../../api/ia.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Card, Switch, ErrorMsg, OkMsg } from '../../components/ui.jsx'
 
 export default function ConfiguracionIAPage() {
-  const [configuracion, setConfiguracion] = useState(null)
-  const [categorias, setCategorias] = useState([])
-  const [error, setError] = useState('')
+  const { data, error, actualizarLocal } = useDatosConCache(
+    'ia:configuracionGlobal',
+    () => Promise.all([iaApi.configuracionGlobal(), iaApi.categorias()])
+      .then(([config, cats]) => ({ configuracion: config, categorias: cats.categorias })),
+    { ttlMs: 60_000 },
+  )
+  const configuracion = data?.configuracion || null
+  const categorias = data?.categorias || []
   const [ok, setOk] = useState('')
 
-  useEffect(() => {
-    Promise.all([iaApi.configuracionGlobal(), iaApi.categorias()])
-      .then(([config, cats]) => {
-        setConfiguracion(config)
-        setCategorias(cats.categorias)
-      })
-      .catch((err) => setError(err.message))
-  }, [])
-
   async function guardar(categoria, valor) {
-    setConfiguracion((c) => ({ ...c, categorias: { ...c.categorias, [categoria]: valor } }))
+    actualizarLocal((d) => ({ ...d, configuracion: { ...d.configuracion, categorias: { ...d.configuracion.categorias, [categoria]: valor } } }))
     setOk('')
-    setError('')
     try {
       await iaApi.actualizarConfiguracionGlobal({ categorias: { [categoria]: valor } })
       setOk('Configuración global actualizada.')
     } catch (err) {
-      setError(err.message)
-      iaApi.configuracionGlobal().then(setConfiguracion).catch(() => {})
+      toast.error(err.message)
+      iaApi.configuracionGlobal()
+        .then((config) => actualizarLocal((d) => ({ ...d, configuracion: config })))
+        .catch(() => {})
     }
   }
 

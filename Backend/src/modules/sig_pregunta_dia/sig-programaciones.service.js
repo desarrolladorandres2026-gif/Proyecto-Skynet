@@ -202,18 +202,32 @@ async function avisarPublicaciones(docs) {
   }
 
   for (const grupo of grupos.values()) {
-    const destinatarios = await resolverAudiencia(grupo.audiencia)
-    if (!destinatarios.length) continue
+    try {
+      const destinatarios = await resolverAudiencia(grupo.audiencia)
+      if (!destinatarios.length) {
+        // Silencioso hasta ahora: una audiencia dirigida (dependencia/cargo)
+        // que no matchea a ningún usuario real publica igual, sin que nadie
+        // se entere de que se quedó sin destinatarios. Ver auditoría
+        // 2026-08-22.
+        console.warn('Publicación SIG sin destinatarios reales para la audiencia:', JSON.stringify(grupo.audiencia))
+        continue
+      }
 
-    const componentes = [...grupo.componentes].join(', ')
-    await notificarUsuarios(destinatarios, {
-      title: '🧠 Nuevo Cuestionario Programado',
-      body:
-        grupo.total === 1
-          ? `Ya está disponible tu pregunta de capacitación de hoy. Componente: ${componentes}`
-          : `Ya tienes ${grupo.total} preguntas de capacitación para hoy. Componentes: ${componentes}`,
-      url: '/sig/pregunta-del-dia',
-    })
+      const componentes = [...grupo.componentes].join(', ')
+      await notificarUsuarios(destinatarios, {
+        title: '🧠 Nuevo Cuestionario Programado',
+        body:
+          grupo.total === 1
+            ? `Ya está disponible tu pregunta de capacitación de hoy. Componente: ${componentes}`
+            : `Ya tienes ${grupo.total} preguntas de capacitación para hoy. Componentes: ${componentes}`,
+        url: '/sig/pregunta-del-dia',
+      })
+    } catch (err) {
+      // Un grupo de audiencia fallando (p. ej. un blip resolviendo
+      // destinatarios) no debe dejar sin aviso a los demás grupos de esta
+      // misma tanda de publicaciones.
+      console.error('No se pudo notificar un grupo de publicaciones SIG:', err.message)
+    }
   }
 }
 
@@ -231,46 +245,68 @@ export async function publicarPendientes(lote = 200) {
 
   const publicadas = []
   for (const candidata of candidatas) {
-    // Una programación que pertenece a una campaña PAUSADA o CANCELADA se
-    // salta sin tocarla (sigue en 'programada'): si la campaña se reanuda
-    // más adelante, el siguiente tick la publica normalmente. Cancelar la
-    // campaña sí marca sus programaciones futuras como 'cancelada' de una
-    // vez (ver sig-campanas.service.js#cancelarCampana), así que en la
-    // práctica este chequeo solo importa para el caso "pausada".
-    if (candidata.campana) {
-      const campana = await CampanaSig.findById(candidata.campana).select('estado')
-      if (!campana || campana.estado !== 'activa') continue
+    // Try/catch por candidata: sin él, una excepción a mitad del lote (un
+    // blip transitorio de Mongo, p. ej.) escapaba del for ANTES de llegar a
+    // avisarPublicaciones() de abajo — perdiendo el aviso de TODAS las
+    // candidatas que ya habían ganado su CAS en este mismo tick, aunque ya
+    // hubieran quedado marcadas 'publicada' (y por lo tanto el siguiente
+    // tick nunca las vuelve a considerar: quedaban huérfanas para siempre).
+    // Ver auditoría 2026-08-22.
+    try {
+      // Una programación que pertenece a una campaña PAUSADA o CANCELADA se
+      // salta sin tocarla (sigue en 'programada'): si la campaña se reanuda
+      // más adelante, el siguiente tick la publica normalmente. Cancelar la
+      // campaña sí marca sus programaciones futuras como 'cancelada' de una
+      // vez (ver sig-campanas.service.js#cancelarCampana), así que en la
+      // práctica este chequeo solo importa para el caso "pausada".
+      if (candidata.campana) {
+        const campana = await CampanaSig.findById(candidata.campana).select('estado')
+        if (!campana || campana.estado !== 'activa') continue
+      }
+
+      const pregunta = await PreguntaSig.findById(candidata.pregunta)
+      // Defensivo: sig-banco.service.js impide borrar una pregunta ya usada en
+      // una programación, así que esto no debería pasar en operación normal.
+      if (!pregunta) continue
+
+      const snapshotPregunta = {
+        enunciado: pregunta.enunciado,
+        opciones: pregunta.opciones.map((o) => ({ texto: o.texto, esCorrecta: o.esCorrecta })),
+        componenteSig: pregunta.componenteSig,
+        tema: pregunta.tema,
+      }
+
+      const publicada = await ProgramacionSig.findOneAndUpdate(
+        { _id: candidata._id, estado: 'programada' },
+        { $set: { estado: 'publicada', publicadaEn: new Date(), snapshotPregunta } },
+        { new: true }
+      )
+      if (!publicada) continue // otro tick/instancia ya ganó la carrera
+
+      // Se guarda ANTES de auditar a propósito: la auditoría es best-effort
+      // (ver el try/catch interno de abajo) y no debe poner en riesgo la
+      // notificación de algo que YA quedó marcado 'publicada'.
+      publicadas.push(publicada)
+
+      try {
+        const actor = await actorDesdeCreador(publicada.creadoPor)
+        await auditar(
+          actor,
+          'publicar_automatico',
+          'ProgramacionSig',
+          publicada._id,
+          `Publicación automática a la hora programada: "${snapshotPregunta.enunciado.slice(0, 60)}"`
+        )
+      } catch (err) {
+        console.error(`No se pudo auditar la publicación automática de "${publicada._id}":`, err.message)
+      }
+    } catch (err) {
+      // Esta candidata no llegó a publicarse (o falló antes del CAS): sigue
+      // en 'programada' y el siguiente tick la vuelve a intentar sola. Lo
+      // importante es que el resto del lote (y avisarPublicaciones de abajo)
+      // sigan su curso.
+      console.error(`Fallo publicando la programación "${candidata._id}", se reintentará en el siguiente tick:`, err.message)
     }
-
-    const pregunta = await PreguntaSig.findById(candidata.pregunta)
-    // Defensivo: sig-banco.service.js impide borrar una pregunta ya usada en
-    // una programación, así que esto no debería pasar en operación normal.
-    if (!pregunta) continue
-
-    const snapshotPregunta = {
-      enunciado: pregunta.enunciado,
-      opciones: pregunta.opciones.map((o) => ({ texto: o.texto, esCorrecta: o.esCorrecta })),
-      componenteSig: pregunta.componenteSig,
-      tema: pregunta.tema,
-    }
-
-    const publicada = await ProgramacionSig.findOneAndUpdate(
-      { _id: candidata._id, estado: 'programada' },
-      { $set: { estado: 'publicada', publicadaEn: new Date(), snapshotPregunta } },
-      { new: true }
-    )
-    if (!publicada) continue // otro tick/instancia ya ganó la carrera
-
-    publicadas.push(publicada)
-
-    const actor = await actorDesdeCreador(publicada.creadoPor)
-    await auditar(
-      actor,
-      'publicar_automatico',
-      'ProgramacionSig',
-      publicada._id,
-      `Publicación automática a la hora programada: "${snapshotPregunta.enunciado.slice(0, 60)}"`
-    )
   }
 
   // Fuera del bucle a propósito: ver avisarPublicaciones().

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Bell, CheckCheck } from 'lucide-react'
 import { notificaciones as notificacionesApi } from '../../api/notificaciones.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Badge, Btn, ErrorMsg, fmtFechaHora } from '../../components/ui.jsx'
 import { DataTable } from '../../components/DataTable.jsx'
 
@@ -17,34 +18,19 @@ const ETIQUETA_CATEGORIA = {
 
 export default function CentroNotificacionesPage() {
   const navigate = useNavigate()
-  const [notificaciones, setNotificaciones] = useState([])
   const [page, setPage] = useState(1)
-  const [pages, setPages] = useState(1)
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
 
-  async function cargar(paginaSolicitada = page) {
-    setCargando(true)
-    try {
-      const data = await notificacionesApi.misNotificaciones({ page: paginaSolicitada, limit: 20 })
-      setNotificaciones(data.notificaciones)
-      setPages(data.pages)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    cargar(page)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page])
+  const { data, cargando, error, actualizarLocal } = useDatosConCache(
+    `notificaciones:centro:${page}`,
+    () => notificacionesApi.misNotificaciones({ page, limit: 20 }),
+    { ttlMs: 20_000 },
+  )
+  const notificaciones = data?.notificaciones || []
+  const pages = data?.pages || 1
 
   async function marcarUna(n) {
     if (!n.leida) {
-      setNotificaciones((lista) => lista.map((x) => (x._id === n._id ? { ...x, leida: true } : x)))
+      actualizarLocal((d) => ({ ...d, notificaciones: d.notificaciones.map((x) => (x._id === n._id ? { ...x, leida: true } : x)) }))
       try {
         await notificacionesApi.marcarLeida(n._id)
       } catch (err) {
@@ -57,7 +43,7 @@ export default function CentroNotificacionesPage() {
   async function marcarTodas() {
     try {
       const { actualizadas } = await notificacionesApi.marcarTodasLeidas()
-      setNotificaciones((lista) => lista.map((x) => ({ ...x, leida: true })))
+      actualizarLocal((d) => ({ ...d, notificaciones: d.notificaciones.map((x) => ({ ...x, leida: true })) }))
       toast.success(actualizadas > 0 ? `${actualizadas} notificación(es) marcadas como leídas` : 'No había nada pendiente')
     } catch (err) {
       toast.error(err.message)

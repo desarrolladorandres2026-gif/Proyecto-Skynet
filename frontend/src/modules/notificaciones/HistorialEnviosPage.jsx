@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { MailWarning } from 'lucide-react'
 import { notificaciones as notificacionesApi } from '../../api/notificaciones.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Badge, Btn, ErrorMsg, Field, Input, Select, fmtFechaHora } from '../../components/ui.jsx'
 import { DataTable } from '../../components/DataTable.jsx'
 import { Toolbar, ToolbarReset } from '../../components/Toolbar.jsx'
@@ -10,25 +11,19 @@ const ESTADO_COLOR = { enviado: 'exito', fallido: 'error', pendiente: 'pendiente
 const FILTROS_VACIOS = { usuario: '', categoria: '', canal: '', estado: '', desde: '', hasta: '', soloErrores: false }
 
 export default function HistorialEnviosPage() {
-  const [envios, setEnvios] = useState([])
   const [page, setPage] = useState(1)
-  const [pages, setPages] = useState(1)
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
-
   const [filtros, setFiltros] = useState(FILTROS_VACIOS)
-  const [opcionesFiltro, setOpcionesFiltro] = useState({ categorias: [], canales: [], estados: [] })
+  // Los filtros solo se aplican al enviar el formulario (Buscar/Limpiar), no
+  // en cada tecla — se guardan aparte para que solo ESE valor entre en la
+  // clave de caché.
+  const [filtrosAplicados, setFiltrosAplicados] = useState(FILTROS_VACIOS)
 
-  function actualizarFiltro(campo, valor) {
-    setFiltros((f) => ({ ...f, [campo]: valor }))
-  }
-
-  async function cargar(override = {}) {
-    setCargando(true)
-    try {
-      const f = { ...filtros, ...override }
-      const data = await notificacionesApi.historialEnvios({
-        page: override.page ?? page,
+  const { data, cargando, error } = useDatosConCache(
+    `notificaciones:historial:${page}:${JSON.stringify(filtrosAplicados)}`,
+    () => {
+      const f = filtrosAplicados
+      return notificacionesApi.historialEnvios({
+        page,
         usuario: f.usuario || undefined,
         categoria: f.categoria || undefined,
         canal: f.canal || undefined,
@@ -37,38 +32,33 @@ export default function HistorialEnviosPage() {
         hasta: f.hasta || undefined,
         soloErrores: f.soloErrores || undefined,
       })
-      setEnvios(data.envios)
-      setPages(data.pages)
-      setError('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setCargando(false)
-    }
+    },
+    { ttlMs: 30_000 },
+  )
+  const envios = data?.envios || []
+  const pages = data?.pages || 1
+
+  const { data: opcionesFiltroData } = useDatosConCache(
+    'notificaciones:historialFiltros',
+    () => notificacionesApi.historialFiltros(),
+    { ttlMs: 5 * 60_000 },
+  )
+  const opcionesFiltro = opcionesFiltroData || { categorias: [], canales: [], estados: [] }
+
+  function actualizarFiltro(campo, valor) {
+    setFiltros((f) => ({ ...f, [campo]: valor }))
   }
-
-  useEffect(() => {
-    cargar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page])
-
-  useEffect(() => {
-    notificacionesApi
-      .historialFiltros()
-      .then(setOpcionesFiltro)
-      .catch(() => {})
-  }, [])
 
   function buscar(e) {
     e.preventDefault()
     setPage(1)
-    cargar({ page: 1 })
+    setFiltrosAplicados(filtros)
   }
 
   function limpiar() {
     setFiltros(FILTROS_VACIOS)
     setPage(1)
-    cargar({ ...FILTROS_VACIOS, page: 1 })
+    setFiltrosAplicados(FILTROS_VACIOS)
   }
 
   const hayFiltrosActivos = Object.values(filtros).some(Boolean)

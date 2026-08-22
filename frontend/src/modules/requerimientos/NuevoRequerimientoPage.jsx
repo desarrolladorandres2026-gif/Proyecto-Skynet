@@ -4,7 +4,7 @@ import { FilePlus2, ShoppingCart, Wrench, TriangleAlert } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
 import { danos as danosApi } from '../../api/danos.js'
 import { catalogosApi } from '../../api/catalogos.js'
-import { invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
+import { useDatosConCache, invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { Btn, Card, ErrorMsg, Field, Input } from '../../components/ui.jsx'
 import { CatalogoSelect } from '../../components/CatalogoSelect.jsx'
@@ -23,7 +23,14 @@ export default function NuevoRequerimientoPage() {
   const [tipo, setTipo] = useState('compra')
   const [cargo, setCargo] = useState(usuario?.cargo || '')
   const [areaOProceso, setAreaOProceso] = useState(origenDano ? 'Mantenimiento' : '')
-  const [cargosDisponibles, setCargosDisponibles] = useState([])
+  // Misma clave que modules/catalogos/CatalogosPage.jsx: comparte caché con
+  // la pantalla de administración de Dependencias y cargos.
+  const { data: catalogosData } = useDatosConCache(
+    'catalogos:dependenciasYCargos',
+    () => catalogosApi.obtener(),
+    { ttlMs: 5 * 60_000 },
+  )
+  const cargosDisponibles = catalogosData?.cargos || []
   const [items, setItems] = useState([filaVaciaCompra()])
   const [detalleServicio, setDetalleServicio] = useState(detalleServicioVacio())
   const [dano, setDano] = useState(null)
@@ -39,12 +46,6 @@ export default function NuevoRequerimientoPage() {
       .then(({ reporte }) => setDano(reporte))
       .catch(() => setDano(null))
   }, [origenDano])
-
-  useEffect(() => {
-    catalogosApi.obtener()
-      .then(({ cargos }) => setCargosDisponibles(cargos))
-      .catch(() => setCargosDisponibles([]))
-  }, [])
 
   async function enviar(e) {
     e.preventDefault()
@@ -115,11 +116,11 @@ export default function NuevoRequerimientoPage() {
               <CatalogoSelect
                 tipo="cargo"
                 required
+                permitirCrear={false}
                 placeholder="Selecciona un cargo…"
                 valor={cargo}
                 onChange={setCargo}
                 opciones={cargosDisponibles}
-                onCrear={setCargosDisponibles}
               />
             </Field>
             <Field label="Área o proceso">

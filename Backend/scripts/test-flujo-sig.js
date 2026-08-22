@@ -127,7 +127,10 @@ console.log(`  Pregunta creada: "${pregunta.enunciado.slice(0, 50)}..."`)
 const enUnMinuto = new Date(Date.now() + 60_000)
 const fecha = enUnMinuto.toISOString().slice(0, 10)
 const hora = enUnMinuto.toISOString().slice(11, 16)
-const programacion = await sigProgramaciones.crearProgramacionIndividual(
+// crearProgramacionIndividual devuelve un ARRAY (soporta programar varias
+// preguntas de una vez, ver el comentario en sig-programaciones.service.js);
+// con una sola pregunta en la lista, es el primer y único elemento.
+const [programacion] = await sigProgramaciones.crearProgramacionIndividual(
   { preguntaId: pregunta._id, fecha, hora, audiencia: { todos: true } },
   admin.actor
 )

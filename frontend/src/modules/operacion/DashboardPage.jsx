@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import {
-  Users, Wrench, FileText, CalendarDays, ShieldCheck, ScrollText,
+  Users, Wrench, FileText, CalendarDays, ShieldCheck, ScrollText, Bell,
 } from 'lucide-react'
 import { useAuth, usaPanelDenso } from '../../auth/AuthContext.jsx'
 import { useEsMovil } from '../../layout/useEsMovil.js'
@@ -20,6 +20,7 @@ import { usePersonalizacionDashboardCompleta } from '../../components/dashboard/
 import { ACCESOS_RAPIDOS_PANEL_DENSO } from '../../config/accesosRapidosPorRol.js'
 
 const TARJETAS = [
+  { clave: 'notificaciones', label: 'Notificaciones sin leer', icon: Bell, to: '/notificaciones/centro', tono: 'brand' },
   { clave: 'usuarios', label: 'Usuarios activos', icon: Users, to: '/usuarios', tono: 'brand' },
   { clave: 'danosPendientes', label: 'Daños pendientes', icon: Wrench, to: '/danos/tareas', tono: 'brand' },
   { clave: 'requerimientosPendientes', label: 'Requerimientos en trámite', icon: FileText, to: '/requerimientos/todos', tono: 'brand' },

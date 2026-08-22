@@ -55,6 +55,15 @@ export function requiereSerParticipante(ot, usuarioActor) {
 // de técnicos que ejecuta OT) se excluye explícitamente: un Super Admin es
 // una cuenta de sistema, no un técnico, y no debe aparecer en el "equipo de
 // mantenimiento" ni en sus reportes/KPIs.
+//
+// A propósito SIN `esPrueba: false`: ese campo separa cuentas de
+// prueba/desarrollo de personal real para ESTADÍSTICAS (dashboards, KPIs,
+// conteos) — no para decidir quién recibe una alerta operativa real. Hoy los
+// cargos de Mantenimiento/Bodega/Administrador/Financiero del Terminal
+// siguen operados desde cuentas marcadas esPrueba:true (creadas antes de la
+// migración del 2026-08-21), y sí son personas reales haciendo el trabajo a
+// diario. Filtrar por esPrueba aquí dejó esos destinatarios completamente
+// fuera de daños/mantenimiento/requerimientos — ver auditoría 2026-08-22.
 export async function usuariosConPermiso(codigo, { incluirSuperAdmin = true } = {}) {
   const permiso = await Permiso.findOne({ codigo }).select('_id')
   const condiciones = []
@@ -62,7 +71,7 @@ export async function usuariosConPermiso(codigo, { incluirSuperAdmin = true } = 
   if (permiso) condiciones.push({ permisos: permiso._id })
   const filtroRol = condiciones.length ? { $or: condiciones } : { _id: null }
   const roles = await Rol.find(filtroRol).select('_id')
-  const usuarios = await Usuario.find({ rol: { $in: roles.map((r) => r._id) }, estado: 'activo', esPrueba: false }).select('_id')
+  const usuarios = await Usuario.find({ rol: { $in: roles.map((r) => r._id) }, estado: 'activo' }).select('_id')
   return usuarios.map((u) => u._id)
 }
 

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useParams } from 'react-router-dom'
 import { Inbox, Star, Send, FileEdit, Trash2, Search, Mail as MailIcon } from 'lucide-react'
+import { toast } from 'sonner'
 import { email as emailApi } from '../../api/email.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { Card, Input, Btn, ErrorMsg, EmptyState } from '../../components/ui.jsx'
 import { cn } from '../../lib/cn.js'
@@ -21,38 +23,37 @@ const CARPETAS = [
 export default function EmailPage() {
   const { carpeta = 'entrada' } = useParams()
   const { tienePermiso } = useAuth()
-  const [mensajes, setMensajes] = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
   const [busqueda, setBusqueda] = useState('')
-  const [conexion, setConexion] = useState(null)
+  // Resultados de una búsqueda libre (emailApi.buscar): pisan la lista de la
+  // carpeta hasta que se cambia de carpeta, sin necesidad de guardarlos en
+  // el caché por carpeta (no son "el contenido de la carpeta").
+  const [resultadosBusqueda, setResultadosBusqueda] = useState(null)
+  const [buscando, setBuscando] = useState(false)
+
+  const { data: conexion } = useDatosConCache('email:estado', () => emailApi.estado().then((d) => d.conexion), { ttlMs: 60_000 })
+
+  const { data: mensajesCarpeta, cargando, error } = useDatosConCache(
+    `email:mensajes:${carpeta}`,
+    () => emailApi.listar(carpeta).then((d) => d.mensajes),
+    { ttlMs: 20_000 },
+  )
+  const mensajes = resultadosBusqueda ?? mensajesCarpeta ?? []
 
   useEffect(() => {
-    emailApi.estado().then((data) => setConexion(data.conexion)).catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    setCargando(true)
-    setError('')
-    emailApi
-      .listar(carpeta)
-      .then((data) => setMensajes(data.mensajes))
-      .catch((err) => setError(err.message))
-      .finally(() => setCargando(false))
+    setResultadosBusqueda(null)
   }, [carpeta])
 
   async function buscar(e) {
     e.preventDefault()
     if (!busqueda.trim()) return
-    setCargando(true)
-    setError('')
+    setBuscando(true)
     try {
       const data = await emailApi.buscar(busqueda.trim())
-      setMensajes(data.mensajes)
+      setResultadosBusqueda(data.mensajes)
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     } finally {
-      setCargando(false)
+      setBuscando(false)
     }
   }
 
@@ -106,7 +107,7 @@ export default function EmailPage() {
         <ErrorMsg>{error}</ErrorMsg>
 
         <Card>
-          {cargando ? (
+          {cargando || buscando ? (
             <p className="text-sm text-slate-500 dark:text-slate-400">Cargando…</p>
           ) : mensajes.length === 0 ? (
             <EmptyState

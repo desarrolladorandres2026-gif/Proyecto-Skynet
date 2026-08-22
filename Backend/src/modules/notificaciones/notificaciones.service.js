@@ -88,7 +88,19 @@ export async function notificar({
     filasInternas.push({ usuario: u._id, categoria, tipo, titulo, cuerpo, url })
   }
 
-  const resultado = filas.length ? await EnvioNotificacion.insertMany(filas) : []
+  // Try/catch propio: sin él, un solo documento inválido en el lote (o un
+  // blip transitorio de Atlas) abortaba TODA la función antes de llegar
+  // siquiera a la notificación interna de abajo — cero push, cero email, cero
+  // campana para TODOS los destinatarios del evento, en silencio (el error
+  // solo llegaba a console.error en el llamador). Ver auditoría 2026-08-22.
+  let resultado = []
+  if (filas.length) {
+    try {
+      resultado = await EnvioNotificacion.insertMany(filas)
+    } catch (err) {
+      console.error('No se pudo encolar el envío de notificaciones (push/email):', err.message)
+    }
+  }
 
   // Best-effort con su propio try/catch: un fallo escribiendo el registro
   // interno no debe perder ni bloquear los push/email que ya se encolaron

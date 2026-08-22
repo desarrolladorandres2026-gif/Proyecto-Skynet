@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { LayoutList } from 'lucide-react'
 import { toast } from 'sonner'
 import { catalogosApi } from '../../api/catalogos.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { Btn, Card, ErrorMsg, Input, Select, EmptyState } from '../../components/ui.jsx'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
@@ -174,15 +175,13 @@ export default function CatalogosPage() {
   const { tienePermiso } = useAuth()
   const puedeGestionarValores = tienePermiso('catalogos:gestionar')
 
-  const [catalogos, setCatalogos] = useState({ dependencias: [], cargos: [] })
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    catalogosApi
-      .obtener()
-      .then(setCatalogos)
-      .catch((err) => setError(err.message))
-  }, [])
+  const { data, error, actualizarLocal } = useDatosConCache(
+    'catalogos:dependenciasYCargos',
+    () => catalogosApi.obtener(),
+    { ttlMs: 5 * 60_000 },
+  )
+  const catalogos = data || { dependencias: [], cargos: [] }
+  const setCatalogos = actualizarLocal
 
   return (
     <div>

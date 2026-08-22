@@ -96,14 +96,19 @@ export async function listarHallazgosDeOrden(otId, usuarioActor) {
   return Hallazgo.find({ ordenTrabajo: ot._id }).populate('responsable', 'nombre nombre_usuario').sort({ creado_en: -1 })
 }
 
-async function obtenerHallazgo(id) {
+// Toda acción sobre un hallazgo puntual exige ser participante de su OT (o
+// ver_todas/super admin), igual que registrarHallazgo/listarHallazgosDeOrden.
+// Sin este check, cualquier técnico con solo mantenimiento:ejecutar podía
+// actuar sobre el hallazgo de una OT ajena con solo conocer/adivinar su id.
+async function obtenerHallazgo(id, usuarioActor) {
   const hallazgo = await Hallazgo.findById(id).populate('ordenTrabajo')
   if (!hallazgo) throw new ErrorNoEncontrado('Hallazgo no encontrado')
+  requiereSerParticipante(hallazgo.ordenTrabajo, usuarioActor)
   return hallazgo
 }
 
 export async function agregarEvidenciaHallazgo(id, { comentario }, archivo, usuarioActor) {
-  const hallazgo = await obtenerHallazgo(id)
+  const hallazgo = await obtenerHallazgo(id, usuarioActor)
   if (!archivo) throw new ErrorValidacion('El archivo es obligatorio')
 
   hallazgo.evidencias.push({ archivo: archivo.filename, comentario: comentario?.trim() })
@@ -114,7 +119,7 @@ export async function agregarEvidenciaHallazgo(id, { comentario }, archivo, usua
 }
 
 export async function marcarSeguimiento(id, usuarioActor) {
-  const hallazgo = await obtenerHallazgo(id)
+  const hallazgo = await obtenerHallazgo(id, usuarioActor)
   if (hallazgo.estado !== 'abierto') throw new ErrorConflicto(`No se puede poner en seguimiento un hallazgo en estado "${hallazgo.estado}"`)
 
   hallazgo.estado = 'en_seguimiento'
@@ -125,7 +130,7 @@ export async function marcarSeguimiento(id, usuarioActor) {
 }
 
 export async function marcarResuelto(id, usuarioActor) {
-  const hallazgo = await obtenerHallazgo(id)
+  const hallazgo = await obtenerHallazgo(id, usuarioActor)
   if (!['abierto', 'en_seguimiento'].includes(hallazgo.estado)) {
     throw new ErrorConflicto(`No se puede resolver un hallazgo en estado "${hallazgo.estado}"`)
   }
@@ -140,7 +145,7 @@ export async function marcarResuelto(id, usuarioActor) {
 // Requiere permiso de asignación (nivel supervisor): aceptar un riesgo sin
 // convertirlo en OT es una decisión de negocio, no una acción de ejecución.
 export async function aceptarRiesgo(id, { justificacion, reevaluarEn }, usuarioActor) {
-  const hallazgo = await obtenerHallazgo(id)
+  const hallazgo = await obtenerHallazgo(id, usuarioActor)
   if (!['abierto', 'en_seguimiento'].includes(hallazgo.estado)) {
     throw new ErrorConflicto(`No se puede aceptar el riesgo de un hallazgo en estado "${hallazgo.estado}"`)
   }
@@ -164,7 +169,7 @@ export async function aceptarRiesgo(id, { justificacion, reevaluarEn }, usuarioA
 // según el diseño de Fase 3. La criticidad del hallazgo se traduce 1:1 a la
 // prioridad de la nueva orden (mismos 4 valores).
 export async function convertirEnOT(id, usuarioActor) {
-  const hallazgo = await obtenerHallazgo(id)
+  const hallazgo = await obtenerHallazgo(id, usuarioActor)
   if (hallazgo.estado === 'convertido_en_ot') throw new ErrorConflicto('Este hallazgo ya fue convertido en una orden de trabajo')
 
   const otOrigen = hallazgo.ordenTrabajo

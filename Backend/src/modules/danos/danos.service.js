@@ -122,12 +122,17 @@ function auditar(actor, accion, reporte, descripcion, cambios) {
 // incluyen los roles esSuperAdmin: la pregunta que responde esta lista es
 // "¿qué trabajadores de mantenimiento hay?", y el Super Admin es una cuenta de
 // sistema. Meterlo en el reparto automático le mandaría trabajo de taller.
+//
+// Sin `esPrueba: false` a propósito (ver comun.js#usuariosConPermiso): ese
+// campo es para estadísticas, no para decidir quién trabaja de verdad en el
+// taller — excluirlo aquí dejaba el reparto automático de daños sin ningún
+// técnico disponible.
 async function tecnicosDeMantenimiento() {
   const permiso = await Permiso.findOne({ codigo: PERMISO_TECNICO }).select('_id')
   if (!permiso) return []
   const roles = await Rol.find({ permisos: permiso._id }).select('_id')
   if (!roles.length) return []
-  return Usuario.find({ rol: { $in: roles.map((r) => r._id) }, estado: 'activo', esPrueba: false })
+  return Usuario.find({ rol: { $in: roles.map((r) => r._id) }, estado: 'activo' })
     .select('nombre nombre_usuario email dependencia cargo')
     .sort({ nombre: 1 })
 }

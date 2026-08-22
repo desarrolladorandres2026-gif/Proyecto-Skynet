@@ -36,12 +36,22 @@ const usuarioSchema = new mongoose.Schema(
     },
     estado: { type: String, enum: ['activo', 'inactivo'], default: 'activo' },
 
-    // Separa cuentas de prueba/desarrollo del personal real del Terminal.
-    // Todo el código que representa personal real (dashboards, estadísticas,
-    // selectores de trabajador, notificaciones, conteos) debe filtrar
-    // { esPrueba: false }. Nuevos usuarios (creados a mano o por import)
-    // siempre nacen con esPrueba:false; solo la migración inicial marcó los
-    // 16 usuarios preexistentes como true.
+    // Separa cuentas de prueba/desarrollo del personal real del Terminal
+    // PARA FINES ESTADÍSTICOS (dashboards, conteos, KPIs): ese código sí debe
+    // filtrar { esPrueba: false } para no inflar cifras con cuentas de
+    // desarrollo. Nuevos usuarios (creados a mano o por import) siempre nacen
+    // con esPrueba:false; solo la migración inicial marcó los 16 usuarios
+    // preexistentes como true.
+    //
+    // NO filtrar por esto al resolver DESTINATARIOS de una acción real
+    // (selectores de trabajador para asignar, y sobre todo la resolución de
+    // audiencia de notificaciones en mantenimiento/comun.js#usuariosConPermiso
+    // y sus usos en danos/requerimientos/mantenimiento): una cuenta marcada
+    // esPrueba:true puede seguir siendo la que un empleado real usa a diario
+    // para trabajar (ver auditoría 2026-08-22 — los cargos de Mantenimiento/
+    // Bodega/Administrador/Financiero del Terminal siguen operados desde
+    // cuentas creadas antes de esta migración). Filtrarlas ahí no limpia
+    // datos de prueba: silencia alertas operativas para personas reales.
     esPrueba: { type: Boolean, default: false },
 
     // true cuando la contraseña actual la eligió otra persona (seed de

@@ -1,29 +1,28 @@
-import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Bot, Volume2 } from 'lucide-react'
 import { ia as iaApi } from '../../api/ia.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Card, Switch, ErrorMsg } from '../../components/ui.jsx'
 
 export default function PreferenciasIAPage() {
-  const [preferencias, setPreferencias] = useState(null)
-  const [categorias, setCategorias] = useState([])
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    Promise.all([iaApi.preferencias(), iaApi.categorias()])
-      .then(([prefs, cats]) => {
-        setPreferencias(prefs)
-        setCategorias(cats.categorias)
-      })
-      .catch((err) => setError(err.message))
-  }, [])
+  const { data, error, actualizarLocal } = useDatosConCache(
+    'ia:preferencias',
+    () => Promise.all([iaApi.preferencias(), iaApi.categorias()])
+      .then(([prefs, cats]) => ({ preferencias: prefs, categorias: cats.categorias })),
+    { ttlMs: 60_000 },
+  )
+  const preferencias = data?.preferencias || null
+  const categorias = data?.categorias || []
 
   async function guardar(cambios, aplicarLocal) {
-    setPreferencias((p) => aplicarLocal(p))
+    actualizarLocal((d) => ({ ...d, preferencias: aplicarLocal(d.preferencias) }))
     try {
       await iaApi.actualizarPreferencias(cambios)
     } catch (err) {
-      setError(err.message)
-      iaApi.preferencias().then(setPreferencias).catch(() => {})
+      toast.error(err.message)
+      iaApi.preferencias()
+        .then((prefs) => actualizarLocal((d) => ({ ...d, preferencias: prefs })))
+        .catch(() => {})
     }
   }
 

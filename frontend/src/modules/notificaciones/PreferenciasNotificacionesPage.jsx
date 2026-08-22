@@ -1,3 +1,4 @@
+import { toast } from 'sonner'
 import { BellRing, Smartphone, Trash2, TriangleAlert } from 'lucide-react'
 import { notificaciones as notificacionesApi } from '../../api/notificaciones.js'
 import { usePushNotifications } from '../../pwa/usePushNotifications.js'
@@ -31,6 +32,7 @@ export default function PreferenciasNotificacionesPage() {
     } catch (err) {
       // El optimista ya se aplicó — si el backend rechaza el cambio, se
       // vuelve a pedir el estado real en vez de dejar la UI desincronizada.
+      toast.error(err.message)
       notificacionesApi.preferencias()
         .then((prefs) => actualizarLocal((d) => ({ ...d, preferencias: prefs })))
         .catch(() => {})
@@ -42,9 +44,7 @@ export default function PreferenciasNotificacionesPage() {
       await notificacionesApi.olvidarDispositivo(id)
       actualizarLocal((d) => ({ ...d, dispositivos: d.dispositivos.filter((x) => x._id !== id) }))
     } catch (err) {
-      // No hay banner de error aparte en esta tarjeta — sí importa que quien
-      // hizo clic se entere de que no se pudo olvidar el dispositivo.
-      console.error(err)
+      toast.error(err.message)
     }
   }
 

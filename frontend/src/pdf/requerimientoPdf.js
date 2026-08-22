@@ -367,9 +367,25 @@ async function dibujarBloquesFirma(pdf, req, yInicial) {
   }
 }
 
+// Quita tildes/ñ y cualquier caracter no válido en un nombre de archivo, para
+// que el nombre del solicitante quede legible en el PDF descargado.
+function sanearParaArchivo(texto) {
+  return (texto || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
 export function nombreArchivoPdfRequerimiento(req) {
-  const codigo = FORMATOS[req.tipo].codigo
-  return `${codigo}_${String(req._id || '').slice(-6)}.pdf`
+  const fecha = new Date(req.fechaSolicitud || req.createdAt)
+  const fechaTexto = Number.isNaN(fecha.getTime()) ? 'sin_fecha' : fecha.toISOString().slice(0, 10)
+  const nombreTexto = sanearParaArchivo(req.solicitante?.nombre) || 'sin_nombre'
+  // Sufijo con los últimos 6 caracteres del _id: fecha+nombre solos podrían
+  // repetirse (mismo solicitante, mismo día, dos requerimientos) y pisarse
+  // entre sí dentro del .zip de descarga masiva (backupPdfsRequerimientos.js).
+  const sufijo = String(req._id || '').slice(-6)
+  return `RQ_${fechaTexto}_${nombreTexto}_${sufijo}.pdf`
 }
 
 // Construye el documento sin guardarlo — separado de generarPdfRequerimiento

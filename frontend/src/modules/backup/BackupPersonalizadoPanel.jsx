@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Download } from 'lucide-react'
 import { backup as backupApi } from '../../api/backup.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Btn, Field, Input, Select, ErrorMsg, OkMsg } from '../../components/ui.jsx'
 import { CheckboxLabel } from '../../components/Checkbox.jsx'
 
@@ -22,26 +23,26 @@ function descargar(blob, nombre) {
 }
 
 export default function BackupPersonalizadoPanel() {
-  const [catalogo, setCatalogo] = useState([])
+  const { data: catalogoData, cargando: cargandoCatalogo, error: errorCatalogo } = useDatosConCache(
+    'backup:colecciones',
+    () => backupApi.listarColecciones().then((d) => d.colecciones),
+    { ttlMs: 5 * 60_000 },
+  )
+  const catalogo = catalogoData || []
   const [seleccionadas, setSeleccionadas] = useState(new Set())
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
   const [formato, setFormato] = useState('xlsx')
-  const [cargandoCatalogo, setCargandoCatalogo] = useState(true)
   const [generando, setGenerando] = useState(false)
-  const [error, setError] = useState('')
+  const [errorGenerar, setErrorGenerar] = useState('')
   const [ok, setOk] = useState('')
+  const error = errorGenerar || errorCatalogo
 
+  // Selecciona todo por defecto en cuanto el catálogo llega (de la red o de
+  // la caché) — no depende de si esta fue la primera vez que se pidió.
   useEffect(() => {
-    backupApi
-      .listarColecciones()
-      .then((data) => {
-        setCatalogo(data.colecciones)
-        setSeleccionadas(new Set(data.colecciones.map((c) => c.clave)))
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setCargandoCatalogo(false))
-  }, [])
+    if (catalogoData) setSeleccionadas(new Set(catalogoData.map((c) => c.clave)))
+  }, [catalogoData])
 
   function alternar(clave) {
     setSeleccionadas((actual) => {
@@ -55,10 +56,10 @@ export default function BackupPersonalizadoPanel() {
   const hayColeccionesConFecha = catalogo.some((c) => c.filtrablePorFecha)
 
   async function generar() {
-    setError('')
+    setErrorGenerar('')
     setOk('')
     if (seleccionadas.size === 0) {
-      setError('Selecciona al menos una colección')
+      setErrorGenerar('Selecciona al menos una colección')
       return
     }
     setGenerando(true)
@@ -72,7 +73,7 @@ export default function BackupPersonalizadoPanel() {
       descargar(blob, nombre)
       setOk('Backup generado y descargado correctamente.')
     } catch (err) {
-      setError(err.message)
+      setErrorGenerar(err.message)
     } finally {
       setGenerando(false)
     }

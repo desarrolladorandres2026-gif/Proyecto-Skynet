@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { Signature, Camera, Images, Trash2, ShieldCheck } from 'lucide-react'
 import { perfil as perfilApi } from '../../api/perfil.js'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Btn, Card, ErrorMsg, OkMsg } from '../../components/ui.jsx'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 
@@ -11,28 +13,19 @@ import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 // el registro en sí es un dato de la persona (Usuario.firma en el backend),
 // no algo exclusivo de este módulo.
 export default function MiFirmaPage() {
-  const [firma, setFirma] = useState(null)
-  const [cargando, setCargando] = useState(true)
+  const { data: firma, cargando, error, actualizarLocal } = useDatosConCache(
+    'requerimientos:miFirma',
+    () => perfilApi.firma().then((d) => d.firma),
+    { ttlMs: 5 * 60_000 },
+  )
   const [archivo, setArchivo] = useState(null)
   const [preview, setPreview] = useState(null)
   const [subiendo, setSubiendo] = useState(false)
   const [confirmarBorrado, setConfirmarBorrado] = useState(false)
   const [borrando, setBorrando] = useState(false)
-  const [error, setError] = useState('')
   const [ok, setOk] = useState('')
   const inputCamaraRef = useRef(null)
   const inputGaleriaRef = useRef(null)
-
-  function cargar() {
-    setCargando(true)
-    perfilApi
-      .firma()
-      .then((data) => setFirma(data.firma))
-      .catch((err) => setError(err.message))
-      .finally(() => setCargando(false))
-  }
-
-  useEffect(cargar, [])
 
   useEffect(() => {
     if (!archivo) {
@@ -46,7 +39,6 @@ export default function MiFirmaPage() {
 
   function elegirArchivo(file) {
     if (!file) return
-    setError('')
     setOk('')
     setArchivo(file)
   }
@@ -59,16 +51,15 @@ export default function MiFirmaPage() {
 
   async function guardar() {
     if (!archivo) return
-    setError('')
     setOk('')
     setSubiendo(true)
     try {
       const data = await perfilApi.guardarFirma(archivo)
-      setFirma(data.firma)
+      actualizarLocal(data.firma)
       limpiarSeleccion()
       setOk('Firma registrada. A partir de ahora se estampará automáticamente al aprobar requerimientos.')
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     } finally {
       setSubiendo(false)
     }
@@ -78,11 +69,11 @@ export default function MiFirmaPage() {
     setBorrando(true)
     try {
       await perfilApi.eliminarFirma()
-      setFirma(null)
+      actualizarLocal(null)
       setConfirmarBorrado(false)
       setOk('Firma eliminada.')
     } catch (err) {
-      setError(err.message)
+      toast.error(err.message)
     } finally {
       setBorrando(false)
     }
