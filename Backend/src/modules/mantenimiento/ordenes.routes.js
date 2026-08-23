@@ -3,8 +3,15 @@ import { requierePermiso } from '../../middleware/permisos.js'
 import { requiereModuloActivo } from '../../middleware/moduloActivo.js'
 import { safeRouter } from '../../middleware/safeRouter.js'
 import { uploadEvidencia } from './evidencias.upload.js'
+import { validarContenidoReal } from '../../utils/validarContenidoArchivo.js'
+
+// Mismas categorías que ya acepta el fileFilter de uploadEvidencia
+// (esMultimedia + MIME_PERMITIDOS, ver evidencias.upload.js) — esto no
+// restringe más de lo que el módulo ya permitía, solo confirma que el
+// CONTENIDO real coincide con alguna de esas categorías.
+const contenidoEvidenciaValido = validarContenidoReal(() => ['imagen', 'video', 'audio', 'documento'])
 import {
-  reportar, programar, listar, tecnicos, detalle, asignar, aceptar, rechazar,
+  reportar, programar, listar, tecnicos, detalle, archivoEvidencia, asignar, aceptar, rechazar,
   pausar, reanudar, resolver, aprobar, rechazarCierre, reabrir, cancelar, escalar,
 } from './ordenes.controller.js'
 import {
@@ -56,6 +63,9 @@ router.get('/plantillas', listarPlantillas)
 router.get('/conocimiento', buscarConocimiento)
 router.get('/inventario/materiales', buscarMateriales)
 router.get('/:id', detalle)
+// Autoriza por-recurso (no solo por sesión): 404 uniforme si la orden no
+// existe, si no tienes acceso a ella, o si el archivo no le pertenece.
+router.get('/:id/archivos/:nombreArchivo', archivoEvidencia)
 
 router.post('/programar', requierePermiso('mantenimiento:asignar'), programar)
 router.post('/:id/asignar', requierePermiso('mantenimiento:asignar'), asignar)
@@ -66,7 +76,7 @@ router.post('/:id/rechazar', requierePermiso('mantenimiento:ejecutar'), rechazar
 router.post('/:id/pausar', requierePermiso('mantenimiento:ejecutar'), pausar)
 router.post('/:id/reanudar', requierePermiso('mantenimiento:ejecutar'), reanudar)
 // Foto opcional (ver resolverOrden): mismo multer de evidencias, campo 'foto'.
-router.post('/:id/resolver', requierePermiso('mantenimiento:ejecutar'), uploadEvidencia.single('foto'), resolver)
+router.post('/:id/resolver', requierePermiso('mantenimiento:ejecutar'), uploadEvidencia.single('foto'), contenidoEvidenciaValido, resolver)
 router.post('/:id/aprobar', requierePermiso('mantenimiento:aprobar_cerrar'), aprobar)
 router.post('/:id/rechazar_cierre', requierePermiso('mantenimiento:aprobar_cerrar'), rechazarCierre)
 router.post('/:id/reabrir', requierePermiso('mantenimiento:reabrir'), reabrir)
@@ -74,13 +84,13 @@ router.post('/:id/cancelar', requierePermiso('mantenimiento:cancelar'), cancelar
 router.post('/:id/escalar', requierePermiso('mantenimiento:ejecutar', 'mantenimiento:escalar'), escalar)
 
 // ── Ejecución técnica (CMMS Fase 3) ─────────────────────────────────────────
-router.post('/:id/llegada', requierePermiso('mantenimiento:ejecutar'), uploadEvidencia.single('foto'), llegada)
+router.post('/:id/llegada', requierePermiso('mantenimiento:ejecutar'), uploadEvidencia.single('foto'), contenidoEvidenciaValido, llegada)
 router.post('/:id/inspeccion', requierePermiso('mantenimiento:ejecutar'), inspeccion)
 router.post('/:id/diagnostico', requierePermiso('mantenimiento:ejecutar'), diagnostico)
 router.post('/:id/materiales', requierePermiso('mantenimiento:ejecutar'), material)
 router.post('/:id/herramientas', requierePermiso('mantenimiento:ejecutar'), herramienta)
 router.post('/:id/horas', requierePermiso('mantenimiento:ejecutar'), horas)
-router.post('/:id/evidencias', requierePermiso('mantenimiento:ejecutar'), uploadEvidencia.single('archivo'), evidencia)
+router.post('/:id/evidencias', requierePermiso('mantenimiento:ejecutar'), uploadEvidencia.single('archivo'), contenidoEvidenciaValido, evidencia)
 
 // Sub-flujo de repuestos: solicitado -> aprobado/rechazado -> entregado -> instalado
 router.post('/:id/repuestos', requierePermiso('mantenimiento:ejecutar'), solicitarRepuestos)
@@ -97,7 +107,7 @@ router.post('/:id/apoyo/:invitacionId/rechazar', requierePermiso('mantenimiento:
 // Hallazgos: registrados en el contexto de una OT; acciones posteriores por su propio id.
 router.post('/:id/hallazgos', requierePermiso('mantenimiento:ejecutar'), registrarHallazgo)
 router.get('/:id/hallazgos', listarHallazgos)
-router.post('/hallazgos/:hallazgoId/evidencias', requierePermiso('mantenimiento:ejecutar'), uploadEvidencia.single('archivo'), evidenciaHallazgo)
+router.post('/hallazgos/:hallazgoId/evidencias', requierePermiso('mantenimiento:ejecutar'), uploadEvidencia.single('archivo'), contenidoEvidenciaValido, evidenciaHallazgo)
 router.post('/hallazgos/:hallazgoId/seguimiento', requierePermiso('mantenimiento:ejecutar'), seguimientoHallazgo)
 router.post('/hallazgos/:hallazgoId/resolver', requierePermiso('mantenimiento:ejecutar'), resolverHallazgo)
 router.post('/hallazgos/:hallazgoId/aceptar_riesgo', requierePermiso('mantenimiento:asignar'), aceptarRiesgo)
@@ -106,7 +116,7 @@ router.post('/hallazgos/:hallazgoId/convertir', requierePermiso('mantenimiento:e
 // ── Fase 3.1 ─────────────────────────────────────────────────────────────
 
 // Bitácora Operativa (Work Log): independiente del Timeline de transiciones.
-router.post('/:id/bitacora', requierePermiso('mantenimiento:ejecutar'), uploadEvidencia.single('adjunto'), agregarBitacora)
+router.post('/:id/bitacora', requierePermiso('mantenimiento:ejecutar'), uploadEvidencia.single('adjunto'), contenidoEvidenciaValido, agregarBitacora)
 router.get('/:id/bitacora', requierePermiso('mantenimiento:ejecutar', 'mantenimiento:ver_todas'), listarBitacora)
 
 // Checklists Inteligentes / Plantillas de Mantenimiento (mismo catálogo).

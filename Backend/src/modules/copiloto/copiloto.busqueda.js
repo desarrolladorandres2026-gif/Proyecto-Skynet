@@ -30,7 +30,13 @@
 import { env } from '../../config/env.js'
 import { cacheHerramientas } from './copiloto.cache.js'
 
-const TIMEOUT_MS = 8000
+// Baja de 8 s a 5 s. Una búsqueda web es UNA petición (no dos encadenadas como
+// en copiloto.internet.js), pero después de ella todavía queda una vuelta
+// completa al modelo para redactar la respuesta: 8 s aquí eran 9-10 s de espera
+// real para el usuario. Medido contra los tres proveedores, una búsqueda que
+// funciona responde en menos de 1 s; pasando de 5 s lo que hay es un proveedor
+// caído, y para eso el modo degradado es mejor respuesta que seguir esperando.
+const TIMEOUT_MS = 5000
 
 // Cuántos resultados se le pasan al modelo. Cinco es el punto donde deja de
 // mejorar la respuesta y empieza a costar tokens: con más, el modelo tiende a

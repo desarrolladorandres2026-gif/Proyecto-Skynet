@@ -12,6 +12,9 @@ import Requerimiento from '../src/models/Requerimiento.js'
 import { hashPassword } from '../src/utils/password.js'
 import { sembrarCatalogoRBAC } from '../src/seedData/rbacCatalogo.js'
 import { crearRequerimiento, aprobarComoFinanciero, rechazarComoFinanciero } from '../src/modules/requerimientos/requerimientos.service.js'
+import { guardaProduccion } from './lib/guardaProduccion.js'
+
+guardaProduccion({ script: 'seed-requerimientos.js', operacion: 'crear requerimientos demo' })
 
 const DIA = 24 * 60 * 60 * 1000
 const haceDias = (n) => new Date(Date.now() - n * DIA)

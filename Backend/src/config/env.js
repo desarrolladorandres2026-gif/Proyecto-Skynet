@@ -1,9 +1,35 @@
 import dotenv from 'dotenv'
+import path from 'node:path'
 
 dotenv.config()
 
 const required = ['MONGO_URI', 'JWT_SECRET']
 const missing = required.filter((key) => !process.env[key])
+
+// Variables que en desarrollo caen a un default de localhost (para poder
+// arrancar sin configurar nada), pero que en producción NUNCA deben quedarse
+// en ese default: CORS_ORIGIN gobierna qué origen puede llamar a la API, y
+// FRONTEND_URL/API_PUBLIC_URL/FILES_PUBLIC_URL se usan para construir
+// enlaces ABSOLUTOS que salen del sistema (emails de reset/notificaciones,
+// baja de suscripción, URLs de archivos) — si apuntan a localhost en
+// producción, esos enlaces quedan rotos para cualquier usuario real aunque
+// el servidor arranque "bien". Ver auditoría de producción 2026-08-22.
+const CAMPOS_URL_PRODUCCION = ['CORS_ORIGIN', 'FRONTEND_URL', 'API_PUBLIC_URL', 'FILES_PUBLIC_URL']
+
+if (process.env.NODE_ENV === 'production') {
+  for (const key of CAMPOS_URL_PRODUCCION) {
+    const value = process.env[key]
+    if (!value) {
+      missing.push(key)
+    } else if (/localhost|127\.0\.0\.1/i.test(value)) {
+      throw new Error(
+        `${key} apunta a localhost/127.0.0.1 en producción (valor actual: "${value}"). ` +
+          'Corrige Backend/.env en el servidor antes de arrancar — con este valor, los enlaces ' +
+          'que Skynet envía a usuarios reales (emails, archivos) quedarían rotos.'
+      )
+    }
+  }
+}
 
 if (missing.length) {
   throw new Error(`Faltan variables de entorno requeridas: ${missing.join(', ')}`)
@@ -55,11 +81,46 @@ export const env = {
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
   NOTIF_WORKER_INTERVALO_MS: Number(process.env.NOTIF_WORKER_INTERVALO_MS) || 5000,
   NOTIF_WORKER_LOTE: Number(process.env.NOTIF_WORKER_LOTE) || 25,
+  // Worker de la prueba de comunicaciones (ver
+  // modules/copiloto/copiloto.despliegue.worker.js). Este intervalo NO
+  // determina lo que tarda en arrancar el envío en el caso normal: al
+  // encolar se despierta el worker en el acto. Es la red de seguridad para
+  // un trabajo que quedó pendiente porque el proceso se reinició justo
+  // después de encolarlo, así que 5 s es holgado de sobra.
+  DESPLIEGUE_WORKER_INTERVALO_MS: Number(process.env.DESPLIEGUE_WORKER_INTERVALO_MS) || 5000,
   // Ventana móvil de retención de auditoría (ver auditoria.worker.js): se
   // borran los registros con más antigüedad que esto, no toda la colección
   // de golpe, para que siempre quede historial reciente disponible.
   AUDITORIA_RETENCION_MESES: Number(process.env.AUDITORIA_RETENCION_MESES) || 3,
   AUDITORIA_WORKER_INTERVALO_MS: Number(process.env.AUDITORIA_WORKER_INTERVALO_MS) || 24 * 60 * 60 * 1000,
+  // Destino local donde se archivan los registros de auditoría ANTES de
+  // purgarlos (ver modules/auditoria/auditoria.archivado.js). Default
+  // funcional out-of-the-box (no requiere credenciales externas) — si se
+  // configura almacenamiento externo real (BACKUP_S3_*, ver
+  // .env.production.example), esta carpeta local sigue siendo el paso
+  // previo antes de subir; no se elimina el archivo local automáticamente.
+  AUDITORIA_ARCHIVO_DIR: process.env.AUDITORIA_ARCHIVO_DIR || path.join(process.env.STORAGE_ROOT || './storage', 'auditoria-archivada'),
+
+  // ── Backup real (scripts/backup/, ver docs/OPERACION-RESTORE.md) ──────────
+  // BACKUP_CIFRADO_CLAVE no tiene default: es un secreto y no hay un valor
+  // "seguro por defecto" para una clave de cifrado — si falta,
+  // scripts/backup/respaldar.js se niega a correr con un mensaje claro (ver
+  // el propio script), en vez de cifrar con algo inventado o correr sin
+  // cifrar. Genera una con: openssl rand -hex 32. BACKUP_S3_* son aparte y
+  // opcionales: habilitan subir el dump cifrado a almacenamiento externo
+  // S3-compatible — si faltan, el script simplemente no sube nada y lo dice
+  // explícitamente, nunca falla silenciosamente fingiendo que sí subió.
+  BACKUP_CIFRADO_CLAVE: process.env.BACKUP_CIFRADO_CLAVE,
+  BACKUP_S3_ENDPOINT: process.env.BACKUP_S3_ENDPOINT,
+  BACKUP_S3_BUCKET: process.env.BACKUP_S3_BUCKET,
+  BACKUP_S3_REGION: process.env.BACKUP_S3_REGION || 'auto',
+  BACKUP_S3_ACCESS_KEY_ID: process.env.BACKUP_S3_ACCESS_KEY_ID,
+  BACKUP_S3_SECRET_ACCESS_KEY: process.env.BACKUP_S3_SECRET_ACCESS_KEY,
+  // Carpeta local donde quedan los dumps cifrados (siempre, suban o no a S3).
+  BACKUP_LOCAL_DIR: process.env.BACKUP_LOCAL_DIR || path.join(process.env.STORAGE_ROOT || './storage', 'backups'),
+  // Cuántos dumps locales conservar antes de borrar los más viejos (rotación
+  // simple). No sustituye la retención real en almacenamiento externo.
+  BACKUP_RETENCION_LOCAL: Number(process.env.BACKUP_RETENCION_LOCAL) || 7,
   // Publicación automática del módulo Cuestionarios Programados (ver
   // modules/sig_pregunta_dia/sig.worker.js). 60s es suficiente resolución
   // para "publicar a la hora programada" (a diferencia del envío de

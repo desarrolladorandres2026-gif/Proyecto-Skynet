@@ -1,8 +1,24 @@
 import Permiso from '../../models/Permiso.js'
 import * as repo from './roles.repository.js'
 import { aRolPublico } from './roles.dto.js'
-import { ErrorConflicto, ErrorNoEncontrado, ErrorValidacion } from '../../utils/errores.js'
+import { ErrorAutorizacion, ErrorConflicto, ErrorNoEncontrado, ErrorValidacion } from '../../utils/errores.js'
 import { registrarAuditoria } from '../../utils/auditoria.js'
+
+// El permiso 'roles:gestionar' (que gatea todo este router, ver
+// roles.routes.js) alcanza para crear/editar roles NORMALES, pero NO debe
+// alcanzar para acuñar un nuevo rol con esSuperAdmin:true — eso equivaldría
+// a que alguien sin ser Super Admin pueda fabricarse una puerta trasera
+// hacia el nivel más alto de privilegio. Hoy esto no es explotable de punta
+// a punta porque asignar un rol a un usuario exige soloAdmin (ver
+// usuarios.routes.js), pero es una violación de mínimo privilegio esperando
+// a materializarse el día que 'roles:gestionar' se delegue a alguien que no
+// sea Super Admin (el propio código lo contempla como caso de uso futuro).
+// Ver auditoría de producción 2026-08-22, hallazgo IMPORTANTE #3.
+function exigirSuperAdminParaNivelSuperAdmin(usuarioActor) {
+  if (!usuarioActor?.esSuperAdmin) {
+    throw new ErrorAutorizacion('Solo un Super Admin puede otorgar o modificar el nivel Super Admin de un rol')
+  }
+}
 
 // Convierte códigos de permiso (p. ej. "vehiculos:gestionar") en los ObjectId
 // que Rol.permisos necesita, validando que todos existan en el catálogo.
@@ -29,6 +45,10 @@ export async function obtenerRol(id) {
 }
 
 export async function crearRol(datos, usuarioActor) {
+  if (datos.esSuperAdmin === true) {
+    exigirSuperAdminParaNivelSuperAdmin(usuarioActor)
+  }
+
   const existente = await repo.obtenerPorSlug(datos.slug)
   if (existente) throw new ErrorConflicto(`Ya existe un rol con el slug "${datos.slug}"`)
 
@@ -59,6 +79,11 @@ export async function actualizarRol(id, datos, usuarioActor) {
     if (datos.esSuperAdmin !== undefined && datos.esSuperAdmin !== actual.esSuperAdmin) {
       throw new ErrorConflicto('No se puede cambiar el nivel de un rol del sistema')
     }
+  } else if (datos.esSuperAdmin !== undefined && datos.esSuperAdmin !== actual.esSuperAdmin) {
+    // Rol NO de sistema: sí se puede tocar esSuperAdmin, pero solo quien ya
+    // es Super Admin puede otorgarlo o retirarlo (ver
+    // exigirSuperAdminParaNivelSuperAdmin arriba).
+    exigirSuperAdminParaNivelSuperAdmin(usuarioActor)
   }
 
   const antes = aRolPublico(actual)

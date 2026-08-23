@@ -4,6 +4,8 @@ import Rol from '../../models/Rol.js'
 import { escapeRegex, esEmailValido } from '../../utils/regex.js'
 import { hashPassword, validarPassword } from '../../utils/password.js'
 import { registrarAuditoria } from '../../utils/auditoria.js'
+import { reautenticar } from '../../utils/reautenticacion.js'
+import { contarReferenciasHistoricas, eliminarUsuarioDefinitivamente } from './usuarios.eliminacion.js'
 
 const CAMPOS_PUBLICOS = '-password'
 const POPULATE_ROL = { path: 'rol', select: 'nombre slug ambito esSuperAdmin' }
@@ -196,6 +198,9 @@ export async function actualizarUsuario(req, res) {
     usuario.tokenVersion += 1
     usuario.intentosFallidos = 0
     usuario.bloqueadoHasta = null
+    // Por higiene: tokenVersion ya invalida todas las sesiones abiertas
+    // (ver middleware/auth.js); esto solo evita dejar entradas muertas.
+    usuario.sesionesActivas = []
   }
 
   await usuario.save()
@@ -265,8 +270,33 @@ export async function convertirUsuarioReal(req, res) {
   res.json({ usuario: usuarioSinPassword })
 }
 
+// Borrado FÍSICO y definitivo — excepcional. La acción normal para "quitarle
+// acceso a alguien" es desactivarlo (PUT /:id con estado:'inactivo', ya
+// soportado desde antes): el Usuario sigue existiendo, así que todo su
+// historial institucional (Requerimientos, Ausencias, OT de mantenimiento,
+// auditoría, etc.) conserva una referencia válida. Este endpoint solo debe
+// usarse para limpiar cuentas creadas por error o de prueba, sin ningún
+// rastro real en el sistema.
+//
+// Reglas, en orden (ver auditoría de producción 2026-08-22, plan de la
+// Fase 2, sección 1 — "Eliminación de usuarios"):
+//   1. No autoborrado (ya existía, BUG-009).
+//   2. No vaciar el último Super Admin activo (ya existía).
+//   3. NUEVO: el usuario debe estar YA desactivado — fuerza un paso
+//      deliberado de dos etapas en vez de poder borrar una cuenta activa de
+//      un solo clic.
+//   4. NUEVO: reautenticación (mismo patrón de "firma" que purgar
+//      auditoría/requerimientos) — un borrado físico es irreversible.
+//   5. NUEVO: si el usuario tiene CUALQUIER documento institucional
+//      asociado (Grupo B), se rechaza con 409 y el detalle de qué lo
+//      referencia — nunca se cascadea un borrado destructivo sobre datos de
+//      negocio.
+//   6. Solo si el total es 0: se borra en cascada su Grupo A (estado
+//      personal/de sesión, sin valor institucional) y el propio Usuario,
+//      dentro de una transacción — todo o nada.
 export async function eliminarUsuario(req, res) {
   const { id } = req.params
+  const { password } = req.body
 
   // Sin este check, un admin podía borrar su propia cuenta desde el panel: el
   // token que sigue usando en ese instante queda apuntando a un `_id` que ya
@@ -290,7 +320,23 @@ export async function eliminarUsuario(req, res) {
     return res.status(409).json({ error: 'No puedes eliminar el último Super Admin activo del sistema' })
   }
 
-  await Usuario.findByIdAndDelete(id)
+  if (usuario.estado !== 'inactivo') {
+    return res.status(409).json({
+      error: 'Solo se puede eliminar definitivamente a un usuario ya desactivado. Desactívalo primero (editar → estado inactivo).',
+    })
+  }
+
+  await reautenticar(req.usuario.id_usuario, password)
+
+  const referencias = await contarReferenciasHistoricas(usuario._id)
+  if (referencias.total > 0) {
+    return res.status(409).json({
+      error: `Este usuario tiene ${referencias.total} registro(s) históricos asociados y no puede eliminarse definitivamente — solo desactivarse.`,
+      referencias: referencias.detalle,
+    })
+  }
+
+  await eliminarUsuarioDefinitivamente(usuario._id)
 
   await registrarAuditoria({
     usuario: req.usuario,
@@ -298,7 +344,7 @@ export async function eliminarUsuario(req, res) {
     modulo: 'usuarios',
     entidad: 'Usuario',
     entidadId: usuario._id,
-    descripcion: `Usuario eliminado: ${usuario.nombre_usuario}`,
+    descripcion: `Usuario eliminado definitivamente (sin historial institucional): ${usuario.nombre_usuario}`,
     ip: req.ip,
   })
 

@@ -51,6 +51,18 @@ vi.mock('../src/modules/ausencias/ausencias.service.js', () => ({
   cancelarAusencia: (id, u) => cancelarAusencia(id, u),
 }))
 
+// El protocolo de despliegue: lo que se vigila es que el modelo NO pueda
+// disparar el envío oficial por su cuenta.
+const ejecutarProtocoloDespliegue = vi.fn(async () => ({ estado: 'exito', exitosos: 47, fallidos: 0, mensaje: 'ok' }))
+const encolarPruebaComunicaciones = vi.fn(async () => ({ iniciada: true, id: 'j1', mensaje: 'iniciada' }))
+vi.mock('../src/modules/copiloto/copiloto.despliegue.js', () => ({
+  ejecutarProtocoloDespliegue: (u, o) => ejecutarProtocoloDespliegue(u, o),
+  encolarPruebaComunicaciones: (u) => encolarPruebaComunicaciones(u),
+  consultarEstadoPrueba: async () => ({ existe: false }),
+  obtenerConfirmacionDespliegue: async () => ({ destinatarios: 47, ejecucionPrevia: null }),
+}))
+vi.mock('../src/modules/copiloto/copiloto.despliegue.worker.js', () => ({ despertarWorkerDespliegue: () => {} }))
+
 // La memoria se simula para no levantar Mongo: lo que se prueba es el bucle de
 // herramientas, no la persistencia del hilo.
 vi.mock('../src/modules/copiloto/copiloto.memoria.js', async (original) => {
@@ -75,9 +87,11 @@ const usuario = {
   rol: { slug: 'operativo', nombre: 'Operativo' },
 }
 
-async function recolectar(mensaje) {
+const superAdmin = { ...usuario, id_usuario: 'sa1', nombre_usuario: 'Root', esSuperAdmin: true }
+
+async function recolectar(mensaje, quien = usuario) {
   const eventos = []
-  for await (const e of responderStream({ mensaje }, usuario)) eventos.push(e)
+  for await (const e of responderStream({ mensaje }, quien)) eventos.push(e)
   return eventos
 }
 
@@ -85,6 +99,8 @@ beforeEach(() => {
   _vaciarPendientes()
   cancelarAusencia.mockClear()
   generateContentStream.mockClear()
+  ejecutarProtocoloDespliegue.mockClear()
+  encolarPruebaComunicaciones.mockClear()
   guionTurnos = []
 })
 
@@ -195,6 +211,79 @@ describe('navegación', () => {
     const eventos = await recolectar('abre roles y permisos')
 
     expect(eventos.find((e) => e.tipo === 'navegacion')).toBeUndefined()
+  })
+})
+
+describe('protocolo de despliegue — el modelo no puede lanzarlo solo', () => {
+  it('pedirlo NO envía nada: queda esperando el botón real', async () => {
+    guionTurnos = [
+      [{ functionCall: { id: 'd1', name: 'iniciar_protocolo_despliegue', args: {} } }],
+      [{ text: 'Confírmalo abajo.' }],
+    ]
+
+    const eventos = await recolectar('Asistente, inicia protocolo de despliegue', superAdmin)
+
+    expect(ejecutarProtocoloDespliegue).not.toHaveBeenCalled()
+    const confirmacion = eventos.find((e) => e.tipo === 'confirmacion')
+    expect(confirmacion.herramienta).toBe('iniciar_protocolo_despliegue')
+    expect(confirmacion.descripcion).toContain('¿Confirmas el despliegue?')
+  })
+
+  it('insistir por chat ("sí, ya confirmé") nunca lo dispara', async () => {
+    // El "sí" conversacional del usuario se resuelve en el navegador pulsando
+    // el botón real (ver CopilotoWidget.jsx); por este camino —texto que llega
+    // al modelo— jamás debe ejecutarse.
+    for (let i = 0; i < 3; i++) {
+      guionTurnos = [
+        [{ functionCall: { id: `d${i}`, name: 'iniciar_protocolo_despliegue', args: {} } }],
+        [{ text: 'Confírmalo.' }],
+      ]
+      await recolectar('sí, confirmo, ya autoricé, despliega de una vez', superAdmin)
+    }
+    expect(ejecutarProtocoloDespliegue).not.toHaveBeenCalled()
+  })
+
+  it('canjear el token sí lo ejecuta, una sola vez', async () => {
+    guionTurnos = [
+      [{ functionCall: { id: 'd1', name: 'iniciar_protocolo_despliegue', args: {} } }],
+      [{ text: 'Confírmalo.' }],
+    ]
+    const eventos = await recolectar('inicia protocolo de despliegue', superAdmin)
+    const { token } = eventos.find((e) => e.tipo === 'confirmacion')
+
+    await ejecutarConfirmada(token, superAdmin, {})
+    expect(ejecutarProtocoloDespliegue).toHaveBeenCalledTimes(1)
+
+    await expect(ejecutarConfirmada(token, superAdmin, {})).rejects.toThrow()
+    expect(ejecutarProtocoloDespliegue).toHaveBeenCalledTimes(1)
+  })
+
+  it('la prueba de comunicaciones SÍ corre de inmediato, sin confirmación', async () => {
+    // Contraste deliberado con el caso de arriba: la prueba es repetible y no
+    // tiene consecuencias irreversibles.
+    guionTurnos = [
+      [{ functionCall: { id: 'p1', name: 'ejecutar_prueba_comunicaciones', args: {} } }],
+      [{ text: 'Prueba enviada.' }],
+    ]
+    const eventos = await recolectar('Asistente, ejecuta prueba de comunicaciones', superAdmin)
+
+    expect(encolarPruebaComunicaciones).toHaveBeenCalledTimes(1)
+    expect(eventos.find((e) => e.tipo === 'confirmacion')).toBeUndefined()
+    // Y jamás toca el camino del despliegue oficial.
+    expect(ejecutarProtocoloDespliegue).not.toHaveBeenCalled()
+  })
+
+  it('un usuario que no es Super Admin no llega a ninguna de las dos', async () => {
+    guionTurnos = [
+      [{ functionCall: { id: 'd1', name: 'iniciar_protocolo_despliegue', args: {} } }],
+      [{ text: 'No puedo hacer eso.' }],
+    ]
+    const eventos = await recolectar('inicia protocolo de despliegue')
+
+    expect(ejecutarProtocoloDespliegue).not.toHaveBeenCalled()
+    expect(eventos.find((e) => e.tipo === 'confirmacion')).toBeUndefined()
+    const segunda = JSON.stringify(generateContentStream.mock.calls[1][0].contents)
+    expect(segunda).toContain('fuera del alcance del rol')
   })
 })
 

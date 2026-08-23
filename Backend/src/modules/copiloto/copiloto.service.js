@@ -18,6 +18,7 @@ import {
 } from './copiloto.memoria.js'
 import { ESTADOS } from './copiloto.estados.js'
 import { registrarPendiente, consumirPendiente } from './copiloto.confirmaciones.js'
+import { reservarTurno, registrarRechazoExterno } from './copiloto.cuota.js'
 import { ErrorValidacion, ErrorConflicto, ErrorAplicacion } from '../../utils/errores.js'
 
 // 'gemini-flash-lite-latest' (hoy resuelve a gemini-3.5-flash-lite), NO
@@ -54,12 +55,87 @@ const MAX_CARACTERES_MENSAJE = 2000
 const TEMPERATURA = 0.4
 const MAX_TOKENS_RESPUESTA = 700
 
+// ── Techo duro de cada llamada al modelo ────────────────────────────────────
+// Este es el ajuste que acota directamente el síntoma "Request lento: POST
+// /chat" de 7 a 30 segundos terminando en 200.
+//
+// Medido: dentro de cuota, una vuelta de este modelo tarda entre 400 ms y
+// 1,2 s de forma muy estable (p50 ~510 ms sobre 12 muestras secuenciales). Pero
+// al rozar la cuota gratuita el servicio a veces sirve la petición MUY despacio
+// en lugar de rechazarla — se observaron vueltas de 8 s, 29 s y 31 s con 20-40
+// tokens de salida, así que no era generación. Antes no había ningún techo:
+// esas peticiones corrían hasta que Google contestara.
+//
+// 12 s es deliberadamente holgado (10x el p90) para no convertir en error una
+// respuesta que solo iba lenta; lo que hace es garantizar que ninguna vuelta
+// pueda arrastrar la petición HTTP hacia los 30 s. El SDK aborta por su cuenta
+// al cumplirse el plazo.
+const TIMEOUT_MODELO_MS = Number(process.env.GEMINI_TIMEOUT_MS) || 12_000
+
+// ── Instrumentación por etapas ──────────────────────────────────────────────
+// middleware/monitorLentos.js dice QUE una petición fue lenta; esto dice DÓNDE.
+// Sin este desglose, un /chat de 8 segundos era indistinguible entre "Mongo va
+// lento", "una herramienta externa se colgó", "el modelo generó mucho" y "la
+// vuelta al modelo se quedó esperando". Distinguirlos costó una sesión entera
+// de medición con bancos ad-hoc; con esta línea en el log se lee de un vistazo,
+// que es lo que hará falta la próxima vez que pase en producción.
+//
+// Solo se registra por encima del umbral, así que en el camino feliz no
+// aparece nada en los logs. Metadata pura: nombres de etapa y milisegundos,
+// nunca el mensaje del usuario ni la respuesta.
+const UMBRAL_DESGLOSE_MS = Number(process.env.UMBRAL_COPILOTO_DESGLOSE_MS) || 2500
+
+const ahora = () => Number(process.hrtime.bigint() / 1000n) / 1000
+
+function registrarDesglose(medidas, total, via) {
+  if (total < UMBRAL_DESGLOSE_MS) return
+  const detalle = medidas
+    .filter((m) => m.ms >= 1)
+    .map((m) => `${m.etapa}=${m.ms.toFixed(0)}ms`)
+    .join(' ')
+  console.warn(`🐢  [copiloto] ${total.toFixed(0)}ms via=${via} · ${detalle}`)
+}
+
 let cliente = null
 function obtenerCliente() {
   if (!env.GEMINI_API_KEY) {
     throw new ErrorConflicto('El copiloto no está configurado: falta GEMINI_API_KEY en el servidor.')
   }
-  if (!cliente) cliente = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY })
+  if (!cliente) {
+    cliente = new GoogleGenAI({
+      apiKey: env.GEMINI_API_KEY,
+      httpOptions: {
+        timeout: TIMEOUT_MODELO_MS,
+        // ── Reintentos: se ACTIVAN aquí, acotados y solo para 5xx ──────────
+        // Ojo con una trampa del SDK: aunque @google/genai define constantes
+        // DEFAULT_RETRY_* (5 intentos, backoff exponencial, 429 incluido entre
+        // los códigos reintentables), esos son defaults DENTRO de un
+        // `retryOptions` que tú pases. Sin `httpOptions`, `apiCall` hace
+        // `if (!retryOptions) return fetch(...)`: cero reintentos. Verificado en
+        // node_modules/@google/genai y contra la API real — con la cuota
+        // saturada, el cliente sin configurar devuelve el 429 en ~145 ms.
+        //
+        // Así que esto no quita reintentos: los añade, con un presupuesto que
+        // un usuario esperando una respuesta no llega a notar (un solo
+        // reintento, 250-500 ms) y solo para 5xx, que son fallos transitorios
+        // de verdad.
+        //
+        // El 429 se deja FUERA de la lista a propósito. La cuota gratuita
+        // libera la ventana a los 19 s (RetryInfo de la propia API), así que
+        // reintentar dentro de medio segundo no puede acertar: solo gastaría
+        // otra petición del presupuesto compartido y retrasaría el mensaje
+        // honesto. Ese caso lo maneja el catch del bucle, y sobre todo
+        // copiloto.cuota.js, que evita llegar a producirlo.
+        retryOptions: {
+          attempts: 2,
+          initialDelay: 0.25,
+          maxDelay: 0.5,
+          jitter: 0.2,
+          httpStatusCodes: [500, 502, 503, 504],
+        },
+      },
+    })
+  }
   return cliente
 }
 
@@ -109,11 +185,16 @@ export async function* responderStream({ mensaje, conversacionId, signal, ip }, 
   // sería incomprensible para quien lo usa.
   const ai = obtenerCliente()
 
+  const arranque = ahora()
+  const medidas = []
+
+  const inicioContexto = ahora()
   const [conv, herramientas, hechos] = await Promise.all([
     abrirConversacion(conversacionId, usuario),
     construirHerramientas(usuario, { ip }),
     obtenerHechos(usuario.id_usuario),
   ])
+  medidas.push({ etapa: 'contexto', ms: ahora() - inicioContexto })
 
   // Se emite de una vez, antes de cualquier consulta pesada: el frontend
   // necesita el id para el siguiente mensaje aunque este se cancele a medias.
@@ -122,10 +203,13 @@ export async function* responderStream({ mensaje, conversacionId, signal, ip }, 
   const porNombre = new Map(herramientas.map((h) => [h.declaracion.name, h]))
 
   // ── Camino rápido: sin modelo, sin tokens ────────────────────────────────
+  const inicioAtajo = ahora()
   const atajo = await resolverAtajo(texto, usuario, porNombre)
+  medidas.push({ etapa: 'atajo', ms: ahora() - inicioAtajo })
   if (atajo) {
     yield { tipo: 'delta', texto: atajo.texto }
     registrarIntercambio(conv, { pregunta: texto, respuesta: atajo.texto, tema: atajo.intencion })
+    registrarDesglose(medidas, ahora() - arranque, 'atajo')
     yield { tipo: 'fin', via: 'atajo', intencion: atajo.intencion }
     return
   }
@@ -158,6 +242,14 @@ export async function* responderStream({ mensaje, conversacionId, signal, ip }, 
     const partesTurno = []
     let textoTurno = ''
     try {
+      // Marcapasos de cuota ANTES de salir a la red: si la ventana del minuto
+      // ya está llena, esperar aquí unos cientos de milisegundos evita el 429
+      // (y con él los reintentos del SDK). Si ni esperando alcanza, lanza un
+      // 429 propio con mensaje presentable en vez de dejar al usuario colgado.
+      const { espera } = await reservarTurno(signal)
+      medidas.push({ etapa: `cuota v${vuelta + 1}`, ms: espera })
+
+      const inicioVuelta = ahora()
       const flujo = await ai.models.generateContentStream({ model: MODELO, contents, config })
       for await (const trozo of flujo) {
         for (const parte of trozo.candidates?.[0]?.content?.parts || []) {
@@ -170,10 +262,26 @@ export async function* responderStream({ mensaje, conversacionId, signal, ip }, 
           }
         }
       }
+      medidas.push({ etapa: `modelo v${vuelta + 1}`, ms: ahora() - inicioVuelta })
     } catch (err) {
       // Cancelación del propio usuario: no es un fallo que haya que mostrar ni
       // registrar. Se corta en silencio y se deja la conversación como estaba.
       if (err.name === 'AbortError' || signal?.aborted) return
+
+      // Cuota agotada. Es el caso frecuente de la capa gratuita y merece su
+      // propio mensaje: decirle "el servicio de IA no respondió correctamente"
+      // a alguien que solo tiene que esperar veinte segundos es a la vez
+      // alarmante e inútil. El 429 de NUESTRO marcapasos ya viene redactado
+      // así, y aquí se cubre el que llegue directo de Google (otra instancia o
+      // un script consumiendo del mismo proyecto).
+      if (err.status === 429) {
+        registrarRechazoExterno()
+        throw new ErrorAplicacion(
+          'Estoy atendiendo muchas preguntas ahora mismo y me quedé sin turno. Vuelve a preguntarme en unos segundos.',
+          429
+        )
+      }
+
       // El SDK de Gemini propaga tal cual el status HTTP del error de GOOGLE
       // en `err.status` (401 con una API key inválida, 429 sin cuota, etc.).
       // Dejarlo pasar sin envolver hace que errorHandler.js lo reenvíe como si
@@ -200,6 +308,7 @@ export async function* responderStream({ mensaje, conversacionId, signal, ip }, 
       } else if (conv.estado?.flujo && conv.estado.flujo !== ESTADOS.IDLE) {
         actualizarEstado(conv, { flujo: ESTADOS.COMPLETED, ultimaPregunta: null })
       }
+      registrarDesglose(medidas, ahora() - arranque, 'modelo')
       yield { tipo: 'fin', via: 'modelo' }
       return
     }
@@ -212,6 +321,7 @@ export async function* responderStream({ mensaje, conversacionId, signal, ip }, 
     // thought_signature").
     contents.push({ role: 'model', parts: partesTurno })
 
+    const inicioHerramientas = ahora()
     const resultados = await Promise.all(
       llamadas.map(async (llamada) => {
         const id = llamada.id || llamada.name
@@ -266,6 +376,10 @@ export async function* responderStream({ mensaje, conversacionId, signal, ip }, 
         }
       })
     )
+    medidas.push({
+      etapa: `herramientas v${vuelta + 1} (${llamadas.map((l) => l.name).join('+')})`,
+      ms: ahora() - inicioHerramientas,
+    })
 
     // Herramientas que producen una ACCIÓN para la interfaz: además de
     // dárselas al modelo para que las describa, se reenvían al frontend para

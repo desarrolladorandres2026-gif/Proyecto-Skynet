@@ -7,15 +7,15 @@ import compression from 'compression'
 import { env } from './config/env.js'
 import { connectDB } from './config/db.js'
 import routes from './routes/index.js'
-import { sincronizarCatalogoSistema } from './modules/sistema/sistema.service.js'
+import { sincronizarCatalogoSistema, precalentarCacheModulos } from './modules/sistema/sistema.service.js'
 import { sincronizarConfiguracionSLA } from './modules/mantenimiento/ordenes.service.js'
 import { iniciarWorkerNotificaciones } from './modules/notificaciones/notificaciones.worker.js'
 import { iniciarWorkerAuditoria } from './modules/auditoria/auditoria.worker.js'
 import { iniciarWorkerSig } from './modules/sig_pregunta_dia/sig.worker.js'
+import { iniciarWorkerDespliegue } from './modules/copiloto/copiloto.despliegue.worker.js'
 import { iniciarWorkerPlataforma } from './modules/plataforma/plataforma.worker.js'
 import { evaluarTransiciones } from './modules/plataforma/plataforma.service.js'
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js'
-import { verificarToken } from './middleware/auth.js'
 import { bloqueoMantenimiento } from './middleware/mantenimientoPlataforma.js'
 import { requestId } from './middleware/requestId.js'
 import { monitorLentos } from './middleware/monitorLentos.js'
@@ -56,6 +56,17 @@ app.use(
     filter: (req, res) => {
       const contentType = String(res.getHeader('Content-Type') || '')
       if (/spreadsheetml|zip|pdf|^image\//.test(contentType)) return false
+      // Server-Sent Events NUNCA se comprimen. `compressible('text/event-stream')`
+      // devuelve true (cae en la regla genérica /^text\//), así que sin esta
+      // línea el chat del copiloto se gzipeaba: zlib no emite nada hasta juntar
+      // ~1 KB o hasta que alguien llame res.flush(), y este código no lo llama.
+      // El efecto medido era que TODOS los deltas del stream salían de golpe al
+      // final — el usuario veía "Pensando…" durante toda la respuesta (7 s, 30 s)
+      // y luego el texto completo de una vez, anulando por completo el
+      // streaming que copiloto.controller.js se toma el trabajo de emitir.
+      // No es una micro-optimización: es la diferencia entre ver el primer token
+      // a los ~600 ms o no ver nada hasta el final.
+      if (contentType.startsWith('text/event-stream')) return false
       return compression.filter(req, res)
     },
   })
@@ -104,12 +115,6 @@ app.use(mongoSanitize())
 // Mongo al camino feliz.
 app.use(bloqueoMantenimiento)
 
-// Documentos internos (PDFs de OT, evidencias de mantenimiento): requieren
-// sesión igual que el resto de la API. Antes se servían con express.static
-// sin ningún control de acceso — cualquiera con la URL (los nombres son
-// predecibles: `Date.now()_nombre`) podía descargarlos sin login.
-app.use('/storage', verificarToken, express.static(env.STORAGE_ROOT))
-
 app.use('/api', routes)
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date() }))
@@ -124,6 +129,12 @@ async function start() {
   // rbac.data.js sin pisar estados ni asignaciones existentes: un módulo o
   // permiso agregado en código queda disponible al primer arranque.
   await sincronizarCatalogoSistema()
+  // Deja el estado de módulos en caché ANTES de abrir el puerto: es la única
+  // lectura que keysModulosDesactivados() no puede servir en caliente, y sin
+  // esto la pagaba (140-350 ms contra Atlas) el primer usuario que entrara.
+  // Va después de sincronizarCatalogoSistema(), que invalida la caché al
+  // terminar — al revés, este precalentamiento se perdería.
+  await precalentarCacheModulos()
   // Crea las filas de SLA por defecto que falten (CMMS Fase 1); nunca pisa un
   // umbral ya ajustado a mano por un administrador.
   await sincronizarConfiguracionSLA()
@@ -138,6 +149,12 @@ async function start() {
   // ver auditoria.worker.js. Mismo patrón que el worker de notificaciones,
   // sin infraestructura adicional.
   iniciarWorkerAuditoria()
+
+  // Prueba de comunicaciones en segundo plano: ver
+  // copiloto.despliegue.worker.js. Es la red de seguridad que recoge un
+  // trabajo encolado justo antes de un reinicio (en el caso normal el worker
+  // se despierta en el acto al encolar, sin esperar a este temporizador).
+  iniciarWorkerDespliegue()
 
   // Publicación automática del módulo Cuestionarios Programados: ver
   // sig.worker.js. Mismo patrón que los dos workers de arriba, sin

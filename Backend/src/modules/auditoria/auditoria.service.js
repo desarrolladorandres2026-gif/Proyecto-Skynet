@@ -5,6 +5,8 @@ import { escapeRegex } from '../../utils/regex.js'
 import { inicioDelDia, instanteLocal, restarMeses } from '../../utils/fechas.js'
 import { env } from '../../config/env.js'
 import mongoose from 'mongoose'
+import { archivarAntesDePurgar } from './auditoria.archivado.js'
+import RegistroPurgaAuditoria from '../../models/RegistroPurgaAuditoria.js'
 
 const LIMITE_MAX = 100
 const LIMITE_DEFECTO = 20
@@ -174,6 +176,12 @@ export async function eliminarRegistrosMasivo(ids, usuarioActor) {
 // Llamado periódicamente por auditoria.worker.js. Borra solo lo anterior a
 // la ventana de retención (ventana móvil, no un vaciado total) para que la
 // colección no crezca sin límite ni sature el listado paginado del panel.
+//
+// Desde la Fase 12 de la auditoría de producción 2026-08-22: NUNCA borra sin
+// antes archivar y verificar el archivo (ver auditoria.archivado.js). Si el
+// archivado falla por cualquier motivo, esta función lanza y NO borra nada —
+// el worker (auditoria.worker.js) simplemente lo reintenta en el siguiente
+// ciclo, sin perder ni un registro por el camino.
 export async function purgarAntiguos() {
   // restarMeses en vez de setMonth: `new Date('2026-05-31').setMonth(mes - 3)`
   // devuelve el 3 de MARZO (el 31 de febrero no existe y JS corre la fecha
@@ -181,5 +189,43 @@ export async function purgarAntiguos() {
   // hasta tres días de historial MÁS de lo que la política de retención
   // declara. Ver BUG-012 en la auditoría 2026-08-13.
   const fechaLimite = restarMeses(new Date(), env.AUDITORIA_RETENCION_MESES)
-  return repo.eliminarAnteriores(fechaLimite)
+  const inicio = Date.now()
+
+  let archivado
+  try {
+    archivado = await archivarAntesDePurgar(fechaLimite)
+  } catch (err) {
+    await RegistroPurgaAuditoria.create({
+      fechaCorte: fechaLimite,
+      cantidad: 0,
+      resultado: 'fallido',
+      error: err.message,
+      duracionMs: Date.now() - inicio,
+    })
+    throw err
+  }
+
+  if (archivado.cantidad === 0) {
+    await RegistroPurgaAuditoria.create({
+      fechaCorte: fechaLimite,
+      cantidad: 0,
+      resultado: 'sin_datos',
+      duracionMs: Date.now() - inicio,
+    })
+    return 0
+  }
+
+  const eliminados = await repo.eliminarAnteriores(fechaLimite)
+
+  await RegistroPurgaAuditoria.create({
+    fechaCorte: fechaLimite,
+    cantidad: eliminados,
+    ubicacionArchivo: archivado.ruta,
+    hashArchivo: archivado.hash,
+    tamanoBytes: archivado.tamanoBytes,
+    resultado: 'exito',
+    duracionMs: Date.now() - inicio,
+  })
+
+  return eliminados
 }

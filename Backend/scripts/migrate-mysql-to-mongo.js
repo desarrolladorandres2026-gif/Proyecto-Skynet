@@ -13,6 +13,10 @@ import TipoEquipo from '../src/models/mantenimiento/TipoEquipo.js'
 import Marca from '../src/models/mantenimiento/Marca.js'
 import Equipo from '../src/models/mantenimiento/Equipo.js'
 import Mantenimiento from '../src/models/mantenimiento/Mantenimiento.js'
+import { guardaProduccion } from './lib/guardaProduccion.js'
+
+// Sin flag de dry-run: escribe siempre que corre.
+guardaProduccion({ script: 'migrate-mysql-to-mongo.js', operacion: 'migrar datos de mantenimiento_db (MySQL) a MongoDB' })
 
 function normalizarEstado(estado) {
   const limpio = (estado || '').trim().toLowerCase()

@@ -85,6 +85,28 @@ const usuarioSchema = new mongoose.Schema(
     // IP (que no protege contra un ataque distribuido desde muchas IPs).
     intentosFallidos: { type: Number, default: 0 },
     bloqueadoHasta: { type: Date, default: null },
+
+    // Sesiones activas (una entrada por login), para poder revocar UNA sola
+    // sesión en logout sin cerrar las demás sesiones/dispositivos del mismo
+    // usuario. tokenVersion (arriba) sigue siendo la invalidación GLOBAL
+    // (cambio de contraseña/rol/módulos/estado por un admin, o el propio
+    // usuario cambiando su contraseña): esto es el complemento para "cerrar
+    // sesión en este dispositivo" sin afectar a los demás.
+    // select:false por el mismo motivo que password: un jti no es secreto
+    // por sí mismo (no sirve sin la firma del JWT), pero no debe viajar por
+    // accidente en cada respuesta que serialice el documento completo.
+    sesionesActivas: {
+      type: [
+        {
+          _id: false,
+          jti: { type: String, required: true },
+          creadoEn: { type: Date, default: Date.now },
+          expiraEn: { type: Date, required: true },
+        },
+      ],
+      default: [],
+      select: false,
+    },
   },
   { timestamps: true }
 )

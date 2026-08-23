@@ -8,8 +8,10 @@ import {
 } from '../../components/ui.jsx'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 
-function urlPdf(filename) {
-  return `/storage/mantenimientos/${filename}`
+// Endpoint autorizado por-recurso (reemplaza /storage servido con
+// express.static — ver auditoría de producción 2026-08-22, Fase 2).
+function urlPdf(id, filename) {
+  return `/api/mantenimiento/mantenimientos/${id}/archivo/${filename}`
 }
 
 // Las dos acciones de la tabla que piden confirmación. Un solo diálogo las
@@ -294,7 +296,7 @@ export default function MantenimientosPage() {
                     <div className="flex flex-wrap items-center justify-end gap-1 whitespace-nowrap">
                       {m.archivo_pdf && (
                         <a
-                          href={urlPdf(m.archivo_pdf)}
+                          href={urlPdf(m._id, m.archivo_pdf)}
                           target="_blank"
                           rel="noreferrer"
                           className="panel-btn-fantasma rounded-lg px-2 py-1.5 text-sm font-medium"

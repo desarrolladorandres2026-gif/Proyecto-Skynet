@@ -1,6 +1,12 @@
 import mongoose from 'mongoose'
 import { connectDB } from '../src/config/db.js'
 import { sembrarCatalogoRBAC } from '../src/seedData/rbacCatalogo.js'
+import { guardaProduccion } from './lib/guardaProduccion.js'
+
+// Sin flag de dry-run propio (a diferencia de migrar-fechas-ausencias.js /
+// migrate-mantenimiento-ot.js): todo el script escribe, así que el guard
+// aplica siempre, no solo bajo un --aplicar.
+guardaProduccion({ script: 'migrate-rbac-roles.js', operacion: 'migrar usuarios de rol legado (string) a Rol (ObjectId)' })
 
 // 'admin' legado -> Super Administrador (mismo alcance: hoy es el único rol
 // que pasa soloAdmin, y Super Administrador es esSuperAdmin:true).

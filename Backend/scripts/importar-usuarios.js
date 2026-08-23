@@ -6,6 +6,10 @@ import { connectDB } from '../src/config/db.js'
 import Usuario from '../src/models/Usuario.js'
 import Rol from '../src/models/Rol.js'
 import { hashPassword } from '../src/utils/password.js'
+import { guardaProduccion } from './lib/guardaProduccion.js'
+
+// Sin flag de dry-run: crea usuarios reales apenas corre.
+guardaProduccion({ script: 'importar-usuarios.js', operacion: 'importar usuarios en bloque desde usuarios_skynet_organizados.json' })
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)

@@ -7,8 +7,9 @@ import { env } from '../../config/env.js'
 import { enviarEmailReset } from '../../utils/email.js'
 import { esEmailValido } from '../../utils/regex.js'
 import { DUMMY_HASH, hashPassword, validarPassword } from '../../utils/password.js'
-import { setAuthCookie, clearAuthCookie } from '../../utils/cookies.js'
+import { COOKIE_NAME, setAuthCookie, clearAuthCookie } from '../../utils/cookies.js'
 import { hashToken } from '../../utils/tokens.js'
+import { duracionAMs } from '../../utils/duration.js'
 import { keysModulosDesactivados } from '../sistema/sistema.service.js'
 import { estadoEfectivo } from '../plataforma/plataforma.service.js'
 import { aEstadoPublico } from '../plataforma/plataforma.dto.js'
@@ -19,7 +20,14 @@ import { aEstadoPublico } from '../plataforma/plataforma.dto.js'
 const INTENTOS_MAX = 5
 const BLOQUEO_MS = 15 * 60 * 1000
 
-function firmarToken(usuario) {
+// Tope de sesiones (dispositivos) simultáneas por usuario. No es un límite de
+// seguridad estricto (tokenVersion sigue pudiendo cerrar todo de golpe si
+// hace falta) — es solo para que el array no crezca sin fin si alguien nunca
+// cierra sesión desde varios navegadores/dispositivos. 8 alcanza de sobra
+// para un ERP interno (móvil, tablet, 1-2 computadores, algún repuesto).
+const MAX_SESIONES_ACTIVAS = 8
+
+function firmarToken(usuario, jti) {
   return jwt.sign(
     {
       id_usuario: usuario._id,
@@ -32,12 +40,29 @@ function firmarToken(usuario) {
       // Viaja en el JWT para poder invalidar esta "generación" de tokens sin
       // esperar a que expiren: verificarToken la compara contra la BD.
       tokenVersion: usuario.tokenVersion,
+      // Identifica ESTA sesión (ver sesionesActivas en Usuario.js): permite
+      // que logout() revoque solo el dispositivo actual en vez de cerrar
+      // todas las sesiones del usuario como hace tokenVersion.
+      jti,
     },
     env.JWT_SECRET,
     // Algoritmo fijado explícitamente: evita depender del default y deja
     // constancia de que este sistema usa firma simétrica HS256.
     { expiresIn: env.JWT_EXPIRES_IN, algorithm: 'HS256' }
   )
+}
+
+// Registra una nueva sesión (login o reemisión tras cambiar contraseña),
+// descartando las que ya expiraron y recortando al máximo permitido. Requiere
+// que `usuario.sesionesActivas` venga cargado (select:false por defecto en el
+// schema, ver Usuario.js) — quien llama es responsable de seleccionarlo.
+async function registrarSesion(usuario, jti) {
+  const ahora = new Date()
+  const expiraEn = new Date(ahora.getTime() + duracionAMs(env.JWT_EXPIRES_IN))
+  const vigentes = (usuario.sesionesActivas || []).filter((s) => s.expiraEn > ahora)
+  vigentes.push({ jti, creadoEn: ahora, expiraEn })
+  const sesionesActivas = vigentes.slice(-MAX_SESIONES_ACTIVAS)
+  await Usuario.updateOne({ _id: usuario._id }, { $set: { sesionesActivas } })
 }
 
 // Registra un intento fallido y, al alcanzar el umbral, bloquea la cuenta
@@ -133,8 +158,10 @@ export async function login(req, res) {
   }
 
   // Solo se busca en BD si el email tiene formato válido; el email ya es string.
+  // +sesionesActivas: registrarSesion() necesita el array actual para poder
+  // recortarlo, no solo pisarlo.
   const usuario = esEmailValido(email.trim())
-    ? await populateRol(Usuario.findOne({ email: email.trim().toLowerCase() }).select('+password'))
+    ? await populateRol(Usuario.findOne({ email: email.trim().toLowerCase() }).select('+password +sesionesActivas'))
     : null
 
   const bloqueado = Boolean(usuario?.bloqueadoHasta && usuario.bloqueadoHasta > new Date())
@@ -169,12 +196,36 @@ export async function login(req, res) {
     })
   }
 
-  const token = firmarToken(usuario)
+  const jti = crypto.randomBytes(16).toString('hex')
+  await registrarSesion(usuario, jti)
+  const token = firmarToken(usuario, jti)
   setAuthCookie(res, token)
   res.json({ usuario: await conModulosDesactivados(usuarioPublico(usuario)) })
 }
 
-export async function logout(_req, res) {
+export async function logout(req, res) {
+  // Revoca SOLO la sesión de este dispositivo (retira su jti de
+  // sesionesActivas), no todas las del usuario — para eso ya existe
+  // tokenVersion (cambio de contraseña/rol/estado por un admin).
+  //
+  // Se decodifica el token sin verificar firma ni expiración a propósito:
+  // cerrar sesión debe funcionar incluso con un token vencido o corrupto
+  // (solo borra la cookie del navegador en ese caso). El resultado de
+  // jwt.decode() NUNCA se usa para autorizar nada, solo para saber qué fila
+  // retirar — si alguien manda un token ajeno con jti falso, en el peor caso
+  // intenta un $pull que no coincide con nada y no pasa nada.
+  const authHeader = req.headers.authorization
+  const token = req.cookies?.[COOKIE_NAME] || (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null)
+  if (token) {
+    try {
+      const payload = jwt.decode(token)
+      if (payload?.id_usuario && payload?.jti) {
+        await Usuario.updateOne({ _id: payload.id_usuario }, { $pull: { sesionesActivas: { jti: payload.jti } } })
+      }
+    } catch {
+      // Token no decodificable: no bloquea el logout, solo no hay sesión que retirar.
+    }
+  }
   clearAuthCookie(res)
   res.json({ mensaje: 'Sesión cerrada correctamente' })
 }
@@ -267,12 +318,15 @@ export async function restablecerPassword(req, res) {
   // $inc de tokenVersion invalida de inmediato cualquier sesión abierta con la
   // contraseña anterior (en cualquier dispositivo): un reset de contraseña
   // suele responder a una sospecha de cuenta comprometida, así que no debe
-  // dejar sesiones viejas vivas hasta que expire su JWT (hasta 8h).
+  // dejar sesiones viejas vivas hasta que expire su JWT (hasta 8h). Se limpia
+  // también sesionesActivas por higiene (tokenVersion ya las invalida igual;
+  // esto solo evita que el array quede con entradas muertas).
   await Usuario.findByIdAndUpdate(registro.usuario, {
     password: passwordHash,
     $inc: { tokenVersion: 1 },
     intentosFallidos: 0,
     bloqueadoHasta: null,
+    $set: { sesionesActivas: [] },
   })
   registro.usado = true
   await registro.save()
@@ -295,7 +349,7 @@ export async function cambiarPassword(req, res) {
     return res.status(400).json({ error: errorPassword })
   }
 
-  const usuario = await populateRol(Usuario.findById(req.usuario.id_usuario).select('+password'))
+  const usuario = await populateRol(Usuario.findById(req.usuario.id_usuario).select('+password +sesionesActivas'))
   if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' })
 
   const passwordOk = await bcrypt.compare(passwordActual, usuario.password)
@@ -307,11 +361,15 @@ export async function cambiarPassword(req, res) {
   usuario.debeCambiarPassword = false
   // Invalida cualquier OTRA sesión abierta con la contraseña anterior (mismo
   // criterio que un reset); la petición actual sigue viva porque abajo se
-  // reemite la cookie con el tokenVersion nuevo.
+  // reemite la cookie con el tokenVersion nuevo y se registra una sesión
+  // nueva solo para este dispositivo.
   usuario.tokenVersion += 1
+  usuario.sesionesActivas = []
   await usuario.save()
 
-  const token = firmarToken(usuario)
+  const jti = crypto.randomBytes(16).toString('hex')
+  await registrarSesion(usuario, jti)
+  const token = firmarToken(usuario, jti)
   setAuthCookie(res, token)
   res.json({ usuario: await conModulosDesactivados(usuarioPublico(usuario)) })
 }

@@ -25,8 +25,13 @@ import { connectDB } from '../src/config/db.js'
 import Rol from '../src/models/Rol.js'
 import Permiso from '../src/models/Permiso.js'
 import { permisosObsoletos } from '../src/modules/sistema/sistema.service.js'
+import { guardaProduccion } from './lib/guardaProduccion.js'
 
 const APLICAR = process.argv.includes('--aplicar')
+
+if (APLICAR) {
+  guardaProduccion({ script: 'limpiar-permisos-obsoletos.js', operacion: 'borrar permisos obsoletos y sus asignaciones en roles' })
+}
 
 async function run() {
   await connectDB()

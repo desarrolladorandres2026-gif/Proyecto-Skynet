@@ -7,6 +7,16 @@ const transporter = nodemailer.createTransport({
   port: Number(env.EMAIL_PORT) || 587,
   secure: env.EMAIL_SECURE,
   auth: env.EMAIL_USER ? { user: env.EMAIL_USER, pass: env.EMAIL_PASS } : undefined,
+  // Sin esto, nodemailer usa sus defaults (2 min de conexión, 10 min de
+  // socket): un SMTP lento o colgado deja la petición HTTP que originó el
+  // envío (p. ej. solicitar-reset, que hace `await` sobre esto) esperando
+  // minutos enteros antes de que enviarConReintentos() siquiera pueda
+  // reintentar. Ver auditoría de producción 2026-08-22 (hallazgo señalado
+  // por el agente de notificaciones, confirmado en la práctica por un
+  // timeout real en tests/auth.flujo.test.js al mandar dos correos seguidos).
+  connectionTimeout: 10_000,
+  greetingTimeout: 10_000,
+  socketTimeout: 15_000,
 })
 
 const dormir = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -51,6 +61,17 @@ const REMITENTE = `"Skynet" <${env.EMAIL_FROM}>`
 // penalizan — no hay forma de arreglar esto solo con el diseño visual.
 export async function enviarEmailGenerico({ to, subject, html, text, headers }) {
   await transporter.sendMail({ from: REMITENTE, to, subject, html, text, headers })
+}
+
+// Comprueba que el SMTP configurado acepta conexión y credenciales SIN
+// enviar nada (transporter.verify() de nodemailer). Se usa como pre-flight
+// antes de un envío masivo (ver despliegue.service.js del copiloto): así, si
+// falta EMAIL_HOST/EMAIL_PASS o son inválidos, el Super Admin recibe un
+// mensaje claro ANTES de que arranque un lote, en vez de descubrirlo a mitad
+// de camino con una decena de fallos por destinatario que en realidad son un
+// solo problema de configuración.
+export async function verificarConfiguracionEmail() {
+  await transporter.verify()
 }
 
 // Alerta de seguridad enviada a Usuario.email (la cuenta REGISTRADA en

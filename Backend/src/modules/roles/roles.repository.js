@@ -32,5 +32,5 @@ export function contarUsuariosConRol(id) {
 }
 
 export function invalidarSesionesDeRol(id) {
-  return Usuario.updateMany({ rol: id }, { $inc: { tokenVersion: 1 } })
+  return Usuario.updateMany({ rol: id }, { $inc: { tokenVersion: 1 }, $set: { sesionesActivas: [] } })
 }

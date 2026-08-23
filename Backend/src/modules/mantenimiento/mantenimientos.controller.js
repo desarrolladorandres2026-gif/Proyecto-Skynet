@@ -1,7 +1,13 @@
+import path from 'node:path'
 import Mantenimiento from '../../models/mantenimiento/Mantenimiento.js'
 import Equipo from '../../models/mantenimiento/Equipo.js'
 import { escapeRegex } from '../../utils/regex.js'
 import { hoy as HOY_BOGOTA } from '../../utils/fechas.js'
+import { env } from '../../config/env.js'
+import { ErrorNoEncontrado } from '../../utils/errores.js'
+import { enviarArchivoSeguro } from '../../utils/streamArchivo.js'
+
+const CARPETA_MANTENIMIENTOS = path.join(env.STORAGE_ROOT, 'mantenimientos')
 
 // Antes construía "hoy en Bogotá" con
 // `new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }))`
@@ -249,4 +255,20 @@ export async function agregarInforme(req, res) {
   await mantenimiento.save()
 
   res.json({ mantenimiento })
+}
+
+// Reemplaza el antiguo `/storage` servido con express.static. El router ya
+// exige requireModulo('mantenimiento') para TODA esta superficie (no hay hoy
+// una noción de "dueño" más fina en el módulo legado — ver Fase 4 de la
+// auditoría 2026-08-22 sobre esa granularidad), así que aquí basta con
+// confirmar que el archivo pedido es realmente el que está adjunto a ESTE
+// mantenimiento — evita que alguien descargue el PDF de otro registro solo
+// adivinando/copiando el nombre de archivo.
+export async function archivoPdf(req, res) {
+  const { id, nombreArchivo } = req.params
+  const mantenimiento = await Mantenimiento.findById(id).select('archivo_pdf')
+  if (!mantenimiento || mantenimiento.archivo_pdf !== nombreArchivo) {
+    throw new ErrorNoEncontrado('Archivo no encontrado')
+  }
+  enviarArchivoSeguro(res, CARPETA_MANTENIMIENTOS, nombreArchivo)
 }

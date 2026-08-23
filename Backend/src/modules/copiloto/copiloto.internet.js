@@ -5,7 +5,18 @@
 // por búsqueda) y el scraping de DuckDuckGo (nos bloqueó al probarlo, y
 // depender de eso en producción es frágil).
 
-const TIMEOUT_MS = 6000
+// ── Presupuesto de tiempo, no timeout por fetch ─────────────────────────────
+// Las dos herramientas de este archivo hacen DOS peticiones SECUENCIALES
+// (buscar el título y luego pedir el resumen; geocodificar y luego pedir el
+// clima). Con un timeout por fetch de 6 s, el peor caso real eran 12 s de
+// espera dentro del chat por una sola herramienta — y encima ese chat todavía
+// tiene que hacer otra vuelta al modelo después para redactar la respuesta.
+//
+// Ahora el techo es del PASO COMPLETO: las dos peticiones comparten un mismo
+// AbortController de 5 s. Da margen de sobra (medido: el clima real tarda
+// ~1,7 s con sus dos saltos) y garantiza que ninguna herramienta de internet
+// pueda aportar más de 5 segundos a la latencia percibida.
+const PRESUPUESTO_MS = 5000
 
 // La política de etiqueta de la API de Wikimedia (Wikipedia) exige un
 // User-Agent identificable con datos de contacto; sin él, aplica límites de
@@ -16,17 +27,24 @@ const USER_AGENT = 'Skynet-ERP-Copiloto/1.0 (Terminal de Transporte de Neiva; co
 // Un tercero caído o lento no debe colgar la respuesta del copiloto: si no
 // contesta a tiempo, se le dice al modelo que la herramienta falló y este
 // sigue con lo que sepa, en vez de dejar al usuario esperando indefinidamente.
-async function fetchConTimeout(url, opciones = {}) {
+//
+// Abre un presupuesto compartido por todas las peticiones de UNA herramienta.
+// Se devuelve junto a un `cerrar()` que hay que llamar siempre (finally) para
+// no dejar el temporizador vivo.
+function abrirPresupuesto() {
   const controlador = new AbortController()
-  const timeout = setTimeout(() => controlador.abort(), TIMEOUT_MS)
-  try {
-    return await fetch(url, {
-      ...opciones,
-      signal: controlador.signal,
-      headers: { 'User-Agent': USER_AGENT, ...opciones.headers },
-    })
-  } finally {
-    clearTimeout(timeout)
+  const temporizador = setTimeout(() => controlador.abort(), PRESUPUESTO_MS)
+  return {
+    async pedir(url, opciones = {}) {
+      return fetch(url, {
+        ...opciones,
+        signal: controlador.signal,
+        headers: { 'User-Agent': USER_AGENT, ...opciones.headers },
+      })
+    },
+    cerrar() {
+      clearTimeout(temporizador)
+    },
   }
 }
 
@@ -34,12 +52,13 @@ export async function buscarWikipedia(consulta) {
   const termino = consulta?.trim()
   if (!termino) return { error: 'Falta indicar qué buscar' }
 
+  const presupuesto = abrirPresupuesto()
   try {
     // El resumen (REST summary) exige el título EXACTO del artículo; casi
     // ninguna pregunta real lo trae tal cual ("río magdalena" vs "Río
     // Magdalena"), así que primero se busca el título más parecido con la API
     // de búsqueda clásica y LUEGO se pide su resumen.
-    const resBusqueda = await fetchConTimeout(
+    const resBusqueda = await presupuesto.pedir(
       `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(termino)}&format=json&srlimit=1`
     )
     if (!resBusqueda.ok) return { error: 'Wikipedia no respondió' }
@@ -47,7 +66,7 @@ export async function buscarWikipedia(consulta) {
     const titulo = datosBusqueda?.query?.search?.[0]?.title
     if (!titulo) return { encontrado: false, mensaje: `No se encontró nada en Wikipedia sobre "${termino}"` }
 
-    const resResumen = await fetchConTimeout(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(titulo)}`)
+    const resResumen = await presupuesto.pedir(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(titulo)}`)
     if (!resResumen.ok) return { error: 'Wikipedia no respondió' }
     const resumen = await resResumen.json()
     // type:'disambiguation' es una página de desambiguación ("Neiva puede
@@ -64,6 +83,8 @@ export async function buscarWikipedia(consulta) {
     }
   } catch (err) {
     return { error: err.name === 'AbortError' ? 'Wikipedia tardó demasiado en responder' : 'No se pudo consultar Wikipedia' }
+  } finally {
+    presupuesto.cerrar()
   }
 }
 
@@ -84,10 +105,11 @@ export async function consultarClima(ciudad) {
   const nombre = ciudad?.trim()
   if (!nombre) return { error: 'Falta indicar la ciudad' }
 
+  const presupuesto = abrirPresupuesto()
   try {
     // Open-Meteo pide latitud/longitud, no nombre de ciudad: primero se
     // geocodifica con su propio servicio (gratis, sin key, mismo proveedor).
-    const resGeo = await fetchConTimeout(
+    const resGeo = await presupuesto.pedir(
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(nombre)}&count=1&language=es`
     )
     if (!resGeo.ok) return { error: 'El servicio de clima no respondió' }
@@ -95,7 +117,7 @@ export async function consultarClima(ciudad) {
     const lugar = geo?.results?.[0]
     if (!lugar) return { encontrado: false, mensaje: `No se encontró la ciudad "${nombre}"` }
 
-    const resClima = await fetchConTimeout(
+    const resClima = await presupuesto.pedir(
       `https://api.open-meteo.com/v1/forecast?latitude=${lugar.latitude}&longitude=${lugar.longitude}` +
         `&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto`
     )
@@ -114,5 +136,7 @@ export async function consultarClima(ciudad) {
     }
   } catch (err) {
     return { error: err.name === 'AbortError' ? 'El servicio de clima tardó demasiado' : 'No se pudo consultar el clima' }
+  } finally {
+    presupuesto.cerrar()
   }
 }

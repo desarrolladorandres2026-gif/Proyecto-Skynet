@@ -1,4 +1,9 @@
+import path from 'node:path'
 import * as service from './ordenes.service.js'
+import { env } from '../../config/env.js'
+import { enviarArchivoSeguro } from '../../utils/streamArchivo.js'
+
+const CARPETA_EVIDENCIAS = path.join(env.STORAGE_ROOT, 'mantenimiento_evidencias')
 
 export async function reportar(req, res) {
   const orden = await service.reportarProblema(req.body, req.usuario)
@@ -26,6 +31,15 @@ export async function tecnicos(_req, res) {
 export async function detalle(req, res) {
   const orden = await service.obtenerOrdenDetalle(req.params.id, req.usuario)
   res.json({ orden })
+}
+
+// Reemplaza el antiguo `/storage` servido con express.static (autenticaba
+// pero no autorizaba por recurso — cualquier usuario con sesión podía
+// descargar el archivo de cualquier orden). Ver auditoría de producción
+// 2026-08-22, Fase 2.
+export async function archivoEvidencia(req, res) {
+  const nombreArchivo = await service.obtenerRutaEvidencia(req.params.id, req.params.nombreArchivo, req.usuario)
+  enviarArchivoSeguro(res, CARPETA_EVIDENCIAS, nombreArchivo)
 }
 
 export async function asignar(req, res) {

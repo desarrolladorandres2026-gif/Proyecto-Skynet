@@ -120,6 +120,16 @@ export async function responder(programacionId, opcionIndice, usuarioActor) {
 
   const usuario = await Usuario.findById(usuarioActor.id_usuario).select('dependencia cargo')
 
+  // Mismo criterio que obtenerPreguntaDelDia (arriba): esta ruta es la que
+  // de verdad persiste la respuesta, así que debe repetir la comprobación
+  // de audiencia — sin esto, cualquier autenticado que conozca/adivine un
+  // programacionId publicado (aunque no sea suyo) podía responderlo,
+  // contaminando las estadísticas de cumplimiento SIG/HSEQ de otra
+  // dependencia/cargo. Ver auditoría de producción 2026-08-22.
+  if (!coincideAudiencia(programacion.audiencia, usuario)) {
+    throw new ErrorConflicto('Esta pregunta no está dirigida a ti')
+  }
+
   let respuesta
   try {
     respuesta = await RespuestaSig.create({

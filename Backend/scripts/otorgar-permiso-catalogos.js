@@ -20,6 +20,10 @@ import mongoose from 'mongoose'
 import { connectDB } from '../src/config/db.js'
 import Rol from '../src/models/Rol.js'
 import Permiso from '../src/models/Permiso.js'
+import { guardaProduccion } from './lib/guardaProduccion.js'
+
+// Sin flag de dry-run: otorga el permiso apenas corre.
+guardaProduccion({ script: 'otorgar-permiso-catalogos.js', operacion: "otorgar 'catalogos:gestionar' a roles semilla" })
 
 const SLUGS_DESTINO = ['administrador', 'administrativo_financiero']
 

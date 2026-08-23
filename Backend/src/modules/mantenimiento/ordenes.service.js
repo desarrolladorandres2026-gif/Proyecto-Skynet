@@ -1,6 +1,8 @@
 import Mantenimiento from '../../models/mantenimiento/Mantenimiento.js'
 import Equipo from '../../models/mantenimiento/Equipo.js'
 import ConfiguracionSLA from '../../models/mantenimiento/ConfiguracionSLA.js'
+import BitacoraEntrada from '../../models/mantenimiento/BitacoraEntrada.js'
+import Hallazgo from '../../models/mantenimiento/Hallazgo.js'
 import Usuario from '../../models/Usuario.js'
 import Rol from '../../models/Rol.js'
 import Permiso from '../../models/Permiso.js'
@@ -94,6 +96,35 @@ export async function obtenerOrdenDetalle(id, usuarioActor) {
     throw new ErrorConflicto('No tienes acceso a esta orden de trabajo')
   }
   return ot
+}
+
+// Confirma que `nombreArchivo` pertenece de verdad a la orden `id` (en su
+// arreglo de evidencias, en un adjunto de bitácora, o en la evidencia de
+// alguno de sus hallazgos) ANTES de dejarlo servir — sin esto, cualquier
+// usuario autenticado con acceso a ALGUNA orden podría descargar el archivo
+// de CUALQUIER otra con solo adivinar/copiar el nombre (IDOR). Reutiliza
+// exactamente la misma autorización que ver el detalle de la orden: si no
+// puede ver la orden, tampoco existe ningún archivo suyo desde su punto de
+// vista (mismo 404 tanto si la orden no existe como si no tiene acceso, para
+// no filtrar cuál de los dos casos es).
+export async function obtenerRutaEvidencia(id, nombreArchivo, usuarioActor) {
+  let ot
+  try {
+    ot = await obtenerOrdenDetalle(id, usuarioActor)
+  } catch {
+    throw new ErrorNoEncontrado('Archivo no encontrado')
+  }
+
+  const enEvidenciasOT = (ot.evidencias || []).some((e) => e.archivo === nombreArchivo)
+  if (enEvidenciasOT) return nombreArchivo
+
+  const enBitacora = await BitacoraEntrada.exists({ ordenTrabajo: ot._id, adjunto: nombreArchivo })
+  if (enBitacora) return nombreArchivo
+
+  const enHallazgo = await Hallazgo.exists({ ordenTrabajo: ot._id, 'evidencias.archivo': nombreArchivo })
+  if (enHallazgo) return nombreArchivo
+
+  throw new ErrorNoEncontrado('Archivo no encontrado')
 }
 
 // ── Creación ─────────────────────────────────────────────────────────────

@@ -39,6 +39,23 @@ export async function chat(req, res) {
 
   const enviar = (evento) => res.write(`data: ${JSON.stringify(evento)}\n\n`)
 
+  // Latido de la conexión. index.js pone `server.timeout = 30_000`, que es un
+  // timeout de INACTIVIDAD del socket: si una vuelta del modelo o una
+  // herramienta lenta (una búsqueda web, un lote de correos) pasa medio minuto
+  // sin escribir nada, Node mata la conexión y el usuario ve el chat cortado
+  // sin explicación. Un comentario SSE cada 10 s mantiene el socket vivo y, de
+  // paso, obliga a cualquier proxy intermedio a soltar lo que tenga en búfer.
+  //
+  // Es un COMENTARIO del protocolo (línea que empieza por ':'), no un evento:
+  // el lector del frontend busca líneas 'data: ' y descarta el bloque entero
+  // si no la encuentra (ver api/copiloto.js), así que no puede confundirse con
+  // una respuesta ni llegar nunca a la conversación.
+  const latido = setInterval(() => {
+    if (!res.writableEnded) res.write(': keepalive\n\n')
+  }, 10_000)
+  // unref: un temporizador de 10 s no debe impedir que el proceso termine.
+  latido.unref?.()
+
   try {
     const entrada = { mensaje, conversacionId, signal: controlador.signal, ip: req.ip }
     for await (const evento of service.responderStream(entrada, req.usuario)) {
@@ -50,6 +67,7 @@ export async function chat(req, res) {
     // frontend lo pinta en el banner de error del chat.
     enviar({ tipo: 'error', error: err.status < 500 ? err.message : 'Error interno del servidor' })
   } finally {
+    clearInterval(latido)
     terminado = true
     res.end()
   }

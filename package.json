@@ -1,4 +1,8 @@
 {
+  "private": true,
+  "scripts": {
+    "predeploy": "npm --prefix Backend test && npm --prefix Backend run verify && npm --prefix frontend run lint && npm --prefix frontend run build"
+  },
   "dependencies": {
     "cloudinary": "^2.10.0"
   }

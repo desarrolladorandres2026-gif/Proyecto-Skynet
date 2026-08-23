@@ -22,7 +22,3 @@ function filtroPdf(_req, file, cb) {
 }
 
 export const uploadPdf = multer({ storage, fileFilter: filtroPdf, limits: { fileSize: 20 * 1024 * 1024 } })
-
-export function urlArchivo(filename) {
-  return `${env.FILES_PUBLIC_URL}/mantenimientos/${filename}`
-}

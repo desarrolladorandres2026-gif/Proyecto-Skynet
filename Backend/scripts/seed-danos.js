@@ -5,6 +5,9 @@ import mongoose from 'mongoose'
 import { connectDB } from '../src/config/db.js'
 import Usuario from '../src/models/Usuario.js'
 import ReporteDano from '../src/models/ReporteDano.js'
+import { guardaProduccion } from './lib/guardaProduccion.js'
+
+guardaProduccion({ script: 'seed-danos.js', operacion: 'crear reportes de daños demo' })
 
 const HORA = 60 * 60 * 1000
 const haceHoras = (n) => new Date(Date.now() - n * HORA)

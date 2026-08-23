@@ -174,4 +174,15 @@ describe('descartes — todo esto debe caer al modelo (null)', () => {
     expect(detectarIntencion('quién ganó el partido')).toBeNull()
     expect(detectarIntencion('abre las cámaras del terminal')).toBeNull()
   })
+
+  it('descarta las órdenes del protocolo de despliegue', () => {
+    // Deben llegar al modelo para que las resuelva vía herramienta: si un
+    // atajo las capturara, resolverAtajo() llamaría ejecutar() DIRECTAMENTE,
+    // sin mirar requiereConfirmacion — saltándose la confirmación del envío
+    // oficial por completo. Este test fija esa frontera.
+    expect(detectarIntencion('inicia protocolo de despliegue')).toBeNull()
+    expect(detectarIntencion('asistente inicia protocolo de despliegue')).toBeNull()
+    expect(detectarIntencion('ejecuta prueba de comunicaciones')).toBeNull()
+    expect(detectarIntencion('asistente ejecuta prueba de comunicaciones')).toBeNull()
+  })
 })

@@ -7,9 +7,10 @@ import {
   TablaWrap, Th, Td, EmptyState, fmtFecha,
 } from '../../components/ui.jsx'
 
-// Los PDF se guardan en storage/mantenimientos y Vite hace proxy de /storage
-function urlPdf(filename) {
-  return `/storage/mantenimientos/${filename}`
+// Endpoint autorizado por-recurso (reemplaza /storage servido con
+// express.static — ver auditoría de producción 2026-08-22, Fase 2).
+function urlPdf(id, filename) {
+  return `/api/mantenimiento/mantenimientos/${id}/archivo/${filename}`
 }
 
 const FORM_VACIO = { fecha: '', tipo: '', tecnico: '', descripcion: '' }
@@ -153,7 +154,7 @@ export default function EquipoFichaPage() {
                 <Td>
                   {m.archivo_pdf ? (
                     <a
-                      href={urlPdf(m.archivo_pdf)}
+                      href={urlPdf(m._id, m.archivo_pdf)}
                       target="_blank"
                       rel="noreferrer"
                       className="text-cyan-700 hover:underline dark:text-cyan-400"

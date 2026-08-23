@@ -14,18 +14,69 @@ import { registrarAuditoria } from '../../utils/auditoria.js'
 const CACHE_TTL_MS = 30_000
 let cacheDesactivados = null
 let cacheExpira = 0
+let refrescoEnVuelo = null
+
+// Se sirve lo cacheado mientras se refresca por detrás (stale-while-revalidate).
+//
+// Antes, al vencer el TTL, la SIGUIENTE petición que llegara pagaba la consulta
+// entera. Contra Atlas eso son 140-350 ms medidos, y le tocaban a un usuario al
+// azar cada 30 segundos — en el copiloto se notaba doble, porque
+// construirHerramientas() consulta el estado de varios módulos.
+//
+// Ahora una entrada vencida se devuelve igual y el refresco corre aparte. El
+// dato puede quedar unos milisegundos viejo, lo cual es intrascendente aquí:
+// este gate ya tolera hasta 30 s de desfase por diseño (es el TTL), la
+// desactivación real invalida la caché al instante en el mismo proceso
+// (PM2 corre `instances: 1`, ver deploy/ecosystem.config.cjs) y la autorización
+// de verdad la sigue poniendo RBAC por permiso, no este interruptor.
+//
+// `refrescoEnVuelo` evita la estampida: si diez peticiones ven la entrada
+// vencida a la vez, se cuelgan todas del mismo refresco en vez de disparar diez
+// consultas idénticas.
+function refrescar() {
+  if (refrescoEnVuelo) return refrescoEnVuelo
+  refrescoEnVuelo = repo
+    .listarDesactivados()
+    .then((docs) => {
+      cacheDesactivados = new Set(docs.map((d) => d.key))
+      cacheExpira = Date.now() + CACHE_TTL_MS
+      return cacheDesactivados
+    })
+    .catch((err) => {
+      // Fail-open coherente con sincronizarCatalogoSistema(): sin dato, se
+      // trata todo como activo. Se reintenta en la siguiente lectura.
+      console.error('No se pudo refrescar el estado de módulos:', err.message)
+      cacheExpira = Date.now() + 1_000
+      return cacheDesactivados || new Set()
+    })
+    .finally(() => {
+      refrescoEnVuelo = null
+    })
+  return refrescoEnVuelo
+}
 
 export async function keysModulosDesactivados() {
-  if (!cacheDesactivados || Date.now() > cacheExpira) {
-    const docs = await repo.listarDesactivados()
-    cacheDesactivados = new Set(docs.map((d) => d.key))
-    cacheExpira = Date.now() + CACHE_TTL_MS
-  }
+  // Primera lectura del proceso: no hay nada que servir, toca esperar.
+  if (!cacheDesactivados) return refrescar()
+  // Vencida pero utilizable: se devuelve YA y el refresco corre por detrás.
+  if (Date.now() > cacheExpira) refrescar()
   return cacheDesactivados
 }
 
 export function invalidarCacheModulos() {
   cacheDesactivados = null
+  cacheExpira = 0
+}
+
+/**
+ * Deja la caché lista antes de atender la primera petición.
+ *
+ * La llama el arranque (index.js) para que ningún usuario pague la consulta
+ * inicial: es la única lectura que keysModulosDesactivados() no puede servir
+ * desde caché.
+ */
+export function precalentarCacheModulos() {
+  return refrescar()
 }
 
 export async function estaModuloActivo(key) {

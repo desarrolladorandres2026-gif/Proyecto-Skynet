@@ -26,6 +26,27 @@ function normalizarComando(texto) {
 }
 const PATRON_ABRIR_CHAT = /\b(abre|abrir|muestra|mostrar)\s+(skynet|chat|copiloto)\b/i
 
+// Respuestas cortas de sí/no a una confirmación PENDIENTE (ver `confirmacion`
+// más abajo). Se resuelven aquí, en el navegador, pulsando el mismo botón
+// real que ya existía (CopilotoConfirmacion) — nunca mandándole el texto al
+// modelo. Esto es lo que permite responder "Sí, confirmo" sin repetir
+// "Asistente" (sigue siendo la misma conversación) SIN reabrir el hueco que
+// copiloto.confirmaciones.js existe para cerrar: el modelo nunca decide
+// ejecutar nada a partir de lo que alguien escribió o dijo. Lista corta y
+// exacta a propósito, mismo criterio de "toda duda cae al camino normal" que
+// copiloto.intencion.js: un falso negativo cae al chat de siempre (el modelo
+// puede seguir pidiendo que se use el botón); un falso positivo dispararía
+// una acción irreversible por error.
+const FRASES_CONFIRMAR = new Set(['si', 'si confirmo', 'confirmo', 'autorizo', 'procede'])
+const FRASES_CANCELAR = new Set(['no', 'no autorizo', 'cancela', 'cancelar', 'deten el proceso', 'detente'])
+
+function resolverComoConfirmacion(texto) {
+  const normalizado = normalizarComando(texto)
+  if (FRASES_CONFIRMAR.has(normalizado)) return 'confirmar'
+  if (FRASES_CANCELAR.has(normalizado)) return 'cancelar'
+  return null
+}
+
 // Burbuja flotante y movible disponible en cualquier pantalla (montada una sola vez en AppShell.jsx).
 // Permite interactuar mediante Voz Inteligente estilo Siri (con el chat cerrado por defecto)
 // o abrir el Modo Chat completo por clic o por comando explícito "Abre Skynet".
@@ -69,10 +90,55 @@ export default function CopilotoWidget() {
   // misma cola de voz, y se oían dos respuestas mezcladas.
   const peticionRef = useRef(null)
 
+  // Espejo por ref de `confirmacion`/`confirmarAccion`/`descartarConfirmacion`
+  // para que `enviarTexto` (congelada tras el primer render, ver el
+  // comentario de `vozRef` más abajo) siempre lea la confirmación pendiente
+  // VIGENTE y no la que existía cuando se creó la clausura.
+  const confirmacionRef = useRef(null)
+  confirmacionRef.current = confirmacion
+  const confirmarAccionRef = useRef(null)
+  const descartarConfirmacionRef = useRef(null)
+
   const enviarTexto = useCallback(
     async (texto, { porVoz = false } = {}) => {
       const limpio = texto?.trim()
       if (!limpio) return
+
+      // ── Respuesta a una confirmación pendiente ─────────────────────────
+      // Va ANTES de tocar la red: mientras haya una tarjeta de confirmación
+      // en pantalla, un "sí, confirmo" o un "cancelar" son la respuesta a ESA
+      // pregunta concreta (la que el usuario está viendo), no un mensaje
+      // nuevo para el modelo. Queda intrínsecamente ligado a esa operación:
+      // se pulsa el botón de la tarjeta vigente, con su token, y no hay forma
+      // de que un "sí" suelto autorice una operación distinta — si la
+      // confirmación caducó o se limpió (cambio de tema, /limpiar), aquí ya
+      // no hay nada que confirmar y el texto sigue su camino normal.
+      const pendiente = confirmacionRef.current
+      if (pendiente) {
+        const decision = resolverComoConfirmacion(limpio)
+        if (decision) {
+          const responder = (respuesta) => {
+            aplicarMensajes((prev) => [...prev, { rol: 'user', texto: limpio }, { rol: 'model', texto: respuesta }])
+            // Si la confirmación llegó dictada, la respuesta también se dice
+            // en voz alta: contestar "sí, confirmo" y recibir solo silencio
+            // hasta que termine el envío deja al usuario sin saber si le
+            // entendió.
+            if (vozRef.current.debeHablar(porVoz)) {
+              vozRef.current.reiniciar()
+              vozRef.current.encolarTexto(respuesta)
+              vozRef.current.finalizar()
+            }
+          }
+          if (decision === 'confirmar') {
+            responder('Autorización confirmada. Ejecutando…')
+            await confirmarAccionRef.current?.()
+          } else {
+            descartarConfirmacionRef.current?.()
+            responder('Operación cancelada. No se ejecutó nada.')
+          }
+          return
+        }
+      }
 
       peticionRef.current?.abort()
       const controlador = new AbortController()
@@ -278,6 +344,7 @@ export default function CopilotoWidget() {
     setConfirmacion(null)
     setErrorConfirmacion('')
   }
+  descartarConfirmacionRef.current = descartarConfirmacion
 
   // Único camino por el que una acción marcada como destructiva llega a
   // ejecutarse. No pasa por Gemini: manda el token que emitió el servidor a un
@@ -286,15 +353,27 @@ export default function CopilotoWidget() {
     setEnviandoConfirmacion(true)
     setErrorConfirmacion('')
     try {
-      await copiloto.confirmarAccion(confirmacion.token)
+      const resultado = await copiloto.confirmarAccion(confirmacion.token)
       setConfirmacion(null)
-      aplicarMensajes((prev) => [...prev, { rol: 'model', texto: 'Listo, la acción quedó ejecutada.' }])
+      // Algunas herramientas (ver protocolo de despliegue) devuelven un
+      // resumen propio en `resultado.mensaje` — p. ej. conteos de envío que
+      // el usuario necesita ver tal cual, no una frase genérica. El resto
+      // sigue mostrando el mismo texto de siempre porque su resultado no
+      // trae ese campo.
+      const texto = resultado?.resultado?.mensaje || 'Listo, la acción quedó ejecutada.'
+      aplicarMensajes((prev) => [...prev, { rol: 'model', texto }])
+      if (vozRef.current.vozActiva && vozRef.current.soportado) {
+        vozRef.current.reiniciar()
+        vozRef.current.encolarTexto(texto)
+        vozRef.current.finalizar()
+      }
     } catch (err) {
       setErrorConfirmacion(err.message || 'No se pudo ejecutar la acción')
     } finally {
       setEnviandoConfirmacion(false)
     }
   }
+  confirmarAccionRef.current = confirmarAccion
 
   async function confirmarBorrador() {
     setEnviandoBorrador(true)

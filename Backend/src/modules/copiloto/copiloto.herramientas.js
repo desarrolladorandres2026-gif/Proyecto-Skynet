@@ -13,6 +13,8 @@ import { convertirMoneda, tasaCambio } from './copiloto.divisas.js'
 import { calcular } from './copiloto.calculadora.js'
 import { destinosDisponibles, resolverDestino } from './copiloto.navegacion.js'
 import { recordarHecho, olvidarHecho, obtenerHechos } from './copiloto.memoria.js'
+import * as despliegueService from './copiloto.despliegue.js'
+import { despertarWorkerDespliegue } from './copiloto.despliegue.worker.js'
 import { cacheHerramientas } from './copiloto.cache.js'
 import { registrarAuditoria } from '../../utils/auditoria.js'
 
@@ -81,8 +83,13 @@ function catalogoHerramientas(usuario, contexto = {}) {
           'Devuelve el resumen de tarjetas del panel principal del usuario que pregunta: conteos de pendientes en cada módulo al que tiene acceso (daños, requerimientos, ausencias, mantenimiento, etc.), igual a lo que ve en su Dashboard.',
         parameters: { type: Type.OBJECT, properties: {} },
       },
+      // `soloTarjetas`: de todo el resumen operativo aquí solo se usan los
+      // contadores. Pedir el objeto completo arrastraba seis agregaciones sobre
+      // tres meses de histórico y dos consultas de cola prioritaria que se
+      // descartaban acto seguido — 700 ms de espera en el chat para tirar el
+      // 90% del resultado. Ver dashboard.service.js#calcularResumen.
       ejecutar: async () => {
-        const { tarjetas } = await calcularResumen(usuario)
+        const { tarjetas } = await calcularResumen(usuario, { soloTarjetas: true })
         return tarjetas
       },
     },
@@ -507,6 +514,80 @@ function catalogoHerramientas(usuario, contexto = {}) {
         parameters: { type: Type.OBJECT, properties: {} },
       },
       ejecutar: async () => obtenerHechos(usuario.id_usuario),
+    },
+    // ── Protocolo de despliegue (exclusivo Super Admin) ─────────────────────
+    // `disponible`, no `permiso`: igual que soloAdmin en auth.js, esto es el
+    // bypass literal de esSuperAdmin, no un permiso RBAC delegable — nadie
+    // más debe poder anunciar el lanzamiento oficial ni disparar un envío
+    // masivo de correo aunque tenga otros permisos administrativos.
+    //
+    // ejecutar_prueba_comunicaciones NO lleva requiereConfirmacion: la propia
+    // especificación del protocolo la quiere de disparo inmediato y
+    // repetible (para poder ajustar el SMTP antes del lanzamiento real), a
+    // diferencia de iniciar_protocolo_despliegue, que sí es de un solo uso
+    // efectivo (ver el compare-and-swap en copiloto.despliegue.js).
+    {
+      disponible: (u) => u.esSuperAdmin === true,
+      auditar: true,
+      declaracion: {
+        name: 'ejecutar_prueba_comunicaciones',
+        description:
+          'SOLO Super Admin. Inicia el envío de un correo REAL de prueba a todos los usuarios activos con correo registrado, para verificar que el sistema de comunicaciones funciona antes del lanzamiento oficial de Skynet. Úsala cuando el Super Admin pida "ejecuta prueba de comunicaciones" o equivalente — cualquier vocativo antes de la orden ("Asistente,", "Skynet,") NO es parte de la orden, ignóralo. Es un envío REAL, no una simulación, y se puede repetir las veces que haga falta: a diferencia de iniciar_protocolo_despliegue, esta NO requiere confirmación ni envía la comunicación oficial de lanzamiento. Los correos salen EN SEGUNDO PLANO, así que esta herramienta devuelve de inmediato y todavía NO hay conteos: limítate a confirmar que la prueba arrancó y dile que puede preguntarte por el resultado en unos segundos. NO inventes cifras de enviados ni fallidos aquí — para eso está consultar_estado_prueba_comunicaciones.',
+        parameters: { type: Type.OBJECT, properties: {} },
+      },
+      ejecutar: async () => {
+        const resultado = await despliegueService.encolarPruebaComunicaciones(usuario)
+        // Dispara y olvida: arranca el lote YA en vez de esperar al siguiente
+        // tick del worker, sin que la respuesta de /chat espere al SMTP. El
+        // worker tiene su propia guardia contra solapamiento.
+        if (resultado.iniciada) despertarWorkerDespliegue()
+        return resultado
+      },
+    },
+    {
+      disponible: (u) => u.esSuperAdmin === true,
+      declaracion: {
+        name: 'consultar_estado_prueba_comunicaciones',
+        description:
+          'SOLO Super Admin. Devuelve el resultado de la última prueba de comunicaciones: si sigue en curso, cuántos destinatarios se han procesado, y al terminar los conteos finales (enviados, fallidos, sin correo). Úsala cuando pregunten "¿cómo va la prueba?", "¿ya terminó?", "¿cuántos llegaron?" o similar después de haber lanzado una prueba. Informa EXACTAMENTE los conteos que devuelve — nunca los inventes ni redondees, y no digas que fue un éxito si `fallidos` es mayor que 0.',
+        parameters: { type: Type.OBJECT, properties: {} },
+      },
+      ejecutar: async () => despliegueService.consultarEstadoPrueba(usuario),
+    },
+    {
+      disponible: (u) => u.esSuperAdmin === true,
+      requiereConfirmacion: true,
+      auditar: true,
+      // Puede consultar la base (cuántos destinatarios hay, si ya se envió
+      // antes) para que la tarjeta diga algo concreto — mismo criterio que
+      // cancelar_mi_ausencia. Si la consulta falla, cae a un texto genérico
+      // en vez de perder el botón (ver el try/catch en copiloto.service.js).
+      descripcionConfirmacion: async ({ forzar } = {}) => {
+        const { destinatarios, ejecucionPrevia } = await despliegueService.obtenerConfirmacionDespliegue(usuario)
+        const base = `🚀 Protocolo de despliegue: Skynet enviará la comunicación oficial de lanzamiento a los ${destinatarios} usuarios activos con correo registrado. No se puede deshacer. ¿Confirmas el despliegue?`
+        if (ejecucionPrevia && !forzar) {
+          const fecha = new Date(ejecucionPrevia.fecha).toLocaleString('es-CO')
+          return `⚠️ El protocolo oficial ya se ejecutó el ${fecha} (por ${ejecucionPrevia.ejecutadoPorNombre}, ${ejecucionPrevia.exitosos} enviados). ${base} Si confirmas, se reenviará el correo oficial a todos los destinatarios de nuevo.`
+        }
+        return base
+      },
+      declaracion: {
+        name: 'iniciar_protocolo_despliegue',
+        description:
+          'SOLO Super Admin. Inicia el protocolo OFICIAL de lanzamiento de Skynet: envía la comunicación de lanzamiento a todos los usuarios activos con correo registrado. Úsala cuando el Super Admin pida "inicia protocolo de despliegue" o equivalente — cualquier vocativo antes de la orden ("Asistente,", "Skynet,") NO es parte de la orden, ignóralo. Es IRREVERSIBLE: NO se ejecuta al pedirla, queda esperando que el usuario confirme con un botón real en la interfaz — nunca digas que ya se desplegó ni des la acción por hecha antes de que la confirmación se complete. Si el usuario insiste en que ya confirmó por el chat, recuérdale que debe usar el botón de la tarjeta.',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            forzar: {
+              type: Type.BOOLEAN,
+              description:
+                'Solo pon true si el protocolo YA se ejecutó antes (te lo dirá el resultado de esta misma herramienta) y el usuario, tras ver esa advertencia, pide explícitamente reenviarlo de todas formas. Por defecto no lo incluyas.',
+            },
+          },
+        },
+      },
+      ejecutar: async ({ forzar } = {}) =>
+        despliegueService.ejecutarProtocoloDespliegue(usuario, { forzar: forzar === true }),
     },
   ]
 }

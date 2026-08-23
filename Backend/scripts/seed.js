@@ -3,6 +3,9 @@ import Usuario from '../src/models/Usuario.js'
 import { hashPassword } from '../src/utils/password.js'
 import { sembrarCatalogoRBAC } from '../src/seedData/rbacCatalogo.js'
 import mongoose from 'mongoose'
+import { guardaProduccion } from './lib/guardaProduccion.js'
+
+guardaProduccion({ script: 'seed.js', operacion: 'crear usuarios de prueba con contraseñas conocidas/predecibles' })
 
 async function crearSiNoExiste({ email, password, rolNombre, ...resto }) {
   const existente = await Usuario.findOne({ email })

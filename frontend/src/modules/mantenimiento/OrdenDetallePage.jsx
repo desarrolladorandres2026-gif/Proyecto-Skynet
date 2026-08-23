@@ -11,8 +11,11 @@ import {
 } from '../../components/ui.jsx'
 import { PromptDialog } from '../../components/PromptDialog.jsx'
 
-function urlEvidencia(archivo) {
-  return `/storage/mantenimiento_evidencias/${archivo}`
+// Endpoint autorizado por-recurso (reemplaza /storage servido con
+// express.static, que autenticaba pero no verificaba que el archivo
+// perteneciera a esta orden — ver auditoría de producción 2026-08-22, Fase 2).
+function urlEvidencia(ordenId, archivo) {
+  return `/api/mantenimiento/ordenes/${ordenId}/archivos/${archivo}`
 }
 
 // ── Llegada ──────────────────────────────────────────────────────────────
@@ -385,7 +388,7 @@ function SeccionEvidencias({ orden, puedoEjecutar, onCambio }) {
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {orden.evidencias.map((ev) => (
             <li key={ev._id} className="rounded-lg border border-cyan-400/10 p-2 text-xs">
-              <a href={urlEvidencia(ev.archivo)} target="_blank" rel="noreferrer" className="font-medium text-cyan-400 hover:underline">
+              <a href={urlEvidencia(orden._id, ev.archivo)} target="_blank" rel="noreferrer" className="font-medium text-cyan-400 hover:underline">
                 {ev.tipo} ({ev.momento})
               </a>
               {ev.comentario && <p className="mt-1 text-slate-400">{ev.comentario}</p>}

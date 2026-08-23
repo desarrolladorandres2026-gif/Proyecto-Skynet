@@ -50,7 +50,3 @@ export const uploadEvidencia = multer({
 })
 
 export { tipoPorMime }
-
-export function urlEvidencia(filename) {
-  return `${env.FILES_PUBLIC_URL}/mantenimiento_evidencias/${filename}`
-}

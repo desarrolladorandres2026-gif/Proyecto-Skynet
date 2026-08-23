@@ -301,14 +301,48 @@ describe('Usuarios — actualizar e invalidación de sesiones', () => {
 })
 
 describe('Usuarios — eliminar', () => {
-  it('elimina y luego devuelve 404', async () => {
+  // Desde la Fase 9 de la auditoría 2026-08-22, el borrado físico exige:
+  // (1) el usuario ya debe estar inactivo, (2) reautenticación del actor.
+  // "admin" (creado en beforeEach) usa PASSWORD_OK, así que el body de estas
+  // pruebas manda esa misma contraseña como confirmación.
+  it('rechaza eliminar un usuario ACTIVO (debe desactivarse primero)', async () => {
     const objetivo = await crearUsuario(rolBasico)
 
-    const res = await request(app).delete(`/api/usuarios/${objetivo._id}`).set('Authorization', authAdmin)
+    const res = await request(app)
+      .delete(`/api/usuarios/${objetivo._id}`)
+      .set('Authorization', authAdmin)
+      .send({ password: PASSWORD_OK })
+
+    expect(res.status).toBe(409)
+    expect(await Usuario.findById(objetivo._id)).not.toBeNull()
+  })
+
+  it('rechaza sin la contraseña de reautenticación correcta', async () => {
+    const objetivo = await crearUsuario(rolBasico, { estado: 'inactivo' })
+
+    const res = await request(app)
+      .delete(`/api/usuarios/${objetivo._id}`)
+      .set('Authorization', authAdmin)
+      .send({ password: 'una-contraseña-incorrecta' })
+
+    expect(res.status).toBe(400)
+    expect(await Usuario.findById(objetivo._id)).not.toBeNull()
+  })
+
+  it('elimina un usuario inactivo y sin historial, y luego devuelve 404', async () => {
+    const objetivo = await crearUsuario(rolBasico, { estado: 'inactivo' })
+
+    const res = await request(app)
+      .delete(`/api/usuarios/${objetivo._id}`)
+      .set('Authorization', authAdmin)
+      .send({ password: PASSWORD_OK })
     expect(res.status).toBe(200)
     expect(await Usuario.findById(objetivo._id)).toBeNull()
 
-    const repetido = await request(app).delete(`/api/usuarios/${objetivo._id}`).set('Authorization', authAdmin)
+    const repetido = await request(app)
+      .delete(`/api/usuarios/${objetivo._id}`)
+      .set('Authorization', authAdmin)
+      .send({ password: PASSWORD_OK })
     expect(repetido.status).toBe(404)
   })
 
@@ -318,16 +352,22 @@ describe('Usuarios — eliminar', () => {
   // —incluida la de la propia pestaña que acaba de "confirmar" el borrado—
   // sin ninguna explicación visible.
   it('no permite que un admin elimine su propia cuenta', async () => {
-    const res = await request(app).delete(`/api/usuarios/${admin._id}`).set('Authorization', authAdmin)
+    const res = await request(app)
+      .delete(`/api/usuarios/${admin._id}`)
+      .set('Authorization', authAdmin)
+      .send({ password: PASSWORD_OK })
 
     expect(res.status).toBe(409)
     expect(await Usuario.findById(admin._id)).not.toBeNull()
   })
 
-  it('sí permite eliminar un Super Admin si queda otro activo', async () => {
-    const otroAdmin = await crearUsuario(rolAdmin)
+  it('sí permite eliminar un Super Admin inactivo si queda otro activo', async () => {
+    const otroAdmin = await crearUsuario(rolAdmin, { estado: 'inactivo' })
 
-    const res = await request(app).delete(`/api/usuarios/${otroAdmin._id}`).set('Authorization', authAdmin)
+    const res = await request(app)
+      .delete(`/api/usuarios/${otroAdmin._id}`)
+      .set('Authorization', authAdmin)
+      .send({ password: PASSWORD_OK })
 
     expect(res.status).toBe(200)
     expect(await Usuario.findById(otroAdmin._id)).toBeNull()

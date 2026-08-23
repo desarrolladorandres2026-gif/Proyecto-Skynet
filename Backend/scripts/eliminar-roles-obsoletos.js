@@ -17,6 +17,10 @@ import mongoose from 'mongoose'
 import { connectDB } from '../src/config/db.js'
 import Rol from '../src/models/Rol.js'
 import Usuario from '../src/models/Usuario.js'
+import { guardaProduccion } from './lib/guardaProduccion.js'
+
+// Sin flag de dry-run: reasigna usuarios y borra roles apenas corre.
+guardaProduccion({ script: 'eliminar-roles-obsoletos.js', operacion: 'reasignar usuarios y eliminar roles obsoletos del catálogo RBAC' })
 
 // slug obsoleto -> slug del rol al que se reasignan sus usuarios.
 const MAPEO_REASIGNACION = {

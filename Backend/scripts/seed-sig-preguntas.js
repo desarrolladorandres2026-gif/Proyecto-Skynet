@@ -9,6 +9,9 @@ import { connectDB } from '../src/config/db.js'
 import Usuario from '../src/models/Usuario.js'
 import PreguntaSig from '../src/models/PreguntaSig.js'
 import { crearPregunta } from '../src/modules/sig_pregunta_dia/sig-banco.service.js'
+import { guardaProduccion } from './lib/guardaProduccion.js'
+
+guardaProduccion({ script: 'seed-sig-preguntas.js', operacion: 'crear preguntas de prueba del banco SIG' })
 
 const PREGUNTAS = [
   {

@@ -20,8 +20,16 @@
 import mongoose from 'mongoose'
 import { connectDB } from '../src/config/db.js'
 import Usuario from '../src/models/Usuario.js'
+import { guardaProduccion } from './lib/guardaProduccion.js'
 
 const APLICAR = process.argv.includes('--aplicar')
+
+// El guard solo bloquea cuando --aplicar está presente: el modo dry-run (por
+// defecto) no escribe nada, así que es seguro dejarlo correr en cualquier
+// entorno para inspeccionar qué haría.
+if (APLICAR) {
+  guardaProduccion({ script: 'marcar-usuarios-prueba.js', operacion: 'marcar usuarios existentes como esPrueba:true' })
+}
 
 // Dos de los 16 candidatos detectados en la corrida inicial (2026-08-21)
 // tenían correo del dominio real del Terminal en vez de @skynet.local/gmail

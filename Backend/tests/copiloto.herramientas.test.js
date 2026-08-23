@@ -28,6 +28,23 @@ const auditar = vi.fn(async () => {})
 vi.mock('../src/utils/auditoria.js', () => ({
   registrarAuditoria: (datos) => auditar(datos),
 }))
+// El servicio de despliegue se simula: aquí solo importa CÓMO se declara la
+// herramienta al modelo y quién la recibe, no el envío en sí (eso lo cubre
+// copiloto.despliegue.test.js contra Mongo real).
+const encolarPruebaComunicaciones = vi.fn(async () => ({ iniciada: true, id: 'j1', mensaje: 'iniciada' }))
+const consultarEstadoPrueba = vi.fn(async () => ({ existe: true, estado: 'exito', exitosos: 3, fallidos: 0 }))
+const obtenerConfirmacionDespliegue = vi.fn(async () => ({ destinatarios: 47, ejecucionPrevia: null }))
+const ejecutarProtocoloDespliegue = vi.fn(async () => ({ estado: 'exito', exitosos: 47, fallidos: 0 }))
+vi.mock('../src/modules/copiloto/copiloto.despliegue.js', () => ({
+  encolarPruebaComunicaciones: (u) => encolarPruebaComunicaciones(u),
+  consultarEstadoPrueba: (u) => consultarEstadoPrueba(u),
+  obtenerConfirmacionDespliegue: (u) => obtenerConfirmacionDespliegue(u),
+  ejecutarProtocoloDespliegue: (u, o) => ejecutarProtocoloDespliegue(u, o),
+}))
+const despertarWorkerDespliegue = vi.fn()
+vi.mock('../src/modules/copiloto/copiloto.despliegue.worker.js', () => ({
+  despertarWorkerDespliegue: () => despertarWorkerDespliegue(),
+}))
 
 const { construirHerramientas } = await import('../src/modules/copiloto/copiloto.herramientas.js')
 
@@ -48,6 +65,11 @@ beforeEach(() => {
   moduloActivo.mockReset()
   moduloActivo.mockResolvedValue(true)
   auditar.mockClear()
+  encolarPruebaComunicaciones.mockClear()
+  consultarEstadoPrueba.mockClear()
+  obtenerConfirmacionDespliegue.mockClear()
+  ejecutarProtocoloDespliegue.mockClear()
+  despertarWorkerDespliegue.mockClear()
 })
 
 describe('qué se le declara al modelo', () => {
@@ -190,6 +212,108 @@ describe('acción destructiva y su confirmación', () => {
     moduloActivo.mockImplementation(async (m) => m !== 'ausencias')
     const hs = await construirHerramientas(usuario())
     expect(nombres(hs)).not.toContain('cancelar_mi_ausencia')
+  })
+})
+
+describe('protocolo de despliegue — exclusivo Super Admin', () => {
+  const NOMBRES_DESPLIEGUE = [
+    'ejecutar_prueba_comunicaciones',
+    'consultar_estado_prueba_comunicaciones',
+    'iniciar_protocolo_despliegue',
+  ]
+
+  it('el Super Admin recibe las dos herramientas del protocolo', async () => {
+    const hs = await construirHerramientas(usuario({ esSuperAdmin: true }))
+    expect(nombres(hs)).toEqual(expect.arrayContaining(NOMBRES_DESPLIEGUE))
+  })
+
+  it('nadie más las recibe, ni con permisos administrativos de otros módulos', async () => {
+    // No es un permiso RBAC delegable: es el bypass literal de esSuperAdmin,
+    // igual que soloAdmin en auth.js. Tener otros permisos no acerca a nadie.
+    const hs = await construirHerramientas(usuario({ permisos: ['usuarios:gestionar', 'auditoria:leer'] }))
+    for (const nombre of NOMBRES_DESPLIEGUE) expect(nombres(hs)).not.toContain(nombre)
+  })
+
+  it('el protocolo oficial exige confirmación; la prueba de comunicaciones no', async () => {
+    // La asimetría es deliberada: la prueba es repetible mientras se ajusta el
+    // SMTP, el despliegue oficial es irreversible.
+    const hs = await construirHerramientas(usuario({ esSuperAdmin: true }))
+    const oficial = hs.find((h) => h.declaracion.name === 'iniciar_protocolo_despliegue')
+    const prueba = hs.find((h) => h.declaracion.name === 'ejecutar_prueba_comunicaciones')
+
+    expect(oficial.requiereConfirmacion).toBe(true)
+    expect(oficial.auditar).toBe(true)
+    expect(prueba.requiereConfirmacion).toBeFalsy()
+    expect(prueba.auditar).toBe(true)
+  })
+
+  it('la descripción de confirmación dice cuántos destinatarios y pide un sí explícito', async () => {
+    const hs = await construirHerramientas(usuario({ esSuperAdmin: true }))
+    const oficial = hs.find((h) => h.declaracion.name === 'iniciar_protocolo_despliegue')
+
+    const texto = await oficial.descripcionConfirmacion({})
+    expect(texto).toContain('47')
+    expect(texto).toContain('¿Confirmas el despliegue?')
+  })
+
+  it('avisa en la tarjeta si el protocolo ya se había ejecutado antes', async () => {
+    obtenerConfirmacionDespliegue.mockResolvedValueOnce({
+      destinatarios: 47,
+      ejecucionPrevia: { fecha: new Date('2026-08-20T10:00:00Z'), ejecutadoPorNombre: 'admin', exitosos: 47 },
+    })
+    const hs = await construirHerramientas(usuario({ esSuperAdmin: true }))
+    const oficial = hs.find((h) => h.declaracion.name === 'iniciar_protocolo_despliegue')
+
+    const texto = await oficial.descripcionConfirmacion({})
+    expect(texto).toMatch(/ya se ejecutó/i)
+    expect(texto).toContain('admin')
+  })
+
+  it('la prueba de comunicaciones queda auditada', async () => {
+    const hs = await construirHerramientas(usuario({ esSuperAdmin: true }), { ip: '10.0.0.9' })
+    await hs.find((h) => h.declaracion.name === 'ejecutar_prueba_comunicaciones').ejecutar({})
+
+    expect(encolarPruebaComunicaciones).toHaveBeenCalledTimes(1)
+    expect(auditar.mock.calls[0][0]).toMatchObject({
+      accion: 'copiloto_herramienta',
+      entidad: 'ejecutar_prueba_comunicaciones',
+      ip: '10.0.0.9',
+      resultado: 'exito',
+    })
+  })
+
+  it('la herramienta solo ENCOLA y despierta al worker: nunca envía dentro de /chat', async () => {
+    const hs = await construirHerramientas(usuario({ esSuperAdmin: true }))
+    const resultado = await hs.find((h) => h.declaracion.name === 'ejecutar_prueba_comunicaciones').ejecutar({})
+
+    expect(encolarPruebaComunicaciones).toHaveBeenCalledTimes(1)
+    expect(despertarWorkerDespliegue).toHaveBeenCalledTimes(1)
+    expect(resultado.iniciada).toBe(true)
+  })
+
+  it('si ya había una prueba en curso, no vuelve a despertar al worker', async () => {
+    encolarPruebaComunicaciones.mockResolvedValueOnce({ iniciada: false, yaEnCurso: true, id: 'j1' })
+    const hs = await construirHerramientas(usuario({ esSuperAdmin: true }))
+    await hs.find((h) => h.declaracion.name === 'ejecutar_prueba_comunicaciones').ejecutar({})
+
+    expect(despertarWorkerDespliegue).not.toHaveBeenCalled()
+  })
+
+  it('la descripción le prohíbe al modelo inventar conteos al lanzar la prueba', async () => {
+    // Como el envío es asíncrono, la herramienta ya no devuelve cifras. Sin
+    // esta instrucción el modelo tiende a rellenar el hueco inventándolas.
+    const hs = await construirHerramientas(usuario({ esSuperAdmin: true }))
+    const prueba = hs.find((h) => h.declaracion.name === 'ejecutar_prueba_comunicaciones')
+    expect(prueba.declaracion.description).toMatch(/NO inventes cifras/i)
+    expect(prueba.declaracion.description).toMatch(/segundo plano/i)
+  })
+
+  it('consultar_estado_prueba_comunicaciones no se audita (es solo lectura)', async () => {
+    const hs = await construirHerramientas(usuario({ esSuperAdmin: true }))
+    await hs.find((h) => h.declaracion.name === 'consultar_estado_prueba_comunicaciones').ejecutar({})
+
+    expect(consultarEstadoPrueba).toHaveBeenCalledTimes(1)
+    expect(auditar).not.toHaveBeenCalled()
   })
 })
 

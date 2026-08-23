@@ -2,6 +2,7 @@ import mongoose from 'mongoose'
 import { connectDB } from '../src/config/db.js'
 import Mantenimiento from '../src/models/mantenimiento/Mantenimiento.js'
 import Usuario from '../src/models/Usuario.js'
+import { guardaProduccion } from './lib/guardaProduccion.js'
 
 // Traduce los documentos legado (estado 'pendiente'/'programado'/'finalizado')
 // al ciclo de vida nuevo de la Orden de Trabajo (CMMS Fase 1). Es idempotente
@@ -37,6 +38,11 @@ async function resolverTecnico(nombreLibre) {
 
 async function run() {
   const aplicar = process.argv.includes('--apply')
+  // Solo bloquea la corrida que sí escribe: el dry-run (por defecto) no
+  // toca datos y es seguro correrlo en cualquier entorno para inspeccionar.
+  if (aplicar) {
+    guardaProduccion({ script: 'migrate-mantenimiento-ot.js', operacion: 'migrar Mantenimiento a estados nuevos de OT (--apply)' })
+  }
   await connectDB()
 
   const documentos = await Mantenimiento.find({ estado: { $in: Object.keys(MAPA_ESTADO) } })

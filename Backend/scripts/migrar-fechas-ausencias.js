@@ -33,8 +33,13 @@ import mongoose from 'mongoose'
 import { connectDB } from '../src/config/db.js'
 import Ausencia from '../src/models/Ausencia.js'
 import { OFFSET_TERMINAL } from '../src/utils/fechas.js'
+import { guardaProduccion } from './lib/guardaProduccion.js'
 
 const APLICAR = process.argv.includes('--aplicar')
+
+if (APLICAR) {
+  guardaProduccion({ script: 'migrar-fechas-ausencias.js', operacion: 'reanclar fechas de Ausencia a medianoche del Terminal' })
+}
 
 // Milisegundos desde la medianoche UTC. 0 = forma vieja (por migrar);
 // 5h = forma nueva (ya correcta).
