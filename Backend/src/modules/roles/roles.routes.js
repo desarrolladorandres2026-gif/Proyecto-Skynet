@@ -13,7 +13,7 @@ const router = safeRouter()
 
 router.use(verificarToken)
 
-router.get('/', requierePermiso('roles:gestionar'), listarRoles)
+router.get('/', requierePermiso('roles:gestionar', 'usuarios:gestionar'), listarRoles)
 router.get('/:id', requierePermiso('roles:gestionar'), obtenerRol)
 router.post('/', requierePermiso('roles:gestionar'), crearRol)
 router.put('/:id', requierePermiso('roles:gestionar', 'roles:asignar_permisos'), actualizarRol)

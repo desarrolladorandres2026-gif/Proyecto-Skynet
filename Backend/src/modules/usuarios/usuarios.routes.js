@@ -6,12 +6,13 @@ import {
   convertirUsuarioReal,
   eliminarUsuario,
 } from './usuarios.controller.js'
-import { verificarToken, soloAdmin } from '../../middleware/auth.js'
+import { verificarToken } from '../../middleware/auth.js'
+import { requierePermiso } from '../../middleware/permisos.js'
 import { safeRouter } from '../../middleware/safeRouter.js'
 
 const router = safeRouter()
 
-router.use(verificarToken, soloAdmin)
+router.use(verificarToken, requierePermiso('usuarios:gestionar'))
 
 router.get('/buscar', buscarUsuarios)
 router.get('/', listarUsuarios)
