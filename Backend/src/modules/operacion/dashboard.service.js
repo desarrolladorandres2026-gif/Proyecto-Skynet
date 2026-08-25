@@ -64,7 +64,6 @@ function haceVentanaAnalitica() {
 export async function calcularResumen(usuario, { soloTarjetas = false } = {}) {
   const puede = (...codigos) =>
     usuario.esSuperAdmin || codigos.some((c) => usuario.permisos.has(c))
-  const esAdmin = usuario.esSuperAdmin || usuario.rol?.slug === 'administrador'
 
   const puedeMostrarTarjeta = async (clave) => {
     const moduloRequerido = TARJETA_A_MODULO[clave]
@@ -100,7 +99,7 @@ export async function calcularResumen(usuario, { soloTarjetas = false } = {}) {
     })
   })
 
-  if (esAdmin || puede('usuarios:gestionar')) {
+  if (puede('usuarios:gestionar')) {
     tareas.push(async () => {
       tarjetas.usuarios = await Usuario.countDocuments({ estado: 'activo', esPrueba: false })
     })
@@ -177,85 +176,119 @@ export async function calcularResumen(usuario, { soloTarjetas = false } = {}) {
   }
 
   const reqActivo = await puedeMostrarTarjeta('requerimientosPendientes')
-  if ((esAdmin || puede('requerimientos:ver_todos')) && reqActivo) {
+  const puedeVerTodosReq = puede('requerimientos:ver_todos')
+  const puedeFinancieroReq = puede('requerimientos:aprobar_financiero')
+  const puedeBodegaReq = puede('requerimientos:gestionar_bodega')
+
+  if (reqActivo && (puedeVerTodosReq || puedeFinancieroReq || puedeBodegaReq)) {
     tareas.push(async () => {
-      const [pendientes, flujo, reqUrgentes] = await Promise.all([
-        Requerimiento.countDocuments({
+      // 1. Tarjetas de contadores
+      if (puedeVerTodosReq) {
+        tarjetas.requerimientosPendientes = await Requerimiento.countDocuments({
           estado: { $in: ['pendiente_financiero', 'pendiente_bodega'] },
-        }),
-        soloTarjetas
-          ? []
-          : Requerimiento.aggregate([
-              { $match: { createdAt: { $gte: haceVentanaAnalitica() } } },
-              { $group: { _id: '$estado', total: { $sum: 1 } } }
-            ]),
-        soloTarjetas
-          ? []
-          : Requerimiento.find({ estado: { $in: ['pendiente_financiero', 'pendiente_bodega'] } })
-              .sort({ createdAt: 1 })
-              .limit(3)
-              .select('_id codigo estado tipo fechaSolicitud items createdAt')
-              .lean()
-      ])
-
-      tarjetas.requerimientosPendientes = pendientes
-
-      flujo.forEach((f) => {
-        if (f._id === 'pendiente_financiero') analitica.flujoRequerimientos.financiero = f.total
-        if (f._id === 'pendiente_bodega') analitica.flujoRequerimientos.bodega = f.total
-        if (f._id === 'despachado' || f._id === 'completado' || f._id === 'aprobado') analitica.flujoRequerimientos.despachado += f.total
-        if (f._id?.startsWith('rechazado')) analitica.flujoRequerimientos.rechazado += f.total
-      })
-
-      reqUrgentes.forEach((r) => {
-        const desc = r.items?.[0]?.descripcionProducto || (r.tipo === 'servicio' ? 'Requerimiento de servicio' : 'Solicitud de compra')
-        colaPrioritaria.push({
-          id: r._id.toString(),
-          modulo: 'Requerimientos',
-          titulo: `Req: ${desc}`,
-          subtitulo: r.estado === 'pendiente_financiero' ? 'En espera de Financiero' : 'Listo para Bodega',
-          prioridad: r.estado === 'pendiente_financiero' ? 'alta' : 'media',
-          estado: r.estado,
-          fecha: r.createdAt || r.fechaSolicitud,
-          to: r.estado === 'pendiente_bodega' ? '/requerimientos/bodega' : '/requerimientos/todos'
         })
-      })
-
-      if (analitica.flujoRequerimientos.financiero > 0) {
-        recomendaciones.push({
-          id: 'req-financiero',
-          tipo: 'advertencia',
-          titulo: `${analitica.flujoRequerimientos.financiero} solicitudes en espera financiera`,
-          descripcion: 'Hay requerimientos de compra o servicio aguardando visto bueno administrativo para poder continuar.',
-          impacto: 'Medio',
-          accion: 'Revisar Solicitudes',
-          to: '/requerimientos/todos'
+      } else if (puedeFinancieroReq) {
+        tarjetas.requerimientosPendientes = await Requerimiento.countDocuments({
+          estado: 'pendiente_financiero',
         })
       }
-    })
-  }
 
-  if (puede('requerimientos:gestionar_bodega') && reqActivo) {
-    tareas.push(async () => {
-      const porDespachar = await Requerimiento.countDocuments({ estado: 'pendiente_bodega' })
-      tarjetas.requerimientosPorDespachar = porDespachar
-
-      if (porDespachar > 0 && !recomendaciones.some((r) => r.id === 'req-bodega')) {
-        recomendaciones.push({
-          id: 'req-bodega',
-          tipo: 'advertencia',
-          titulo: `${porDespachar} requerimientos listos para despacho en Bodega`,
-          descripcion: 'Artículos y materiales autorizados pendientes de entrega a las dependencias solicitantes.',
-          impacto: 'Alto',
-          accion: 'Despachar Ahora',
-          to: '/requerimientos/bodega'
+      if (puedeBodegaReq) {
+        tarjetas.requerimientosPorDespachar = await Requerimiento.countDocuments({
+          estado: 'pendiente_bodega',
         })
+      }
+
+      // 2. Analítica, cola prioritaria y recomendaciones (solo en modo completo)
+      if (!soloTarjetas) {
+        const estadosCola = []
+        if (puedeVerTodosReq) {
+          estadosCola.push('pendiente_financiero', 'pendiente_bodega')
+        } else {
+          if (puedeFinancieroReq) estadosCola.push('pendiente_financiero')
+          if (puedeBodegaReq) estadosCola.push('pendiente_bodega')
+        }
+
+        const [flujo, reqUrgentes] = await Promise.all([
+          puedeVerTodosReq
+            ? Requerimiento.aggregate([
+                { $match: { createdAt: { $gte: haceVentanaAnalitica() } } },
+                { $group: { _id: '$estado', total: { $sum: 1 } } }
+              ])
+            : [],
+          estadosCola.length > 0
+            ? Requerimiento.find({ estado: { $in: estadosCola } })
+                .sort({ createdAt: 1 })
+                .limit(3)
+                .select('_id codigo estado tipo fechaSolicitud items createdAt')
+                .lean()
+            : []
+        ])
+
+        flujo.forEach((f) => {
+          if (f._id === 'pendiente_financiero') analitica.flujoRequerimientos.financiero = f.total
+          if (f._id === 'pendiente_bodega') analitica.flujoRequerimientos.bodega = f.total
+          if (f._id === 'despachado' || f._id === 'completado' || f._id === 'aprobado') analitica.flujoRequerimientos.despachado += f.total
+          if (f._id?.startsWith('rechazado')) analitica.flujoRequerimientos.rechazado += f.total
+        })
+
+        reqUrgentes.forEach((r) => {
+          const desc = r.items?.[0]?.descripcionProducto || (r.tipo === 'servicio' ? 'Requerimiento de servicio' : 'Solicitud de compra')
+          
+          let destino = `/requerimientos/${r._id}`
+          if (r.estado === 'pendiente_bodega') {
+            destino = puedeBodegaReq ? '/requerimientos/bodega' : (puedeVerTodosReq ? '/requerimientos/todos' : `/requerimientos/${r._id}`)
+          } else if (r.estado === 'pendiente_financiero') {
+            destino = puedeFinancieroReq ? '/requerimientos/financiero' : (puedeVerTodosReq ? '/requerimientos/todos' : `/requerimientos/${r._id}`)
+          }
+
+          colaPrioritaria.push({
+            id: r._id.toString(),
+            modulo: 'Requerimientos',
+            titulo: `Req: ${desc}`,
+            subtitulo: r.estado === 'pendiente_financiero' ? 'En espera de Financiero' : 'Listo para Bodega',
+            prioridad: r.estado === 'pendiente_financiero' ? 'alta' : 'media',
+            estado: r.estado,
+            fecha: r.createdAt || r.fechaSolicitud,
+            to: destino
+          })
+        })
+
+        if ((puedeFinancieroReq || puedeVerTodosReq) && (analitica.flujoRequerimientos.financiero > 0 || (tarjetas.requerimientosPendientes || 0) > 0)) {
+          const cantFinanciero = analitica.flujoRequerimientos.financiero || tarjetas.requerimientosPendientes || 0
+          if (cantFinanciero > 0) {
+            recomendaciones.push({
+              id: 'req-financiero',
+              tipo: 'advertencia',
+              titulo: `${cantFinanciero} ${cantFinanciero === 1 ? 'solicitud en espera financiera' : 'solicitudes en espera financiera'}`,
+              descripcion: 'Hay requerimientos de compra o servicio aguardando visto bueno administrativo para poder continuar.',
+              impacto: 'Medio',
+              accion: 'Revisar Solicitudes',
+              to: puedeFinancieroReq ? '/requerimientos/financiero' : '/requerimientos/todos'
+            })
+          }
+        }
+
+        if (puedeBodegaReq && (tarjetas.requerimientosPorDespachar || 0) > 0) {
+          const porDespachar = tarjetas.requerimientosPorDespachar
+          if (!recomendaciones.some((r) => r.id === 'req-bodega')) {
+            recomendaciones.push({
+              id: 'req-bodega',
+              tipo: 'advertencia',
+              titulo: `${porDespachar} ${porDespachar === 1 ? 'requerimiento listo para despacho en Bodega' : 'requerimientos listos para despacho en Bodega'}`,
+              descripcion: 'Artículos y materiales autorizados pendientes de entrega a las dependencias solicitantes.',
+              impacto: 'Alto',
+              accion: 'Despachar Ahora',
+              to: '/requerimientos/bodega'
+            })
+          }
+        }
       }
     })
   }
 
   const ausenciasActivo = await puedeMostrarTarjeta('ausenciasPendientes')
-  if ((esAdmin || puede('ausencias:aprobar', 'ausencias:ver_todas')) && ausenciasActivo) {
+  if (puede('ausencias:aprobar', 'ausencias:ver_todas') && ausenciasActivo) {
     tareas.push(async () => {
       const ausencias = await Ausencia.countDocuments({ estado: 'pendiente' })
       tarjetas.ausenciasPendientes = ausencias
@@ -276,7 +309,7 @@ export async function calcularResumen(usuario, { soloTarjetas = false } = {}) {
 
   const mantActivo = await puedeMostrarTarjeta('mantenimientoAbiertas')
   if (
-    (esAdmin || puede('mantenimiento:ver_todas', 'mantenimiento:asignar', 'mantenimiento:aprobar_cerrar')) &&
+    puede('mantenimiento:ver_todas', 'mantenimiento:asignar', 'mantenimiento:aprobar_cerrar') &&
     mantActivo
   ) {
     tareas.push(async () => {
@@ -305,13 +338,13 @@ export async function calcularResumen(usuario, { soloTarjetas = false } = {}) {
     })
   }
 
-  if (esAdmin || puede('roles:gestionar')) {
+  if (puede('roles:gestionar')) {
     tareas.push(async () => {
       tarjetas.rolesActivos = await Rol.countDocuments({ estado: 'activo' })
     })
   }
 
-  if (esAdmin || puede('auditoria:leer')) {
+  if (puede('auditoria:leer')) {
     tareas.push(async () => {
       tarjetas.auditoriaHoy = await RegistroAuditoria.countDocuments({ creadoEn: { $gte: hoy() } })
     })
@@ -442,9 +475,10 @@ export async function calcularResumen(usuario, { soloTarjetas = false } = {}) {
   // (los mismos permisos que habilitan los bloques de recomendaciones de arriba);
   // de lo contrario un usuario común sin ningún permiso de gestión terminaba
   // viendo igual la sección porque `recomendaciones` le quedaba vacía.
-  const puedeVerAnalisis = esAdmin || puede(
+  const puedeVerAnalisis = puede(
     'danos:gestionar',
     'requerimientos:ver_todos',
+    'requerimientos:aprobar_financiero',
     'requerimientos:gestionar_bodega',
     'ausencias:aprobar',
     'ausencias:ver_todas',

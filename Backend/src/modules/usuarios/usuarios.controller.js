@@ -15,11 +15,11 @@ const POPULATE_ROL = { path: 'rol', select: 'nombre slug ambito esSuperAdmin' }
 // y que exista de verdad en el catálogo de Rol.
 async function validarRol(rolId) {
   if (!rolId || typeof rolId !== 'string' || !mongoose.Types.ObjectId.isValid(rolId)) {
-    return 'El rol es obligatorio y debe ser un identificador válido'
+    return { error: 'El rol es obligatorio y debe ser un identificador válido', rolDoc: null }
   }
-  const existe = await Rol.exists({ _id: rolId })
-  if (!existe) return 'El rol indicado no existe'
-  return null
+  const rolDoc = await Rol.findById(rolId).select('esSuperAdmin nombre')
+  if (!rolDoc) return { error: 'El rol indicado no existe', rolDoc: null }
+  return { error: null, rolDoc }
 }
 
 // El listado y la búsqueda de la pantalla de Usuarios son también la fuente
@@ -77,8 +77,13 @@ export async function crearUsuario(req, res) {
     return res.status(400).json({ error: errorPassword })
   }
 
-  const errorRol = await validarRol(rol)
+  const { error: errorRol, rolDoc } = await validarRol(rol)
   if (errorRol) return res.status(400).json({ error: errorRol })
+
+  // Solo un Super Admin puede crear un usuario con rol de nivel Super Admin
+  if (rolDoc.esSuperAdmin && !req.usuario?.esSuperAdmin) {
+    return res.status(403).json({ error: 'Solo un Super Admin puede asignar el rol de Super Admin a un usuario' })
+  }
 
   const existenteNombre = await Usuario.findOne({ nombre_usuario: nombre_usuario.trim() })
   if (existenteNombre) {
@@ -142,8 +147,14 @@ export async function actualizarUsuario(req, res) {
   const { id } = req.params
   const { nombre_usuario, password, nombre, rol, dependencia, cargo, modulos, email, estado } = req.body
 
-  const usuario = await Usuario.findById(id)
+  const usuario = await Usuario.findById(id).populate({ path: 'rol', select: 'esSuperAdmin nombre' })
   if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+  // Solo un Super Admin puede modificar datos o rol de un usuario con rol Super Admin
+  if (usuario.rol?.esSuperAdmin && !req.usuario?.esSuperAdmin) {
+    return res.status(403).json({ error: 'Solo un Super Admin puede modificar a un usuario con rol Super Admin' })
+  }
+
   // password no viaja aquí (select:false en el schema): el snapshot "antes"
   // de auditoría nunca puede filtrar el hash por accidente.
   const antesDeAuditoria = usuario.toObject()
@@ -167,9 +178,22 @@ export async function actualizarUsuario(req, res) {
 
   if (nombre_usuario !== undefined) usuario.nombre_usuario = nombre_usuario.trim()
   if (nombre !== undefined) usuario.nombre = nombre
-  if (rol !== undefined && rol !== usuario.rol.toString()) {
-    const errorRol = await validarRol(rol)
+  if (rol !== undefined && rol !== usuario.rol?._id?.toString() && rol !== usuario.rol?.toString()) {
+    const { error: errorRol, rolDoc } = await validarRol(rol)
     if (errorRol) return res.status(400).json({ error: errorRol })
+
+    // Solo un Super Admin puede otorgar el nivel Super Admin a un usuario
+    if (rolDoc.esSuperAdmin && !req.usuario?.esSuperAdmin) {
+      return res.status(403).json({ error: 'Solo un Super Admin puede asignar el rol de Super Admin a un usuario' })
+    }
+
+    // Si el usuario era Super Admin activo y se le cambia a un rol sin Super Admin
+    if (usuario.rol?.esSuperAdmin && !rolDoc.esSuperAdmin && usuario.estado === 'activo') {
+      if (!(await quedaOtroSuperAdminActivo(usuario._id))) {
+        return res.status(409).json({ error: 'No puedes degradar al último Super Admin activo del sistema' })
+      }
+    }
+
     usuario.rol = rol
     invalidarSesiones = true
   }
@@ -180,6 +204,11 @@ export async function actualizarUsuario(req, res) {
     invalidarSesiones = true
   }
   if (estado !== undefined && estado !== usuario.estado) {
+    if (estado === 'inactivo' && usuario.rol?.esSuperAdmin && usuario.estado === 'activo') {
+      if (!(await quedaOtroSuperAdminActivo(usuario._id))) {
+        return res.status(409).json({ error: 'No puedes desactivar al último Super Admin activo del sistema' })
+      }
+    }
     usuario.estado = estado
     invalidarSesiones = true
   }
@@ -247,10 +276,14 @@ export async function quedaOtroSuperAdminActivo(idExcluido) {
 export async function convertirUsuarioReal(req, res) {
   const { id } = req.params
 
-  const usuario = await Usuario.findById(id)
+  const usuario = await Usuario.findById(id).populate({ path: 'rol', select: 'esSuperAdmin' })
   if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' })
   if (!usuario.esPrueba) {
     return res.status(409).json({ error: 'Este usuario ya es un usuario real' })
+  }
+
+  if (usuario.rol?.esSuperAdmin && !req.usuario?.esSuperAdmin) {
+    return res.status(403).json({ error: 'Solo un Super Admin puede convertir o modificar a un usuario con rol Super Admin' })
   }
 
   usuario.esPrueba = false
@@ -310,6 +343,11 @@ export async function eliminarUsuario(req, res) {
 
   const usuario = await Usuario.findById(id).populate({ path: 'rol', select: 'esSuperAdmin' })
   if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+  // Solo un Super Admin puede eliminar a otro usuario con rol Super Admin
+  if (usuario.rol?.esSuperAdmin && !req.usuario?.esSuperAdmin) {
+    return res.status(403).json({ error: 'Solo un Super Admin puede eliminar a un usuario con rol Super Admin' })
+  }
 
   // Sin esto, la ÚLTIMA cuenta con esSuperAdmin se puede borrar igual que
   // cualquier otra: nadie queda con permisos para gestionar roles ni crear

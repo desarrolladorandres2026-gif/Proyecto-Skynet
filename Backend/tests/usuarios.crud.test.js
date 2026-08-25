@@ -7,9 +7,7 @@ import jwt from 'jsonwebtoken'
 import { env } from '../src/config/env.js'
 import Usuario from '../src/models/Usuario.js'
 import Rol from '../src/models/Rol.js'
-// Registra el modelo en Mongoose (efecto secundario del import): verificarToken
-// hace populate de rol.permisos y sin esto falla con MissingSchemaError.
-import '../src/models/Permiso.js'
+import Permiso from '../src/models/Permiso.js'
 import usuariosRoutes from '../src/modules/usuarios/usuarios.routes.js'
 import { quedaOtroSuperAdminActivo } from '../src/modules/usuarios/usuarios.controller.js'
 import { notFoundHandler, errorHandler } from '../src/middleware/errorHandler.js'
@@ -39,14 +37,19 @@ function token(usuario) {
   )
 }
 
-async function crearRol({ esSuperAdmin = false, ambito = 'global' } = {}) {
+async function crearPermiso(codigo) {
+  const [modulo, accion] = codigo.split(':')
+  return Permiso.create({ codigo, modulo, accion, nombre: codigo })
+}
+
+async function crearRol({ esSuperAdmin = false, ambito = 'global', permisos = [] } = {}) {
   const sufijo = Math.random().toString(36).slice(2)
   return Rol.create({
     nombre: `Rol-${sufijo}`,
     slug: `rol-${sufijo}`,
     esSuperAdmin,
     ambito,
-    permisos: [],
+    permisos,
   })
 }
 
@@ -60,6 +63,13 @@ async function crearUsuario(rol, extra = {}) {
     rol: rol._id,
     ...extra,
   })
+}
+
+async function crearGestor() {
+  const permisoGestionar = await crearPermiso('usuarios:gestionar')
+  const rol = await crearRol({ esSuperAdmin: false, permisos: [permisoGestionar._id] })
+  const usuario = await crearUsuario(rol, { nombre_usuario: `gestor-${Date.now()}-${Math.random().toString(36).slice(2)}`, email: `gestor-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com` })
+  return { usuario, auth: `Bearer ${token(usuario)}` }
 }
 
 let rolAdmin
@@ -80,10 +90,16 @@ describe('Usuarios — control de acceso', () => {
     expect(res.status).toBe(401)
   })
 
-  it('rechaza a un usuario que no es superadmin', async () => {
+  it('rechaza a un usuario que no tiene permiso ni es superadmin', async () => {
     const comun = await crearUsuario(rolBasico)
     const res = await request(app).get('/api/usuarios').set('Authorization', `Bearer ${token(comun)}`)
     expect(res.status).toBe(403)
+  })
+
+  it('permite acceso al listado a un usuario con permiso usuarios:gestionar', async () => {
+    const { auth } = await crearGestor()
+    const res = await request(app).get('/api/usuarios').set('Authorization', auth)
+    expect(res.status).toBe(200)
   })
 
   it('rechaza a un usuario inactivo aunque su token sea válido', async () => {
@@ -228,6 +244,90 @@ describe('Usuarios — crear', () => {
     expect(perdedora.body.error).toBe('El nombre de usuario ya existe')
 
     expect(await Usuario.countDocuments({ nombre_usuario: payload.nombre_usuario })).toBe(1)
+  })
+
+  it('un usuario con usuarios:gestionar pero sin esSuperAdmin NO puede crear un usuario con rol Super Admin', async () => {
+    const { auth: authGestor } = await crearGestor()
+    const res = await request(app)
+      .post('/api/usuarios')
+      .set('Authorization', authGestor)
+      .send({ ...nuevo(), rol: rolAdmin._id.toString() })
+
+    expect(res.status).toBe(403)
+    expect(res.body.error).toMatch(/Solo un Super Admin puede asignar el rol de Super Admin/)
+  })
+
+  it('un usuario con usuarios:gestionar pero sin esSuperAdmin SÍ puede crear un usuario con rol normal', async () => {
+    const { auth: authGestor } = await crearGestor()
+    const res = await request(app)
+      .post('/api/usuarios')
+      .set('Authorization', authGestor)
+      .send(nuevo())
+
+    expect(res.status).toBe(201)
+  })
+
+  it('un Super Admin SÍ puede crear un usuario con rol Super Admin', async () => {
+    const res = await request(app)
+      .post('/api/usuarios')
+      .set('Authorization', authAdmin)
+      .send({ ...nuevo(), nombre_usuario: 'otro.superadmin', email: 'otro.superadmin@example.com', rol: rolAdmin._id.toString() })
+
+    expect(res.status).toBe(201)
+  })
+})
+
+describe('Usuarios — protección de rol Super Admin', () => {
+  it('un usuario con usuarios:gestionar NO puede ascender a otro usuario a Super Admin', async () => {
+    const { auth: authGestor } = await crearGestor()
+    const comun = await crearUsuario(rolBasico)
+
+    const res = await request(app)
+      .put(`/api/usuarios/${comun._id}`)
+      .set('Authorization', authGestor)
+      .send({ rol: rolAdmin._id.toString() })
+
+    expect(res.status).toBe(403)
+    expect(res.body.error).toMatch(/Solo un Super Admin puede asignar el rol de Super Admin/)
+  })
+
+  it('un usuario con usuarios:gestionar NO puede editar a un usuario con rol Super Admin', async () => {
+    const { auth: authGestor } = await crearGestor()
+    const otroSuperAdmin = await crearUsuario(rolAdmin)
+
+    const res = await request(app)
+      .put(`/api/usuarios/${otroSuperAdmin._id}`)
+      .set('Authorization', authGestor)
+      .send({ nombre: 'Nombre Modificado' })
+
+    expect(res.status).toBe(403)
+    expect(res.body.error).toMatch(/Solo un Super Admin puede modificar a un usuario con rol Super Admin/)
+  })
+
+  it('un usuario con usuarios:gestionar NO puede eliminar a un usuario con rol Super Admin', async () => {
+    const { auth: authGestor } = await crearGestor()
+    const otroSuperAdmin = await crearUsuario(rolAdmin, { estado: 'inactivo' })
+
+    const res = await request(app)
+      .delete(`/api/usuarios/${otroSuperAdmin._id}`)
+      .set('Authorization', authGestor)
+      .send({ password: PASSWORD_OK })
+
+    expect(res.status).toBe(403)
+    expect(res.body.error).toMatch(/Solo un Super Admin puede eliminar a un usuario con rol Super Admin/)
+  })
+
+  it('un Super Admin SÍ puede ascender a otro usuario a rol Super Admin', async () => {
+    const comun = await crearUsuario(rolBasico)
+
+    const res = await request(app)
+      .put(`/api/usuarios/${comun._id}`)
+      .set('Authorization', authAdmin)
+      .send({ rol: rolAdmin._id.toString() })
+
+    expect(res.status).toBe(200)
+    const enBd = await Usuario.findById(comun._id).populate('rol')
+    expect(enBd.rol.esSuperAdmin).toBe(true)
   })
 })
 

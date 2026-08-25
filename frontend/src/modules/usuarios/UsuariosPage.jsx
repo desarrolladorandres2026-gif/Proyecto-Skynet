@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Plus, Users, FlaskConical, Eye, EyeOff, Undo2 } from 'lucide-react'
+import { useAuth } from '../../auth/AuthContext.jsx'
 import { usuarios as usuariosApi } from '../../api/usuarios.js'
 import { roles as rolesApi } from '../../api/roles.js'
 import { catalogosApi } from '../../api/catalogos.js'
@@ -25,6 +26,9 @@ const FORM_VACIO = {
 }
 
 export default function UsuariosPage() {
+  const { usuario: usuarioActual } = useAuth()
+  const esSuperAdmin = Boolean(usuarioActual?.esSuperAdmin)
+
   // 'reales' = 👥 Usuarios (personal del Terminal), 'prueba' = 🧪 Usuarios de
   // prueba. Son vistas completamente separadas en el backend (cada una pide
   // ?esPrueba=…): un usuario de prueba nunca aparece mezclado en la vista real.
@@ -50,6 +54,13 @@ export default function UsuariosPage() {
   const lista = resumen?.lista || []
   const conteos = resumen?.conteos || { reales: 0, prueba: 0 }
   const rolesDisponibles = resumen?.rolesDisponibles || []
+
+  // Solo un Super Admin puede asignar o elegir roles que otorgan nivel Super Admin
+  const rolesParaFormulario = useMemo(() => {
+    if (esSuperAdmin) return rolesDisponibles
+    return rolesDisponibles.filter((r) => !r.esSuperAdmin)
+  }, [rolesDisponibles, esSuperAdmin])
+
   // catalogosApi.agregar (ver CatalogoSelect) devuelve la lista completa ya
   // actualizada — se guarda como override para que un catálogo creado "al
   // vuelo" en el modal se vea de inmediato, sin esperar a que venza el caché
@@ -78,7 +89,7 @@ export default function UsuariosPage() {
 
   function abrirCrear() {
     setEditandoId(null)
-    setForm({ ...FORM_VACIO, rol: rolesDisponibles[0]?._id || '' })
+    setForm({ ...FORM_VACIO, rol: rolesParaFormulario[0]?._id || '' })
     setMostrarPassword(false)
     setErrorForm('')
     setModalAbierto(true)
@@ -220,23 +231,45 @@ export default function UsuariosPage() {
         id: 'acciones',
         header: '',
         enableSorting: false,
-        cell: ({ row }) => (
-          <div className="flex justify-end gap-1.5">
-            {esPrueba && (
-              <Btn variante="fantasma" onClick={() => setPorConvertir(row.original)}>
-                <Undo2 className="h-3.5 w-3.5" aria-hidden="true" />
-                Convertir en real
+        cell: ({ row }) => {
+          const esFilaSuperAdmin = Boolean(row.original.rol?.esSuperAdmin)
+          const bloqueadoPorNoSuperAdmin = !esSuperAdmin && esFilaSuperAdmin
+          return (
+            <div className="flex justify-end gap-1.5">
+              {esPrueba && (
+                <Btn
+                  variante="fantasma"
+                  disabled={bloqueadoPorNoSuperAdmin}
+                  title={bloqueadoPorNoSuperAdmin ? 'Solo un Super Admin puede convertir a este usuario' : undefined}
+                  onClick={() => setPorConvertir(row.original)}
+                >
+                  <Undo2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  Convertir en real
+                </Btn>
+              )}
+              <Btn
+                variante="fantasma"
+                disabled={bloqueadoPorNoSuperAdmin}
+                title={bloqueadoPorNoSuperAdmin ? 'Solo un Super Admin puede editar a este usuario' : undefined}
+                onClick={() => abrirEditar(row.original)}
+              >
+                Editar
               </Btn>
-            )}
-            <Btn variante="fantasma" onClick={() => abrirEditar(row.original)}>Editar</Btn>
-            <Btn variante="fantasma" className="!text-red-600 dark:!text-red-400" onClick={() => setPorEliminar(row.original)}>
-              Eliminar
-            </Btn>
-          </div>
-        ),
+              <Btn
+                variante="fantasma"
+                disabled={bloqueadoPorNoSuperAdmin}
+                title={bloqueadoPorNoSuperAdmin ? 'Solo un Super Admin puede eliminar a este usuario' : undefined}
+                className="!text-red-600 dark:!text-red-400"
+                onClick={() => setPorEliminar(row.original)}
+              >
+                Eliminar
+              </Btn>
+            </div>
+          )
+        },
       },
     ],
-    [esPrueba]
+    [esPrueba, esSuperAdmin]
   )
 
   return (
@@ -382,8 +415,10 @@ export default function UsuariosPage() {
             <Field label="Rol">
               <Select required value={form.rol} onChange={(e) => setForm({ ...form, rol: e.target.value })}>
                 <option value="" disabled>Selecciona un rol…</option>
-                {rolesDisponibles.map((r) => (
-                  <option key={r._id} value={r._id}>{r.nombre}</option>
+                {rolesParaFormulario.map((r) => (
+                  <option key={r._id} value={r._id}>
+                    {r.nombre} {r.esSuperAdmin ? '(Super Admin)' : ''}
+                  </option>
                 ))}
               </Select>
             </Field>
