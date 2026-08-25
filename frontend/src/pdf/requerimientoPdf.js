@@ -144,13 +144,7 @@ function encabezadoSolicitante(pdf, req, yInicial) {
   pdf.text(req.cargoSolicitante || '—', MARGIN + 30, y)
   y += 6
 
-  if (req.areaOProceso) {
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('ÁREA / PROCESO:', MARGIN, y)
-    pdf.setFont('helvetica', 'normal')
-    pdf.text(req.areaOProceso, MARGIN + 30, y)
-    y += 6
-  }
+
 
   return y + 4
 }
@@ -258,8 +252,7 @@ function dibujarAnalisisTecnico(pdf, req, yInicial) {
 }
 
 // Replica exacta del formato institucional FO-GBS-36 (Requerimiento de
-// Servicios). Maneja campos 1–6 y el pie de página completo; no necesita
-// encabezadoSolicitante ni dibujarBloquesFirma.
+// Servicios). Compactado para caber en una sola página tamaño carta.
 async function dibujarCuerpoServicio(pdf, req, yInicial) {
   let y = yInicial
   const aw = ANCHO_UTIL
@@ -268,29 +261,21 @@ async function dibujarCuerpoServicio(pdf, req, yInicial) {
   pdf.setDrawColor(15, 23, 42)
   pdf.setLineWidth(0.3)
 
-  // Helper: nueva página si no hay espacio suficiente
-  function guardar(mm) {
-    if (y + mm > ALTO_PAGINA - MARGIN - 18) {
-      pdf.addPage()
-      y = MARGIN
-    }
-  }
-
-  // ── CAMPOS 1–3: líneas numeradas ─────────────────────────────────────────
-  // Cada campo dibuja el label en bold y el valor en normal en la misma línea.
+  // ── CAMPOS 1–2: líneas numeradas ─────────────────────────────────────────
   function campoLinea(num, label, valor) {
-    guardar(9)
-    pdf.setFontSize(9)
+    pdf.setFontSize(8.5)
     pdf.setFont('helvetica', 'bold')
-    const prefijo = `${num}.  ${label}: `
+    const prefijo = `${num}.  ${label}:`
     pdf.text(prefijo, MARGIN, y)
+    const wPrefijo = pdf.getTextWidth(prefijo) + 3 // medir en bold ANTES de cambiar fuente
     pdf.setFont('helvetica', 'normal')
-    const wPrefijo = pdf.getTextWidth(prefijo)
     const espacioValor = aw - wPrefijo
     const lineasValor = pdf.splitTextToSize(valor || '—', espacioValor)
     pdf.text(lineasValor, MARGIN + wPrefijo, y)
-    y += Math.max(9, lineasValor.length * 5 + 4)
+    y += Math.max(7, lineasValor.length * 4 + 3)
   }
+
+
 
   campoLinea('1', 'Fecha de Solicitud', fmtFechaPdf(req.fechaSolicitud || req.createdAt))
   campoLinea(
@@ -298,51 +283,47 @@ async function dibujarCuerpoServicio(pdf, req, yInicial) {
     'Nombre y cargo de quien realiza la solicitud',
     [req.solicitante?.nombre, req.cargoSolicitante].filter(Boolean).join('  /  ') || '—',
   )
-  campoLinea('3', 'Área o proceso que requiere el servicio', req.areaOProceso)
-  y += 2
 
-  // ── CAMPO 4: Descripción con caja bordeada ────────────────────────────────
-  guardar(32)
-  pdf.setFontSize(9)
+  y += 1
+
+  // ── CAMPO 3: Descripción con caja bordeada ────────────────────────────────
+  pdf.setFontSize(8)
   pdf.setFont('helvetica', 'bold')
-  pdf.text('4.  Descripción del tipo de servicio requerido:', MARGIN, y)
-  y += 5
+  pdf.text('3.  Descripción del tipo de servicio requerido:', MARGIN, y)
+  y += 4
   pdf.setFont('helvetica', 'normal')
-  pdf.setFontSize(8.5)
+  pdf.setFontSize(7.5)
   const desc4 = req.detalleServicio?.descripcionTipoServicio
     ? pdf.splitTextToSize(req.detalleServicio.descripcionTipoServicio, aw - 4)
     : []
-  const altoCaja4 = Math.max(18, desc4.length * 4.8 + 6)
-  guardar(altoCaja4)
+  const altoCaja4 = Math.max(10, desc4.length * 3.8 + 4)
   pdf.rect(MARGIN, y, aw, altoCaja4)
-  if (desc4.length) pdf.text(desc4, MARGIN + 2, y + 5)
-  y += altoCaja4 + 6
+  if (desc4.length) pdf.text(desc4, MARGIN + 2, y + 4)
+  y += altoCaja4 + 4
 
-  // ── CAMPO 5: Actividades — caja con 3 sub-secciones ──────────────────────
-  guardar(16)
-  pdf.setFontSize(9)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('5.  Actividades a desarrollar por el contratista:', MARGIN, y)
-  y += 5
-  pdf.setFont('helvetica', 'italic')
+  // ── CAMPO 4: Actividades — caja con 3 sub-secciones ──────────────────────
   pdf.setFontSize(8)
+  pdf.setFont('helvetica', 'bold')
+  pdf.text('4.  Actividades a desarrollar por el contratista:', MARGIN, y)
+  y += 4
+  pdf.setFont('helvetica', 'italic')
+  pdf.setFontSize(7)
   const instruc = pdf.splitTextToSize(
     '(Especifique: competencia, labores a desarrollar, y requisitos en materia de SST-A, que deba cumplir el contratista para aplicar al proceso de selección.)',
     aw,
   )
   pdf.text(instruc, MARGIN, y)
-  y += instruc.length * 4.5 + 3
+  y += instruc.length * 3.5 + 2
 
-  // Calcula los altos de cada sub-sección antes de dibujar la caja grande,
-  // para poder medir el total y hacer un solo rect (sin costuras visibles).
+  // Calcula los altos de cada sub-sección antes de dibujar la caja grande.
   function medirSubSeccion(labelTexto, contenido) {
     pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(8.5)
+    pdf.setFontSize(7.5)
     const lineasLabel = pdf.splitTextToSize(labelTexto, aw - 4)
-    const altoLabel = lineasLabel.length * 4.8 + 4
+    const altoLabel = lineasLabel.length * 3.8 + 3
     pdf.setFont('helvetica', 'normal')
     const lineasContenido = contenido ? pdf.splitTextToSize(contenido, aw - 4) : []
-    const altoContenido = Math.max(18, lineasContenido.length * 4.8 + 6)
+    const altoContenido = Math.max(8, lineasContenido.length * 3.8 + 4)
     return { lineasLabel, altoLabel, lineasContenido, altoContenido, total: altoLabel + altoContenido }
   }
 
@@ -354,20 +335,17 @@ async function dibujarCuerpoServicio(pdf, req, yInicial) {
   const sstA    = medirSubSeccion('Requisitos SST-A:', req.detalleServicio?.requisitosSST)
   const altoTotal5 = comp.total + labores.total + sstA.total
 
-  guardar(altoTotal5)
   pdf.setDrawColor(15, 23, 42)
   pdf.setLineWidth(0.3)
   pdf.rect(MARGIN, y, aw, altoTotal5) // caja exterior única
 
-  // Dibuja cada sub-sección: label en bold + contenido en normal, separados
-  // por líneas horizontales internas.
   function dibujarSubSeccion(datos) {
     pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(8.5)
-    pdf.text(datos.lineasLabel, MARGIN + 2, y + 4)
+    pdf.setFontSize(7.5)
+    pdf.text(datos.lineasLabel, MARGIN + 2, y + 3)
     if (datos.lineasContenido.length) {
       pdf.setFont('helvetica', 'normal')
-      pdf.text(datos.lineasContenido, MARGIN + 2, y + datos.altoLabel + 4)
+      pdf.text(datos.lineasContenido, MARGIN + 2, y + datos.altoLabel + 3)
     }
     y += datos.total
   }
@@ -378,25 +356,24 @@ async function dibujarCuerpoServicio(pdf, req, yInicial) {
   pdf.line(MARGIN, y, MARGIN + aw, y)
   dibujarSubSeccion(sstA)
 
+  y += 5
+
+  // ── CAMPO 5: Aprobación ───────────────────────────────────────────────────
+  pdf.setFontSize(8)
+  pdf.setFont('helvetica', 'bold')
+  pdf.text('5.  Aprobación de la solicitud:', MARGIN, y)
   y += 7
 
-  // ── CAMPO 6: Aprobación ───────────────────────────────────────────────────
-  guardar(40)
-  pdf.setFontSize(9)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('6.  Aprobación de la solicitud:', MARGIN, y)
-  y += 9
-
   // Checkboxes Aprobada / Rechazada
-  const chkSize = 4
+  const chkSize = 3.5
   const yChk = y - chkSize + 0.5
   pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(9)
+  pdf.setFontSize(8)
   pdf.text('Aprobada:', MARGIN, y)
   const wAprobada = pdf.getTextWidth('Aprobada:')
   pdf.rect(MARGIN + wAprobada + 2, yChk, chkSize, chkSize)
 
-  const xRechazada = MARGIN + wAprobada + chkSize + 18
+  const xRechazada = MARGIN + wAprobada + chkSize + 14
   pdf.text('Rechazada:', xRechazada, y)
   const wRechazada = pdf.getTextWidth('Rechazada:')
   pdf.rect(xRechazada + wRechazada + 2, yChk, chkSize, chkSize)
@@ -412,11 +389,11 @@ async function dibujarCuerpoServicio(pdf, req, yInicial) {
     pdf.setFillColor(0, 0, 0)
     pdf.rect(xRechazada + wRechazada + 2.5, yChk + 0.5, chkSize - 1, chkSize - 1, 'F')
   }
-  y += 10
+  y += 8
 
   // *Fecha de aprobación
   pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(9)
+  pdf.setFontSize(8)
   const labelFecha = '*Fecha de aprobación:'
   pdf.text(labelFecha, MARGIN, y)
   if (req.financiero?.fechaDecision) {
@@ -427,7 +404,7 @@ async function dibujarCuerpoServicio(pdf, req, yInicial) {
       y,
     )
   }
-  y += 8
+  y += 6
 
   // *Nombre y cargo de quien aprueba
   pdf.setFont('helvetica', 'bold')
@@ -437,16 +414,14 @@ async function dibujarCuerpoServicio(pdf, req, yInicial) {
     const wLabelN = pdf.getTextWidth(labelNombre + ' ')
     pdf.text(req.financiero.nombreAprobador, MARGIN + wLabelN, y)
   }
-  y += 6
+  y += 5
   if (req.financiero?.cargoAprobador) {
     pdf.setFont('helvetica', 'normal')
-    // El cargo se centra a la derecha, bajo el nombre (igual que en la imagen)
     pdf.text(req.financiero.cargoAprobador, MARGIN + aw, y, { align: 'right' })
-    y += 6
+    y += 5
   }
 
   // ── PIE DE PÁGINA ─────────────────────────────────────────────────────────
-  // Se añade en todas las páginas del documento una vez terminado el contenido.
   const totalPaginas = pdf.internal.getNumberOfPages()
   for (let p = 1; p <= totalPaginas; p++) {
     pdf.setPage(p)
@@ -456,6 +431,7 @@ async function dibujarCuerpoServicio(pdf, req, yInicial) {
     pdf.text(`PAG: ${p} DE ${totalPaginas}`, MARGIN + aw, FOOTER_Y, { align: 'right' })
   }
 }
+
 
 async function dibujarBloquesFirma(pdf, req, yInicial) {
   const anchoBloque = 75

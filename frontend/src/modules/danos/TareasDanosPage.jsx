@@ -404,15 +404,37 @@ function ModalDetalle({ reporte, onCerrar, onSolicitarRepuesto }) {
             {fmtFechaHora(reporte.reparacion.fecha)} ·{' '}
             {{ regional: 'Regional', centenario: 'Centenario', modulo_mixto: 'Módulo Mixto' }[reporte.reparacion.modulo] || reporte.reparacion.modulo}
           </p>
-          {reporte.reparacion.evidencias?.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {reporte.reparacion.evidencias.map((ev, i) => (
-                <a key={i} href={ev.url} target="_blank" rel="noreferrer">
-                  <img src={ev.url} alt="Evidencia de la reparación" className="h-16 w-16 rounded object-cover" />
-                </a>
-              ))}
+          {reporte.observacionAtencion && (
+            <div className="mt-2 rounded-md border border-emerald-500/15 bg-emerald-500/5 px-3 py-2">
+              <p className="panel-mono text-[10px] uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                Nota del técnico
+              </p>
+              <p className="mt-0.5 text-sm text-slate-700 dark:text-slate-200">{reporte.observacionAtencion}</p>
             </div>
           )}
+          {reporte.reparacion.evidencias?.length > 0 && (
+            <div className="mt-2">
+              <p className="panel-mono mb-1 text-[10px] uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                Evidencia fotográfica ({reporte.reparacion.evidencias.length})
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {reporte.reparacion.evidencias.map((ev, i) => (
+                  <a key={i} href={ev.url} target="_blank" rel="noreferrer" className="group relative">
+                    <img src={ev.url} alt={`Evidencia ${i + 1} de la reparación`} className="h-20 w-20 rounded-lg object-cover ring-1 ring-emerald-500/20 transition-transform group-hover:scale-105" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!reporte.reparacion?.fecha && reporte.observacionAtencion && (
+        <div className="mt-4 rounded-lg border border-cyan-600/20 bg-cyan-500/5 p-3 dark:border-cyan-400/15">
+          <p className="panel-mono text-[10px] uppercase tracking-wide text-cyan-700 dark:text-cyan-400">
+            Última observación de mantenimiento
+          </p>
+          <p className="mt-0.5 text-sm text-slate-700 dark:text-slate-200">{reporte.observacionAtencion}</p>
         </div>
       )}
 

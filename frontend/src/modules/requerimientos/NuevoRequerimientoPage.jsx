@@ -22,7 +22,7 @@ export default function NuevoRequerimientoPage() {
 
   const [tipo, setTipo] = useState('compra')
   const [cargo, setCargo] = useState(usuario?.cargo || '')
-  const [areaOProceso, setAreaOProceso] = useState(origenDano ? 'Mantenimiento' : '')
+
   // Misma clave que modules/catalogos/CatalogosPage.jsx: comparte caché con
   // la pantalla de administración de Dependencias y cargos.
   const { data: catalogosData } = useDatosConCache(
@@ -52,7 +52,7 @@ export default function NuevoRequerimientoPage() {
     setError('')
     setEnviando(true)
     try {
-      const payload = { tipo, cargo, areaOProceso }
+      const payload = { tipo, cargo }
       if (tipo === 'compra') payload.itemsCompra = items
       else payload.detalleServicio = detalleServicio
       if (origenDano) payload.origenDano = origenDano
@@ -108,7 +108,7 @@ export default function NuevoRequerimientoPage() {
             </Btn>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Solicitante">
               <Input disabled value={usuario?.nombre || ''} />
             </Field>
@@ -122,9 +122,6 @@ export default function NuevoRequerimientoPage() {
                 onChange={setCargo}
                 opciones={cargosDisponibles}
               />
-            </Field>
-            <Field label="Área o proceso">
-              <Input value={areaOProceso} onChange={(e) => setAreaOProceso(e.target.value)} />
             </Field>
           </div>
 
