@@ -104,9 +104,8 @@ export default function RequerimientoDetallePage() {
 
   useAutoRefresh(() => cargar(true), { intervalMs: 15000 })
 
-  // Solo le interesa a quien puede aprobar: se avisa ANTES de que intente
-  // aprobar y choque con el error 400 del backend (ver aprobarComoFinanciero,
-  // que ahora exige usuario.firma.url).
+  // Avisa antes de que el financiero intente aprobar y choque con el 400 del
+  // backend — aplica a compra Y servicio, ambos exigen firma registrada.
   useEffect(() => {
     if (!esFinanciero) return
     perfilApi
@@ -153,11 +152,7 @@ export default function RequerimientoDetallePage() {
       cambiosFinanciero({ password, observacion: notaAprobacion })
     )
     setReq(requerimiento)
-    setOk('Requerimiento aprobado y firmado')
-    // Las bandejas/listas cacheadas (Mis requerimientos, Bandeja Financiero,
-    // Bandeja Bodega, Todos) quedarían con el estado viejo hasta que
-    // vencieran solas — se invalidan para que la próxima vista las traiga
-    // frescas en vez de esperar el TTL.
+    setOk(req.tipo === 'servicio' ? 'Requerimiento de servicio aprobado' : 'Requerimiento aprobado y firmado')
     invalidarCachePorPrefijo('requerimientos:')
   }
 

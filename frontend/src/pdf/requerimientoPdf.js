@@ -46,6 +46,72 @@ function cargarImagen(src) {
   })
 }
 
+function oscurecerFirma(dataUrl, width, height) {
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  const img = new Image()
+  return new Promise((resolve) => {
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0)
+      const srcData = ctx.getImageData(0, 0, width, height)
+      const dstData = ctx.createImageData(width, height)
+      const src = srcData.data
+      const dst = dstData.data
+
+      // Paso 1: Detectar píxeles que pertenecen al trazo de tinta (no fondo blanco o transparente)
+      const esTinta = new Uint8Array(width * height)
+      for (let i = 0, p = 0; i < src.length; i += 4, p++) {
+        const r = src[i]
+        const g = src[i + 1]
+        const b = src[i + 2]
+        const a = src[i + 3]
+        if (a > 15 && (r < 210 || g < 210 || b < 210)) {
+          esTinta[p] = 1
+        }
+      }
+
+      // Paso 2: Dilatación morfológica (engrosamiento de trazo hacia los 8 vecinos para efecto negrilla/reteñido)
+      const radio = 1
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = y * width + x
+          let tieneTintaCerca = false
+
+          for (let dy = -radio; dy <= radio && !tieneTintaCerca; dy++) {
+            for (let dx = -radio; dx <= radio; dx++) {
+              const ny = y + dy
+              const nx = x + dx
+              if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
+                if (esTinta[ny * width + nx]) {
+                  tieneTintaCerca = true
+                  break
+                }
+              }
+            }
+          }
+
+          const outIdx = idx * 4
+          if (tieneTintaCerca) {
+            dst[outIdx] = 0       // R: negro puro
+            dst[outIdx + 1] = 0   // G: negro puro
+            dst[outIdx + 2] = 0   // B: negro puro
+            dst[outIdx + 3] = 255 // A: 100% opaco y reteñido (negrilla)
+          } else {
+            dst[outIdx + 3] = 0   // Transparente
+          }
+        }
+      }
+
+      ctx.putImageData(dstData, 0, 0)
+      resolve(canvas.toDataURL('image/png'))
+    }
+    img.onerror = () => resolve(dataUrl)
+    img.src = dataUrl
+  })
+}
+
 function fmtFechaPdf(valor) {
   if (!valor) return '—'
   const d = new Date(valor)
@@ -69,7 +135,6 @@ const FORMATOS = {
 }
 
 // Tamaño carta (letter): 215.9 × 279.4 mm. Margen 20 mm en todos los lados
-// para una presentación equilibrada al imprimir en impresora de oficina.
 const MARGIN = 20
 const ANCHO_PAGINA = 215.9
 const ALTO_PAGINA = 279.4
@@ -77,9 +142,9 @@ const ANCHO_UTIL = ANCHO_PAGINA - MARGIN * 2
 
 async function dibujarEncabezado(pdf, tipo) {
   const formato = FORMATOS[tipo]
-  const altoCaja = 24
-  const anchoLogo = 32
-  const anchoDatos = 42
+  const altoCaja = 25
+  const anchoLogo = 28
+  const anchoDatos = 39
   const anchoTitulo = ANCHO_UTIL - anchoLogo - anchoDatos
 
   pdf.setDrawColor(15, 23, 42)
@@ -91,11 +156,6 @@ async function dibujarEncabezado(pdf, tipo) {
 
   try {
     const { dataUrl, width, height } = await cargarImagen(LOGO_TERMINAL)
-    // Ajuste por contención (ancho Y alto, no solo ancho): el logo actual es
-    // cuadrado y llenaría exactamente los 24 mm de altoCaja si solo se
-    // escalara por ancho, pegándose a las líneas de arriba/abajo sin margen.
-    // min() con el presupuesto más ajustado de los dos ejes evita además que
-    // un logo futuro más alto que ancho se desborde de la caja.
     const anchoDisponible = anchoLogo - 8
     const altoDisponible = altoCaja - 4
     const escala = Math.min(anchoDisponible / width, altoDisponible / height)
@@ -103,130 +163,105 @@ async function dibujarEncabezado(pdf, tipo) {
     const logoH = height * escala
     pdf.addImage(dataUrl, 'PNG', MARGIN + (anchoLogo - logoW) / 2, MARGIN + (altoCaja - logoH) / 2, logoW, logoH)
   } catch (err) {
-    // Sin logo disponible: la caja queda vacía, no bloquea la generación del PDF.
     console.error('No se pudo cargar el logo en el PDF de requerimiento:', err)
   }
 
   const xTitulo = MARGIN + anchoLogo + anchoTitulo / 2
   pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(9)
-  pdf.text('GESTIÓN DE BIENES Y SERVICIOS', xTitulo, MARGIN + 10, { align: 'center', maxWidth: anchoTitulo - 4 })
-  pdf.setFontSize(9.5)
-  pdf.text(formato.titulo, xTitulo, MARGIN + 17, { align: 'center', maxWidth: anchoTitulo - 4 })
+  pdf.setFontSize(10.5)
+  pdf.text('GESTIÓN DE BIENES Y SERVICIOS', xTitulo, MARGIN + 9.5, { align: 'center', maxWidth: anchoTitulo - 4 })
+  pdf.setFontSize(12)
+  pdf.text(formato.titulo, xTitulo, MARGIN + 18, { align: 'center', maxWidth: anchoTitulo - 4 })
 
-  const xDatos = MARGIN + anchoLogo + anchoTitulo + 3
-  pdf.setFont('helvetica', 'normal')
-  pdf.setFontSize(7)
-  pdf.text('CÓDIGO:', xDatos, MARGIN + 5)
+  const xDatos = MARGIN + anchoLogo + anchoTitulo + anchoDatos / 2
   pdf.setFont('helvetica', 'bold')
-  pdf.text(formato.codigo, xDatos, MARGIN + 9)
+  pdf.setFontSize(8.5)
+  pdf.text('CÓDIGO:', xDatos, MARGIN + 5, { align: 'center' })
+  pdf.setFont('helvetica', 'bold')
+  pdf.text(formato.codigo, xDatos, MARGIN + 9.5, { align: 'center' })
+  pdf.text('VIGENCIA:', xDatos, MARGIN + 16.5, { align: 'center' })
   pdf.setFont('helvetica', 'normal')
-  pdf.text('VIGENCIA:', xDatos, MARGIN + 16)
-  pdf.text(formato.vigencia, xDatos, MARGIN + 20)
-  pdf.setFontSize(6.5)
-  pdf.text(`VERSIÓN: ${formato.version}`, xDatos, MARGIN + 23)
+  pdf.text(formato.vigencia, xDatos, MARGIN + 21, { align: 'center' })
 
-  return MARGIN + altoCaja + 8
+  return MARGIN + altoCaja + 10
 }
 
 function encabezadoSolicitante(pdf, req, yInicial) {
   let y = yInicial
   pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(9)
+  pdf.setFontSize(12)
   pdf.text('SOLICITANTE:', MARGIN, y)
   pdf.setFont('helvetica', 'normal')
-  pdf.text(req.solicitante?.nombre || '—', MARGIN + 30, y)
-  y += 6
+  pdf.text(req.solicitante?.nombre || '—', MARGIN + 36, y)
+  y += 8
 
   pdf.setFont('helvetica', 'bold')
   pdf.text('CARGO:', MARGIN, y)
   pdf.setFont('helvetica', 'normal')
-  pdf.text(req.cargoSolicitante || '—', MARGIN + 30, y)
-  y += 6
+  pdf.text(req.cargoSolicitante || '—', MARGIN + 36, y)
+  y += 8
 
-
-
-  return y + 4
+  return y + 3
 }
 
 const COLS_COMPRA = [
-  { label: 'FECHA', w: 20 },
-  { label: 'DESCRIPCIÓN DEL PRODUCTO', w: 66 },
-  { label: 'CANT.', w: 15 },
-  { label: 'DESTINO', w: 35 },
-  { label: 'CONTROL DE RECIBIDO', w: 46 },
+  { label: 'FECHA DE LA SOLICITUD', w: 22 },
+  { label: 'DESCRIPCIÓN DEL PRODUCTO', w: 62 },
+  { label: 'CANTIDAD', w: 22 },
+  { label: 'DESTINO', w: 36 },
+  { label: 'CONTROL DE RECIBIDO', w: 34 },
 ]
 
 function dibujarTablaCompra(pdf, req, yInicial) {
   let y = yInicial
-  const alturaFilaMinima = 9
-  const alturaEncabezado = 9
+  const alturaFila = 7.4
+  const alturaEncabezado = 14.5
 
   function dibujarEncabezadoTabla() {
     pdf.setDrawColor(15, 23, 42)
     pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(7)
+    pdf.setFontSize(8)
 
-    // Las celdas se rellenan TODAS antes de escribir cualquier texto. En PDF
-    // el color de relleno y el color de texto son el mismo registro y BT/ET no
-    // lo restauran: al dibujar texto, jsPDF emite `0 g` (negro) y ese negro
-    // queda vigente para el siguiente rect('FD'). Intercalando rect y text, de
-    // la segunda columna en adelante el encabezado salía como una franja negra
-    // con el rótulo negro encima, invisible.
     let x = MARGIN
-    pdf.setFillColor(226, 232, 240)
     for (const col of COLS_COMPRA) {
-      pdf.rect(x, y, col.w, alturaEncabezado, 'FD')
+      pdf.rect(x, y, col.w, alturaEncabezado)
       x += col.w
     }
 
     x = MARGIN
     for (const col of COLS_COMPRA) {
-      pdf.text(col.label, x + col.w / 2, y + 5, { align: 'center', maxWidth: col.w - 2 })
+      const lineas = pdf.splitTextToSize(col.label, col.w - 2)
+      const altoTexto = (lineas.length * pdf.getLineHeight()) / pdf.internal.scaleFactor
+      pdf.text(lineas, x + col.w / 2, y + (alturaEncabezado - altoTexto) / 2 + 2.3, { align: 'center' })
       x += col.w
     }
     y += alturaEncabezado
   }
 
-  function nuevaPaginaSiHaceFalta(altura) {
-    if (y + altura > ALTO_PAGINA - 40) {
-      pdf.addPage()
-      y = MARGIN
-      dibujarEncabezadoTabla()
-    }
-  }
-
   dibujarEncabezadoTabla()
   pdf.setFont('helvetica', 'normal')
-  pdf.setFontSize(7.5)
-  // getLineHeight() devuelve el alto en puntos (unidad de fuente), no en mm
-  // (unidad del documento) — hay que pasarlo por scaleFactor o la altura de
-  // fila calculada sale ~2.8x más grande de lo real.
-  const alturaLinea = pdf.getLineHeight() / pdf.internal.scaleFactor
+  pdf.setFontSize(8)
+  const items = req.itemsCompra || []
 
-  for (const item of req.itemsCompra || []) {
+  // Se agregan únicamente las filas de los productos reales por seguridad
+  for (let fila = 0; fila < items.length; fila += 1) {
+    const item = items[fila]
     const valores = [
-      fmtFechaPdf(item.fechaSolicitud),
-      item.descripcionProducto || '—',
-      String(item.cantidad ?? '—'),
-      item.destino || '—',
-      '', // CONTROL DE RECIBIDO: se deja en blanco para diligenciar a mano al recibir
+      item ? fmtFechaPdf(item.fechaSolicitud) : '',
+      item?.descripcionProducto || '',
+      item ? String(item.cantidad ?? '') : '',
+      item?.destino || '',
+      '',
     ]
-    // Alto dinámico: una descripción larga se envuelve en varias líneas
-    // (splitTextToSize). Con una altura de fila fija, ese texto se salía de
-    // su celda y se encimaba con la fila de abajo — fechas, destino y
-    // control de recibido quedaban tapados bajo el desborde, ilegibles.
-    const lineasPorColumna = valores.map((valor, i) => pdf.splitTextToSize(valor, COLS_COMPRA[i].w - 3))
-    const maxLineas = Math.max(...lineasPorColumna.map((lineas) => lineas.length))
-    const alturaFila = Math.max(alturaFilaMinima, maxLineas * alturaLinea + 3)
-
-    nuevaPaginaSiHaceFalta(alturaFila)
 
     let x = MARGIN
     for (let i = 0; i < COLS_COMPRA.length; i++) {
       const col = COLS_COMPRA[i]
       pdf.rect(x, y, col.w, alturaFila)
-      pdf.text(lineasPorColumna[i], x + 1.5, y + 5)
+      if (valores[i]) {
+        const linea = pdf.splitTextToSize(valores[i], col.w - 2)[0]
+        pdf.text(linea, x + 1.2, y + 4.8)
+      }
       x += col.w
     }
     y += alturaFila
@@ -237,22 +272,77 @@ function dibujarTablaCompra(pdf, req, yInicial) {
 
 function dibujarAnalisisTecnico(pdf, req, yInicial) {
   let y = yInicial
-  if (y > ALTO_PAGINA - 50) {
-    pdf.addPage()
-    y = MARGIN
-  }
+  const ALTO_CABECERA = 9
+
+  // Auto-ajuste dinámico: calcula el espacio vertical libre antes de la firma Vo.Bo
+  // para que el recuadro nunca invada ni se monte sobre la rúbrica del aprobador.
+  const espacioRestante = (ALTO_PAGINA - MARGIN - 34) - yInicial
+  const ALTO_CUERPO = Math.max(22, Math.min(38, espacioRestante - ALTO_CABECERA))
+
+  pdf.setDrawColor(15, 23, 42)
+  pdf.setLineWidth(0.4)
+
+  // Celda de cabecera
+  pdf.rect(MARGIN, y, ANCHO_UTIL, ALTO_CABECERA)
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(8)
-  pdf.text('ANÁLISIS TÉCNICO DEL REQUERIMIENTO', MARGIN, y)
-  y += 5
+  const labelAnalisis =
+    'ANALISIS TECNICO DEL REQUERIMIENTO (Este campo debe ser diligenciado por el Ingeniero de ' +
+    'Sistemas cuando se requieren de servicios y productos tecnológicos)'
+  const lineasLabel = pdf.splitTextToSize(labelAnalisis, ANCHO_UTIL - 4)
+  pdf.text(lineasLabel, MARGIN + 2, y + 4.8)
+  y += ALTO_CABECERA
+
+  // Celda de cuerpo
+  pdf.rect(MARGIN, y, ANCHO_UTIL, ALTO_CUERPO)
   pdf.setFont('helvetica', 'normal')
-  const texto = pdf.splitTextToSize(req.financiero?.analisisTecnico || 'N/A', ANCHO_UTIL)
-  pdf.text(texto, MARGIN, y)
-  return y + texto.length * 4.5 + 6
+  pdf.setFontSize(10)
+  const valorAnalisis = req.financiero?.analisisTecnico || 'N/A'
+  const lineasValor = pdf.splitTextToSize(valorAnalisis, ANCHO_UTIL - 4)
+  pdf.text(lineasValor, MARGIN + 2.5, y + 5.5)
+  y += ALTO_CUERPO
+
+  return y + 6
 }
 
-// Replica exacta del formato institucional FO-GBS-36 (Requerimiento de
-// Servicios). Compactado para caber en una sola página tamaño carta.
+async function dibujarVoboCompra(pdf, req, yInicial) {
+  // Posición de la línea de firma con espacio seguro debajo del recuadro de análisis
+  const yLinea = Math.min(yInicial + 22, ALTO_PAGINA - MARGIN - 14)
+  pdf.setDrawColor(15, 23, 42)
+  pdf.setLineWidth(0.4)
+  pdf.line(MARGIN, yLinea, MARGIN + 80, yLinea)
+
+  const firmaUrl = req.financiero?.firma?.url || (typeof req.financiero?.firma === 'string' ? req.financiero?.firma : null)
+  if (firmaUrl && req.estado !== 'rechazado') {
+    try {
+      const { dataUrl, width, height } = await cargarImagen(firmaUrl)
+      const ALTO_MAX = 32
+      const ANCHO_MAX = 95
+      const escala = Math.min(ANCHO_MAX / width, ALTO_MAX / height)
+      const anchoFirma = width * escala
+      const altoFirma = height * escala
+      const dataUrlOscura = await oscurecerFirma(dataUrl, width, height)
+      pdf.addImage(
+        dataUrlOscura,
+        'PNG',
+        MARGIN + (80 - anchoFirma) / 2,
+        yLinea - altoFirma - 1,
+        anchoFirma,
+        altoFirma,
+      )
+    } catch (err) {
+      console.error('No se pudo cargar la firma en el PDF de compra:', err)
+    }
+  }
+
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(11)
+  pdf.text('Vo.Bo: ', MARGIN, yLinea + 4.5)
+  pdf.setFont('helvetica', 'normal')
+  pdf.text('Director Administrativo', MARGIN + pdf.getTextWidth('Vo.Bo: '), yLinea + 4.5)
+}
+
+// Replica exacta del formato institucional FO-GBS-36 (Requerimiento de Servicios) en 1 sola página.
 async function dibujarCuerpoServicio(pdf, req, yInicial) {
   let y = yInicial
   const aw = ANCHO_UTIL
@@ -261,21 +351,34 @@ async function dibujarCuerpoServicio(pdf, req, yInicial) {
   pdf.setDrawColor(15, 23, 42)
   pdf.setLineWidth(0.3)
 
-  // ── CAMPOS 1–2: líneas numeradas ─────────────────────────────────────────
+  // ── CAMPOS 1–3: líneas numeradas con Arial 12 ────────────────────────────
   function campoLinea(num, label, valor) {
-    pdf.setFontSize(8.5)
+    const alturaLinea = pdf.getLineHeight() / pdf.internal.scaleFactor
+    pdf.setFontSize(11.5)
     pdf.setFont('helvetica', 'bold')
     const prefijo = `${num}.  ${label}:`
-    pdf.text(prefijo, MARGIN, y)
-    const wPrefijo = pdf.getTextWidth(prefijo) + 3 // medir en bold ANTES de cambiar fuente
-    pdf.setFont('helvetica', 'normal')
+    const wPrefijo = pdf.getTextWidth(prefijo) + 2.5
     const espacioValor = aw - wPrefijo
-    const lineasValor = pdf.splitTextToSize(valor || '—', espacioValor)
-    pdf.text(lineasValor, MARGIN + wPrefijo, y)
-    y += Math.max(7, lineasValor.length * 4 + 3)
+
+    // Si el espacio restante para el valor es demasiado estrecho (<60 mm)
+    // se imprime el valor en la siguiente línea con sangría para evitar
+    // que el texto quede apretado o se amontone con el siguiente campo.
+    if (espacioValor < 60) {
+      pdf.text(prefijo, MARGIN, y)
+      y += alturaLinea
+      pdf.setFont('helvetica', 'normal')
+      const sangria = 6
+      const lineasValor = pdf.splitTextToSize(valor || '—', aw - sangria)
+      pdf.text(lineasValor, MARGIN + sangria, y)
+      y += Math.max(alturaLinea, lineasValor.length * alturaLinea) + 2.5
+    } else {
+      pdf.text(prefijo, MARGIN, y)
+      pdf.setFont('helvetica', 'normal')
+      const lineasValor = pdf.splitTextToSize(valor || '—', espacioValor)
+      pdf.text(lineasValor, MARGIN + wPrefijo, y)
+      y += Math.max(alturaLinea + 2, lineasValor.length * alturaLinea + 2.5)
+    }
   }
-
-
 
   campoLinea('1', 'Fecha de Solicitud', fmtFechaPdf(req.fechaSolicitud || req.createdAt))
   campoLinea(
@@ -283,68 +386,75 @@ async function dibujarCuerpoServicio(pdf, req, yInicial) {
     'Nombre y cargo de quien realiza la solicitud',
     [req.solicitante?.nombre, req.cargoSolicitante].filter(Boolean).join('  /  ') || '—',
   )
+  campoLinea('3', 'Área o proceso que requiere el servicio', req.areaOProceso || '—')
 
-  y += 1
-
-  // ── CAMPO 3: Descripción con caja bordeada ────────────────────────────────
-  pdf.setFontSize(8)
+  // ── CAMPO 4: Descripción con caja bordeada amplia ─────────────────────────
+  pdf.setFontSize(11.5)
   pdf.setFont('helvetica', 'bold')
-  pdf.text('3.  Descripción del tipo de servicio requerido:', MARGIN, y)
+  pdf.text('4.  Descripción del tipo de servicio requerido:', MARGIN, y)
   y += 4
   pdf.setFont('helvetica', 'normal')
-  pdf.setFontSize(7.5)
+  pdf.setFontSize(10)
   const desc4 = req.detalleServicio?.descripcionTipoServicio
     ? pdf.splitTextToSize(req.detalleServicio.descripcionTipoServicio, aw - 4)
     : []
-  const altoCaja4 = Math.max(10, desc4.length * 3.8 + 4)
+  const altoCaja4 = Math.max(22, desc4.length * 4.2 + 4)
   pdf.rect(MARGIN, y, aw, altoCaja4)
-  if (desc4.length) pdf.text(desc4, MARGIN + 2, y + 4)
-  y += altoCaja4 + 4
+  if (desc4.length) pdf.text(desc4, MARGIN + 2.5, y + 4.5)
+  y += altoCaja4 + 4.5
 
-  // ── CAMPO 4: Actividades — caja con 3 sub-secciones ──────────────────────
-  pdf.setFontSize(8)
+  // ── CAMPO 5: Actividades — caja amplia con 3 sub-secciones ────────────────
+  pdf.setFontSize(11.5)
   pdf.setFont('helvetica', 'bold')
-  pdf.text('4.  Actividades a desarrollar por el contratista:', MARGIN, y)
-  y += 4
+  pdf.text('5.  Actividades a desarrollar por el contratista:', MARGIN, y)
+  y += 3.8
   pdf.setFont('helvetica', 'italic')
-  pdf.setFontSize(7)
+  pdf.setFontSize(8)
   const instruc = pdf.splitTextToSize(
     '(Especifique: competencia, labores a desarrollar, y requisitos en materia de SST-A, que deba cumplir el contratista para aplicar al proceso de selección.)',
     aw,
   )
   pdf.text(instruc, MARGIN, y)
-  y += instruc.length * 3.5 + 2
+  y += instruc.length * 3.2 + 2
 
-  // Calcula los altos de cada sub-sección antes de dibujar la caja grande.
-  function medirSubSeccion(labelTexto, contenido) {
+  function medirSubSeccion(labelTexto, contenido, altoMinimo) {
     pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(7.5)
+    pdf.setFontSize(8.5)
     const lineasLabel = pdf.splitTextToSize(labelTexto, aw - 4)
-    const altoLabel = lineasLabel.length * 3.8 + 3
+    const altoLabel = lineasLabel.length * 3.6 + 2.5
     pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(9)
     const lineasContenido = contenido ? pdf.splitTextToSize(contenido, aw - 4) : []
-    const altoContenido = Math.max(8, lineasContenido.length * 3.8 + 4)
-    return { lineasLabel, altoLabel, lineasContenido, altoContenido, total: altoLabel + altoContenido }
+    const altoContenido = Math.max(6, lineasContenido.length * 3.6 + 2)
+    return {
+      lineasLabel,
+      altoLabel,
+      lineasContenido,
+      altoContenido,
+      total: Math.max(altoMinimo, altoLabel + altoContenido),
+    }
   }
 
-  const comp    = medirSubSeccion(
+  const comp = medirSubSeccion(
     'Competencia (Describa si aplica en términos de educación, formación y experiencia requerida):',
     req.detalleServicio?.competencia,
+    18,
   )
-  const labores = medirSubSeccion('Labores a desarrollar:', req.detalleServicio?.laboresADesarrollar)
-  const sstA    = medirSubSeccion('Requisitos SST-A:', req.detalleServicio?.requisitosSST)
+  const labores = medirSubSeccion('Labores a desarrollar:', req.detalleServicio?.laboresADesarrollar, 38)
+  const sstA = medirSubSeccion('Requisitos SST-A:', req.detalleServicio?.requisitosSST, 20)
   const altoTotal5 = comp.total + labores.total + sstA.total
 
   pdf.setDrawColor(15, 23, 42)
   pdf.setLineWidth(0.3)
-  pdf.rect(MARGIN, y, aw, altoTotal5) // caja exterior única
+  pdf.rect(MARGIN, y, aw, altoTotal5)
 
   function dibujarSubSeccion(datos) {
     pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(7.5)
-    pdf.text(datos.lineasLabel, MARGIN + 2, y + 3)
+    pdf.setFontSize(8.5)
+    pdf.text(datos.lineasLabel, MARGIN + 2, y + 3.2)
     if (datos.lineasContenido.length) {
       pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(9)
       pdf.text(datos.lineasContenido, MARGIN + 2, y + datos.altoLabel + 3)
     }
     y += datos.total
@@ -358,183 +468,96 @@ async function dibujarCuerpoServicio(pdf, req, yInicial) {
 
   y += 5
 
-  // ── CAMPO 5: Aprobación ───────────────────────────────────────────────────
-  pdf.setFontSize(8)
+  // ── CAMPO 6: Aprobación ───────────────────────────────────────────────────
+  pdf.setFontSize(11.5)
   pdf.setFont('helvetica', 'bold')
-  pdf.text('5.  Aprobación de la solicitud:', MARGIN, y)
-  y += 7
+  pdf.text('6.  Aprobación de la solicitud:', MARGIN, y)
+  y += 6.5
 
   // Checkboxes Aprobada / Rechazada
-  const chkSize = 3.5
+  const chkSize = 4
   const yChk = y - chkSize + 0.5
   pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(8)
+  pdf.setFontSize(10.5)
   pdf.text('Aprobada:', MARGIN, y)
   const wAprobada = pdf.getTextWidth('Aprobada:')
-  pdf.rect(MARGIN + wAprobada + 2, yChk, chkSize, chkSize)
+  pdf.rect(MARGIN + wAprobada + 2.5, yChk, chkSize, chkSize)
 
-  const xRechazada = MARGIN + wAprobada + chkSize + 14
+  const xRechazada = MARGIN + wAprobada + chkSize + 16
   pdf.text('Rechazada:', xRechazada, y)
   const wRechazada = pdf.getTextWidth('Rechazada:')
-  pdf.rect(xRechazada + wRechazada + 2, yChk, chkSize, chkSize)
+  pdf.rect(xRechazada + wRechazada + 2.5, yChk, chkSize, chkSize)
 
-  // Rellena el checkbox según el estado del requerimiento
-  const aprobado = ['aprobado', 'pendiente_bodega', 'completado'].includes(req.estado)
+  const aprobado = req.estado === 'pendiente_bodega' || req.estado === 'aprobado' || req.estado === 'completado' || Boolean(req.financiero?.fechaDecision && req.estado !== 'rechazado')
   const rechazado = req.estado === 'rechazado'
   if (aprobado) {
     pdf.setFillColor(0, 0, 0)
-    pdf.rect(MARGIN + wAprobada + 2.5, yChk + 0.5, chkSize - 1, chkSize - 1, 'F')
+    pdf.rect(MARGIN + wAprobada + 3, yChk + 0.5, chkSize - 1, chkSize - 1, 'F')
   }
   if (rechazado) {
     pdf.setFillColor(0, 0, 0)
-    pdf.rect(xRechazada + wRechazada + 2.5, yChk + 0.5, chkSize - 1, chkSize - 1, 'F')
+    pdf.rect(xRechazada + wRechazada + 3, yChk + 0.5, chkSize - 1, chkSize - 1, 'F')
   }
-  y += 8
+  y += 7.5
 
   // *Fecha de aprobación
   pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(8)
+  pdf.setFontSize(10.5)
   const labelFecha = '*Fecha de aprobación:'
   pdf.text(labelFecha, MARGIN, y)
   if (req.financiero?.fechaDecision) {
     pdf.setFont('helvetica', 'normal')
     pdf.text(
       fmtFechaPdf(req.financiero.fechaDecision),
-      MARGIN + pdf.getTextWidth(labelFecha) + 2,
+      MARGIN + pdf.getTextWidth(labelFecha) + 2.5,
       y,
     )
   }
-  y += 6
+  y += 7
 
-  // *Nombre y cargo de quien aprueba
-  pdf.setFont('helvetica', 'bold')
+  // *Nombre y cargo de quien aprueba la solicitud
   const labelNombre = '*Nombre y cargo de quien aprueba la solicitud:'
-  pdf.text(labelNombre, MARGIN, y)
-  if (req.financiero?.nombreAprobador) {
-    const wLabelN = pdf.getTextWidth(labelNombre + ' ')
-    pdf.text(req.financiero.nombreAprobador, MARGIN + wLabelN, y)
-  }
-  y += 5
-  if (req.financiero?.cargoAprobador) {
-    pdf.setFont('helvetica', 'normal')
-    pdf.text(req.financiero.cargoAprobador, MARGIN + aw, y, { align: 'right' })
-    y += 5
-  }
+  const yNombre = y
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(10.5)
+  pdf.text(labelNombre, MARGIN, yNombre)
 
-  // ── PIE DE PÁGINA ─────────────────────────────────────────────────────────
-  const totalPaginas = pdf.internal.getNumberOfPages()
-  for (let p = 1; p <= totalPaginas; p++) {
-    pdf.setPage(p)
-    pdf.setFont('helvetica', 'normal')
-    pdf.setFontSize(7)
-    pdf.text('VERSIÓN: 1', MARGIN, FOOTER_Y)
-    pdf.text(`PAG: ${p} DE ${totalPaginas}`, MARGIN + aw, FOOTER_Y, { align: 'right' })
-  }
-}
+  const nombreAprobador = req.financiero?.nombreAprobador || 'KARENTH JULIETH FALLA NINCO'
+  const cargoAprobador = req.financiero?.cargoAprobador || 'Dir. Administrativo y Gestión'
 
-
-async function dibujarBloquesFirma(pdf, req, yInicial) {
-  const anchoBloque = 75
-  const xFinanciero = MARGIN
-
-  // Tope de la caja de firma: ancho generoso y alto de 30 mm para que
-  // firmas grandes no queden recortadas. El escalado "contain" garantiza
-  // que nunca se desborde en ningún eje.
-  const ALTO_MAX_FIRMA = 30
-  const ANCHO_MAX_FIRMA = anchoBloque - 6
-
-  // Procesa la imagen en un canvas: fuerza cada píxel a negro puro
-  // (R=G=B=0) y duplica su alpha. Las firmas digitales suelen guardarse
-  // con trazos grises o semitransparentes que al imprimir quedan casi
-  // invisibles; este paso los convierte en negro sólido sin alterar la
-  // forma del trazo.
-  function oscurecerFirma(dataUrl, w, h) {
-    const canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
-    const ctx = canvas.getContext('2d')
-    const img = new Image()
-    return new Promise((resolve) => {
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0)
-        const imageData = ctx.getImageData(0, 0, w, h)
-        const data = imageData.data
-        for (let i = 0; i < data.length; i += 4) {
-          data[i] = 0                                    // R → negro
-          data[i + 1] = 0                                // G → negro
-          data[i + 2] = 0                                // B → negro
-          data[i + 3] = Math.min(255, data[i + 3] * 2)  // Alpha x2
-        }
-        ctx.putImageData(imageData, 0, 0)
-        resolve(canvas.toDataURL('image/png'))
-      }
-      img.src = dataUrl
-    })
-  }
-
-  // PASO 1: cargar la imagen y calcular dimensiones reales ANTES de
-  // decidir la posición y en la página. Así el offset vertical usa el
-  // alto efectivo de la firma (no el máximo teórico) y no deja hueco vacío.
-  let datosFirma = null
-  if (req.estado !== 'rechazado' && req.financiero?.firma?.url) {
+  // Firma del aprobador sobre el nombre y cargo en el lado derecho (+50% más grande)
+  const firmaUrl = req.financiero?.firma?.url || (typeof req.financiero?.firma === 'string' ? req.financiero?.firma : null)
+  if (firmaUrl && req.estado !== 'rechazado') {
     try {
-      const { dataUrl, width, height } = await cargarImagen(req.financiero.firma.url)
-      const escala = Math.min(ALTO_MAX_FIRMA / height, ANCHO_MAX_FIRMA / width)
-      const anchoFirma = width * escala
-      const altoFirma = height * escala
+      const { dataUrl, width, height } = await cargarImagen(firmaUrl)
+      const ALTO_MAX = 32
+      const ANCHO_MAX = 95
+      const escala = Math.min(ANCHO_MAX / width, ALTO_MAX / height)
+      const anchoF = width * escala
+      const altoF = height * escala
       const dataUrlOscura = await oscurecerFirma(dataUrl, width, height)
-      datosFirma = { dataUrlOscura, anchoFirma, altoFirma }
+      const xFirma = MARGIN + aw - anchoF - 5
+      pdf.addImage(dataUrlOscura, 'PNG', xFirma, yNombre - altoF - 1.5, anchoF, altoF)
     } catch (err) {
-      // Sin firma disponible (red, CORS, asset borrado): el bloque de texto
-      // sigue mostrando quién aprobó y cuándo — no bloquea el PDF.
-      console.error('No se pudo cargar la firma en el PDF de requerimiento:', err)
+      console.error('No se pudo cargar la firma en el PDF de servicio:', err)
     }
   }
 
-  // PASO 2: calcular y con el alto REAL de la firma escalada + colchón.
-  const altoFirmaReal = datosFirma?.altoFirma ?? ALTO_MAX_FIRMA
-  let y = yInicial + altoFirmaReal + 4
-  if (y > ALTO_PAGINA - 40) {
-    pdf.addPage()
-    y = MARGIN
-  }
-
-  // PASO 3: dibujar la firma en la posición definitiva (una sola vez).
-  // La rúbrica flota sobre la línea, como en un documento impreso real.
-  if (datosFirma) {
-    pdf.addImage(
-      datosFirma.dataUrlOscura,
-      'PNG',
-      xFinanciero + 3,
-      y - datosFirma.altoFirma - 1,
-      datosFirma.anchoFirma,
-      datosFirma.altoFirma,
-    )
-  }
-
-  // Línea de firma para Financiero
-  pdf.setDrawColor(15, 23, 42)
-  pdf.setLineWidth(0.3)
-  pdf.line(xFinanciero, y, xFinanciero + anchoBloque, y)
-
   pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(8)
-  pdf.text('Financiero', xFinanciero, y + 5)
+  pdf.setFontSize(11)
+  pdf.text(nombreAprobador, MARGIN + aw, yNombre, { align: 'right' })
   pdf.setFont('helvetica', 'normal')
-  pdf.setFontSize(8)
+  pdf.setFontSize(10.5)
+  pdf.text(cargoAprobador, MARGIN + aw, yNombre + 5, { align: 'right' })
 
-  if (req.financiero?.fechaDecision) {
-    const estadoTexto = req.estado === 'rechazado' ? 'RECHAZADO' : 'APROBADO'
-    pdf.text(`${estadoTexto}: ${req.financiero.nombreAprobador || '—'}`, xFinanciero, y + 10)
-    if (req.financiero.cargoAprobador) pdf.text(req.financiero.cargoAprobador, xFinanciero, y + 14)
-    pdf.text(`Fecha: ${fmtFechaPdf(req.financiero.fechaDecision)}`, xFinanciero, y + 18)
-  } else {
-    pdf.text('Pendiente de aprobación', xFinanciero, y + 10)
-  }
+  // ── PIE DE PÁGINA ─────────────────────────────────────────────────────────
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(7.5)
+  pdf.text('VERSIÓN: 1', MARGIN, FOOTER_Y)
+  pdf.text('PAG: 1 DE 1', MARGIN + aw, FOOTER_Y, { align: 'right' })
 }
 
-// Quita tildes/ñ y cualquier caracter no válido en un nombre de archivo, para
-// que el nombre del solicitante quede legible en el PDF descargado.
+// Quita tildes/ñ y cualquier caracter no válido en un nombre de archivo
 function sanearParaArchivo(texto) {
   return (texto || '')
     .normalize('NFD')
@@ -547,40 +570,39 @@ export function nombreArchivoPdfRequerimiento(req) {
   const fecha = new Date(req.fechaSolicitud || req.createdAt)
   const fechaTexto = Number.isNaN(fecha.getTime()) ? 'sin_fecha' : fecha.toISOString().slice(0, 10)
   const nombreTexto = sanearParaArchivo(req.solicitante?.nombre) || 'sin_nombre'
-  // Sufijo con los últimos 6 caracteres del _id: fecha+nombre solos podrían
-  // repetirse (mismo solicitante, mismo día, dos requerimientos) y pisarse
-  // entre sí dentro del .zip de descarga masiva (backupPdfsRequerimientos.js).
   const sufijo = String(req._id || '').slice(-6)
   return `RQ_${fechaTexto}_${nombreTexto}_${sufijo}.pdf`
 }
 
-// Construye el documento sin guardarlo — separado de generarPdfRequerimiento
-// para que el backup masivo (BackupPage.jsx, descarga en lote de PDFs ya
-// aprobados+despachados) pueda meter el mismo PDF en un .zip en vez de
-// disparar N descargas individuales del navegador.
+function dibujarFooterCompra(pdf, formato) {
+  const totalPaginas = pdf.internal.getNumberOfPages()
+  for (let p = 1; p <= totalPaginas; p++) {
+    pdf.setPage(p)
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(7)
+    const footerY = ALTO_PAGINA - MARGIN + 5
+    pdf.text(`VERSIÓN: ${formato.version}`, MARGIN, footerY)
+    pdf.text(`PAG: ${p} DE ${totalPaginas}`, MARGIN + ANCHO_UTIL, footerY, { align: 'right' })
+  }
+}
+
 export async function construirPdfRequerimiento(req) {
   const pdf = new jsPDF({ unit: 'mm', format: 'letter' })
   let y = await dibujarEncabezado(pdf, req.tipo)
 
   if (req.tipo === 'compra') {
-    // Compra: encabezado de solicitante → tabla → análisis técnico → firma
     y = encabezadoSolicitante(pdf, req, y)
     y = dibujarTablaCompra(pdf, req, y)
     y = dibujarAnalisisTecnico(pdf, req, y)
-    await dibujarBloquesFirma(pdf, req, y)
+    await dibujarVoboCompra(pdf, req, y)
+    dibujarFooterCompra(pdf, FORMATOS.compra)
   } else {
-    // Servicio: formato FO-GBS-36 completo (campos 1–6 + pie de página).
-    // No usa encabezadoSolicitante ni dibujarBloquesFirma — todo está
-    // integrado en dibujarCuerpoServicio para respetar el orden y el
-    // diseño institucional de la imagen original.
     await dibujarCuerpoServicio(pdf, req, y)
   }
 
   return pdf
 }
 
-// Única función de descarga directa (no hay un generador por tipo): la
-// invocan tanto RequerimientoDetallePage como BandejaBodegaPage.
 export async function generarPdfRequerimiento(req) {
   const pdf = await construirPdfRequerimiento(req)
   pdf.save(nombreArchivoPdfRequerimiento(req))

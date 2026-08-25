@@ -217,10 +217,9 @@ export async function aprobarComoFinanciero(id, body, usuarioActor) {
 
   const aprobador = await Usuario.findById(usuarioActor.id_usuario).select('nombre cargo firma')
 
-  // Aprobar sin rúbrica registrada dejaría el bloque de firma del PDF vacío:
-  // el documento quedaría aprobado pero visualmente sin firmar, que es
-  // justamente lo que este flujo debe garantizar. Se corta antes de mutar
-  // nada, igual que la reautenticación.
+  // Ambos tipos (compra y servicio) exigen firma registrada: el PDF de compra
+  // la dibuja con dibujarVoboCompra y el PDF de servicio la muestra encima del
+  // bloque nombre/cargo (campo 6 del FO-GBS-36).
   if (!aprobador?.firma?.url) {
     throw new ErrorValidacion(
       'No tienes una firma registrada. Regístrala en Requerimientos → Mi firma antes de aprobar.'
@@ -232,8 +231,8 @@ export async function aprobarComoFinanciero(id, body, usuarioActor) {
   doc.financiero.aprobadoPor = usuarioActor.id_usuario
   doc.financiero.nombreAprobador = aprobador?.nombre || usuarioActor.nombre_usuario
   doc.financiero.cargoAprobador = aprobador?.cargo || ''
-  // Snapshot, no referencia: si mañana el aprobador cambia su firma, este
-  // documento conserva la rúbrica con la que realmente se firmó.
+  // Snapshot de la rúbrica: si el aprobador cambia su firma después, este
+  // documento conserva la que realmente firmó al aprobar.
   doc.financiero.firma = {
     url: aprobador.firma.url,
     urlOriginal: aprobador.firma.urlOriginal,

@@ -33,6 +33,7 @@ export default function NuevoRequerimientoPage() {
   const cargosDisponibles = catalogosData?.cargos || []
   const [items, setItems] = useState([filaVaciaCompra()])
   const [detalleServicio, setDetalleServicio] = useState(detalleServicioVacio())
+  const [areaOProceso, setAreaOProceso] = useState('')
   const [dano, setDano] = useState(null)
   const [error, setError] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -54,7 +55,10 @@ export default function NuevoRequerimientoPage() {
     try {
       const payload = { tipo, cargo }
       if (tipo === 'compra') payload.itemsCompra = items
-      else payload.detalleServicio = detalleServicio
+      else {
+        payload.detalleServicio = detalleServicio
+        payload.areaOProceso = areaOProceso
+      }
       if (origenDano) payload.origenDano = origenDano
 
       const { requerimiento } = await requerimientosApi.crear(payload)
@@ -128,7 +132,17 @@ export default function NuevoRequerimientoPage() {
           {tipo === 'compra' ? (
             <FormularioCompra items={items} onChange={setItems} />
           ) : (
-            <FormularioServicio detalle={detalleServicio} onChange={setDetalleServicio} />
+            <>
+              <Field label="Área o proceso que requiere el servicio">
+                <Input
+                  required
+                  placeholder="Ej: Mantenimiento, Sistemas, Logística…"
+                  value={areaOProceso}
+                  onChange={(e) => setAreaOProceso(e.target.value)}
+                />
+              </Field>
+              <FormularioServicio detalle={detalleServicio} onChange={setDetalleServicio} />
+            </>
           )}
 
           <div className="flex justify-end pt-2">
