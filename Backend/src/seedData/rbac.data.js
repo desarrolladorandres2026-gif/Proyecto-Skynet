@@ -323,4 +323,28 @@ export const ROLES = [
       'sig_pregunta_dia:configurar',
     ],
   },
+  {
+    nombre: 'Comunicador',
+    slug: 'comunicador',
+    descripcion: 'Gestiona la comunicación institucional del terminal: email, publicaciones, noticias, eventos y atención de PQRS. Trabaja desde el panel denso de escritorio, igual que Administrador.',
+    esSuperAdmin: false,
+    ambito: 'global',
+    // No es esSistema: puede renombrarse o eliminarse desde la pantalla de
+    // Roles, mismo criterio que Talento Humano y SIG/HSEQ.
+    esSistema: false,
+    permisos: [
+      // Email: acceso completo para gestión de comunicaciones institucionales.
+      'email:ver',
+      'email:leer',
+      'email:buscar',
+      'email:enviar',
+      'email:eliminar',
+      // Contenido y atención al ciudadano: gestión de publicaciones, noticias,
+      // eventos y PQRS — el núcleo del rol de comunicaciones del terminal.
+      'publicaciones:gestionar',
+      'noticias:gestionar',
+      'eventos:gestionar',
+      'pqrs:gestionar',
+    ],
+  },
 ]

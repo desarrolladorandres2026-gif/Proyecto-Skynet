@@ -1,6 +1,6 @@
 import {
   Home, Wrench, TriangleAlert, GraduationCap, CalendarDays,
-  FileText, ClipboardList, Brain,
+  FileText, ClipboardList, Brain, Mail,
 } from 'lucide-react'
 
 // Atajos curados a mano para la barra inferior de MobileShell (roles
@@ -60,6 +60,15 @@ export const MOBILE_NAV_POR_ROL = {
     { to: '/requerimientos/nuevo', label: 'Requerimientos', icon: FileText },
     { to: '/ausencias/mias', label: 'Vacaciones', icon: CalendarDays },
     { to: '/induccion', label: 'Inducción', icon: GraduationCap },
+  ],
+  // Comunicaciones: su tarea principal es el email institucional — va en el
+  // primer atajo. PQRS es la segunda función crítica del día a día. El
+  // cuestionario SIG es universal para todo trabajador y ocupa el tercer
+  // slot. El resto de módulos (Noticias, Eventos, Publicaciones) quedan
+  // a 2 taps vía "Más" sin saturar la barra inferior.
+  comunicador: [
+    { to: '/email', label: 'Email', icon: Mail },
+    { to: '/sig/pregunta-del-dia', label: 'Cuestionario', icon: Brain },
   ],
 }
 

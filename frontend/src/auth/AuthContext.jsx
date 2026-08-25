@@ -186,5 +186,5 @@ export function esRolAdmin(usuario) {
 // de preguntas, programar campañas con recurrencia y leer el dashboard de
 // desempeño es trabajo de escritorio, no el feed móvil tipo app social.
 export function usaPanelDenso(usuario) {
-  return esRolAdmin(usuario) || ['bodega', 'administrativo_financiero', 'sig_hseq'].includes(usuario?.rol?.slug)
+  return esRolAdmin(usuario) || ['bodega', 'administrativo_financiero', 'sig_hseq', 'comunicador'].includes(usuario?.rol?.slug)
 }
