@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Navigate, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from './AuthContext.jsx'
+import logoClaro from '../assets/claro.png'
 import './login.css'
 
 export default function LoginPage() {
@@ -146,7 +147,7 @@ export default function LoginPage() {
             </p>
 
             <h2 className="skynet-title skynet-granted-text my-2 text-xl sm:text-2xl text-white">
-              SKYNET ONLINE
+              TERMINAL DE NEIVA ONLINE
             </h2>
 
             <div className="my-4 rounded border border-cyan-500/30 bg-cyan-950/40 p-3 text-left">
@@ -185,10 +186,19 @@ export default function LoginPage() {
              ========================================================= */
           <>
             <div className="mb-6 text-center">
+              <div className="mx-auto mb-3 flex h-24 w-24 items-center justify-center rounded-full border-2 border-cyan-500/40 bg-white p-1.5 shadow-[0_0_25px_rgba(0,229,255,0.3)] backdrop-blur-sm overflow-hidden">
+                <img
+                  src={logoClaro}
+                  alt="Terminal de Transportes de Neiva"
+                  className="h-full w-full object-contain rounded-full"
+                />
+              </div>
               <p className="skynet-mono mb-2 text-[11px] tracking-[0.35em] text-cyan-400/70">
                 SISTEMA · ACCESO RESTRINGIDO
               </p>
-              <h1 className="skynet-title skynet-title-glitch text-3xl text-white">SKYNET</h1>
+              <h1 className="skynet-login-title text-xl sm:text-2xl text-white">
+                Terminal De Transportes De Neiva
+              </h1>
               <p className="skynet-mono mt-2 text-xs text-slate-400">
                 &gt; autenticación requerida_
               </p>
@@ -285,7 +295,7 @@ export default function LoginPage() {
                   {telemetriaPaso >= 3 && (
                     <div className="skynet-terminal-line skynet-mono text-emerald-400">
                       <span>&gt;</span>
-                      <span>[03] CONECTANDO A SKYNET...</span>
+                      <span>[03] CONECTANDO A TERMINAL DE NEIVA...</span>
                     </div>
                   )}
                 </div>

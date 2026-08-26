@@ -9,8 +9,14 @@ import Usuario from '../src/models/Usuario.js'
 import Rol from '../src/models/Rol.js'
 import PushSubscription from '../src/models/PushSubscription.js'
 import PreferenciaNotificacion from '../src/models/PreferenciaNotificacion.js'
+import ConfiguracionCanalesNotificacion from '../src/models/ConfiguracionCanalesNotificacion.js'
 import EnvioNotificacion from '../src/models/EnvioNotificacion.js'
-import { notificar, procesarPendientes } from '../src/modules/notificaciones/notificaciones.service.js'
+import {
+  notificar,
+  procesarPendientes,
+  obtenerConfiguracionCanales,
+  actualizarConfiguracionCanales,
+} from '../src/modules/notificaciones/notificaciones.service.js'
 import { notificarUsuarios } from '../src/utils/sendPush.js'
 
 async function crearUsuario() {
@@ -140,4 +146,72 @@ describe('notificaciones.service', () => {
     expect(envioActualizado.estado).toBe('fallido')
     expect(envioActualizado.intentos).toBe(5)
   })
+
+  describe('Configuracion global de canales (Elección de notificaciones)', () => {
+    it('si una categoría tiene email:false en la configuración global, solo envía push y no email', async () => {
+      const usuario = await crearUsuario()
+      await PushSubscription.create({ usuario: usuario._id, endpoint: 'https://push.test/canal1', p256dh: 'p', auth: 'a' })
+
+      await actualizarConfiguracionCanales({
+        canales: {
+          sig_pregunta_dia: { email: false, push: true, activo: true },
+        },
+      })
+
+      await notificar({
+        usuarios: [usuario._id],
+        categoria: 'sig_pregunta_dia',
+        tipo: 'pregunta-publicada',
+        titulo: 'Pregunta SIG',
+        cuerpo: 'Contenido',
+      })
+
+      const envios = await EnvioNotificacion.find({ usuario: usuario._id })
+      expect(envios).toHaveLength(1)
+      expect(envios[0].canal).toBe('push')
+    })
+
+    it('si emailGlobal está desactivado, ninguna categoría envía email', async () => {
+      const usuario = await crearUsuario()
+      await PushSubscription.create({ usuario: usuario._id, endpoint: 'https://push.test/canal2', p256dh: 'p', auth: 'a' })
+
+      await actualizarConfiguracionCanales({
+        emailGlobal: { activo: false },
+        canales: {
+          requerimientos: { email: true, push: true, activo: true },
+        },
+      })
+
+      await notificar({
+        usuarios: [usuario._id],
+        categoria: 'requerimientos',
+        tipo: 'aprobado',
+        titulo: 'Requerimiento',
+        cuerpo: 'Aprobado',
+      })
+
+      const envios = await EnvioNotificacion.find({ usuario: usuario._id })
+      expect(envios).toHaveLength(1)
+      expect(envios[0].canal).toBe('push')
+    })
+
+    it('permite consultar la configuración por defecto y actualizarla', async () => {
+      await ConfiguracionCanalesNotificacion.deleteMany({})
+
+      const configInicial = await obtenerConfiguracionCanales()
+      expect(configInicial.emailGlobal.activo).toBe(true)
+      expect(configInicial.pushGlobal.activo).toBe(true)
+      expect(configInicial.canales.mantenimiento).toEqual({ email: true, push: true, activo: true })
+
+      const configActualizada = await actualizarConfiguracionCanales({
+        canales: {
+          danos: { email: false, push: true, activo: true },
+        },
+      })
+
+      expect(configActualizada.canales.danos.email).toBe(false)
+      expect(configActualizada.canales.danos.push).toBe(true)
+    })
+  })
 })
+

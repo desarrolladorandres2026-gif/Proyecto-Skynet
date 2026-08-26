@@ -61,6 +61,7 @@ import LegalPage from './legal/LegalPage.jsx'
 import PreferenciasNotificacionesPage from './modules/notificaciones/PreferenciasNotificacionesPage.jsx'
 import CentroNotificacionesPage from './modules/notificaciones/CentroNotificacionesPage.jsx'
 import HistorialEnviosPage from './modules/notificaciones/HistorialEnviosPage.jsx'
+import EleccionNotificacionesPage from './modules/notificaciones/EleccionNotificacionesPage.jsx'
 import AsistentePage from './escritorio/AsistentePage.jsx'
 import DiagnosticoPage from './escritorio/DiagnosticoPage.jsx'
 
@@ -173,6 +174,14 @@ export default function App() {
               element={
                 <PermissionRoute permiso="notificaciones:ver_historial">
                   <HistorialEnviosPage />
+                </PermissionRoute>
+              }
+            />
+            <Route
+              path="notificaciones/canales"
+              element={
+                <PermissionRoute permiso={['notificaciones:ver_historial', 'notificaciones:configurar_canales']}>
+                  <EleccionNotificacionesPage />
                 </PermissionRoute>
               }
             />

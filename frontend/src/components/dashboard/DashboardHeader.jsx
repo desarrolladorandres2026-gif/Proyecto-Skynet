@@ -1,6 +1,7 @@
 import { ShieldCheck, RotateCcw, SlidersHorizontal, RefreshCw } from 'lucide-react'
 import { AccesoRapidoDenso } from './AccesoRapidoDenso.jsx'
 import { cn } from '../../lib/cn.js'
+import { AvatarUsuario } from '../AvatarUsuario.jsx'
 
 function saludo() {
   const hora = new Date().getHours()
@@ -32,6 +33,7 @@ export function DashboardHeader({
       <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Lado izquierdo: Saludo e identidad */}
         <div className="flex flex-wrap items-center gap-3">
+          <AvatarUsuario usuario={usuario} className="h-11 w-11 shadow-sm border-2 border-brand-500/30 shrink-0" />
           <div>
             <div className="flex items-center gap-2">
               <h1

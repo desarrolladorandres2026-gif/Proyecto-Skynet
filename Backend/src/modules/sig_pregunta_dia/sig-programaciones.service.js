@@ -214,14 +214,18 @@ async function avisarPublicaciones(docs) {
       }
 
       const componentes = [...grupo.componentes].join(', ')
-      await notificarUsuarios(destinatarios, {
-        title: '🧠 Nuevo Cuestionario Programado',
-        body:
-          grupo.total === 1
-            ? `Ya está disponible tu pregunta de capacitación de hoy. Componente: ${componentes}`
-            : `Ya tienes ${grupo.total} preguntas de capacitación para hoy. Componentes: ${componentes}`,
-        url: '/sig/pregunta-del-dia',
-      })
+      await notificarUsuarios(
+        destinatarios,
+        {
+          title: '🧠 Nuevo Cuestionario Programado',
+          body:
+            grupo.total === 1
+              ? `Ya está disponible tu pregunta de capacitación de hoy. Componente: ${componentes}`
+              : `Ya tienes ${grupo.total} preguntas de capacitación para hoy. Componentes: ${componentes}`,
+          url: '/sig/pregunta-del-dia',
+        },
+        'sig_pregunta_dia'
+      )
     } catch (err) {
       // Un grupo de audiencia fallando (p. ej. un blip resolviendo
       // destinatarios) no debe dejar sin aviso a los demás grupos de esta

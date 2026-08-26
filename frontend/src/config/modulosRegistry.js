@@ -190,8 +190,11 @@ export const MODULOS_REGISTRO = [
     key: 'notificaciones_historial',
     label: 'Notificaciones',
     icon: Bell,
-    permiso: 'notificaciones:ver_historial',
-    items: [{ to: '/notificaciones/historial', label: 'Historial de envíos' }],
+    permiso: ['notificaciones:ver_historial', 'notificaciones:configurar_canales'],
+    items: [
+      { to: '/notificaciones/historial', label: 'Historial de envíos', permiso: 'notificaciones:ver_historial' },
+      { to: '/notificaciones/canales', label: 'Elección de notificaciones', permiso: ['notificaciones:ver_historial', 'notificaciones:configurar_canales'] },
+    ],
   },
   {
     key: 'sistema',

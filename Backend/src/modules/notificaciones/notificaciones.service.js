@@ -1,12 +1,14 @@
 import Usuario from '../../models/Usuario.js'
 import PushSubscription from '../../models/PushSubscription.js'
 import PreferenciaNotificacion from '../../models/PreferenciaNotificacion.js'
+import ConfiguracionCanalesNotificacion from '../../models/ConfiguracionCanalesNotificacion.js'
 import EnvioNotificacion from '../../models/EnvioNotificacion.js'
 import Notificacion from '../../models/Notificacion.js'
 import webpush from '../../utils/webpush.js'
 import { enviarEmailGenerico } from '../../utils/email.js'
 import { plantillaNotificacion, plantillaNotificacionTexto, headersListaBaja } from './notificaciones.plantillas.js'
-import { esCategoriaValida } from './notificaciones.catalogo.js'
+import { CATEGORIAS_NOTIFICACION, esCategoriaValida } from './notificaciones.catalogo.js'
+import { ErrorValidacion } from '../../utils/errores.js'
 
 // Punto de entrada único del sistema de notificaciones. Encola filas en
 // EnvioNotificacion (canal por destinatario que corresponda según sus
@@ -37,11 +39,24 @@ export async function notificar({
     throw new Error(`Categoría de notificación desconocida: "${categoria}" (ver notificaciones.catalogo.js)`)
   }
 
-  const [usuariosDocs, preferencias, suscripciones] = await Promise.all([
+  const [usuariosDocs, preferencias, suscripciones, configCanales] = await Promise.all([
     Usuario.find({ _id: { $in: idsUnicos } }).select('email estado'),
     PreferenciaNotificacion.find({ usuario: { $in: idsUnicos } }),
     PushSubscription.find({ usuario: { $in: idsUnicos }, estado: 'activa' }),
+    transaccional ? null : ConfiguracionCanalesNotificacion.findOne({}),
   ])
+
+  // Gobernanza de canales del sistema: si el administrador configuró la
+  // categoría en 'solo dispositivo' o 'desactivado', o pausó los correos
+  // globalmente, ningún evento no transaccional encola envíos por ese canal.
+  const emailGlobalActivo = configCanales ? configCanales.emailGlobal?.activo !== false : true
+  const pushGlobalActivo = configCanales ? configCanales.pushGlobal?.activo !== false : true
+  const canalConfig = configCanales?.canales?.get(categoria)
+  const categoriaGlobalActiva = transaccional || (canalConfig ? canalConfig.activo !== false : true)
+  const emailCanalPermitido = transaccional || (emailGlobalActivo && (canalConfig ? canalConfig.email !== false : true))
+  const pushCanalPermitido = transaccional || (pushGlobalActivo && (canalConfig ? canalConfig.push !== false : true))
+
+  if (!categoriaGlobalActiva) return []
 
   const preferenciaPorUsuario = new Map(preferencias.map((p) => [String(p.usuario), p]))
   const suscripcionesPorUsuario = new Map()
@@ -68,8 +83,8 @@ export async function notificar({
     // Sin documento de preferencias = todo activado (ver
     // models/PreferenciaNotificacion.js): un usuario que nunca abrió la
     // pantalla de configuración igual debe recibir avisos.
-    const emailActivo = incluirEmail && (transaccional || (pref ? pref.email.activo : true))
-    const pushActivo = incluirPush && (transaccional || (pref ? pref.push.activo : true))
+    const emailActivo = incluirEmail && emailCanalPermitido && (transaccional || (pref ? pref.email.activo : true))
+    const pushActivo = incluirPush && pushCanalPermitido && (transaccional || (pref ? pref.push.activo : true))
     const categoriaActiva = transaccional || !pref || pref.categorias.get(categoria) !== false
 
     if (!categoriaActiva) continue
@@ -238,3 +253,54 @@ export async function obtenerPreferencias(usuarioId) {
   if (pref) return pref
   return { usuario: usuarioId, email: { activo: true }, push: { activo: true }, categorias: new Map() }
 }
+
+export async function obtenerConfiguracionCanales() {
+  const config = await ConfiguracionCanalesNotificacion.findOne({})
+  const emailGlobal = { activo: config ? config.emailGlobal?.activo !== false : true }
+  const pushGlobal = { activo: config ? config.pushGlobal?.activo !== false : true }
+
+  const canales = {}
+  for (const cat of CATEGORIAS_NOTIFICACION) {
+    const c = config?.canales?.get(cat.key)
+    canales[cat.key] = {
+      email: c ? c.email !== false : true,
+      push: c ? c.push !== false : true,
+      activo: c ? c.activo !== false : true,
+    }
+  }
+  return { emailGlobal, pushGlobal, canales }
+}
+
+export async function actualizarConfiguracionCanales(datos) {
+  const { emailGlobal, pushGlobal, canales } = datos || {}
+  const set = {}
+
+  if (typeof emailGlobal?.activo === 'boolean') {
+    set['emailGlobal.activo'] = emailGlobal.activo
+  }
+  if (typeof pushGlobal?.activo === 'boolean') {
+    set['pushGlobal.activo'] = pushGlobal.activo
+  }
+
+  if (canales && typeof canales === 'object') {
+    for (const [clave, valor] of Object.entries(canales)) {
+      if (!esCategoriaValida(clave)) {
+        throw new ErrorValidacion(`Categoría desconocida: ${clave}`)
+      }
+      if (typeof valor === 'object' && valor !== null) {
+        if (typeof valor.email === 'boolean') set[`canales.${clave}.email`] = valor.email
+        if (typeof valor.push === 'boolean') set[`canales.${clave}.push`] = valor.push
+        if (typeof valor.activo === 'boolean') set[`canales.${clave}.activo`] = valor.activo
+      }
+    }
+  }
+
+  await ConfiguracionCanalesNotificacion.findOneAndUpdate(
+    {},
+    { $set: set },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  )
+
+  return obtenerConfiguracionCanales()
+}
+

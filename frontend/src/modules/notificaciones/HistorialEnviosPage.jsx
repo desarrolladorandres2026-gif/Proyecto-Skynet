@@ -5,6 +5,7 @@ import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Badge, Btn, ErrorMsg, Field, Input, Select, fmtFechaHora } from '../../components/ui.jsx'
 import { DataTable } from '../../components/DataTable.jsx'
 import { Toolbar, ToolbarReset } from '../../components/Toolbar.jsx'
+import { NotificacionesAdminTabs } from './EleccionNotificacionesPage.jsx'
 
 const ESTADO_COLOR = { enviado: 'exito', fallido: 'error', pendiente: 'pendiente' }
 
@@ -104,6 +105,8 @@ export default function HistorialEnviosPage() {
 
   return (
     <div>
+      <NotificacionesAdminTabs />
+
       <div className="mb-1 flex items-center gap-2.5">
         <MailWarning className="h-5 w-5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Historial de envíos</h1>

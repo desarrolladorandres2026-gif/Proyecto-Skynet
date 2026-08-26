@@ -11,6 +11,7 @@ import { CatalogoSelect } from '../../components/CatalogoSelect.jsx'
 import { DataTable } from '../../components/DataTable.jsx'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 import { CheckboxLabel } from '../../components/Checkbox.jsx'
+import { AvatarUsuario } from '../../components/AvatarUsuario.jsx'
 
 const FORM_VACIO = {
   nombre_usuario: '',
@@ -199,13 +200,16 @@ export default function UsuariosPage() {
         accessorKey: 'nombre_usuario',
         header: 'Usuario',
         cell: (info) => (
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{info.getValue()}</span>
-            {esPrueba && (
-              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-                Prueba
-              </span>
-            )}
+          <div className="flex items-center gap-2.5">
+            <AvatarUsuario usuario={info.row.original} className="h-7 w-7 shrink-0 shadow-2xs" />
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{info.getValue()}</span>
+              {esPrueba && (
+                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                  Prueba
+                </span>
+              )}
+            </div>
           </div>
         ),
       },
@@ -362,6 +366,14 @@ export default function UsuariosPage() {
       >
         <form onSubmit={guardar} className="space-y-4">
           <ErrorMsg>{errorForm}</ErrorMsg>
+
+          <div className="flex items-center gap-3 rounded-lg border border-slate-200/80 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-900/40">
+            <AvatarUsuario className="h-12 w-12 shadow-xs border-2 border-brand-500/30" />
+            <div>
+              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">Foto de perfil oficial</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Asignada automáticamente a todos los usuarios</p>
+            </div>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Nombre de usuario">

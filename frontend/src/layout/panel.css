@@ -122,9 +122,9 @@
     --panel-brand-color: #ffffff;
     --panel-brand-glow: rgba(34, 211, 238, 0.4);
 
-    --panel-navlink-color: rgba(226, 232, 240, 0.65);
+    --panel-navlink-color: #ffffff;
     --panel-navlink-hover-bg: rgba(34, 211, 238, 0.06);
-    --panel-navlink-hover-color: #e2e8f0;
+    --panel-navlink-hover-color: #ffffff;
     --panel-navlink-active-bg: rgba(34, 211, 238, 0.1);
     --panel-navlink-active-color: var(--color-brand-300);
     --panel-navlink-active-shadow: var(--color-brand-400);

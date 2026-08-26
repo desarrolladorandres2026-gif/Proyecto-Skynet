@@ -18,6 +18,7 @@ import {
 import { Breadcrumb } from '../components/Breadcrumb.jsx'
 import { CommandPalette, useCommandPalette } from '../components/CommandPalette.jsx'
 import { NotificacionesBell } from '../components/notificaciones/NotificacionesBell.jsx'
+import { AvatarUsuario } from '../components/AvatarUsuario.jsx'
 // panel.css se importa una sola vez, globalmente, desde index.css — junto
 // con mobileShell.css — para que páginas universales (ej. Reportar daño)
 // tengan sus tokens sin importar qué shell (AppShell.jsx) las envuelva.
@@ -90,7 +91,7 @@ function EnlaceNav({ to, label, end, onNavigate, sub = false }) {
           sub ? 'pl-9 pr-3' : 'px-3',
           isActive
             ? 'is-active text-cyan-700 dark:text-cyan-300 font-semibold shadow-sm'
-            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-cyan-500/10 dark:hover:bg-cyan-400/10'
+            : 'text-slate-600 dark:text-white hover:text-slate-900 dark:hover:text-cyan-200 hover:bg-cyan-500/10 dark:hover:bg-cyan-400/10'
         )
       }
     >
@@ -136,7 +137,7 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
                   'relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-300 group',
                   activo
                     ? 'bg-gradient-to-br from-cyan-500/20 to-sky-600/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/40 shadow-[0_0_18px_rgba(6,182,212,0.35)]'
-                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-cyan-200 hover:bg-cyan-500/10 dark:hover:bg-cyan-400/10'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-white dark:hover:text-cyan-200 hover:bg-cyan-500/10 dark:hover:bg-cyan-400/10'
                 )}
               >
                 {/* Resplandor Neón flotante */}
@@ -190,7 +191,7 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
           'group flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition-all duration-300',
           activo
             ? 'bg-cyan-500/10 dark:bg-cyan-400/15 text-cyan-700 dark:text-cyan-300 font-medium border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
-            : 'text-slate-500 hover:text-slate-900 dark:hover:text-cyan-200 hover:bg-cyan-500/8 dark:hover:bg-cyan-400/8'
+            : 'text-slate-600 hover:text-slate-900 dark:text-white dark:hover:text-cyan-200 hover:bg-cyan-500/8 dark:hover:bg-cyan-400/8'
         )}
       >
         {/* Contenedor del ícono con resplandor neón estilo Copiloto */}
@@ -199,7 +200,7 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
             'relative flex h-5 w-5 items-center justify-center rounded-md transition-transform duration-300 group-hover:scale-110',
             activo
               ? 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
-              : 'bg-slate-200/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 group-hover:text-cyan-500'
+              : 'bg-slate-200/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-200 group-hover:text-cyan-500 dark:group-hover:text-cyan-400'
           )}
         >
           <modulo.icon className="h-3 w-3 shrink-0" aria-hidden="true" />
@@ -221,7 +222,7 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
 
         <ChevronDown
           className={cn(
-            'h-3 w-3 shrink-0 transition-transform duration-200 text-slate-400 group-hover:text-cyan-400',
+            'h-3 w-3 shrink-0 transition-transform duration-200 text-slate-400 dark:text-slate-300 group-hover:text-cyan-400',
             !abierto && '-rotate-90'
           )}
           aria-hidden="true"
@@ -388,8 +389,6 @@ export default function AppLayout() {
   const breadcrumbItems = useBreadcrumbItems(modulosVisibles, pathname)
   const modulosApagados = usuario?.modulosDesactivados?.length ?? 0
 
-  const inicialUsuario = (usuario?.nombre || '?').trim().charAt(0).toUpperCase()
-
   return (
     <div className="panel-shell flex h-svh flex-col md:flex-row">
       <Toaster
@@ -407,7 +406,9 @@ export default function AppLayout() {
 
       {/* Header móvil */}
       <header className="panel-sidebar flex items-center justify-between border-b px-4 py-3 md:hidden">
-        <span className="panel-mono panel-brand text-sm font-bold tracking-[0.2em]">SKYNET</span>
+        <div className="flex items-center min-w-0">
+          <span className="panel-mono panel-brand text-xs sm:text-sm font-bold tracking-[0.12em] truncate">TERMINAL DE NEIVA</span>
+        </div>
         <div className="flex items-center gap-2">
           <ToggleTema tema={tema} onToggle={alternarTema} />
           <button
@@ -438,7 +439,15 @@ export default function AppLayout() {
             colapsado ? 'justify-center' : 'justify-between'
           )}
         >
-          {!colapsado && <span className="panel-mono panel-brand text-lg font-bold tracking-[0.2em]">SKYNET</span>}
+          {colapsado ? (
+            <Tooltip label="Terminal de Neiva" side="right">
+              <span className="panel-mono panel-brand text-xs font-bold tracking-wider">TN</span>
+            </Tooltip>
+          ) : (
+            <div className="flex items-center min-w-0">
+              <span className="panel-mono panel-brand text-sm font-bold tracking-[0.1em] truncate">TERMINAL DE NEIVA</span>
+            </div>
+          )}
           <Tooltip label={colapsado ? 'Expandir' : 'Colapsar'} side="right">
             <button
               onClick={alternarColapsado}
@@ -466,15 +475,16 @@ export default function AppLayout() {
                   colapsado && 'justify-center'
                 )}
               >
-                <span className="panel-mono flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600/10 text-xs font-bold text-brand-700 dark:bg-brand-400/10 dark:text-brand-300">
-                  {inicialUsuario}
-                </span>
+                <AvatarUsuario
+                  usuario={usuario}
+                  className="h-8 w-8 shrink-0 border border-brand-500/20 shadow-xs"
+                />
                 {!colapsado && (
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-slate-700 dark:text-slate-200">
+                    <span className="block truncate text-sm font-medium text-slate-700 dark:text-white">
                       {usuario?.nombre}
                     </span>
-                    <span className="panel-mono block truncate text-[10px] tracking-wide text-brand-700/70 uppercase dark:text-brand-400/60">
+                    <span className="panel-mono block truncate text-[10px] tracking-wide text-brand-700/70 uppercase dark:text-cyan-300">
                       {usuario?.rol?.nombre}
                     </span>
                   </span>
@@ -482,7 +492,15 @@ export default function AppLayout() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-56">
-              <DropdownMenuLabel>{usuario?.nombre}</DropdownMenuLabel>
+              <div className="flex items-center gap-2.5 px-2 py-1.5 border-b border-slate-100 dark:border-slate-800/80 mb-1">
+                <AvatarUsuario usuario={usuario} className="h-8 w-8 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <DropdownMenuLabel className="p-0 font-medium truncate">{usuario?.nombre}</DropdownMenuLabel>
+                  <span className="panel-mono block truncate text-[10px] text-slate-500 dark:text-slate-400">
+                    {usuario?.rol?.nombre}
+                  </span>
+                </div>
+              </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to="/notificaciones">

@@ -6,6 +6,8 @@ import { useModulosVisibles, useTema, ToggleTema } from './AppLayout.jsx'
 import ContenidoRuta from './ContenidoRuta.jsx'
 import { MOBILE_NAV_POR_ROL, INICIO_ITEM } from '../config/mobileNavPorRol.js'
 import { BottomSheet, ListRow } from '../components/mobileUi.jsx'
+import { AvatarUsuario } from '../components/AvatarUsuario.jsx'
+import claroLogo from '../assets/claro.png'
 // panel.css y mobileShell.css se cargan globalmente desde index.css (ver
 // comentario ahí) — las páginas que todavía no pasaron por su etapa de
 // rediseño móvil siguen usando Card/Btn/Input/TablaWrap de components/ui.jsx
@@ -205,27 +207,22 @@ export default function MobileShell() {
   // atajos curados de este rol) no necesita repetirse en la hoja "Más".
   const rutasEnBarra = new Set([INICIO_ITEM.to, ...accesos.map((item) => item.to)])
 
-  const iniciales = (usuario?.nombre || '?')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0].toUpperCase())
-    .join('') || '?'
-
   return (
     <div className="m-shell flex h-svh flex-col">
       <header className="m-bar flex shrink-0 items-center justify-between border-b px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <span className="panel-mono panel-brand text-sm font-bold tracking-[0.2em]">SKYNET</span>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <img src={claroLogo} alt="Logo Terminal" className="h-6 w-6 object-contain shrink-0" />
+          <span className="panel-mono panel-brand text-xs sm:text-sm font-bold tracking-[0.12em] truncate">TERMINAL DE NEIVA</span>
+        </div>
         <div className="flex items-center gap-2">
           <ToggleTema tema={tema} onToggle={alternarTema} />
           <button
             type="button"
             onClick={() => setCuentaAbierta(true)}
             aria-label="Cuenta"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--mobile-accent)] text-xs font-bold text-[var(--mobile-accent-fg)]"
+            className="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden border border-brand-500/30 shadow-2xs"
           >
-            {iniciales}
+            <AvatarUsuario usuario={usuario} className="h-full w-full object-cover" />
           </button>
         </div>
       </header>
@@ -259,8 +256,14 @@ export default function MobileShell() {
       </BottomSheet>
 
       <BottomSheet abierto={cuentaAbierta} titulo="Cuenta" onCerrar={() => setCuentaAbierta(false)}>
-        <p className="text-sm font-medium text-[var(--mobile-text)]">{usuario?.nombre}</p>
-        <p className="panel-mono mt-0.5 text-[11px] tracking-wide text-[var(--mobile-accent)] uppercase">{usuario?.rol?.nombre}</p>
+        <div className="flex items-center gap-3 mb-3">
+          <AvatarUsuario usuario={usuario} className="h-12 w-12 shadow-sm shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-[var(--mobile-text)] truncate">{usuario?.nombre}</p>
+            <p className="panel-mono mt-0.5 text-[11px] tracking-wide text-[var(--mobile-accent)] uppercase truncate">{usuario?.rol?.nombre}</p>
+            {usuario?.email && <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{usuario?.email}</p>}
+          </div>
+        </div>
         <NavLink
           to="/legal"
           onClick={() => setCuentaAbierta(false)}

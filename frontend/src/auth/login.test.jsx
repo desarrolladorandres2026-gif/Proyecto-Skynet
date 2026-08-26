@@ -58,7 +58,7 @@ describe('LoginPage - Efecto de verificación y acceso', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/ACCESO CONCEDIDO/i)).toBeInTheDocument()
-      expect(screen.getByText(/SKYNET ONLINE/i)).toBeInTheDocument()
+      expect(screen.getByText(/TERMINAL DE NEIVA ONLINE/i)).toBeInTheDocument()
       expect(screen.getByText(/admin_skynet/i)).toBeInTheDocument()
     })
   })

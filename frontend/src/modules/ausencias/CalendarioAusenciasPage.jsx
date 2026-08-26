@@ -4,6 +4,7 @@ import { ausencias as ausenciasApi } from '../../api/ausencias.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Badge, Card, ErrorMsg, EmptyState, fmtFecha } from '../../components/ui.jsx'
 import { TIPOS_AUSENCIA } from '../../config/ausenciasConstants.js'
+import { AvatarUsuario } from '../../components/AvatarUsuario.jsx'
 
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
@@ -18,12 +19,6 @@ const PUNTO_COLORES = {
 
 function aISO(fecha) {
   return fecha.toISOString().slice(0, 10)
-}
-
-function iniciales(nombre) {
-  if (!nombre) return '?'
-  const partes = nombre.trim().split(/\s+/)
-  return (partes[0]?.[0] || '') + (partes[1]?.[0] || '')
 }
 
 // Lunes = 0 ... Domingo = 6, para armar la grilla con semana laboral local.
@@ -229,9 +224,10 @@ export default function CalendarioAusenciasPage() {
               <ul className="space-y-2">
                 {fueraHoy.map((a) => (
                   <li key={a._id} className="flex items-center gap-2">
-                    <span className="panel-mono flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-500/10 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
-                      {iniciales(nombreDe(a))}
-                    </span>
+                    <AvatarUsuario
+                      alt={nombreDe(a)}
+                      className="h-6 w-6 shrink-0 shadow-2xs"
+                    />
                     <div className="min-w-0">
                       <p className="truncate text-sm text-slate-900 dark:text-white">{nombreDe(a)}</p>
                       <p className="panel-mono text-[10px] text-slate-500 dark:text-slate-400">

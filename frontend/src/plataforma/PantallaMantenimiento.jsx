@@ -66,7 +66,7 @@ export default function PantallaMantenimiento({ modo = 'mantenimiento', onContin
           <p className="skynet-mono mb-2 text-[11px] tracking-[0.35em] text-amber-400/70 uppercase">
             {disponible ? 'Sistema · restablecido' : 'Sistema · mantenimiento'}
           </p>
-          <h1 className="skynet-title text-2xl text-white sm:text-3xl">SKYNET</h1>
+          <h1 className="skynet-title text-xl sm:text-2xl text-white">TERMINAL DE NEIVA</h1>
         </div>
 
         {/* Emblema animado: engranaje en mantenimiento, check al volver */}

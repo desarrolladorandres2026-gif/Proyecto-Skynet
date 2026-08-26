@@ -33,6 +33,7 @@ export const PERMISOS = [
   // el permiso explícito por si se delega a otro rol más adelante, mismo
   // criterio que auditoria:leer.
   permiso('notificaciones', 'ver_historial', 'Ver historial de envíos de notificaciones'),
+  permiso('notificaciones', 'configurar_canales', 'Configurar canales y elección de notificaciones'),
   // Catálogos de Dependencia y Cargo (selects reutilizados en Usuarios,
   // Requerimientos y Equipos). Ver que existan o listarlos es universal para
   // todo autenticado (mismo principio que danos:gestionar); este permiso solo
@@ -169,6 +170,8 @@ const PERMISOS_ADMINISTRADOR_BASE = [
   'email:eliminar',
   'email:configurar',
   'ia:configurar',
+  'notificaciones:ver_historial',
+  'notificaciones:configurar_canales',
 ]
 
 // Administrador + las 2 capacidades de Requerimientos que NO comparte con

@@ -4,6 +4,10 @@ import PreferenciaNotificacion from '../../models/PreferenciaNotificacion.js'
 import { CATEGORIAS_NOTIFICACION, esCategoriaValida } from './notificaciones.catalogo.js'
 import { verificarTokenBaja } from './notificaciones.token.js'
 import { paginaConfirmacionBaja } from './notificaciones.plantillas.js'
+import {
+  obtenerConfiguracionCanales as _obtenerConfiguracionCanales,
+  actualizarConfiguracionCanales as _actualizarConfiguracionCanales,
+} from './notificaciones.service.js'
 
 // Reconocimiento de UA deliberadamente simple (regex, sin librería nueva):
 // esto solo alimenta una etiqueta cosmética ("Chrome en Windows") en la
@@ -183,3 +187,17 @@ export async function darDeBajaEmail(req, res) {
   if (req.method === 'POST') return res.json({ mensaje: 'Baja registrada' })
   res.set('Content-Type', 'text/html').send(paginaConfirmacionBaja())
 }
+
+// Configuración administrativa de canales de notificación (Elección de notificaciones).
+// Exclusivo de administración: permite controlar de forma global y por categoría qué
+// eventos se transmiten por Email (Resend) y cuáles por Dispositivo (Push).
+export async function obtenerCanalesAdmin(_req, res) {
+  const config = await _obtenerConfiguracionCanales()
+  res.json(config)
+}
+
+export async function actualizarCanalesAdmin(req, res) {
+  const config = await _actualizarConfiguracionCanales(req.body)
+  res.json(config)
+}
+

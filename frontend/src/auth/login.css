@@ -17,6 +17,13 @@
   text-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
 }
 
+.skynet-login-title {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+}
+
 /* Escaneo de luz al hover */
 .skynet-title-glitch {
   position: relative;

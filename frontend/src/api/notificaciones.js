@@ -59,4 +59,12 @@ export const notificaciones = {
   historialFiltros() {
     return request('/notificaciones/admin/envios/filtros')
   },
+
+  // Elección y configuración administrativa de canales (Email / Push)
+  configuracionCanales() {
+    return request('/notificaciones/admin/canales')
+  },
+  actualizarConfiguracionCanales(cambios) {
+    return request('/notificaciones/admin/canales', { method: 'PUT', body: JSON.stringify(cambios) })
+  },
 }

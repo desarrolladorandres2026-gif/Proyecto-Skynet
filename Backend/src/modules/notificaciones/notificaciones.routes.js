@@ -11,6 +11,8 @@ import {
   obtenerPreferencias,
   actualizarPreferencias,
   darDeBajaEmail,
+  obtenerCanalesAdmin,
+  actualizarCanalesAdmin,
 } from './notificaciones.controller.js'
 import {
   misNotificaciones,
@@ -59,4 +61,9 @@ router.put('/mias/:id/leida', marcarNotificacionLeida)
 router.get('/admin/envios/filtros', requierePermiso('notificaciones:ver_historial'), obtenerFiltrosEnvios)
 router.get('/admin/envios', requierePermiso('notificaciones:ver_historial'), listarEnviosAdmin)
 
+// Elección y configuración de canales de notificación (Email/Push por categoría)
+router.get('/admin/canales', requierePermiso(['notificaciones:ver_historial', 'notificaciones:configurar_canales']), obtenerCanalesAdmin)
+router.put('/admin/canales', requierePermiso(['notificaciones:ver_historial', 'notificaciones:configurar_canales']), actualizarCanalesAdmin)
+
 export default router
+
