@@ -126,8 +126,8 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
   if (colapsado) {
     return (
       <div className="mb-1 flex justify-center">
-        <Tooltip label={modulo.label} side="right">
-          <DropdownMenu>
+        <DropdownMenu>
+          <Tooltip label={modulo.label} side="right">
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
@@ -163,18 +163,18 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
                 )}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="start" sideOffset={12}>
-              <DropdownMenuLabel>{modulo.label}</DropdownMenuLabel>
-              {modulo.items.map((item) => (
-                <DropdownMenuItem key={item.to} asChild>
-                  <NavLink to={item.to} end={item.end} onClick={onNavigate}>
-                    {item.label}
-                  </NavLink>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </Tooltip>
+          </Tooltip>
+          <DropdownMenuContent side="right" align="start" sideOffset={12}>
+            <DropdownMenuLabel>{modulo.label}</DropdownMenuLabel>
+            {modulo.items.map((item) => (
+              <DropdownMenuItem key={item.to} asChild>
+                <NavLink to={item.to} end={item.end} onClick={onNavigate}>
+                  {item.label}
+                </NavLink>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     )
   }

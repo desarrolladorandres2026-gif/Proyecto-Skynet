@@ -127,51 +127,55 @@ export default function BannerMantenimiento() {
       // en mitad de lo que esté leyendo. Esto es información importante, pero
       // no una emergencia que justifique cortarle la frase a alguien.
       role="status"
-      className={`mant-banner mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border px-4 py-3 ${
+      className={`mant-banner relative mb-4 rounded-xl border p-3.5 sm:px-4 sm:py-3 transition-all ${
         inminente
           ? 'border-amber-500/45 bg-amber-500/15'
           : 'border-amber-500/25 bg-amber-500/[0.07]'
       }`}
     >
-      <span className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
-        {inminente ? (
-          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-        ) : (
-          <CalendarClock className="h-4 w-4 shrink-0" aria-hidden="true" />
-        )}
-        <span className="text-sm font-semibold">
-          {inminente ? 'Mantenimiento a punto de comenzar' : 'Mantenimiento programado'}
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-x-4 sm:gap-y-2">
+        <div className="flex items-center justify-between gap-2 sm:contents">
+          <span className="flex items-center gap-2 text-amber-700 dark:text-amber-300 shrink-0">
+            {inminente ? (
+              <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+            ) : (
+              <CalendarClock className="h-4 w-4 shrink-0" aria-hidden="true" />
+            )}
+            <span className="text-sm font-semibold">
+              {inminente ? 'Mantenimiento a punto de comenzar' : 'Mantenimiento programado'}
+            </span>
+          </span>
+
+          {descartable && (
+            <button
+              type="button"
+              onClick={descartar}
+              aria-label="Ocultar aviso de mantenimiento"
+              className="sm:order-last shrink-0 rounded-lg p-1 text-amber-700/70 transition-colors hover:bg-amber-500/15 hover:text-amber-800 dark:text-amber-300/70 dark:hover:text-amber-200"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
+        </div>
+
+        <span className="min-w-0 flex-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed break-words">
+          {estado.message || (
+            <>
+              Skynet no estará disponible desde el <strong>{formatearFechaHora(inicio)}</strong>
+              {estado.scheduledEnd && <> hasta el <strong>{formatearFechaHora(estado.scheduledEnd)}</strong></>}.
+            </>
+          )}
+          {estado.reason && (
+            <span className="text-slate-500 dark:text-slate-400"> · {estado.reason}</span>
+          )}
         </span>
-      </span>
 
-      <span className="min-w-0 flex-1 text-sm text-slate-600 dark:text-slate-300">
-        {estado.message || (
-          <>
-            Skynet no estará disponible desde el <strong>{formatearFechaHora(inicio)}</strong>
-            {estado.scheduledEnd && <> hasta el <strong>{formatearFechaHora(estado.scheduledEnd)}</strong></>}.
-          </>
+        {restante !== null && (
+          <span className="panel-mono shrink-0 self-start sm:self-auto rounded-lg bg-amber-500/15 px-2.5 py-1 text-[11px] sm:text-xs font-semibold tabular-nums text-amber-700 dark:text-amber-200">
+            comienza en {formatearRestante(restante)}
+          </span>
         )}
-        {estado.reason && (
-          <span className="text-slate-500 dark:text-slate-400"> · {estado.reason}</span>
-        )}
-      </span>
-
-      {restante !== null && (
-        <span className="panel-mono shrink-0 rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-semibold tabular-nums text-amber-700 dark:text-amber-200">
-          comienza en {formatearRestante(restante)}
-        </span>
-      )}
-
-      {descartable && (
-        <button
-          type="button"
-          onClick={descartar}
-          aria-label="Ocultar aviso de mantenimiento"
-          className="shrink-0 rounded-lg p-1 text-amber-700/70 transition-colors hover:bg-amber-500/15 hover:text-amber-800 dark:text-amber-300/70 dark:hover:text-amber-200"
-        >
-          <X className="h-4 w-4" aria-hidden="true" />
-        </button>
-      )}
+      </div>
     </div>
   )
 }

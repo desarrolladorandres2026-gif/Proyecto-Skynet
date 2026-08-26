@@ -47,8 +47,8 @@ export function NotificacionesBell() {
 
   return (
     <DropdownMenu onOpenChange={(abierto) => abierto && cargarLista()}>
-      <DropdownMenuTrigger asChild>
-        <Tooltip label="Notificaciones" side="bottom">
+      <Tooltip label="Notificaciones" side="bottom">
+        <DropdownMenuTrigger asChild>
           <button
             type="button"
             className="group relative flex shrink-0 items-center justify-center rounded-xl p-2 transition-all duration-300 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-cyan-500/30 text-slate-700 dark:text-cyan-300 hover:border-cyan-400 dark:hover:border-cyan-400 dark:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:scale-105 active:scale-95"
@@ -61,8 +61,8 @@ export function NotificacionesBell() {
               </span>
             )}
           </button>
-        </Tooltip>
-      </DropdownMenuTrigger>
+        </DropdownMenuTrigger>
+      </Tooltip>
 
       <DropdownMenuContent side="bottom" align="end" sideOffset={10} className="w-96 max-w-[90vw] p-0">
         <div className="flex items-center justify-between px-3 py-2.5">

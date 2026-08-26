@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, renderHook, act } from '@testing-library/react'
+import { render, screen, waitFor, renderHook, act, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { NotificacionesBell } from '../src/components/notificaciones/NotificacionesBell.jsx'
 import { useCentroNotificaciones } from '../src/components/notificaciones/useCentroNotificaciones.js'
@@ -54,6 +54,15 @@ describe('NotificacionesBell (render)', () => {
     await waitFor(() => expect(notificacionesApi.noLeidas).toHaveBeenCalled())
     expect(screen.getByLabelText('Notificaciones')).toBeInTheDocument()
     expect(screen.queryByText('0')).not.toBeInTheDocument()
+  })
+
+  it('abre el menú desplegable al interactuar con el botón de la campana', async () => {
+    renderBell()
+    const boton = await screen.findByRole('button', { name: /Notificaciones/i })
+    fireEvent.keyDown(boton, { key: 'Enter' })
+
+    await waitFor(() => expect(screen.getByText('Requerimiento aprobado')).toBeInTheDocument())
+    expect(notificacionesApi.misNotificaciones).toHaveBeenCalled()
   })
 })
 

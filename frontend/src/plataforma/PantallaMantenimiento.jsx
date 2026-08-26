@@ -9,12 +9,12 @@ import './mantenimiento.css'
 
 function Dato({ icono: Icono, etiqueta, valor }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-amber-500/15 py-2 last:border-b-0">
-      <span className="skynet-mono flex items-center gap-2 text-[11px] tracking-[0.15em] text-amber-200/60 uppercase">
-        <Icono className="h-3.5 w-3.5" aria-hidden="true" />
+    <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1 xs:gap-3 border-b border-amber-500/15 py-2 last:border-b-0">
+      <span className="skynet-mono flex items-center gap-2 text-[11px] tracking-[0.15em] text-amber-200/60 uppercase shrink-0">
+        <Icono className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         {etiqueta}
       </span>
-      <span className="skynet-mono text-right text-xs text-white">{valor}</span>
+      <span className="skynet-mono text-left xs:text-right text-xs text-white break-words">{valor}</span>
     </div>
   )
 }
