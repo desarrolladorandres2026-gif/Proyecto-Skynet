@@ -10,11 +10,14 @@ import Usuario from '../src/models/Usuario.js'
 import Rol from '../src/models/Rol.js'
 import PreguntaSig from '../src/models/PreguntaSig.js'
 import ProgramacionSig from '../src/models/ProgramacionSig.js'
-import ConfiguracionSig from '../src/models/ConfiguracionSig.js'
+import ConfiguracionSig, { COMPONENTES_SIG_DEFECTO } from '../src/models/ConfiguracionSig.js'
 import { crearProgramacionIndividual, publicarPendientes } from '../src/modules/sig_pregunta_dia/sig-programaciones.service.js'
 import { obtenerPreguntaDelDia, responder } from '../src/modules/sig_pregunta_dia/sig-respuestas.service.js'
 import { importarPreguntasDesdeExcel, generarPlantillaExcel } from '../src/modules/sig_pregunta_dia/sig-importacion.service.js'
 import { listarTrabajadoresParticipantes } from '../src/modules/sig_pregunta_dia/sig-dashboard.service.js'
+import { crearPregunta as crearPreguntaService } from '../src/modules/sig_pregunta_dia/sig-banco.service.js'
+import { obtenerOCrearConfiguracion } from '../src/modules/sig_pregunta_dia/comun.js'
+import { migrarComponentesSig } from '../scripts/migrate-sig-componentes.js'
 
 let actor
 
@@ -314,6 +317,121 @@ describe('importación de preguntas desde Excel', () => {
 
     expect(resultado.errores).toHaveLength(0)
     expect(resultado.importadas).toBe(1)
+  })
+
+  it('importa preguntas con los nuevos componentes PTEE, PESV y SARLAFT, tolerando SARLAF', async () => {
+    await ConfiguracionSig.create({})
+
+    const buffer = await libroDePrueba(
+      [
+        ['¿Qué es PTEE?', 'PTEE', 'Ética', 'O1', 'O2', 'O3', 'O4', 'A', '', '', ''],
+        ['¿Qué es PESV?', 'pesv', 'Seguridad Vial', 'O1', 'O2', 'O3', 'O4', 'B', '', '', ''],
+        ['¿Qué es SARLAFT?', 'sarlaft', 'Lavado de activos', 'O1', 'O2', 'O3', 'O4', 'C', '', '', ''],
+        ['¿Referencia SARLAF?', 'SARLAF', 'Cumplimiento', 'O1', 'O2', 'O3', 'O4', 'D', '', '', ''],
+      ],
+      ENCABEZADOS_DESPROLIJOS
+    )
+
+    const resultado = await importarPreguntasDesdeExcel(buffer, actor)
+
+    expect(resultado.errores).toHaveLength(0)
+    expect(resultado.importadas).toBe(4)
+
+    const ptee = await PreguntaSig.findOne({ enunciado: '¿Qué es PTEE?' })
+    expect(ptee.componenteSig).toBe('PTEE')
+
+    const pesv = await PreguntaSig.findOne({ enunciado: '¿Qué es PESV?' })
+    expect(pesv.componenteSig).toBe('PESV')
+
+    const sarlaft = await PreguntaSig.findOne({ enunciado: '¿Qué es SARLAFT?' })
+    expect(sarlaft.componenteSig).toBe('SARLAFT')
+
+    const sarlafCorregido = await PreguntaSig.findOne({ enunciado: '¿Referencia SARLAF?' })
+    expect(sarlafCorregido.componenteSig).toBe('SARLAFT')
+  })
+})
+
+describe('componentes SIG — persistencia, validación y migración de SARLAF a SARLAFT', () => {
+  it('ConfiguracionSig contiene por defecto PTEE, PESV y SARLAFT', async () => {
+    const config = await ConfiguracionSig.create({})
+    expect(config.componentes).toEqual(
+      expect.arrayContaining(['Calidad', 'Ambiental', 'SST', 'Integración SIG', 'PTEE', 'PESV', 'SARLAFT'])
+    )
+  })
+
+  it('obtenerOCrearConfiguracion migra SARLAF a SARLAFT y asegura nuevos componentes en documentos existentes', async () => {
+    await ConfiguracionSig.create({
+      componentes: ['Calidad', 'Ambiental', 'SST', 'SARLAF'],
+    })
+
+    const config = await obtenerOCrearConfiguracion()
+    expect(config.componentes).toContain('SARLAFT')
+    expect(config.componentes).toContain('PTEE')
+    expect(config.componentes).toContain('PESV')
+    expect(config.componentes).not.toContain('SARLAF')
+  })
+
+  it('crearPreguntaService acepta PTEE, PESV y SARLAFT, y auto-corrige SARLAF a SARLAFT', async () => {
+    await ConfiguracionSig.create({})
+
+    const pregPtee = await crearPreguntaService(
+      {
+        enunciado: 'Pregunta PTEE directa',
+        componenteSig: 'PTEE',
+        tema: 'Anticorrupción',
+        opciones: [
+          { texto: 'A', esCorrecta: true },
+          { texto: 'B', esCorrecta: false },
+          { texto: 'C', esCorrecta: false },
+          { texto: 'D', esCorrecta: false },
+        ],
+      },
+      actor
+    )
+    expect(pregPtee.componenteSig).toBe('PTEE')
+
+    const pregSarlaf = await crearPreguntaService(
+      {
+        enunciado: 'Pregunta con SARLAF antiguo',
+        componenteSig: 'SARLAF',
+        tema: 'Riesgo',
+        opciones: [
+          { texto: 'A', esCorrecta: false },
+          { texto: 'B', esCorrecta: true },
+          { texto: 'C', esCorrecta: false },
+          { texto: 'D', esCorrecta: false },
+        ],
+      },
+      actor
+    )
+    expect(pregSarlaf.componenteSig).toBe('SARLAFT')
+  })
+
+  it('migrarComponentesSig actualiza la BD y reemplaza SARLAF en todas las colecciones', async () => {
+    await ConfiguracionSig.create({ componentes: ['Calidad', 'SARLAF'] })
+    await PreguntaSig.create({
+      enunciado: 'Pregunta en BD con SARLAF',
+      componenteSig: 'SARLAF',
+      tema: 'Test',
+      opciones: [
+        { texto: '1', esCorrecta: true },
+        { texto: '2', esCorrecta: false },
+        { texto: '3', esCorrecta: false },
+        { texto: '4', esCorrecta: false },
+      ],
+      creadoPor: actor.id_usuario,
+    })
+
+    await migrarComponentesSig()
+
+    const config = await ConfiguracionSig.findOne({})
+    expect(config.componentes).toContain('SARLAFT')
+    expect(config.componentes).toContain('PTEE')
+    expect(config.componentes).toContain('PESV')
+    expect(config.componentes).not.toContain('SARLAF')
+
+    const preg = await PreguntaSig.findOne({ enunciado: 'Pregunta en BD con SARLAF' })
+    expect(preg.componenteSig).toBe('SARLAFT')
   })
 })
 

@@ -164,6 +164,54 @@ const PREGUNTAS = [
       incorrecta: 'Cada trabajador aporta a la mejora continua reportando hallazgos, cumpliendo procedimientos y proponiendo mejoras.',
     },
   },
+  {
+    enunciado: '¿Cuál es el objetivo principal del Programa de Transparencia y Ética Empresarial (PTEE)?',
+    componenteSig: 'PTEE',
+    tema: 'Prevención de corrupción y soborno',
+    opciones: [
+      { texto: 'Prevenir, detectar y mitigar riesgos de soborno transnacional y corrupción en la entidad', esCorrecta: true },
+      { texto: 'Gestionar únicamente la compra de insumos de papelería', esCorrecta: false },
+      { texto: 'Sustituir el reglamento interno de trabajo', esCorrecta: false },
+      { texto: 'Monitorear el uso recreativo de internet', esCorrecta: false },
+    ],
+    retroalimentacion: {
+      correcta: 'Correcto: el PTEE busca prevenir, detectar y sancionar prácticas de soborno y corrupción institucional.',
+      incorrecta: 'Recuerda: el PTEE está enfocado en la prevención y control de riesgos de corrupción y soborno transnacional.',
+    },
+    etiquetas: ['ptee', 'etica', 'transparencia'],
+  },
+  {
+    enunciado: '¿Cuál es el propósito del Plan Estratégico de Seguridad Vial (PESV) en las instalaciones y operaciones del Terminal?',
+    componenteSig: 'PESV',
+    tema: 'Seguridad vial y prevención de siniestros',
+    opciones: [
+      { texto: 'Promover una cultura de seguridad vial y prevenir siniestros de tránsito en vías internas y externas', esCorrecta: true },
+      { texto: 'Regular únicamente la venta de pasajes de transporte terrestre', esCorrecta: false },
+      { texto: 'Eliminar la señalización de tránsito para agilizar el flujo de vehículos', esCorrecta: false },
+      { texto: 'Permitir conducir vehículos sin verificación técnico-mecánica previa', esCorrecta: false },
+    ],
+    retroalimentacion: {
+      correcta: 'Correcto: el PESV define acciones, mecanismos y estrategias para prevenir siniestros viales y proteger vidas.',
+      incorrecta: 'El PESV tiene como finalidad prevenir siniestros de tránsito y promover hábitos viales seguros.',
+    },
+    etiquetas: ['pesv', 'seguridad vial', 'transito'],
+  },
+  {
+    enunciado: '¿Qué se debe hacer ante una señal de alerta o una operación inusual en el marco del SARLAFT?',
+    componenteSig: 'SARLAFT',
+    tema: 'Prevención de lavado de activos',
+    opciones: [
+      { texto: 'Reportar de inmediato al Oficial de Cumplimiento según los canales establecidos', esCorrecta: true },
+      { texto: 'Ignorar la alerta si el cliente afirma que es una transacción normal', esCorrecta: false },
+      { texto: 'Divulgar la operación con otros compañeros antes de reportar formalmente', esCorrecta: false },
+      { texto: 'Modificar los registros para que la operación no parezca inusual', esCorrecta: false },
+    ],
+    retroalimentacion: {
+      correcta: 'Correcto: ante operaciones inusuales o sospechosas se debe reportar inmediatamente al Oficial de Cumplimiento.',
+      incorrecta: 'Toda señal de alerta u operación inusual debe reportarse de inmediato al Oficial de Cumplimiento sin divulgarla a terceros.',
+    },
+    etiquetas: ['sarlaft', 'cumplimiento', 'lavado de activos'],
+  },
 ]
 
 async function seed() {

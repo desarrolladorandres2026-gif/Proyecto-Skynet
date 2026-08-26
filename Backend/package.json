@@ -16,6 +16,7 @@
     "migrate:mantenimiento": "node scripts/migrate-mysql-to-mongo.js",
     "migrate:mantenimiento-ot": "node scripts/migrate-mantenimiento-ot.js",
     "migrate:usuarios-prueba": "node scripts/marcar-usuarios-prueba.js",
+    "migrate:sig-componentes": "node scripts/migrate-sig-componentes.js",
     "test": "vitest run",
     "test:fechas": "node scripts/verificar-fechas-tz.js",
     "test:notificaciones": "node scripts/test-notificaciones.js",

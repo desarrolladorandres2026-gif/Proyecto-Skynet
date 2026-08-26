@@ -34,9 +34,12 @@ export async function crearCapacitacion(datos, usuarioActor) {
   const idsUsuarios = await resolverAudiencia(audiencia)
   if (idsUsuarios.length === 0) throw new ErrorValidacion('No hay trabajadores activos que coincidan con la audiencia elegida')
 
+  let componenteSig = String(datos.componenteSig || '').trim()
+  if (componenteSig.toUpperCase() === 'SARLAF') componenteSig = 'SARLAFT'
+
   const capacitacion = await CapacitacionTemaSig.create({
     tema,
-    componenteSig: String(datos.componenteSig || '').trim(),
+    componenteSig,
     descripcion: String(datos.descripcion || '').trim(),
     fechaProgramada: new Date(datos.fechaProgramada),
     responsable: usuarioActor.id_usuario,

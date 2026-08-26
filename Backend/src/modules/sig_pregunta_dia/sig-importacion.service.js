@@ -99,9 +99,11 @@ function indiceDeCorrecta(valor, textosOpciones) {
 // Componente contra el catálogo configurado, comparando sin tildes ni
 // mayúsculas pero devolviendo SIEMPRE el nombre canónico configurado — para
 // que los filtros y el dashboard no terminen con "SST" y "sst" como dos
-// componentes distintos.
+// componentes distintos. Además tolera la referencia histórica "SARLAF" y la
+// mapea al canónico "SARLAFT".
 function resolverComponente(valor, componentesConfigurados) {
-  const buscado = normalizar(valor)
+  let buscado = normalizar(valor)
+  if (buscado === 'sarlaf') buscado = 'sarlaft'
   return componentesConfigurados.find((c) => normalizar(c) === buscado) || null
 }
 

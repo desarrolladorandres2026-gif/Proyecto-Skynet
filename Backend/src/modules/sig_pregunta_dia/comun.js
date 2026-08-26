@@ -1,4 +1,4 @@
-import ConfiguracionSig from '../../models/ConfiguracionSig.js'
+import ConfiguracionSig, { COMPONENTES_SIG_DEFECTO } from '../../models/ConfiguracionSig.js'
 import Usuario from '../../models/Usuario.js'
 import { registrarAuditoria } from '../../utils/auditoria.js'
 
@@ -28,7 +28,35 @@ export function auditar(usuarioActor, accion, entidad, entidadId, descripcion, c
 // obtenerConfiguracionCacheada() en su lugar.
 export async function obtenerOCrearConfiguracion() {
   let config = await ConfiguracionSig.findOne({})
-  if (!config) config = await ConfiguracionSig.create({})
+  if (!config) {
+    config = await ConfiguracionSig.create({})
+    return config
+  }
+
+  // Si el documento ya existía con una versión previa de componentes o con
+  // la referencia antigua "SARLAF", se sincroniza y persiste automáticamente.
+  let modificado = false
+  const actuales = config.componentes || []
+  const sincronizados = []
+
+  for (const c of actuales) {
+    const normal = c === 'SARLAF' ? 'SARLAFT' : c
+    if (c === 'SARLAF') modificado = true
+    if (!sincronizados.includes(normal)) sincronizados.push(normal)
+  }
+
+  for (const def of COMPONENTES_SIG_DEFECTO) {
+    if (!sincronizados.includes(def)) {
+      sincronizados.push(def)
+      modificado = true
+    }
+  }
+
+  if (modificado) {
+    config.componentes = sincronizados
+    await config.save()
+  }
+
   return config
 }
 

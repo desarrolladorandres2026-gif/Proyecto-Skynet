@@ -18,12 +18,22 @@ const nivelDesempenoSchema = new mongoose.Schema(
   { _id: false }
 )
 
+export const COMPONENTES_SIG_DEFECTO = [
+  'Calidad',
+  'Ambiental',
+  'SST',
+  'Integración SIG',
+  'PTEE',
+  'PESV',
+  'SARLAFT',
+]
+
 const configuracionSigSchema = new mongoose.Schema(
   {
     horaPublicacionDefecto: { type: String, trim: true, default: '08:00' },
     componentes: {
       type: [String],
-      default: ['Calidad', 'Ambiental', 'SST', 'Integración SIG'],
+      default: COMPONENTES_SIG_DEFECTO,
     },
     // Orden descendente por umbralMinimo (100 -> 0), sin huecos: ver
     // validación en sig-configuracion.service.js. Los defaults de abajo son

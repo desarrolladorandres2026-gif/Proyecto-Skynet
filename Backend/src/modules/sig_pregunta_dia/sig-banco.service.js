@@ -18,12 +18,20 @@ function validarOpciones(opciones) {
   }
 }
 
+function normalizarComponente(componenteSig) {
+  const comp = String(componenteSig || '').trim()
+  if (comp.toUpperCase() === 'SARLAF') return 'SARLAFT'
+  return comp
+}
+
 async function validarComponente(componenteSig) {
-  if (!componenteSig?.trim()) throw new ErrorValidacion('El componente SIG es obligatorio')
+  const comp = normalizarComponente(componenteSig)
+  if (!comp) throw new ErrorValidacion('El componente SIG es obligatorio')
   const config = await obtenerOCrearConfiguracion()
-  if (!config.componentes.includes(componenteSig)) {
-    throw new ErrorValidacion(`"${componenteSig}" no es un componente SIG configurado`)
+  if (!config.componentes.includes(comp)) {
+    throw new ErrorValidacion(`"${comp}" no es un componente SIG configurado`)
   }
+  return comp
 }
 
 export async function crearPregunta(datos, usuarioActor) {
@@ -32,12 +40,12 @@ export async function crearPregunta(datos, usuarioActor) {
   if (!enunciado?.trim()) throw new ErrorValidacion('El enunciado es obligatorio')
   if (!tema?.trim()) throw new ErrorValidacion('El tema es obligatorio')
   validarOpciones(opciones)
-  await validarComponente(componenteSig)
+  const compValido = await validarComponente(componenteSig)
 
   const doc = await PreguntaSig.create({
     enunciado: enunciado.trim(),
     opciones: opciones.map((o) => ({ texto: o.texto.trim(), esCorrecta: Boolean(o.esCorrecta) })),
-    componenteSig,
+    componenteSig: compValido,
     tema: tema.trim(),
     retroalimentacion: {
       correcta: retroalimentacion?.correcta?.trim() || '',
@@ -54,7 +62,7 @@ export async function crearPregunta(datos, usuarioActor) {
 export async function listarBanco({ estado, componenteSig, tema, texto, etiqueta } = {}) {
   const filtro = {}
   if (estado) filtro.estado = estado
-  if (componenteSig) filtro.componenteSig = componenteSig
+  if (componenteSig) filtro.componenteSig = normalizarComponente(componenteSig)
   if (tema) filtro.tema = tema
   if (etiqueta) filtro.etiquetas = etiqueta
   if (texto?.trim()) filtro.$text = { $search: texto.trim() }
@@ -81,8 +89,8 @@ export async function editarPregunta(id, datos, usuarioActor) {
     doc.opciones = opciones.map((o) => ({ texto: o.texto.trim(), esCorrecta: Boolean(o.esCorrecta) }))
   }
   if (componenteSig !== undefined) {
-    await validarComponente(componenteSig)
-    doc.componenteSig = componenteSig
+    const compValido = await validarComponente(componenteSig)
+    doc.componenteSig = compValido
   }
   if (tema !== undefined) {
     if (!tema?.trim()) throw new ErrorValidacion('El tema es obligatorio')

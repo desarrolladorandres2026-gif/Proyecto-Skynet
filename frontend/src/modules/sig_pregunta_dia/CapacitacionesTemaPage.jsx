@@ -37,7 +37,7 @@ function BarraAvance({ resumen }) {
   )
 }
 
-function ModalNuevaCapacitacion({ catalogos, onCerrar, onCreada }) {
+function ModalNuevaCapacitacion({ catalogos, componentes = [], onCerrar, onCreada }) {
   const [form, setForm] = useState(FORM_INICIAL)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
@@ -78,7 +78,12 @@ function ModalNuevaCapacitacion({ catalogos, onCerrar, onCreada }) {
           <Input value={form.tema} onChange={(e) => setForm({ ...form, tema: e.target.value })} placeholder="Ej. Uso de EPP en patio de maniobras" />
         </Field>
         <Field label="Componente SIG (opcional)">
-          <Input value={form.componenteSig} onChange={(e) => setForm({ ...form, componenteSig: e.target.value })} />
+          <Select value={form.componenteSig} onChange={(e) => setForm({ ...form, componenteSig: e.target.value })}>
+            <option value="">Sin componente específico</option>
+            {componentes.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </Select>
         </Field>
         <Field label="Fecha programada">
           <Input type="date" value={form.fechaProgramada} onChange={(e) => setForm({ ...form, fechaProgramada: e.target.value })} />
@@ -223,12 +228,17 @@ export default function CapacitacionesTemaPage() {
 
   const { data, cargando, error, actualizarLocal } = useDatosConCache(
     'sig:capacitaciones',
-    () => Promise.all([sig.capacitaciones.listar(), catalogosApi.obtener()])
-      .then(([{ capacitaciones: lista }, cat]) => ({ capacitaciones: lista, catalogos: cat })),
+    () => Promise.all([sig.capacitaciones.listar(), catalogosApi.obtener(), sig.configuracion.obtener()])
+      .then(([{ capacitaciones: lista }, cat, conf]) => ({
+        capacitaciones: lista,
+        catalogos: cat,
+        componentes: conf.configuracion.componentes,
+      })),
     { ttlMs: 30_000 },
   )
   const capacitaciones = data?.capacitaciones || []
   const catalogos = data?.catalogos || { dependencias: [], cargos: [] }
+  const componentes = data?.componentes || []
 
   function actualizarEnLista(actualizada) {
     actualizarLocal((d) => ({
@@ -288,6 +298,7 @@ export default function CapacitacionesTemaPage() {
       {creando && (
         <ModalNuevaCapacitacion
           catalogos={catalogos}
+          componentes={componentes}
           onCerrar={() => setCreando(false)}
           onCreada={(capacitacion) => {
             actualizarLocal((d) => ({
