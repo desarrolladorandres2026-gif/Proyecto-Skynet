@@ -40,4 +40,7 @@ export const ausencias = {
   cancelar(id) {
     return request(`/ausencias/${id}/cancelar`, { method: 'POST' })
   },
+  urlSoporte(id, archivo) {
+    return `/api/ausencias/${id}/soporte${archivo ? `/${encodeURIComponent(archivo)}` : ''}`
+  },
 }

@@ -90,14 +90,14 @@ export async function crearAusencia(datos, usuarioActor) {
   if (tipo !== 'incapacidad' && inicio < hoy) {
     throw new ErrorValidacion('No se pueden solicitar vacaciones ni permisos sobre fechas ya pasadas')
   }
-  if (tipo === 'incapacidad' && !soporte?.url?.trim()) {
+  if (tipo === 'incapacidad' && !soporte?.archivo && !soporte?.url?.trim()) {
     throw new ErrorValidacion('Una incapacidad requiere adjuntar el soporte médico')
   }
   // Segunda barrera además de que el controller nunca copie `soporte` del
-  // body sin pasar por Cloudinary: si algo cambia ahí, esto sigue impidiendo
+  // body sin pasar por la subida de archivos: si algo cambia ahí, esto sigue impidiendo
   // guardar una URL arbitraria (p. ej. javascript:) que luego se renderiza
   // como enlace clicable en la bandeja de quien aprueba.
-  if (soporte?.url && !/^https:\/\/res\.cloudinary\.com\//.test(soporte.url)) {
+  if (soporte?.url && !soporte?.archivo && !/^https:\/\/res\.cloudinary\.com\//.test(soporte.url) && !/^\/api\/ausencias\//.test(soporte.url)) {
     throw new ErrorValidacion('El soporte debe ser un archivo subido, no una URL externa')
   }
 
@@ -140,7 +140,7 @@ export async function crearAusencia(datos, usuarioActor) {
     horaFin: horaFinLimpia,
     diasHabiles,
     motivo: motivo ? String(motivo).trim() : '',
-    soporte: soporte?.url ? soporte : undefined,
+    soporte: (soporte?.archivo || soporte?.url) ? soporte : undefined,
     cargoSolicitante: solicitante?.cargo || '',
     dependenciaSolicitante: solicitante?.dependencia || '',
     estado: 'pendiente',

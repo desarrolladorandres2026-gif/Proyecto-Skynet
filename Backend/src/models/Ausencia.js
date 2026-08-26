@@ -85,13 +85,15 @@ const ausenciaSchema = new mongoose.Schema(
     },
 
     // Soporte de la incapacidad (certificado médico), adjuntado como archivo
-    // (imagen o PDF) y subido a Cloudinary — ver ausencias.controller.js.
-    // Sigue siendo deliberadamente simple: UN archivo vigente, sin
-    // versionado ni control de vencimientos; eso es Talento Humano Fase 3.
+    // (imagen o PDF) y almacenado localmente en STORAGE_ROOT/ausencias_soportes.
+    // Mantiene campos url y publicId por retrocompatibilidad con registros previos.
     soporte: {
+      archivo: { type: String, trim: true, default: '' },
+      nombreArchivo: { type: String, trim: true, default: '' },
+      mimetype: { type: String, trim: true, default: '' },
+      size: { type: Number },
       url: { type: String, trim: true, default: '' },
       publicId: { type: String, trim: true, default: '' },
-      nombreArchivo: { type: String, trim: true, default: '' },
     },
 
     canceladaEn: { type: Date, default: null },

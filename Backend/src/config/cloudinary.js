@@ -94,9 +94,8 @@ export function urlFirmaProcesada(publicId) {
   })
 }
 
-// Para soportes de ausencias (incapacidad médica): puede llegar como foto o
-// como PDF, y a diferencia de subirImagen/subirVideo no vale la pena separar
-// por tipo — 'auto' deja que Cloudinary lo detecte.
+// Utilidad genérica para subida de archivos con autodetección de tipo en Cloudinary.
+// (Nota: los soportes de ausencias se almacenan en disco local con autorización por-recurso).
 export function subirArchivo(buffer, carpeta) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(

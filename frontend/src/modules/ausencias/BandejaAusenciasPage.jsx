@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Inbox, Check, X, Stethoscope } from 'lucide-react'
+import { Inbox, Check, X, Stethoscope, ExternalLink } from 'lucide-react'
 import { ausencias as ausenciasApi } from '../../api/ausencias.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { MOTIVO_LICENCIA_LABELS } from '../../config/ausenciasConstants.js'
@@ -7,6 +7,17 @@ import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Textarea, Modal,
   TablaWrap, Th, Td, EmptyState, fmtFecha,
 } from '../../components/ui.jsx'
+
+function getUrlSoporte(ausencia) {
+  if (!ausencia?.soporte) return null
+  if (ausencia.soporte.archivo) {
+    return ausenciasApi.urlSoporte(ausencia._id, ausencia.soporte.archivo)
+  }
+  if (ausencia.soporte.url?.startsWith('http') || ausencia.soporte.url?.startsWith('/')) {
+    return ausencia.soporte.url
+  }
+  return ausenciasApi.urlSoporte(ausencia._id)
+}
 
 export default function BandejaAusenciasPage() {
   const { data, cargando, error, recargar } = useDatosConCache(
@@ -53,6 +64,7 @@ export default function BandejaAusenciasPage() {
   }
 
   const esRechazo = decision?.accion === 'rechazar'
+  const urlSoporteDecision = decision ? getUrlSoporte(decision.ausencia) : null
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -83,65 +95,64 @@ export default function BandejaAusenciasPage() {
             </tr>
           </thead>
           <tbody>
-            {lista.map((a) => (
-              <tr key={a._id}>
-                <Td className="font-medium">{a.solicitante?.nombre || a.solicitante?.nombre_usuario}</Td>
-                <Td>{a.dependenciaSolicitante || a.solicitante?.dependencia || '—'}</Td>
-                <Td>
-                  <span className="flex items-center gap-1.5">
-                    <Badge valor={a.tipo} />
-                    {/* Defensa en profundidad: aunque el backend ya valida que
-                        soporte.url solo pueda ser un archivo subido a
-                        Cloudinary (ver ausencias.service.js), este componente
-                        no confía ciegamente en ese dato para un href —
-                        cualquier esquema que no sea https queda sin enlace. */}
-                    {a.soporte?.url?.startsWith('https://') && (
-                      <a
-                        href={a.soporte.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        title={a.soporte.nombreArchivo || 'Ver soporte médico'}
-                        className="text-orange-600 hover:underline dark:text-orange-400"
-                      >
-                        <Stethoscope className="h-4 w-4" aria-hidden="true" />
-                      </a>
+            {lista.map((a) => {
+              const urlSoporte = getUrlSoporte(a)
+              return (
+                <tr key={a._id}>
+                  <Td className="font-medium">{a.solicitante?.nombre || a.solicitante?.nombre_usuario}</Td>
+                  <Td>{a.dependenciaSolicitante || a.solicitante?.dependencia || '—'}</Td>
+                  <Td>
+                    <span className="flex items-center gap-1.5">
+                      <Badge valor={a.tipo} />
+                      {urlSoporte && (
+                        <a
+                          href={urlSoporte}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={a.soporte?.nombreArchivo || 'Ver soporte médico (PDF/Imagen)'}
+                          className="inline-flex items-center gap-1 text-cyan-700 hover:underline dark:text-cyan-400"
+                        >
+                          <Stethoscope className="h-4 w-4" aria-hidden="true" />
+                          <span className="text-xs">Soporte</span>
+                        </a>
+                      )}
+                    </span>
+                  </Td>
+                  <Td className="whitespace-nowrap">
+                    {fmtFecha(a.fechaInicio)}
+                    {a.horaInicio && (
+                      <span className="block text-xs text-slate-500 dark:text-slate-400">
+                        {a.horaInicio}–{a.horaFin}
+                      </span>
                     )}
-                  </span>
-                </Td>
-                <Td className="whitespace-nowrap">
-                  {fmtFecha(a.fechaInicio)}
-                  {a.horaInicio && (
-                    <span className="block text-xs text-slate-500 dark:text-slate-400">
-                      {a.horaInicio}–{a.horaFin}
-                    </span>
-                  )}
-                </Td>
-                <Td className="whitespace-nowrap">{fmtFecha(a.fechaFin)}</Td>
-                <Td>{a.diasHabiles}</Td>
-                <Td className="max-w-xs truncate text-slate-600 dark:text-slate-300">
-                  {a.motivoLicencia && (
-                    <span className="mr-1.5 text-xs font-medium text-violet-600 dark:text-violet-400">
-                      [{MOTIVO_LICENCIA_LABELS[a.motivoLicencia] || a.motivoLicencia}]
-                    </span>
-                  )}
-                  {a.motivo || (a.motivoLicencia ? '' : '—')}
-                </Td>
-                <Td className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Btn variante="fantasma" className="flex items-center gap-1.5" onClick={() => abrir(a, 'aprobar')}>
-                      <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" /> Aprobar
-                    </Btn>
-                    <Btn
-                      variante="fantasma"
-                      className="flex items-center gap-1.5 !text-red-600 dark:!text-red-400"
-                      onClick={() => abrir(a, 'rechazar')}
-                    >
-                      <X className="h-4 w-4" aria-hidden="true" /> Rechazar
-                    </Btn>
-                  </div>
-                </Td>
-              </tr>
-            ))}
+                  </Td>
+                  <Td className="whitespace-nowrap">{fmtFecha(a.fechaFin)}</Td>
+                  <Td>{a.diasHabiles}</Td>
+                  <Td className="max-w-xs truncate text-slate-600 dark:text-slate-300">
+                    {a.motivoLicencia && (
+                      <span className="mr-1.5 text-xs font-medium text-violet-600 dark:text-violet-400">
+                        [{MOTIVO_LICENCIA_LABELS[a.motivoLicencia] || a.motivoLicencia}]
+                      </span>
+                    )}
+                    {a.motivo || (a.motivoLicencia ? '' : '—')}
+                  </Td>
+                  <Td className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Btn variante="fantasma" className="flex items-center gap-1.5" onClick={() => abrir(a, 'aprobar')}>
+                        <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" /> Aprobar
+                      </Btn>
+                      <Btn
+                        variante="fantasma"
+                        className="flex items-center gap-1.5 !text-red-600 dark:!text-red-400"
+                        onClick={() => abrir(a, 'rechazar')}
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" /> Rechazar
+                      </Btn>
+                    </div>
+                  </Td>
+                </tr>
+              )
+            })}
           </tbody>
         </TablaWrap>
       )}
@@ -161,6 +172,29 @@ export default function BandejaAusenciasPage() {
               {decision.ausencia.diasHabiles} día{decision.ausencia.diasHabiles === 1 ? '' : 's'}
               {decision.ausencia.horaInicio ? ` · ${decision.ausencia.horaInicio}–${decision.ausencia.horaFin}` : ''})
             </p>
+
+            {urlSoporteDecision && (
+              <div className="rounded-lg border border-cyan-200 bg-cyan-50/70 p-3 dark:border-cyan-900/50 dark:bg-cyan-950/30">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-sm text-cyan-950 dark:text-cyan-200">
+                    <Stethoscope className="h-4 w-4 text-cyan-600 dark:text-cyan-400" aria-hidden="true" />
+                    <span className="font-medium">Soporte médico:</span>
+                    <span className="max-w-[180px] truncate text-xs text-slate-600 dark:text-slate-400">
+                      {decision.ausencia.soporte?.nombreArchivo || 'Documento adjunto'}
+                    </span>
+                  </div>
+                  <a
+                    href={urlSoporteDecision}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md bg-cyan-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm hover:bg-cyan-500 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                    Ver documento
+                  </a>
+                </div>
+              </div>
+            )}
 
             <Field label={esRechazo ? 'Motivo del rechazo (obligatorio)' : 'Observación (opcional)'}>
               <Textarea required={esRechazo} value={texto} onChange={(e) => setTexto(e.target.value)} />

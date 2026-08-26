@@ -223,6 +223,64 @@ describe('Ausencias — capa HTTP', () => {
     expect((await request(app).get('/api/ausencias/mias')).status).toBe(401)
     expect((await request(app).post('/api/ausencias').send({})).status).toBe(401)
   })
+
+  it('permite crear incapacidad subiendo un archivo PDF real y descargarlo con autorización', async () => {
+    const { usuario: solicitante } = await crearActor(null)
+    const { usuario: jefe } = await crearActor('ausencias:aprobar')
+    const { usuario: curioso } = await crearActor(null)
+    const lunes = lunesFuturo()
+    const pdfReal = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.from('soporte incapacidad medica')])
+
+    const resCrear = await request(app)
+      .post('/api/ausencias')
+      .set('Authorization', autorizacion(solicitante))
+      .field('tipo', 'incapacidad')
+      .field('fechaInicio', lunes.toISOString())
+      .field('fechaFin', lunes.toISOString())
+      .field('motivo', 'Incapacidad médica')
+      .attach('soporte', pdfReal, { filename: 'certificado.pdf', contentType: 'application/pdf' })
+
+    expect(resCrear.status).toBe(201)
+    const ausencia = resCrear.body.ausencia
+    expect(ausencia.soporte).toBeDefined()
+    expect(ausencia.soporte.archivo).toMatch(/_certificado\.pdf$/)
+    expect(ausencia.soporte.nombreArchivo).toBe('certificado.pdf')
+
+    // El solicitante puede ver su propio soporte
+    const resSoportePropio = await request(app)
+      .get(`/api/ausencias/${ausencia._id}/soporte`)
+      .set('Authorization', autorizacion(solicitante))
+    expect(resSoportePropio.status).toBe(200)
+    expect(resSoportePropio.headers['content-type']).toContain('application/pdf')
+
+    // Quien aprueba también puede ver el soporte
+    const resSoporteJefe = await request(app)
+      .get(`/api/ausencias/${ausencia._id}/soporte`)
+      .set('Authorization', autorizacion(jefe))
+    expect(resSoporteJefe.status).toBe(200)
+
+    // Un usuario sin permisos no puede acceder al soporte de otro
+    const resSoporteCurioso = await request(app)
+      .get(`/api/ausencias/${ausencia._id}/soporte`)
+      .set('Authorization', autorizacion(curioso))
+    expect(resSoporteCurioso.status).toBe(409)
+  })
+
+  it('rechaza subir un soporte falsificado que no es PDF ni imagen', async () => {
+    const { usuario } = await crearActor(null)
+    const lunes = lunesFuturo()
+    const scriptFalso = Buffer.from('#!/bin/bash\necho "ataque"')
+
+    const res = await request(app)
+      .post('/api/ausencias')
+      .set('Authorization', autorizacion(usuario))
+      .field('tipo', 'incapacidad')
+      .field('fechaInicio', lunes.toISOString())
+      .field('fechaFin', lunes.toISOString())
+      .attach('soporte', scriptFalso, { filename: 'falso.pdf', contentType: 'application/pdf' })
+
+    expect(res.status).toBe(400)
+  })
 })
 
 describe('Ausencias — conteo de días', () => {

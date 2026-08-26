@@ -163,9 +163,28 @@ export default function MisAusenciasPage() {
             </tr>
           </thead>
           <tbody>
-            {lista.map((a) => (
+            {lista.map((a) => {
+              const urlSoporte = a.soporte?.archivo
+                ? ausenciasApi.urlSoporte(a._id, a.soporte.archivo)
+                : (a.soporte?.url || (a.soporte?.archivo ? ausenciasApi.urlSoporte(a._id) : null))
+              return (
               <tr key={a._id}>
-                <Td><Badge valor={a.tipo} /></Td>
+                <Td>
+                  <span className="flex items-center gap-1.5">
+                    <Badge valor={a.tipo} />
+                    {urlSoporte && (
+                      <a
+                        href={urlSoporte}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={a.soporte?.nombreArchivo || 'Ver soporte médico'}
+                        className="text-cyan-700 hover:text-cyan-600 dark:text-cyan-400 dark:hover:text-cyan-300"
+                      >
+                        <Paperclip className="h-4 w-4" aria-hidden="true" />
+                      </a>
+                    )}
+                  </span>
+                </Td>
                 <Td className="whitespace-nowrap">
                   {fmtFecha(a.fechaInicio)}
                   {a.horaInicio && (
@@ -199,7 +218,8 @@ export default function MisAusenciasPage() {
                   )}
                 </Td>
               </tr>
-            ))}
+            )
+          })}
           </tbody>
         </TablaWrap>
       )}
