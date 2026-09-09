@@ -94,7 +94,7 @@ export default function LoginPage() {
 
   return (
     <div
-      className="skynet-login-root relative flex min-h-svh w-full flex-col lg:grid lg:grid-cols-12 overflow-x-hidden"
+      className="skynet-login-root relative flex h-svh w-full flex-col overflow-hidden lg:grid lg:h-auto lg:min-h-svh lg:grid-cols-12 lg:overflow-x-hidden"
       onClick={() => {
         if (enSecuencia) navigate('/', { replace: true })
       }}
@@ -116,7 +116,7 @@ export default function LoginPage() {
       {/* =========================================================
           COLUMNA 1: HERO IMAGE SHOWCASE (EL TERMINAL DE NEIVA)
           ========================================================= */}
-      <div className="skynet-hero-col relative lg:col-span-7 xl:col-span-7 2xl:col-span-8 flex flex-col justify-end overflow-hidden p-6 sm:p-10 lg:p-12 xl:p-16 min-h-[340px] lg:min-h-svh">
+      <div className="skynet-hero-col relative lg:col-span-7 xl:col-span-7 2xl:col-span-8 flex shrink-0 flex-col justify-end overflow-hidden p-4 sm:p-10 lg:p-12 xl:p-16 min-h-[120px] max-h-[24svh] lg:max-h-none lg:min-h-svh">
         
         {/* Foto real del Terminal con gradientes cinemáticos a pantalla completa */}
         <div className="skynet-hero-img-wrapper absolute inset-0">
@@ -125,15 +125,15 @@ export default function LoginPage() {
         </div>
 
         {/* Pie inferior del Hero: Título institucional y lema */}
-        <div className="relative z-10 pt-10">
-          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white drop-shadow-lg leading-tight">
-            Terminal de Transportes <br />
+        <div className="relative z-10 pt-0 lg:pt-10">
+          <h2 className="text-base sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white drop-shadow-lg leading-tight">
+            Terminal de Transportes <br className="hidden sm:block" />
             <span className="bg-gradient-to-r from-blue-300 via-emerald-300 to-amber-300 bg-clip-text text-transparent">
               de Neiva S.A.
             </span>
           </h2>
 
-          <p className="mt-3 text-sm sm:text-base lg:text-lg text-slate-200/90 font-normal max-w-xl leading-relaxed drop-shadow">
+          <p className="mt-3 hidden sm:block text-sm sm:text-base lg:text-lg text-slate-200/90 font-normal max-w-xl leading-relaxed drop-shadow">
             Centro neurálgico de movilidad y transporte intermunicipal de Colombia. Plataforma integral de gestión operativa, despachos y seguridad unificada.
           </p>
         </div>
@@ -145,7 +145,7 @@ export default function LoginPage() {
           COLUMNA 2: TARJETA DE LOGIN / ACCESO (PANTALLA COMPLETA)
           ========================================================= */}
       <div
-        className={`skynet-card-col relative lg:col-span-5 xl:col-span-5 2xl:col-span-4 flex flex-col justify-center min-h-svh p-6 sm:p-10 lg:p-12 xl:p-14 bg-slate-900/95 lg:bg-slate-900/90 backdrop-blur-2xl border-t lg:border-t-0 lg:border-l border-white/10 shadow-2xl z-20 ${
+        className={`skynet-card-col relative lg:col-span-5 xl:col-span-5 2xl:col-span-4 flex min-h-0 flex-1 flex-col justify-center overflow-y-auto p-4 sm:p-10 lg:min-h-svh lg:flex-none lg:p-12 xl:p-14 bg-slate-900/95 lg:bg-slate-900/90 backdrop-blur-2xl border-t lg:border-t-0 lg:border-l border-white/10 shadow-2xl z-20 ${
           fase === 'verificando'
             ? 'skynet-card-verificando'
             : enSecuencia
@@ -156,7 +156,7 @@ export default function LoginPage() {
         {/* Barra superior de acento tricolor corporativo (Azul - Verde - Naranja) */}
         <div className="absolute top-0 left-0 right-0 h-1.5 w-full bg-gradient-to-r from-[#1c568c] via-[#5a982c] to-[#d96b12]" />
 
-        <div className="w-full max-w-md mx-auto my-auto py-6">
+        <div className="w-full max-w-md mx-auto my-auto py-2 lg:py-6">
           {/* Haz de escaneo activo durante la verificación */}
           {fase === 'verificando' && <div className="skynet-scan-beam" aria-hidden="true" />}
 
@@ -218,8 +218,8 @@ export default function LoginPage() {
                  ========================================================= */
               <div className="flex flex-col justify-center">
                 {/* Logo institucional con aura */}
-                <div className="mb-6 text-center">
-                  <div className="group relative mx-auto mb-3.5 flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-2xl bg-gradient-to-b from-white to-slate-100 p-2.5 shadow-xl ring-4 ring-blue-500/20 transition-transform duration-300 hover:scale-105">
+                <div className="mb-4 sm:mb-6 text-center">
+                  <div className="group relative mx-auto mb-2.5 sm:mb-3.5 flex h-14 w-14 sm:h-24 sm:w-24 items-center justify-center rounded-2xl bg-gradient-to-b from-white to-slate-100 p-2 sm:p-2.5 shadow-xl ring-4 ring-blue-500/20 transition-transform duration-300 hover:scale-105">
                     <img
                       src={logoClaro}
                       alt="Terminal de Transportes de Neiva"
@@ -238,7 +238,7 @@ export default function LoginPage() {
                   </p>
                 </div>
 
-                <form onSubmit={onSubmit} className="space-y-4">
+                <form onSubmit={onSubmit} className="space-y-3 sm:space-y-4">
                   {/* Campo Correo */}
                   <div className="space-y-1.5">
                     <label
@@ -369,7 +369,7 @@ export default function LoginPage() {
                 </form>
 
                 {/* Pie con enlace de política de privacidad */}
-                <div className="mt-6 pt-4 border-t border-white/10 text-center">
+                <div className="mt-4 pt-3 sm:mt-6 sm:pt-4 border-t border-white/10 text-center">
                   <p className="text-[11px] text-slate-400">
                     Al continuar aceptas la{' '}
                     <Link
