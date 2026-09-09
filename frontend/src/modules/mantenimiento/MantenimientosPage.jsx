@@ -221,14 +221,14 @@ export default function MantenimientosPage() {
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-1 rounded-xl border border-cyan-600/15 bg-slate-900/[0.02] p-1 dark:border-cyan-400/10 dark:bg-white/[0.02]">
+      <div className="mb-4 flex flex-wrap gap-1 rounded-xl border border-brand-600/15 bg-slate-900/[0.02] p-1 dark:border-brand-400/10 dark:bg-white/[0.02]">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => cambiarTab(t.key)}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
               tab === t.key
-                ? 'bg-cyan-600/15 text-cyan-800 dark:bg-cyan-400/15 dark:text-cyan-200'
+                ? 'bg-brand-600/15 text-brand-800 dark:bg-brand-400/15 dark:text-brand-200'
                 : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
             }`}
           >

@@ -69,7 +69,7 @@ export default function BandejaAusenciasPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <h1 className="panel-mono mb-4 flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-        <Inbox className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <Inbox className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         Solicitudes por decidir
       </h1>
 
@@ -110,7 +110,7 @@ export default function BandejaAusenciasPage() {
                           target="_blank"
                           rel="noreferrer"
                           title={a.soporte?.nombreArchivo || 'Ver soporte médico (PDF/Imagen)'}
-                          className="inline-flex items-center gap-1 text-cyan-700 hover:underline dark:text-cyan-400"
+                          className="inline-flex items-center gap-1 text-brand-700 hover:underline dark:text-brand-400"
                         >
                           <Stethoscope className="h-4 w-4" aria-hidden="true" />
                           <span className="text-xs">Soporte</span>
@@ -139,7 +139,7 @@ export default function BandejaAusenciasPage() {
                   <Td className="text-right">
                     <div className="flex justify-end gap-2">
                       <Btn variante="fantasma" className="flex items-center gap-1.5" onClick={() => abrir(a, 'aprobar')}>
-                        <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" /> Aprobar
+                        <Check className="h-4 w-4 text-accent-600 dark:text-accent-400" aria-hidden="true" /> Aprobar
                       </Btn>
                       <Btn
                         variante="fantasma"
@@ -174,10 +174,10 @@ export default function BandejaAusenciasPage() {
             </p>
 
             {urlSoporteDecision && (
-              <div className="rounded-lg border border-cyan-200 bg-cyan-50/70 p-3 dark:border-cyan-900/50 dark:bg-cyan-950/30">
+              <div className="rounded-lg border border-brand-200 bg-brand-50/70 p-3 dark:border-brand-900/50 dark:bg-brand-950/30">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-sm text-cyan-950 dark:text-cyan-200">
-                    <Stethoscope className="h-4 w-4 text-cyan-600 dark:text-cyan-400" aria-hidden="true" />
+                  <div className="flex items-center gap-2 text-sm text-brand-950 dark:text-brand-200">
+                    <Stethoscope className="h-4 w-4 text-brand-600 dark:text-brand-400" aria-hidden="true" />
                     <span className="font-medium">Soporte médico:</span>
                     <span className="max-w-[180px] truncate text-xs text-slate-600 dark:text-slate-400">
                       {decision.ausencia.soporte?.nombreArchivo || 'Documento adjunto'}
@@ -187,7 +187,7 @@ export default function BandejaAusenciasPage() {
                     href={urlSoporteDecision}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-md bg-cyan-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm hover:bg-cyan-500 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400"
+                    className="inline-flex items-center gap-1 rounded-md bg-brand-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm hover:bg-brand-500 dark:bg-brand-500 dark:text-slate-950 dark:hover:bg-brand-400"
                   >
                     <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                     Ver documento

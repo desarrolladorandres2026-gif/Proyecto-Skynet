@@ -8,7 +8,7 @@ const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 const PUNTO_COLORES = {
   programada: 'bg-brand-500',
-  publicada: 'bg-emerald-500',
+  publicada: 'bg-accent-500',
   cancelada: 'bg-slate-400',
 }
 
@@ -88,7 +88,7 @@ export default function CalendarioSigPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <h1 className="panel-mono mb-4 flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-        <CalendarRange className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <CalendarRange className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         Calendario de programación SIG
       </h1>
 
@@ -108,7 +108,7 @@ export default function CalendarioSigPage() {
           <button
             type="button"
             onClick={irAHoy}
-            className="panel-mono rounded-lg px-2.5 py-1 text-[11px] tracking-wide text-cyan-700 uppercase ring-1 ring-inset ring-cyan-700/30 hover:bg-cyan-500/10 dark:text-cyan-400 dark:ring-cyan-400/30"
+            className="panel-mono rounded-lg px-2.5 py-1 text-[11px] tracking-wide text-brand-700 uppercase ring-1 ring-inset ring-brand-700/30 hover:bg-brand-500/10 dark:text-brand-400 dark:ring-brand-400/30"
           >
             Hoy
           </button>
@@ -132,10 +132,10 @@ export default function CalendarioSigPage() {
                 type="button"
                 onClick={() => setDiaSeleccionado(iso)}
                 className={`flex min-h-[74px] flex-col items-start rounded-lg p-1.5 text-left ring-1 ring-inset transition-colors ${
-                  esSeleccionado ? 'ring-2 ring-cyan-600 dark:ring-cyan-400' : 'ring-slate-500/10 hover:ring-slate-500/25'
+                  esSeleccionado ? 'ring-2 ring-brand-600 dark:ring-brand-400' : 'ring-slate-500/10 hover:ring-slate-500/25'
                 } ${esDelMes ? '' : 'opacity-40'}`}
               >
-                <span className={`panel-mono text-[11px] ${esHoy ? 'rounded-full bg-cyan-600 px-1.5 py-0.5 text-white dark:bg-cyan-500' : 'text-slate-600 dark:text-slate-300'}`}>
+                <span className={`panel-mono text-[11px] ${esHoy ? 'rounded-full bg-brand-600 px-1.5 py-0.5 text-white dark:bg-brand-500' : 'text-slate-600 dark:text-slate-300'}`}>
                   {dia.getDate()}
                 </span>
                 <div className="mt-1 flex w-full flex-col gap-0.5">
@@ -163,7 +163,7 @@ export default function CalendarioSigPage() {
       </Card>
 
       <Card className="mt-4">
-        <h2 className="panel-mono mb-3 text-[11px] tracking-[0.1em] text-cyan-700/80 uppercase dark:text-cyan-400/80">
+        <h2 className="panel-mono mb-3 text-[11px] tracking-[0.1em] text-brand-700/80 uppercase dark:text-brand-400/80">
           {new Date(diaSeleccionado + 'T00:00:00').toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}
         </h2>
         {cargando ? (

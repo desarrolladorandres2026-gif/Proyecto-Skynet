@@ -20,13 +20,13 @@ export function CopilotoConfirmacion({ confirmacion, onConfirmar, onDescartar, e
   if (!confirmacion) return null
 
   return (
-    <div className="mx-4 mb-3 rounded-2xl border border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10 p-3.5 shadow-[0_0_20px_rgba(245,158,11,0.10)]">
+    <div className="mx-4 mb-3 rounded-2xl border border-warn-500/40 bg-warn-500/5 dark:bg-warn-500/10 p-3.5 shadow-[0_0_20px_rgba(217,107,18,0.10)]">
       <div className="flex items-center gap-2 mb-2.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/15 border border-amber-500/30 shrink-0">
-          <ShieldAlert className="h-3.5 w-3.5 text-amber-600 dark:text-amber-300" aria-hidden="true" />
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-warn-500/15 border border-warn-500/30 shrink-0">
+          <ShieldAlert className="h-3.5 w-3.5 text-warn-600 dark:text-warn-300" aria-hidden="true" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-bold text-slate-800 dark:text-amber-200 leading-tight">
+          <p className="text-xs font-bold text-slate-800 dark:text-warn-200 leading-tight">
             Confirma esta acción
           </p>
           <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">
@@ -61,7 +61,7 @@ export function CopilotoConfirmacion({ confirmacion, onConfirmar, onDescartar, e
           disabled={enviando}
           className={cn(
             'flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold text-white transition-all',
-            'bg-gradient-to-r from-amber-600 to-orange-600 hover:shadow-[0_0_16px_rgba(245,158,11,0.5)] disabled:opacity-70'
+            'bg-gradient-to-r from-warn-600 to-warn-600 hover:shadow-[0_0_16px_rgba(217,107,18,0.5)] disabled:opacity-70'
           )}
         >
           {enviando ? (

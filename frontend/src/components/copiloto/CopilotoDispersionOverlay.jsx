@@ -34,7 +34,7 @@ export function CopilotoDispersionOverlay({ triggerKey, origin = { x: window.inn
       targetX: Math.cos(rad) * distance,
       targetY: Math.sin(rad) * distance,
       size: 4 + (i % 3) * 3,
-      color: i % 3 === 0 ? '#22d3ee' : i % 3 === 1 ? '#a855f7' : '#38bdf8',
+      color: i % 3 === 0 ? '#4e7cbe' : i % 3 === 1 ? '#a855f7' : '#38bdf8',
     }
   })
 
@@ -46,7 +46,7 @@ export function CopilotoDispersionOverlay({ triggerKey, origin = { x: window.inn
           initial={{ opacity: 0 }}
           animate={{ opacity: [0, 0.4, 0] }}
           transition={{ duration: 0.85, ease: 'easeOut' }}
-          className="absolute inset-0 bg-gradient-to-r from-cyan-900/30 via-indigo-900/40 to-fuchsia-900/30 backdrop-blur-[2px]"
+          className="absolute inset-0 bg-gradient-to-r from-brand-900/30 via-indigo-900/40 to-fuchsia-900/30 backdrop-blur-[2px]"
         />
 
         {/* Rejilla cibernética holográfica fugaz */}
@@ -54,7 +54,7 @@ export function CopilotoDispersionOverlay({ triggerKey, origin = { x: window.inn
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: [0, 0.45, 0], scale: [0.9, 1.1, 1.25] }}
           transition={{ duration: 1.1, ease: 'easeOut' }}
-          className="absolute inset-0 bg-[radial-gradient(#22d3ee_1px,transparent_1px)] [background-size:24px_24px] opacity-20"
+          className="absolute inset-0 bg-[radial-gradient(#4e7cbe_1px,transparent_1px)] [background-size:24px_24px] opacity-20"
         />
 
         {/* Onda expansiva principal 1 (Neón Cian) */}
@@ -68,7 +68,7 @@ export function CopilotoDispersionOverlay({ triggerKey, origin = { x: window.inn
             opacity: [0.95, 0.6, 0],
           }}
           transition={{ duration: 1.15, ease: [0.1, 0.8, 0.2, 1] }}
-          className="absolute rounded-full border-2 border-cyan-400 dark:border-cyan-300 shadow-[0_0_60px_rgba(34,211,238,0.9),inset_0_0_35px_rgba(34,211,238,0.6)]"
+          className="absolute rounded-full border-2 border-brand-400 dark:border-brand-300 shadow-[0_0_60px_rgba(78,124,190,0.9),inset_0_0_35px_rgba(78,124,190,0.6)]"
         />
 
         {/* Onda expansiva secundaria 2 (Neón Violeta/Fucsia) */}
@@ -91,7 +91,7 @@ export function CopilotoDispersionOverlay({ triggerKey, origin = { x: window.inn
           animate={{ scale: [0.5, 4, 5.5], opacity: [1, 0.5, 0] }}
           transition={{ duration: 0.85, ease: 'easeOut' }}
           style={{ left: coords.x - 75, top: coords.y - 75 }}
-          className="absolute w-[150px] h-[150px] rounded-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-fuchsia-500 blur-xl opacity-80"
+          className="absolute w-[150px] h-[150px] rounded-full bg-gradient-to-r from-brand-400 via-indigo-500 to-fuchsia-500 blur-xl opacity-80"
         />
 
         {/* Ráfaga de partículas direccionales */}
@@ -121,7 +121,7 @@ export function CopilotoDispersionOverlay({ triggerKey, origin = { x: window.inn
           initial={{ top: '-10%', opacity: 0.9 }}
           animate={{ top: '110%', opacity: 0 }}
           transition={{ duration: 0.85, ease: 'linear' }}
-          className="absolute left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-cyan-400 via-fuchsia-400 to-transparent shadow-[0_0_25px_#22d3ee]"
+          className="absolute left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-brand-400 via-fuchsia-400 to-transparent shadow-[0_0_25px_#4e7cbe]"
         />
       </div>
     </AnimatePresence>

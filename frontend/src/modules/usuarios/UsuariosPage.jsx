@@ -205,7 +205,7 @@ export default function UsuariosPage() {
             <div className="flex items-center gap-2">
               <span className="font-medium">{info.getValue()}</span>
               {esPrueba && (
-                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                <span className="rounded bg-warn-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warn-700 dark:bg-warn-900/40 dark:text-warn-300">
                   Prueba
                 </span>
               )}
@@ -281,7 +281,7 @@ export default function UsuariosPage() {
       <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           {esPrueba ? (
-            <FlaskConical className="h-5 w-5 text-amber-500" aria-hidden="true" />
+            <FlaskConical className="h-5 w-5 text-warn-500" aria-hidden="true" />
           ) : (
             <Users className="h-5 w-5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
           )}
@@ -315,7 +315,7 @@ export default function UsuariosPage() {
           onClick={() => setVista('prueba')}
           className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
             vista === 'prueba'
-              ? 'border-amber-500 text-amber-600 dark:text-amber-400'
+              ? 'border-warn-500 text-warn-600 dark:text-warn-400'
               : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
           }`}
         >
@@ -325,7 +325,7 @@ export default function UsuariosPage() {
       </div>
 
       {esPrueba && (
-        <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300">
+        <p className="mb-4 rounded-md border border-warn-200 bg-warn-50 px-3 py-2 text-sm text-warn-800 dark:border-warn-900/40 dark:bg-warn-950/30 dark:text-warn-300">
           Estos usuarios están aislados del personal real: no aparecen en dashboards, estadísticas, reportes ni selectores de trabajador. Puedes convertirlos en usuarios reales cuando correspondan a un trabajador oficial del Terminal.
         </p>
       )}

@@ -196,7 +196,7 @@ export default function AsistentePage() {
         <button
           type="button"
           onClick={() => puente.abrirPanel('/asistente/diagnostico')}
-          className="flex items-center gap-1.5 rounded-full bg-slate-900/85 px-3 py-1.5 text-[11px] font-medium text-amber-300 shadow-lg backdrop-blur"
+          className="flex items-center gap-1.5 rounded-full bg-slate-900/85 px-3 py-1.5 text-[11px] font-medium text-warn-300 shadow-lg backdrop-blur"
         >
           <MicOff className="h-3.5 w-3.5" aria-hidden="true" />
           {problema} — ver diagnóstico

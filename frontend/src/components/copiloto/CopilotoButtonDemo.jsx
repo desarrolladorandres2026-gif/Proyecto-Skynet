@@ -48,7 +48,7 @@ export function CopilotoButtonDemo() {
       <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-cyan-400" />
+            <Sparkles className="w-5 h-5 text-brand-400" />
             <h2 className="text-xl font-bold tracking-tight">Sistema de Chat Skynet</h2>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -59,15 +59,15 @@ export function CopilotoButtonDemo() {
         {/* Toggle de Modo Claro / Oscuro */}
         <button
           onClick={() => setIsDark(!isDark)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all border bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 hover:border-cyan-400 dark:hover:border-cyan-400 shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all border bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-400 shadow-sm"
         >
           {isDark ? (
             <>
-              <Sun className="w-4 h-4 text-amber-400" /> Modo Claro
+              <Sun className="w-4 h-4 text-warn-400" /> Modo Claro
             </>
           ) : (
             <>
-              <Moon className="w-4 h-4 text-cyan-400" /> Modo Oscuro
+              <Moon className="w-4 h-4 text-brand-400" /> Modo Oscuro
             </>
           )}
         </button>
@@ -87,7 +87,7 @@ export function CopilotoButtonDemo() {
                 onClick={() => setSpeed(s)}
                 className={`flex-1 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
                   speed === s
-                    ? 'bg-cyan-500 text-white shadow-md'
+                    ? 'bg-brand-500 text-white shadow-md'
                     : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700'
                 }`}
               >
@@ -114,7 +114,7 @@ export function CopilotoButtonDemo() {
                 onClick={() => setBgStyle(bg.id)}
                 className={`py-1 px-2 rounded-lg text-xs font-medium transition-all ${
                   bgStyle === bg.id
-                    ? 'bg-cyan-600 text-white shadow-sm'
+                    ? 'bg-brand-600 text-white shadow-sm'
                     : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700'
                 }`}
               >
@@ -128,7 +128,7 @@ export function CopilotoButtonDemo() {
         <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
           <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between mb-2">
             <span>Tamaño del Botón</span>
-            <span className="text-cyan-500 font-bold">{size}px</span>
+            <span className="text-brand-500 font-bold">{size}px</span>
           </label>
           <input
             type="range"
@@ -136,7 +136,7 @@ export function CopilotoButtonDemo() {
             max="120"
             value={size}
             onChange={(e) => setSize(Number(e.target.value))}
-            className="w-full accent-cyan-500 cursor-pointer"
+            className="w-full accent-brand-500 cursor-pointer"
           />
         </div>
       </div>
@@ -145,16 +145,16 @@ export function CopilotoButtonDemo() {
       <div
         className={`relative min-h-[480px] rounded-2xl p-8 flex flex-col items-center justify-end overflow-hidden transition-all duration-500 border ${
           bgStyle === 'dark-glass'
-            ? 'bg-slate-900/90 border-cyan-500/20 backdrop-blur-xl'
+            ? 'bg-slate-900/90 border-brand-500/20 backdrop-blur-xl'
             : bgStyle === 'light-slate'
             ? 'bg-slate-100 border-slate-300'
             : bgStyle === 'gradient'
-            ? 'bg-gradient-to-br from-indigo-900 via-slate-900 to-cyan-950 border-cyan-500/30'
-            : 'bg-[radial-gradient(#0891b2_1px,transparent_1px)] [background-size:16px_16px] bg-slate-950 border-cyan-500/20'
+            ? 'bg-gradient-to-br from-indigo-900 via-slate-900 to-brand-950 border-brand-500/30'
+            : 'bg-[radial-gradient(#1f4d8f_1px,transparent_1px)] [background-size:16px_16px] bg-slate-950 border-brand-500/20'
         }`}
       >
         <div className="absolute top-4 left-4 z-20">
-          <span className="text-xs font-mono uppercase tracking-widest text-slate-400 dark:text-cyan-400/80 bg-slate-800/40 px-3 py-1 rounded-full border border-cyan-500/20">
+          <span className="text-xs font-mono uppercase tracking-widest text-slate-400 dark:text-brand-400/80 bg-slate-800/40 px-3 py-1 rounded-full border border-brand-500/20">
             Demostración Interactiva — Haz clic en el botón para abrir/cerrar la tarjeta
           </span>
         </div>
@@ -185,7 +185,7 @@ export function CopilotoButtonDemo() {
       {/* Desglose de Tamaños & Iconos aislados */}
       <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
-          <Play className="w-4 h-4 text-cyan-400" /> Iconos vectoriales aislados en varios tamaños
+          <Play className="w-4 h-4 text-brand-400" /> Iconos vectoriales aislados en varios tamaños
         </h3>
         <div className="flex flex-wrap items-center justify-around gap-6 p-6 rounded-2xl bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800">
           <div className="flex flex-col items-center gap-2">

@@ -30,10 +30,10 @@ export default function MantenimientoHome() {
 
       {panel?.mantenimientos_proximos?.length > 0 && (
         <div className="mt-6">
-          <h2 className="panel-mono mb-2 text-sm font-semibold uppercase tracking-wide text-cyan-700/80 dark:text-cyan-400/80">Próximos 7 días</h2>
+          <h2 className="panel-mono mb-2 text-sm font-semibold uppercase tracking-wide text-brand-700/80 dark:text-brand-400/80">Próximos 7 días</h2>
           <ul className="space-y-2">
             {panel.mantenimientos_proximos.map((m) => (
-              <li key={m._id} className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+              <li key={m._id} className="rounded-lg border border-warn-400/30 bg-warn-400/10 px-3 py-2 text-sm text-warn-800 dark:text-warn-200">
                 {new Date(m.fecha).toLocaleDateString('es-CO')} — {m.equipo?.numero_inventario} {m.equipo?.marca?.nombre} {m.equipo?.modelo} · {m.tipo} ({m.tecnico})
               </li>
             ))}

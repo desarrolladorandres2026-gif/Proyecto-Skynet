@@ -47,25 +47,25 @@ export default function ModuloAcordeon({ modulo, expandido, completado, puntajeG
         onClick={onToggle}
         className="ind-acordeon-header flex w-full items-center gap-3 px-4 py-4 text-left"
       >
-        <modulo.icono className="h-6 w-6 shrink-0 text-cyan-700/80 dark:text-cyan-400/80" aria-hidden="true" />
+        <modulo.icono className="h-6 w-6 shrink-0 text-brand-700/80 dark:text-brand-400/80" aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <p className="panel-mono text-[11px] uppercase tracking-wide text-slate-500">Módulo {modulo.id}</p>
           <p className="truncate text-base font-semibold text-slate-900 dark:text-white">{modulo.titulo}</p>
         </div>
         {completado && (
-          <span className="panel-mono shrink-0 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-400/30 dark:text-emerald-300">
+          <span className="panel-mono shrink-0 rounded-full bg-accent-400/10 px-2 py-0.5 text-[11px] font-medium text-accent-700 ring-1 ring-inset ring-accent-400/30 dark:text-accent-300">
             Completado{puntajeGuardado ? ` · ${puntajeGuardado}` : ''}
           </span>
         )}
         {expandido ? (
-          <ChevronDown className="h-4 w-4 shrink-0 text-cyan-700/70 dark:text-cyan-400/70" aria-hidden="true" />
+          <ChevronDown className="h-4 w-4 shrink-0 text-brand-700/70 dark:text-brand-400/70" aria-hidden="true" />
         ) : (
-          <ChevronRight className="h-4 w-4 shrink-0 text-cyan-700/70 dark:text-cyan-400/70" aria-hidden="true" />
+          <ChevronRight className="h-4 w-4 shrink-0 text-brand-700/70 dark:text-brand-400/70" aria-hidden="true" />
         )}
       </button>
 
       {expandido && (
-        <div className="border-t border-cyan-600/15 px-4 py-5 dark:border-cyan-400/10">
+        <div className="border-t border-brand-600/15 px-4 py-5 dark:border-brand-400/10">
           {soportado && (
             <div className="mb-4 flex justify-end">
               <button
@@ -96,13 +96,13 @@ export default function ModuloAcordeon({ modulo, expandido, completado, puntajeG
           <div className="space-y-4">
             {modulo.secciones.map((s) => (
               <div key={s.id} className="ind-seccion">
-                <h3 className="mb-2 text-base font-semibold text-cyan-700 dark:text-cyan-300">{s.titulo}</h3>
+                <h3 className="mb-2 text-base font-semibold text-brand-700 dark:text-brand-300">{s.titulo}</h3>
                 <div className="ind-content" dangerouslySetInnerHTML={{ __html: s.html }} />
               </div>
             ))}
           </div>
 
-          <div className="mt-6 border-t border-cyan-600/15 pt-5 dark:border-cyan-400/10">
+          <div className="mt-6 border-t border-brand-600/15 pt-5 dark:border-brand-400/10">
             {resultado === null ? (
               <form onSubmit={enviarQuiz} className="space-y-4">
                 <h3 className="text-base font-semibold text-slate-900 dark:text-white">{quiz.titulo}</h3>
@@ -127,8 +127,8 @@ export default function ModuloAcordeon({ modulo, expandido, completado, puntajeG
                             key={op.valor}
                             className={`block cursor-pointer rounded-lg border px-3 py-1.5 text-sm transition ${
                               activa
-                                ? 'border-cyan-600/50 bg-cyan-600/10 text-cyan-800 dark:border-cyan-400/50 dark:bg-cyan-400/10 dark:text-cyan-200'
-                                : 'border-slate-900/10 bg-slate-900/[0.02] text-slate-600 hover:border-cyan-600/25 dark:border-white/10 dark:bg-white/[0.02] dark:text-slate-300 dark:hover:border-cyan-400/25'
+                                ? 'border-brand-600/50 bg-brand-600/10 text-brand-800 dark:border-brand-400/50 dark:bg-brand-400/10 dark:text-brand-200'
+                                : 'border-slate-900/10 bg-slate-900/[0.02] text-slate-600 hover:border-brand-600/25 dark:border-white/10 dark:bg-white/[0.02] dark:text-slate-300 dark:hover:border-brand-400/25'
                             }`}
                           >
                             <input
@@ -137,7 +137,7 @@ export default function ModuloAcordeon({ modulo, expandido, completado, puntajeG
                               value={op.valor}
                               checked={activa}
                               onChange={() => elegir(p.id, op.valor)}
-                              className="mr-2 accent-cyan-400"
+                              className="mr-2 accent-brand-400"
                             />
                             {op.valor}. {op.texto}
                           </label>
@@ -158,8 +158,8 @@ export default function ModuloAcordeon({ modulo, expandido, completado, puntajeG
                 </div>
               </form>
             ) : (
-              <div className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-4 text-center">
-                <p className="flex items-center justify-center gap-1.5 text-sm text-emerald-800 dark:text-emerald-200">
+              <div className="rounded-lg border border-accent-400/30 bg-accent-400/10 px-4 py-4 text-center">
+                <p className="flex items-center justify-center gap-1.5 text-sm text-accent-800 dark:text-accent-200">
                   <PartyPopper className="h-4 w-4 shrink-0" aria-hidden="true" />
                   Completaste el módulo {modulo.id}. Tu puntaje: <strong>{resultado}/{quiz.preguntas.length}</strong>
                 </p>

@@ -33,7 +33,7 @@ export default function BandejaBodegaPage() {
     <div className="mx-auto max-w-5xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-          <Warehouse className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+          <Warehouse className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
           Bandeja Bodega — aprobados por Financiero
         </h1>
         <Btn variante="secundario" onClick={() => setModalExportar(true)} className="flex items-center gap-1.5">
@@ -96,7 +96,7 @@ export default function BandejaBodegaPage() {
                       <Btn variante="fantasma" onClick={() => generarPdfRequerimiento(r)} className="flex items-center gap-1.5 !px-2.5" title="Generar PDF">
                         <Printer className="h-3.5 w-3.5" aria-hidden="true" /> PDF
                       </Btn>
-                      <Link to={`/requerimientos/${r._id}`} className="text-sm font-medium text-cyan-700 hover:underline dark:text-cyan-400">
+                      <Link to={`/requerimientos/${r._id}`} className="text-sm font-medium text-brand-700 hover:underline dark:text-brand-400">
                         Gestionar
                       </Link>
                     </div>

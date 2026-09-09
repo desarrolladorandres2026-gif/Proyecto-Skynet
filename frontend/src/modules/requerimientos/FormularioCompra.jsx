@@ -27,7 +27,7 @@ export default function FormularioCompra({ items, onChange }) {
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <span className="panel-mono text-[11px] uppercase tracking-[0.1em] text-cyan-700/80 dark:text-cyan-400/80">
+        <span className="panel-mono text-[11px] uppercase tracking-[0.1em] text-brand-700/80 dark:text-brand-400/80">
           Productos solicitados
         </span>
         <Btn variante="secundario" onClick={agregarFila} className="flex items-center gap-1.5 !px-2.5">
@@ -40,7 +40,7 @@ export default function FormularioCompra({ items, onChange }) {
           apilados, mismos Field/Input que ya usa el resto del formulario. */}
       <div className="grid gap-3 sm:hidden">
         {items.map((it, i) => (
-          <div key={i} className="space-y-2 rounded-lg border border-cyan-600/15 p-3 dark:border-cyan-400/10">
+          <div key={i} className="space-y-2 rounded-lg border border-brand-600/15 p-3 dark:border-brand-400/10">
             <div className="flex items-center justify-between">
               <span className="panel-mono text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Producto {i + 1}

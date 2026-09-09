@@ -215,7 +215,7 @@ export default function ReportarDanoPage() {
               <img
                 src={preview}
                 alt="Vista previa de la foto del daño"
-                className="max-h-64 w-full rounded-2xl border border-cyan-600/25 object-contain dark:border-cyan-400/20"
+                className="max-h-64 w-full rounded-2xl border border-brand-600/25 object-contain dark:border-brand-400/20"
               />
               <button
                 type="button"

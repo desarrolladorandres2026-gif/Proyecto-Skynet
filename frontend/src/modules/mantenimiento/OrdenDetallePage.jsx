@@ -387,8 +387,8 @@ function SeccionEvidencias({ orden, puedoEjecutar, onCambio }) {
       {orden.evidencias?.length ? (
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {orden.evidencias.map((ev) => (
-            <li key={ev._id} className="rounded-lg border border-cyan-400/10 p-2 text-xs">
-              <a href={urlEvidencia(orden._id, ev.archivo)} target="_blank" rel="noreferrer" className="font-medium text-cyan-400 hover:underline">
+            <li key={ev._id} className="rounded-lg border border-brand-400/10 p-2 text-xs">
+              <a href={urlEvidencia(orden._id, ev.archivo)} target="_blank" rel="noreferrer" className="font-medium text-brand-400 hover:underline">
                 {ev.tipo} ({ev.momento})
               </a>
               {ev.comentario && <p className="mt-1 text-slate-400">{ev.comentario}</p>}
@@ -478,7 +478,7 @@ function SeccionRepuestos({ orden, puedoEjecutar, tienePermiso, onCambio }) {
       {orden.solicitudesRepuestos?.length ? (
         <ul className="space-y-2">
           {orden.solicitudesRepuestos.map((s) => (
-            <li key={s._id} className="rounded-lg border border-cyan-400/10 p-3 text-sm">
+            <li key={s._id} className="rounded-lg border border-brand-400/10 p-3 text-sm">
               <div className="mb-1 flex items-center justify-between">
                 <span className="font-medium text-slate-100">{s.items.map((it) => `${it.nombre} x${it.cantidad}`).join(', ')}</span>
                 <Badge valor={s.estado} />
@@ -680,7 +680,7 @@ function SeccionHallazgos({ orden, puedoEjecutar, tienePermiso, hallazgos, onCam
       {hallazgos?.length ? (
         <ul className="space-y-2">
           {hallazgos.map((h) => (
-            <li key={h._id} className="rounded-lg border border-cyan-400/10 p-3 text-sm">
+            <li key={h._id} className="rounded-lg border border-brand-400/10 p-3 text-sm">
               <div className="mb-1 flex items-center justify-between gap-2">
                 <span className="font-medium text-slate-100">{h.descripcion}</span>
                 <span className="flex gap-1"><Badge valor={h.criticidad} /><Badge valor={h.estado} /></span>
@@ -846,8 +846,8 @@ function SeccionChecklist({ orden, puedoEjecutar, onCambio }) {
               onChange={(e) => marcar(item, { completado: e.target.checked })}
               className="mt-1"
             />
-            <span className={item.completado ? 'text-slate-400 line-through' : item.omitido ? 'text-amber-400' : 'text-slate-200'}>
-              {item.texto} {item.obligatorioParaCierre && <span className="text-cyan-400">*</span>}
+            <span className={item.completado ? 'text-slate-400 line-through' : item.omitido ? 'text-warn-400' : 'text-slate-200'}>
+              {item.texto} {item.obligatorioParaCierre && <span className="text-brand-400">*</span>}
               {item.omitido && item.motivoOmision && <span className="block text-xs text-slate-400">Omitido: {item.motivoOmision}</span>}
             </span>
             {puedoEjecutar && orden.estado === 'en_progreso' && !item.completado && !item.omitido && (
@@ -920,7 +920,7 @@ function SeccionBitacora({ orden, puedoEjecutar, onCambio }) {
       {entradas.length ? (
         <ul className="space-y-2">
           {entradas.map((e) => (
-            <li key={e._id} className="border-l-2 border-cyan-400/20 pl-3 text-sm">
+            <li key={e._id} className="border-l-2 border-brand-400/20 pl-3 text-sm">
               <span className="text-slate-500">{fmtFechaHora(e.creado_en)} — {e.usuarioNombre} ({e.tipo})</span>
               {e.texto && <p className="text-slate-200">{e.texto}</p>}
             </li>
@@ -995,7 +995,7 @@ function SeccionInventario({ orden, puedoEjecutar, onCambio }) {
       <ErrorMsg>{error}</ErrorMsg>
       <Input placeholder="Buscar material en inventario…" value={q} onChange={(e) => setQ(e.target.value)} />
       {resultados.length > 0 && (
-        <ul className="mt-2 divide-y divide-cyan-400/10">
+        <ul className="mt-2 divide-y divide-brand-400/10">
           {resultados.map((m) => (
             <li key={m._id} className="flex items-center justify-between py-2 text-sm">
               <span>{m.nombre} — stock: {m.stock}</span>
@@ -1123,9 +1123,9 @@ function SeccionMensajes({ orden, usuario }) {
     <Card>
       <div className="mb-2 flex items-center justify-between">
         <h2 className="font-semibold text-white">Comunicación</h2>
-        <div className="flex gap-1 rounded-lg border border-cyan-400/10 p-1">
-          <button onClick={() => setCanal('interno')} className={`rounded px-2 py-1 text-xs ${canal === 'interno' ? 'bg-cyan-400/15 text-cyan-200' : 'text-slate-400'}`}>Interno</button>
-          <button onClick={() => setCanal('solicitante')} className={`rounded px-2 py-1 text-xs ${canal === 'solicitante' ? 'bg-cyan-400/15 text-cyan-200' : 'text-slate-400'}`}>Con el solicitante</button>
+        <div className="flex gap-1 rounded-lg border border-brand-400/10 p-1">
+          <button onClick={() => setCanal('interno')} className={`rounded px-2 py-1 text-xs ${canal === 'interno' ? 'bg-brand-400/15 text-brand-200' : 'text-slate-400'}`}>Interno</button>
+          <button onClick={() => setCanal('solicitante')} className={`rounded px-2 py-1 text-xs ${canal === 'solicitante' ? 'bg-brand-400/15 text-brand-200' : 'text-slate-400'}`}>Con el solicitante</button>
         </div>
       </div>
       <ErrorMsg>{error}</ErrorMsg>
@@ -1189,7 +1189,7 @@ export default function OrdenDetallePage() {
   return (
     <div className="space-y-4">
       <div>
-        <Link to="/mantenimiento/ordenes" className="text-sm text-cyan-400 hover:underline">← Volver a órdenes de trabajo</Link>
+        <Link to="/mantenimiento/ordenes" className="text-sm text-brand-400 hover:underline">← Volver a órdenes de trabajo</Link>
         <div className="mt-1 flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold text-white">
             {orden.equipo ? `${orden.equipo.numero_inventario} — ${orden.equipo.tipo?.nombre || ''} ${orden.equipo.marca?.nombre || ''}` : '(equipo eliminado)'}
@@ -1210,7 +1210,7 @@ export default function OrdenDetallePage() {
         </dl>
         <p className="mt-3 text-sm text-slate-300">{orden.descripcion}</p>
         {orden.descripcion_solucion && (
-          <p className="mt-2 rounded-lg bg-emerald-400/5 p-2 text-sm text-emerald-300">Solución: {orden.descripcion_solucion}</p>
+          <p className="mt-2 rounded-lg bg-accent-400/5 p-2 text-sm text-accent-300">Solución: {orden.descripcion_solucion}</p>
         )}
       </Card>
 

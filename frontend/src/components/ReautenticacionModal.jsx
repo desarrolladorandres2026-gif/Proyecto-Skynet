@@ -59,7 +59,7 @@ export default function ReautenticacionModal({
           <button
             type="submit"
             disabled={enviando}
-            className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-sky-700 disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
           >
             <Lock className="h-3.5 w-3.5" aria-hidden="true" />
             {enviando ? 'Confirmando…' : 'Confirmar'}

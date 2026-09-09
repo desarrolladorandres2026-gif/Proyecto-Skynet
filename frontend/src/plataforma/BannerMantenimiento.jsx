@@ -129,13 +129,13 @@ export default function BannerMantenimiento() {
       role="status"
       className={`mant-banner relative mb-4 rounded-xl border p-3.5 sm:px-4 sm:py-3 transition-all ${
         inminente
-          ? 'border-amber-500/45 bg-amber-500/15'
-          : 'border-amber-500/25 bg-amber-500/[0.07]'
+          ? 'border-warn-500/45 bg-warn-500/15'
+          : 'border-warn-500/25 bg-warn-500/[0.07]'
       }`}
     >
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-x-4 sm:gap-y-2">
         <div className="flex items-center justify-between gap-2 sm:contents">
-          <span className="flex items-center gap-2 text-amber-700 dark:text-amber-300 shrink-0">
+          <span className="flex items-center gap-2 text-warn-700 dark:text-warn-300 shrink-0">
             {inminente ? (
               <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
             ) : (
@@ -151,7 +151,7 @@ export default function BannerMantenimiento() {
               type="button"
               onClick={descartar}
               aria-label="Ocultar aviso de mantenimiento"
-              className="sm:order-last shrink-0 rounded-lg p-1 text-amber-700/70 transition-colors hover:bg-amber-500/15 hover:text-amber-800 dark:text-amber-300/70 dark:hover:text-amber-200"
+              className="sm:order-last shrink-0 rounded-lg p-1 text-warn-700/70 transition-colors hover:bg-warn-500/15 hover:text-warn-800 dark:text-warn-300/70 dark:hover:text-warn-200"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -171,7 +171,7 @@ export default function BannerMantenimiento() {
         </span>
 
         {restante !== null && (
-          <span className="panel-mono shrink-0 self-start sm:self-auto rounded-lg bg-amber-500/15 px-2.5 py-1 text-[11px] sm:text-xs font-semibold tabular-nums text-amber-700 dark:text-amber-200">
+          <span className="panel-mono shrink-0 self-start sm:self-auto rounded-lg bg-warn-500/15 px-2.5 py-1 text-[11px] sm:text-xs font-semibold tabular-nums text-warn-700 dark:text-warn-200">
             comienza en {formatearRestante(restante)}
           </span>
         )}

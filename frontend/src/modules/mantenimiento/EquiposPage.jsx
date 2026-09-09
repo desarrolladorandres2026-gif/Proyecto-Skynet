@@ -307,7 +307,7 @@ export default function EquiposPage() {
             </Field>
           </div>
 
-          <details className="rounded-lg border border-cyan-600/20 p-3 dark:border-cyan-400/15">
+          <details className="rounded-lg border border-brand-600/20 p-3 dark:border-brand-400/15">
             <summary className="cursor-pointer text-sm font-medium text-slate-600 dark:text-slate-300">
               Especificaciones técnicas (opcional)
             </summary>

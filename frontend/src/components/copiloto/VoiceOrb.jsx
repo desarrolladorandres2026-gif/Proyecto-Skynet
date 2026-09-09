@@ -147,9 +147,9 @@ export function VoiceOrb({
         if (state === 'ERROR') {
           haloOuterRef.current.style.boxShadow = `0 0 ${glowSpread}px rgba(239, 68, 68, 0.8)`
         } else if (state === 'SPEAKING') {
-          haloOuterRef.current.style.boxShadow = `0 0 ${glowSpread}px rgba(34, 211, 238, ${0.4 + rms * 0.5})`
+          haloOuterRef.current.style.boxShadow = `0 0 ${glowSpread}px rgba(78,124,190, ${0.4 + rms * 0.5})`
         } else {
-          haloOuterRef.current.style.boxShadow = `0 0 ${glowSpread}px rgba(6, 182, 212, 0.4)`
+          haloOuterRef.current.style.boxShadow = `0 0 ${glowSpread}px rgba(45,93,163, 0.4)`
         }
       }
 
@@ -185,7 +185,7 @@ export function VoiceOrb({
               ctx.beginPath()
               ctx.arc(x, y, p.tamano * (state === 'SPEAKING' ? 1 + rms * 0.8 : 1), 0, Math.PI * 2)
               ctx.fillStyle = state === 'ERROR' ? `rgba(248, 113, 113, ${p.opacidad})` : `hsla(${p.hue}, 90%, 65%, ${p.opacidad})`
-              ctx.shadowColor = state === 'ERROR' ? '#ef4444' : '#22d3ee'
+              ctx.shadowColor = state === 'ERROR' ? '#ef4444' : '#4e7cbe'
               ctx.shadowBlur = 6
               ctx.fill()
             })
@@ -229,12 +229,12 @@ export function VoiceOrb({
     state === 'ERROR'
       ? 'stroke-red-500 dark:stroke-red-400'
       : state === 'SPEAKING'
-      ? 'stroke-cyan-300 dark:stroke-cyan-200'
+      ? 'stroke-brand-300 dark:stroke-brand-200'
       : state === 'PROCESSING'
-      ? 'stroke-sky-400 dark:stroke-cyan-400'
+      ? 'stroke-brand-400 dark:stroke-brand-400'
       : state === 'LISTENING'
-      ? 'stroke-sky-500 dark:stroke-cyan-300'
-      : 'stroke-cyan-500/60 dark:stroke-cyan-400/60'
+      ? 'stroke-brand-500 dark:stroke-brand-300'
+      : 'stroke-brand-500/60 dark:stroke-brand-400/60'
 
   // En reposo el giro lo lleva el compositor. Las duraciones reproducen el
   // ritmo que tenía el bucle en IDLE (0,8 × 0,8°/frame y 0,8 × 1,2°/frame a
@@ -276,12 +276,12 @@ export function VoiceOrb({
           state === 'ERROR'
             ? 'bg-red-500/20'
             : state === 'SPEAKING'
-            ? 'bg-cyan-400/30'
+            ? 'bg-brand-400/30'
             : state === 'PROCESSING'
-            ? 'bg-sky-500/25'
+            ? 'bg-brand-500/25'
             : state === 'LISTENING'
-            ? 'bg-cyan-500/20'
-            : 'bg-cyan-500/10'
+            ? 'bg-brand-500/20'
+            : 'bg-brand-500/10'
         )}
       />
 
@@ -290,7 +290,7 @@ export function VoiceOrb({
         ref={haloInnerRef}
         className={cn(
           'absolute inset-2 rounded-full pointer-events-none z-0 transition-opacity duration-300',
-          state === 'ERROR' ? 'bg-red-600/30' : 'bg-cyan-400/20 dark:bg-cyan-300/25'
+          state === 'ERROR' ? 'bg-red-600/30' : 'bg-brand-400/20 dark:bg-brand-300/25'
         )}
       />
 
@@ -315,7 +315,7 @@ export function VoiceOrb({
 
           <linearGradient id="gradSiriDark" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#38bdf8" />
-            <stop offset="50%" stopColor="#22d3ee" />
+            <stop offset="50%" stopColor="#4e7cbe" />
             <stop offset="100%" stopColor="#818cf8" />
           </linearGradient>
 
@@ -389,7 +389,7 @@ export function VoiceOrb({
               cx={pt.x}
               cy={pt.y}
               r={state === 'SPEAKING' ? 8 : 6}
-              className={state === 'ERROR' ? 'fill-red-400' : 'fill-cyan-300 dark:fill-cyan-200'}
+              className={state === 'ERROR' ? 'fill-red-400' : 'fill-brand-300 dark:fill-brand-200'}
             />
           ))}
         </g>
@@ -405,8 +405,8 @@ export function VoiceOrb({
               state === 'ERROR'
                 ? 'fill-red-500/40 stroke-red-400'
                 : state === 'SPEAKING'
-                ? 'fill-cyan-400/40 stroke-cyan-200'
-                : 'fill-sky-500/30 stroke-cyan-300'
+                ? 'fill-brand-400/40 stroke-brand-200'
+                : 'fill-brand-500/30 stroke-brand-300'
             )}
             strokeWidth="3"
             style={{ filter: 'url(#orbGlow)' }}

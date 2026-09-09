@@ -20,10 +20,10 @@ import FiltrosDashboardSig from '../../components/sig/FiltrosDashboardSig.jsx'
 const EJE = '#64748b'
 const GRID = 'rgba(100, 116, 139, 0.25)'
 const TOOLTIP_STYLE = { background: '#0f172a', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9', fontSize: 12 }
-const COLOR_CORRECTAS = '#10b981'
+const COLOR_CORRECTAS = '#5a982c'
 const COLOR_INCORRECTAS = '#f43f5e'
 
-function Indicador({ icon: Icon, label, valor, color = 'text-cyan-700 dark:text-cyan-400' }) {
+function Indicador({ icon: Icon, label, valor, color = 'text-brand-700 dark:text-brand-400' }) {
   return (
     <Card>
       <div className="flex items-center gap-3">
@@ -79,14 +79,14 @@ export default function DashboardSigPage() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-          <LayoutDashboard className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+          <LayoutDashboard className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
           Dashboard Cuestionarios Programados
         </h1>
         <div className="flex items-center gap-3">
-          <Link to="/sig/reportes/individual" className="text-xs font-medium text-cyan-700 hover:underline dark:text-cyan-400">
+          <Link to="/sig/reportes/individual" className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-400">
             Reporte individual
           </Link>
-          <Link to="/sig/reportes/plan-refuerzo" className="text-xs font-medium text-cyan-700 hover:underline dark:text-cyan-400">
+          <Link to="/sig/reportes/plan-refuerzo" className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-400">
             Plan de refuerzo
           </Link>
           <Btn variante="secundario" className="flex items-center gap-1.5" onClick={exportar}>
@@ -118,15 +118,15 @@ export default function DashboardSigPage() {
                   <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Convocados</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{datos.resumenHoy.trabajadoresRespondieron}</p>
+                  <p className="text-2xl font-bold text-accent-600 dark:text-accent-400">{datos.resumenHoy.trabajadoresRespondieron}</p>
                   <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Respondieron</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{datos.resumenHoy.trabajadoresPendientes}</p>
+                  <p className="text-2xl font-bold text-warn-600 dark:text-warn-400">{datos.resumenHoy.trabajadoresPendientes}</p>
                   <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Pendientes</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{datos.resumenHoy.porcentajeParticipacion}%</p>
+                  <p className="text-2xl font-bold text-brand-600 dark:text-brand-400">{datos.resumenHoy.porcentajeParticipacion}%</p>
                   <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Participación</p>
                 </div>
               </div>
@@ -140,12 +140,12 @@ export default function DashboardSigPage() {
           <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Indicador icon={Users} label="Trabajadores activos" valor={datos.indicadores.totalTrabajadores} />
             <Indicador icon={ClipboardList} label="Preguntas publicadas" valor={datos.indicadores.totalPreguntasPublicadas} />
-            <Indicador icon={CircleCheck} label="Respuestas correctas" valor={datos.indicadores.correctas} color="text-emerald-600 dark:text-emerald-400" />
+            <Indicador icon={CircleCheck} label="Respuestas correctas" valor={datos.indicadores.correctas} color="text-accent-600 dark:text-accent-400" />
             <Indicador icon={CircleX} label="Respuestas incorrectas" valor={datos.indicadores.incorrectas} color="text-red-600 dark:text-red-400" />
           </div>
           <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Indicador icon={Users} label="Participaron (rango)" valor={`${datos.indicadores.trabajadoresParticiparon} (${datos.indicadores.porcentajeParticipacion}%)`} />
-            <Indicador icon={CircleCheck} label="Acierto global" valor={`${datos.indicadores.porcentajeAciertoGlobal}%`} color="text-emerald-600 dark:text-emerald-400" />
+            <Indicador icon={CircleCheck} label="Acierto global" valor={`${datos.indicadores.porcentajeAciertoGlobal}%`} color="text-accent-600 dark:text-accent-400" />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">

@@ -60,7 +60,7 @@ export default function CentroNotificacionesPage() {
         enableSorting: false,
         cell: ({ row }) => (
           <span
-            className={`inline-block h-2 w-2 rounded-full ${row.original.leida ? 'bg-transparent' : 'bg-cyan-500 shadow-[0_0_6px_rgba(6,182,212,0.8)]'}`}
+            className={`inline-block h-2 w-2 rounded-full ${row.original.leida ? 'bg-transparent' : 'bg-brand-500 shadow-[0_0_6px_rgba(6,182,212,0.8)]'}`}
             aria-label={row.original.leida ? 'Leída' : 'No leída'}
           />
         ),

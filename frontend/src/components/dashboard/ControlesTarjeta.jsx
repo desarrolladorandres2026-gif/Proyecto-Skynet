@@ -33,7 +33,7 @@ export function ControlesTarjeta({ oculta, puedeMoverIzquierda, puedeMoverDerech
       <button
         type="button"
         onClick={onAlternarOculta}
-        className={cn('rounded-md p-1 text-white/80 hover:bg-white/15 hover:text-white', oculta && 'text-amber-300')}
+        className={cn('rounded-md p-1 text-white/80 hover:bg-white/15 hover:text-white', oculta && 'text-warn-300')}
         aria-label={oculta ? 'Mostrar tarjeta' : 'Ocultar tarjeta'}
         title={oculta ? 'Mostrar tarjeta' : 'Ocultar tarjeta'}
       >

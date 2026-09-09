@@ -36,7 +36,7 @@ export default function SeguimientoPage() {
                   <div><dt className="text-slate-400 inline">Equipo: </dt><dd className="inline text-slate-200">{t.ordenActual.equipo}</dd></div>
                   <div><dt className="text-slate-400 inline">Estado: </dt><dd className="inline"><Badge valor={t.ordenActual.estado} /></dd></div>
                   {t.ordenActual.motivo_espera && (
-                    <div><dt className="text-slate-400 inline">Esperando: </dt><dd className="inline text-amber-300">{t.ordenActual.motivo_espera}</dd></div>
+                    <div><dt className="text-slate-400 inline">Esperando: </dt><dd className="inline text-warn-300">{t.ordenActual.motivo_espera}</dd></div>
                   )}
                   {t.ordenesActivas > 1 && <p className="text-xs text-slate-500">+{t.ordenesActivas - 1} orden(es) más</p>}
                 </dl>

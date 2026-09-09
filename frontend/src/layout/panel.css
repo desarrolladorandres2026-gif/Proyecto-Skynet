@@ -1,6 +1,9 @@
-/* Tema visual del panel admin: extiende la identidad cian de Skynet a todo
-   el panel protegido. Se importa una sola vez desde index.css, así envuelve
-   cualquier módulo que se renderice en <Outlet/>.
+/* Tema visual del panel admin: extiende la identidad AZUL INSTITUCIONAL del
+   Terminal de Transportes de Neiva (SKYNET) a todo el panel protegido. Se
+   importa una sola vez desde index.css, así envuelve cualquier módulo que se
+   renderice en <Outlet/>. El acento verde institucional (--color-accent-*)
+   se reserva para señalizar "operación normal / vía libre": el indicador del
+   ítem activo del menú y los estados de éxito.
 
    Todo el archivo vive dentro de @layer components — la misma capa que
    "@import tailwindcss" declara por debajo de "utilities". Antes este CSS
@@ -43,48 +46,48 @@
     --panel-bg: #f8fafc;
     --panel-fg: #1e293b;
 
-    --panel-grid-line: rgba(8, 145, 178, 0.06);
-    --panel-bracket-border: rgba(8, 145, 178, 0.55);
+    --panel-grid-line: rgba(31, 77, 143, 0.05);
+    --panel-bracket-border: rgba(31, 77, 143, 0.5);
 
     --panel-sidebar-g1: rgba(255, 255, 255, 0.96);
     --panel-sidebar-g2: rgba(248, 250, 252, 0.98);
     --panel-sidebar-border: rgba(15, 23, 42, 0.06);
 
-    --panel-brand-color: #0e2a35;
-    --panel-brand-glow: rgba(8, 145, 178, 0.25);
+    --panel-brand-color: #152c4f;
+    --panel-brand-glow: rgba(31, 77, 143, 0.22);
 
     --panel-navlink-color: rgba(30, 41, 59, 0.65);
-    --panel-navlink-hover-bg: rgba(8, 145, 178, 0.07);
+    --panel-navlink-hover-bg: rgba(31, 77, 143, 0.07);
     --panel-navlink-hover-color: #0f2733;
-    --panel-navlink-active-bg: rgba(8, 145, 178, 0.1);
+    --panel-navlink-active-bg: rgba(31, 77, 143, 0.1);
     --panel-navlink-active-color: var(--color-brand-700);
-    --panel-navlink-active-shadow: var(--color-brand-600);
+    --panel-navlink-active-shadow: var(--color-accent-600);
 
     --panel-card-g1: #ffffff;
     --panel-card-g2: #fbfcfd;
     --panel-card-border: rgba(15, 23, 42, 0.07);
-    --panel-card-border-hover: rgba(8, 145, 178, 0.3);
+    --panel-card-border-hover: rgba(31, 77, 143, 0.3);
 
     --panel-accent-bg: var(--color-brand-600);
     --panel-accent-fg: #ffffff;
-    --panel-btn-primario-glow: rgba(8, 145, 178, 0.22);
-    --panel-btn-primario-glow-hover: rgba(8, 145, 178, 0.32);
+    --panel-btn-primario-glow: rgba(31, 77, 143, 0.22);
+    --panel-btn-primario-glow-hover: rgba(31, 77, 143, 0.32);
 
-    --panel-btn-sec-border: rgba(8, 145, 178, 0.3);
+    --panel-btn-sec-border: rgba(31, 77, 143, 0.3);
     --panel-btn-sec-color: var(--color-brand-700);
-    --panel-btn-sec-hover-bg: rgba(8, 145, 178, 0.07);
-    --panel-btn-sec-hover-border: rgba(8, 145, 178, 0.45);
+    --panel-btn-sec-hover-bg: rgba(31, 77, 143, 0.07);
+    --panel-btn-sec-hover-border: rgba(31, 77, 143, 0.45);
 
     --panel-btn-fantasma-color: var(--color-brand-700);
-    --panel-btn-fantasma-hover-bg: rgba(8, 145, 178, 0.07);
+    --panel-btn-fantasma-hover-bg: rgba(31, 77, 143, 0.07);
 
     --panel-input-bg: #ffffff;
     --panel-input-border: rgba(100, 116, 139, 0.28);
     --panel-input-color: #0f172a;
     --panel-input-placeholder: rgba(100, 116, 139, 0.5);
-    --panel-input-focus-border: rgba(8, 145, 178, 0.6);
-    --panel-input-focus-bg: rgba(8, 145, 178, 0.04);
-    --panel-input-focus-ring: rgba(8, 145, 178, 0.15);
+    --panel-input-focus-border: rgba(31, 77, 143, 0.6);
+    --panel-input-focus-bg: rgba(31, 77, 143, 0.04);
+    --panel-input-focus-ring: rgba(31, 77, 143, 0.15);
     --panel-input-autofill-bg: #eef6f8;
     /* Fondo SÓLIDO exclusivo del <select>: ver el comentario junto a
      "select.panel-input" más abajo — el popup nativo de opciones no puede
@@ -97,7 +100,7 @@
     --panel-th-border: rgba(15, 23, 42, 0.07);
     --panel-td-color: #334155;
     --panel-td-border: rgba(100, 116, 139, 0.12);
-    --panel-row-hover-bg: rgba(8, 145, 178, 0.04);
+    --panel-row-hover-bg: rgba(31, 77, 143, 0.04);
 
     --panel-navbar-bg: rgba(248, 250, 252, 0.78);
     --panel-navbar-border: rgba(15, 23, 42, 0.06);
@@ -112,69 +115,69 @@
     --panel-bg: #05070a;
     --panel-fg: #e2e8f0;
 
-    --panel-grid-line: rgba(0, 229, 255, 0.05);
-    --panel-bracket-border: rgba(34, 211, 238, 0.5);
+    --panel-grid-line: rgba(127, 164, 213, 0.05);
+    --panel-bracket-border: rgba(127, 164, 213, 0.5);
 
     --panel-sidebar-g1: rgba(13, 18, 26, 0.95);
     --panel-sidebar-g2: rgba(6, 9, 14, 0.98);
-    --panel-sidebar-border: rgba(34, 211, 238, 0.12);
+    --panel-sidebar-border: rgba(127, 164, 213, 0.12);
 
     --panel-brand-color: #ffffff;
-    --panel-brand-glow: rgba(34, 211, 238, 0.4);
+    --panel-brand-glow: rgba(127, 164, 213, 0.4);
 
     --panel-navlink-color: #ffffff;
-    --panel-navlink-hover-bg: rgba(34, 211, 238, 0.06);
+    --panel-navlink-hover-bg: rgba(127, 164, 213, 0.06);
     --panel-navlink-hover-color: #ffffff;
-    --panel-navlink-active-bg: rgba(34, 211, 238, 0.1);
+    --panel-navlink-active-bg: rgba(127, 164, 213, 0.1);
     --panel-navlink-active-color: var(--color-brand-300);
-    --panel-navlink-active-shadow: var(--color-brand-400);
+    --panel-navlink-active-shadow: var(--color-accent-400);
 
     --panel-card-g1: rgba(13, 18, 26, 0.85);
     --panel-card-g2: rgba(8, 11, 16, 0.9);
-    --panel-card-border: rgba(34, 211, 238, 0.12);
-    --panel-card-border-hover: rgba(34, 211, 238, 0.35);
+    --panel-card-border: rgba(127, 164, 213, 0.12);
+    --panel-card-border-hover: rgba(127, 164, 213, 0.35);
 
-    /* El acento oscuro pasa de un neón crudo (#00e5ff) a brand-400: mismo
-     cian, pero calibrado dentro de la rampa en vez de un tono aparte —
-     menos "RGB de gamer", más "producto premium". */
+    /* En oscuro el acento es brand-400 (azul institucional aclarado), no un
+     neón: se lee sobre #05070a sin vibrar y mantiene la identidad del
+     Terminal también en el tema nocturno. */
     --panel-accent-bg: var(--color-brand-400);
     --panel-accent-fg: #05070a;
-    --panel-btn-primario-glow: rgba(34, 211, 238, 0.5);
-    --panel-btn-primario-glow-hover: rgba(34, 211, 238, 0.7);
+    --panel-btn-primario-glow: rgba(127, 164, 213, 0.5);
+    --panel-btn-primario-glow-hover: rgba(127, 164, 213, 0.7);
 
-    --panel-btn-sec-border: rgba(34, 211, 238, 0.25);
+    --panel-btn-sec-border: rgba(127, 164, 213, 0.25);
     --panel-btn-sec-color: var(--color-brand-200);
-    --panel-btn-sec-hover-bg: rgba(34, 211, 238, 0.08);
-    --panel-btn-sec-hover-border: rgba(34, 211, 238, 0.4);
+    --panel-btn-sec-hover-bg: rgba(127, 164, 213, 0.08);
+    --panel-btn-sec-hover-border: rgba(127, 164, 213, 0.4);
 
     --panel-btn-fantasma-color: var(--color-brand-300);
-    --panel-btn-fantasma-hover-bg: rgba(34, 211, 238, 0.08);
+    --panel-btn-fantasma-hover-bg: rgba(127, 164, 213, 0.08);
 
     --panel-input-bg: rgba(255, 255, 255, 0.03);
     --panel-input-border: rgba(148, 163, 184, 0.2);
     --panel-input-color: #f1f5f9;
     --panel-input-placeholder: rgba(148, 163, 184, 0.4);
-    --panel-input-focus-border: rgba(34, 211, 238, 0.6);
-    --panel-input-focus-bg: rgba(34, 211, 238, 0.04);
-    --panel-input-focus-ring: rgba(34, 211, 238, 0.1);
+    --panel-input-focus-border: rgba(127, 164, 213, 0.6);
+    --panel-input-focus-bg: rgba(127, 164, 213, 0.04);
+    --panel-input-focus-ring: rgba(127, 164, 213, 0.1);
     --panel-input-autofill-bg: #0b0f16;
     --panel-select-bg: #0b0f16;
 
     --panel-table-bg: rgba(13, 18, 26, 0.6);
-    --panel-table-border: rgba(34, 211, 238, 0.12);
+    --panel-table-border: rgba(127, 164, 213, 0.12);
     --panel-th-color: var(--color-brand-300);
-    --panel-th-border: rgba(34, 211, 238, 0.12);
+    --panel-th-border: rgba(127, 164, 213, 0.12);
     --panel-td-color: #cbd5e1;
     --panel-td-border: rgba(148, 163, 184, 0.08);
-    --panel-row-hover-bg: rgba(34, 211, 238, 0.04);
+    --panel-row-hover-bg: rgba(127, 164, 213, 0.04);
 
     --panel-navbar-bg: rgba(6, 9, 14, 0.72);
-    --panel-navbar-border: rgba(34, 211, 238, 0.1);
+    --panel-navbar-border: rgba(127, 164, 213, 0.1);
 
     --panel-modal-backdrop-bg: rgba(2, 4, 7, 0.75);
     --panel-modal-g1: rgba(15, 20, 28, 0.98);
     --panel-modal-g2: rgba(7, 10, 15, 0.98);
-    --panel-modal-border: rgba(34, 211, 238, 0.15);
+    --panel-modal-border: rgba(127, 164, 213, 0.15);
   }
 
   .panel-shell {

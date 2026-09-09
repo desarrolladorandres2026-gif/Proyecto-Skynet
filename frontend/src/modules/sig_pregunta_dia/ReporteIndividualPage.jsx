@@ -11,6 +11,22 @@ import FiltrosDashboardSig from '../../components/sig/FiltrosDashboardSig.jsx'
 
 const FILTROS_VACIOS = { desde: '', hasta: '', dependencia: '', cargo: '', componenteSig: '', tema: '', resultado: '' }
 
+// "Hoy" en la zona del Terminal (América/Bogotá), NO la del navegador ni UTC:
+// mismo criterio que Backend/src/utils/fechas.js. `toISOString().slice(0,10)`
+// (lo que hace aInputFecha) devuelve el día de mañana cuando alguien abre el
+// reporte pasadas las 7 p.m. hora de Neiva, y el Terminal opera 24/7.
+function hoyEnTerminal() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+}
+
+// El reporte individual arranca acotado al día de hoy: la pregunta operativa
+// es "¿quién ya respondió hoy?", no el histórico completo. Desde el panel de
+// Filtros se amplía el rango —o se vacían ambas fechas para ver todo—.
+function filtrosDeHoy() {
+  const dia = hoyEnTerminal()
+  return { ...FILTROS_VACIOS, desde: dia, hasta: dia }
+}
+
 // Sin tildes y en minúsculas: buscar "jose" tiene que encontrar a "José".
 function normalizar(texto) {
   return String(texto || '')
@@ -22,7 +38,7 @@ function normalizar(texto) {
 export default function ReporteIndividualPage() {
   const [busqueda, setBusqueda] = useState('')
   const [usuarioId, setUsuarioId] = useState('')
-  const [filtros, setFiltros] = useState(FILTROS_VACIOS)
+  const [filtros, setFiltros] = useState(filtrosDeHoy)
   const [reporte, setReporte] = useState(null)
   const [cargando, setCargando] = useState(false)
 
@@ -49,11 +65,26 @@ export default function ReporteIndividualPage() {
     { ttlMs: 30_000 },
   )
 
+  // DECISIÓN TUYA (ver el mensaje del chat).
+  // El listado está acotado a HOY por defecto. Al abrir el reporte detallado
+  // de una persona, ¿qué rango de fechas usar?
+  //   A) el mismo del listado (hoy)  -> los números cuadran con la tabla, pero
+  //      "Desempeño por componente", "Temas con más errores" e "Historial"
+  //      quedan casi vacíos y el detalle pierde su razón de ser.
+  //   B) siempre el histórico completo -> detalle rico, pero la tabla dice
+  //      "3 respondidas" y el detalle podría decir "40".
+  //   C) heredar dependencia/cargo/componente/tema, pero NO el rango de fechas.
+  // Implementa aquí la opción que prefieras (5-10 líneas).
+  function filtrosParaDetalle(filtrosDelListado) {
+    // TODO(tú)
+    return filtrosDelListado
+  }
+
   async function consultarDetalle(id = usuarioId, filtrosActuales = filtros) {
     if (!id) return
     setCargando(true)
     try {
-      setReporte(await sig.reporteTrabajador(id, filtrosActuales))
+      setReporte(await sig.reporteTrabajador(id, filtrosParaDetalle(filtrosActuales)))
     } catch (err) {
       toast.error(err.message)
       setReporte(null)
@@ -99,7 +130,7 @@ export default function ReporteIndividualPage() {
             <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Listado
           </Btn>
         )}
-        <UserRoundSearch className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <UserRoundSearch className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <h1 className="panel-mono text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
           Reporte individual
         </h1>
@@ -169,7 +200,7 @@ export default function ReporteIndividualPage() {
                     tabIndex={0}
                     role="button"
                     aria-label={`Ver el reporte de ${t.nombre}`}
-                    className="cursor-pointer transition-colors hover:bg-cyan-500/5 focus-visible:bg-cyan-500/10 focus-visible:outline-none"
+                    className="cursor-pointer transition-colors hover:bg-brand-500/5 focus-visible:bg-brand-500/10 focus-visible:outline-none"
                     onClick={() => abrirTrabajador(t._id)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
@@ -223,7 +254,7 @@ export default function ReporteIndividualPage() {
                 <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Respondidas</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{reporte.correctas}</p>
+                <p className="text-2xl font-bold text-accent-600 dark:text-accent-400">{reporte.correctas}</p>
                 <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Correctas</p>
               </div>
               <div>
@@ -231,7 +262,7 @@ export default function ReporteIndividualPage() {
                 <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Incorrectas</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{reporte.porcentaje}%</p>
+                <p className="text-2xl font-bold text-brand-600 dark:text-brand-400">{reporte.porcentaje}%</p>
                 <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Acierto</p>
               </div>
               <div>

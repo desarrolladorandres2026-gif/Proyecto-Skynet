@@ -4,8 +4,8 @@ import { cn } from '../../lib/cn.js'
 
 const PRIORIDAD_COLORES = {
   critica: 'bg-rose-500/10 text-rose-700 border-rose-500/20 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30',
-  alta: 'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30',
-  media: 'bg-cyan-500/10 text-cyan-700 border-cyan-500/20 dark:bg-cyan-500/15 dark:text-cyan-300 dark:border-cyan-500/30',
+  alta: 'bg-warn-500/10 text-warn-700 border-warn-500/20 dark:bg-warn-500/15 dark:text-warn-300 dark:border-warn-500/30',
+  media: 'bg-brand-500/10 text-brand-700 border-brand-500/20 dark:bg-brand-500/15 dark:text-brand-300 dark:border-brand-500/30',
   baja: 'bg-slate-500/10 text-slate-700 border-slate-500/20 dark:bg-slate-500/15 dark:text-slate-300 dark:border-slate-500/30',
 }
 
@@ -42,7 +42,7 @@ export function ColaAtencionPrioritaria({ cola = [], className = '' }) {
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <div className="shrink-0">
-                  <ShieldAlert className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
+                  <ShieldAlert className="h-3.5 w-3.5 text-warn-500 dark:text-warn-400" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
@@ -59,7 +59,7 @@ export function ColaAtencionPrioritaria({ cola = [], className = '' }) {
                       </span>
                     )}
                   </div>
-                  <p className="mt-0.5 text-xs font-medium text-slate-900 group-hover:text-brand-600 dark:text-white dark:group-hover:text-cyan-200 transition-colors truncate">
+                  <p className="mt-0.5 text-xs font-medium text-slate-900 group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-200 transition-colors truncate">
                     {item.titulo}
                   </p>
                 </div>

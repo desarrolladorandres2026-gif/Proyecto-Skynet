@@ -67,7 +67,7 @@ export default function EquipoFichaPage() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link to="/mantenimiento/equipos" className="text-sm text-cyan-700 hover:underline dark:text-cyan-400">
+          <Link to="/mantenimiento/equipos" className="text-sm text-brand-700 hover:underline dark:text-brand-400">
             ← Volver a equipos
           </Link>
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">
@@ -157,7 +157,7 @@ export default function EquipoFichaPage() {
                       href={urlPdf(m._id, m.archivo_pdf)}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-cyan-700 hover:underline dark:text-cyan-400"
+                      className="text-brand-700 hover:underline dark:text-brand-400"
                     >
                       Ver PDF
                     </a>
@@ -197,7 +197,7 @@ export default function EquipoFichaPage() {
               type="file"
               accept="application/pdf"
               onChange={(e) => setArchivo(e.target.files?.[0] || null)}
-              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-cyan-600/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-cyan-700 dark:text-slate-300 dark:file:bg-cyan-400/10 dark:file:text-cyan-300"
+              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-600/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 dark:text-slate-300 dark:file:bg-brand-400/10 dark:file:text-brand-300"
             />
           </Field>
 

@@ -51,10 +51,10 @@ export function NotificacionesBell() {
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="group relative flex shrink-0 items-center justify-center rounded-xl p-2 transition-all duration-300 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-cyan-500/30 text-slate-700 dark:text-cyan-300 hover:border-cyan-400 dark:hover:border-cyan-400 dark:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:scale-105 active:scale-95"
+            className="group relative flex shrink-0 items-center justify-center rounded-xl p-2 transition-all duration-300 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-brand-500/30 text-slate-700 dark:text-brand-300 hover:border-brand-400 dark:hover:border-brand-400 dark:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:scale-105 active:scale-95"
             aria-label={noLeidas > 0 ? `Notificaciones, ${noLeidas} sin leer` : 'Notificaciones'}
           >
-            <Bell className="h-4 w-4 text-cyan-600 dark:text-cyan-400 group-hover:rotate-12 transition-transform duration-300" aria-hidden="true" />
+            <Bell className="h-4 w-4 text-brand-600 dark:text-brand-400 group-hover:rotate-12 transition-transform duration-300" aria-hidden="true" />
             {noLeidas > 0 && (
               <span className="panel-mono absolute -top-1 -right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white shadow-[0_0_8px_rgba(244,63,94,0.6)]">
                 {noLeidas > 9 ? '9+' : noLeidas}
@@ -104,7 +104,7 @@ export function NotificacionesBell() {
             >
               <div className="flex w-full items-start gap-2">
                 <span
-                  className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${n.leida ? 'bg-transparent' : 'bg-cyan-500 shadow-[0_0_6px_rgba(6,182,212,0.8)]'}`}
+                  className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${n.leida ? 'bg-transparent' : 'bg-brand-500 shadow-[0_0_6px_rgba(6,182,212,0.8)]'}`}
                   aria-hidden="true"
                 />
                 <div className="min-w-0 flex-1">

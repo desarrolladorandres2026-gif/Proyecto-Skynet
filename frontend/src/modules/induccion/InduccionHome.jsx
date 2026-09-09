@@ -70,18 +70,18 @@ export default function InduccionHome() {
       <Card className="mb-6">
         <div className="flex items-center justify-between">
           <p className="panel-mono text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Progreso general</p>
-          <p className="panel-mono text-xs text-cyan-700 dark:text-cyan-300">{hechos} de {total} completados</p>
+          <p className="panel-mono text-xs text-brand-700 dark:text-brand-300">{hechos} de {total} completados</p>
         </div>
         <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-slate-900/10 dark:bg-white/5">
           <div
-            className="h-full rounded-full bg-cyan-400 transition-all duration-300"
+            className="h-full rounded-full bg-brand-400 transition-all duration-300"
             style={{ width: `${porcentaje}%` }}
           />
         </div>
 
         {todoCompletado && (
-          <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2">
-            <p className="flex items-center gap-1.5 text-sm text-emerald-800 dark:text-emerald-200">
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-accent-400/30 bg-accent-400/10 px-3 py-2">
+            <p className="flex items-center gap-1.5 text-sm text-accent-800 dark:text-accent-200">
               <PartyPopper className="h-4 w-4 shrink-0" aria-hidden="true" />
               Completaste todos los módulos. Ya puedes generar tu certificado.
             </p>

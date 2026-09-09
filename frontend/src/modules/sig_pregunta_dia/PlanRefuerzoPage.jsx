@@ -152,7 +152,7 @@ export default function PlanRefuerzoPage() {
   return (
     <div>
       <div className="mb-4 flex items-center gap-2.5">
-        <ShieldAlert className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <ShieldAlert className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <h1 className="panel-mono text-lg font-semibold tracking-wide text-slate-900 dark:text-white">Plan de refuerzo</h1>
       </div>
 

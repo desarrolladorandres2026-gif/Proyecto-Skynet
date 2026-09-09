@@ -55,7 +55,7 @@ export default function ModulosSistemaPage() {
   return (
     <div>
       <div className="mb-6 flex items-center gap-3">
-        <SlidersHorizontal className="h-6 w-6 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <SlidersHorizontal className="h-6 w-6 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <div>
           <h1 className="panel-mono text-xl font-semibold tracking-wide text-slate-900 dark:text-white">Módulos del sistema</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">

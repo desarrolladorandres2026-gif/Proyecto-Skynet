@@ -56,7 +56,7 @@ export default function EliminarRequerimientosModal({ abierto, onCerrar, onElimi
   return (
     <Modal abierto={abierto} titulo="Eliminar requerimientos por fecha" onCerrar={cerrar} ancho="max-w-sm">
       <form onSubmit={eliminar} className="space-y-4">
-        <p className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+        <p className="flex items-start gap-2 rounded-lg border border-warn-500/30 bg-warn-500/10 px-3 py-2 text-sm text-warn-800 dark:text-warn-300">
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           Esto borra permanentemente todos los requerimientos con fecha de solicitud en el rango elegido. No se
           puede deshacer — exporta primero si quieres conservar un respaldo.

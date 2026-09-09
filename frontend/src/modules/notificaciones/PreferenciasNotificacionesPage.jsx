@@ -99,7 +99,7 @@ export default function PreferenciasNotificacionesPage() {
 
       <Card>
         <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-          <BellRing className="h-4 w-4 text-cyan-600 dark:text-cyan-400" aria-hidden="true" />
+          <BellRing className="h-4 w-4 text-brand-600 dark:text-brand-400" aria-hidden="true" />
           Este dispositivo
         </h2>
         <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
@@ -122,7 +122,7 @@ export default function PreferenciasNotificacionesPage() {
         </div>
 
         {push.permiso === 'denied' && (
-          <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-warn-500/30 bg-warn-500/10 px-3 py-2 text-xs text-warn-700 dark:text-warn-300">
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <p>
               Bloqueaste las notificaciones para este sitio. Para reactivarlas, abre la configuración del sitio desde el
@@ -160,14 +160,14 @@ export default function PreferenciasNotificacionesPage() {
 
       <Card>
         <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-          <Smartphone className="h-4 w-4 text-cyan-600 dark:text-cyan-400" aria-hidden="true" />
+          <Smartphone className="h-4 w-4 text-brand-600 dark:text-brand-400" aria-hidden="true" />
           Dispositivos con push activo
         </h2>
         {dispositivos && dispositivos.length === 0 && <EmptyState mensaje="No tienes dispositivos suscritos todavía" />}
         {dispositivos && dispositivos.length > 0 && (
           <ul className="space-y-2">
             {dispositivos.map((d) => (
-              <li key={d._id} className="flex items-center justify-between gap-3 rounded-lg border border-cyan-600/15 px-3 py-2 dark:border-cyan-400/10">
+              <li key={d._id} className="flex items-center justify-between gap-3 rounded-lg border border-brand-600/15 px-3 py-2 dark:border-brand-400/10">
                 <div>
                   <p className="text-sm text-slate-800 dark:text-slate-100">{d.navegador} en {d.dispositivo}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Último uso: {fmtFechaHora(d.ultimoUsoEn)}</p>

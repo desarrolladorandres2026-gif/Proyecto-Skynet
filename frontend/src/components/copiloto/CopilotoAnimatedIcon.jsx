@@ -46,12 +46,12 @@ export function CopilotoAnimatedIcon({
             state === 'ERROR'
               ? 'bg-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.6)]'
               : state === 'LISTENING'
-              ? 'dark:bg-cyan-400/40 dark:shadow-[0_0_35px_rgba(34,211,238,0.8)] bg-sky-500/35 shadow-[0_0_28px_rgba(2,132,199,0.6)] animate-pulse'
+              ? 'dark:bg-brand-400/40 dark:shadow-[0_0_35px_rgba(78,124,190,0.8)] bg-brand-500/35 shadow-[0_0_28px_rgba(31,77,143,0.6)] animate-pulse'
               : state === 'PROCESSING'
-              ? 'dark:bg-cyan-300/40 dark:shadow-[0_0_40px_rgba(103,232,249,0.9)] bg-cyan-400/40 shadow-[0_0_32px_rgba(6,182,212,0.7)] animate-pulse'
-              : 'dark:bg-cyan-400/25 dark:shadow-[0_0_30px_rgba(34,211,238,0.5)] bg-sky-500/20 shadow-[0_0_24px_rgba(2,132,199,0.35)]',
+              ? 'dark:bg-brand-300/40 dark:shadow-[0_0_40px_rgba(127,164,213,0.9)] bg-brand-400/40 shadow-[0_0_32px_rgba(45,93,163,0.7)] animate-pulse'
+              : 'dark:bg-brand-400/25 dark:shadow-[0_0_30px_rgba(78,124,190,0.5)] bg-brand-500/20 shadow-[0_0_24px_rgba(31,77,143,0.35)]',
             'animate-[copilot-aura_3s_ease-in-out_infinite]',
-            isOpen && 'dark:bg-cyan-400/40 dark:shadow-[0_0_40px_rgba(34,211,238,0.75)] bg-sky-600/35 shadow-[0_0_32px_rgba(2,132,199,0.55)]'
+            isOpen && 'dark:bg-brand-400/40 dark:shadow-[0_0_40px_rgba(78,124,190,0.75)] bg-brand-600/35 shadow-[0_0_32px_rgba(31,77,143,0.55)]'
           )}
         />
       )}
@@ -77,24 +77,24 @@ export function CopilotoAnimatedIcon({
           {/* Gradientes Ultra-HD Modo Oscuro (Cian Neón / Turquesa Eléctrico) */}
           <linearGradient id="hdGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#38bdf8" />
-            <stop offset="40%" stopColor="#22d3ee" />
-            <stop offset="80%" stopColor="#06b6d4" />
-            <stop offset="100%" stopColor="#0891b2" />
+            <stop offset="40%" stopColor="#4e7cbe" />
+            <stop offset="80%" stopColor="#2d5da3" />
+            <stop offset="100%" stopColor="#1f4d8f" />
           </linearGradient>
 
           {/* Gradientes Ultra-HD Modo Claro (Azul Océano Profundo / Zafiro Nítido) */}
           <linearGradient id="hdGradLight" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#0284c7" />
-            <stop offset="50%" stopColor="#0891b2" />
+            <stop offset="50%" stopColor="#1f4d8f" />
             <stop offset="100%" stopColor="#0369a1" />
           </linearGradient>
 
           {/* Gradiente Radial para Nodos (Esferas de Red) */}
           <radialGradient id="hdNodeDark" cx="35%" cy="35%" r="65%">
             <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="45%" stopColor="#67e8f9" />
-            <stop offset="85%" stopColor="#06b6d4" />
-            <stop offset="100%" stopColor="#083344" />
+            <stop offset="45%" stopColor="#7fa4d5" />
+            <stop offset="85%" stopColor="#2d5da3" />
+            <stop offset="100%" stopColor="#0d1b33" />
           </radialGradient>
 
           <radialGradient id="hdNodeLight" cx="35%" cy="35%" r="65%">
@@ -125,7 +125,7 @@ export function CopilotoAnimatedIcon({
             cy="200"
             r="176"
             fill="none"
-            className="stroke-cyan-400/40 dark:stroke-cyan-300/60"
+            className="stroke-brand-400/40 dark:stroke-brand-300/60"
             strokeWidth="8"
             style={{ filter: 'url(#copilotGlowHD)' }}
           />
@@ -197,7 +197,7 @@ export function CopilotoAnimatedIcon({
             return (
               <g key={`outer-node-hd-${i}`}>
                 {/* Resplandor del nodo */}
-                <circle cx={x} cy={y} r={esPrincipal ? 11 : 7} className="fill-cyan-400/30 dark:fill-cyan-300/40" />
+                <circle cx={x} cy={y} r={esPrincipal ? 11 : 7} className="fill-brand-400/30 dark:fill-brand-300/40" />
                 {/* Esfera nítida */}
                 <circle
                   cx={x}
@@ -231,7 +231,7 @@ export function CopilotoAnimatedIcon({
           <polygon
             points="200,64 336,200 200,336 64,200"
             fill="none"
-            className="stroke-cyan-400/50 dark:stroke-cyan-300/60"
+            className="stroke-brand-400/50 dark:stroke-brand-300/60"
             strokeWidth="7"
             style={{ filter: 'url(#copilotGlowHD)' }}
           />
@@ -248,7 +248,7 @@ export function CopilotoAnimatedIcon({
           <polygon
             points="200,88 312,200 200,312 88,200"
             fill="none"
-            className="stroke-sky-500/60 dark:stroke-cyan-300/70"
+            className="stroke-brand-500/60 dark:stroke-brand-300/70"
             strokeWidth="2.5"
             strokeDasharray="8 4"
           />
@@ -261,7 +261,7 @@ export function CopilotoAnimatedIcon({
             { x: 64, y: 200 },
           ].map((pt, i) => (
             <g key={`vertex-node-${i}`}>
-              <circle cx={pt.x} cy={pt.y} r="12" className="fill-cyan-400/30 dark:fill-cyan-300/40" />
+              <circle cx={pt.x} cy={pt.y} r="12" className="fill-brand-400/30 dark:fill-brand-300/40" />
               <circle
                 cx={pt.x}
                 cy={pt.y}
@@ -308,7 +308,7 @@ export function CopilotoAnimatedIcon({
                 y1="200"
                 x2={x}
                 y2={y}
-                className="stroke-sky-400 dark:stroke-cyan-300"
+                className="stroke-brand-400 dark:stroke-brand-300"
                 strokeWidth="2.5"
               />
             )
@@ -337,7 +337,7 @@ export function CopilotoAnimatedIcon({
             cx="200"
             cy="200"
             r="32"
-            className="fill-cyan-400/25 dark:fill-cyan-300/35"
+            className="fill-brand-400/25 dark:fill-brand-300/35"
             style={{ filter: 'url(#copilotGlowHD)' }}
           />
 
@@ -346,7 +346,7 @@ export function CopilotoAnimatedIcon({
             cx="200"
             cy="200"
             r="22"
-            className="fill-sky-500/40 dark:fill-cyan-400/50 stroke-cyan-300"
+            className="fill-brand-500/40 dark:fill-brand-400/50 stroke-brand-300"
             strokeWidth="2"
           />
 
@@ -355,7 +355,7 @@ export function CopilotoAnimatedIcon({
             cx="200"
             cy="200"
             r="15"
-            className="fill-sky-600 dark:fill-cyan-300"
+            className="fill-brand-600 dark:fill-brand-300"
           />
 
           {/* Punto blanco central de resplandor máximo */}

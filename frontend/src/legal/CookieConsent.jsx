@@ -69,7 +69,7 @@ export default function CookieConsent() {
           </button>
           <button
             onClick={aceptar}
-            className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700"
+            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700"
           >
             Aceptar y continuar
           </button>

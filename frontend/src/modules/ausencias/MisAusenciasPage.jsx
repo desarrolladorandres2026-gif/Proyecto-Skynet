@@ -134,7 +134,7 @@ export default function MisAusenciasPage() {
     <div className="mx-auto max-w-5xl">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-          <CalendarDays className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+          <CalendarDays className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
           Mis vacaciones y ausencias
         </h1>
         <Btn className="flex items-center gap-1.5" onClick={abrirNueva}>
@@ -178,7 +178,7 @@ export default function MisAusenciasPage() {
                         target="_blank"
                         rel="noreferrer"
                         title={a.soporte?.nombreArchivo || 'Ver soporte médico'}
-                        className="text-cyan-700 hover:text-cyan-600 dark:text-cyan-400 dark:hover:text-cyan-300"
+                        className="text-brand-700 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300"
                       >
                         <Paperclip className="h-4 w-4" aria-hidden="true" />
                       </a>
@@ -200,7 +200,7 @@ export default function MisAusenciasPage() {
                   {a.estado === 'rechazada' && a.decision?.motivoRechazo}
                   {a.estado === 'aprobada' && (
                     <span className="flex items-center gap-1.5">
-                      <CircleCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                      <CircleCheck className="h-4 w-4 text-accent-600 dark:text-accent-400" aria-hidden="true" />
                       {a.decision?.nombreRevisor || 'Aprobada'}
                     </span>
                   )}
@@ -260,7 +260,7 @@ export default function MisAusenciasPage() {
           </div>
 
           {dias > 0 && (
-            <p className="panel-mono text-xs text-cyan-700 dark:text-cyan-400">
+            <p className="panel-mono text-xs text-brand-700 dark:text-brand-400">
               {dias} día{dias === 1 ? '' : 's'}
             </p>
           )}
@@ -290,7 +290,7 @@ export default function MisAusenciasPage() {
           )}
 
           {duracion && (
-            <p className="panel-mono text-xs text-cyan-700 dark:text-cyan-400">Duración: {duracion}</p>
+            <p className="panel-mono text-xs text-brand-700 dark:text-brand-400">Duración: {duracion}</p>
           )}
 
           {/* El motivo legal solo aplica al permiso remunerado: es el respaldo
@@ -320,7 +320,7 @@ export default function MisAusenciasPage() {
                 required
                 accept="image/*,application/pdf"
                 onChange={(e) => setForm({ ...form, archivoSoporte: e.target.files?.[0] || null })}
-                className="panel-input w-full rounded-lg px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-cyan-600/10 file:px-3 file:py-1 file:text-cyan-700 dark:file:bg-cyan-400/10 dark:file:text-cyan-300"
+                className="panel-input w-full rounded-lg px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-brand-600/10 file:px-3 file:py-1 file:text-brand-700 dark:file:bg-brand-400/10 dark:file:text-brand-300"
               />
               {form.archivoSoporte && (
                 <p className="mt-1.5 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">

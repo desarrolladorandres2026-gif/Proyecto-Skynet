@@ -36,7 +36,7 @@ export default function MisRequerimientosPage() {
     <div className="mx-auto max-w-5xl">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-          <FileText className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+          <FileText className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
           Mis requerimientos
         </h1>
         <Link to="/requerimientos/nuevo">
@@ -91,7 +91,7 @@ export default function MisRequerimientosPage() {
                   <Td>{r.areaOProceso || '—'}</Td>
                   <Td><Badge valor={estadoVisible(r)} label={LABEL_ESTADO[estadoVisible(r)] || estadoVisible(r)} /></Td>
                   <Td>
-                    <Link to={`/requerimientos/${r._id}`} className="text-sm font-medium text-cyan-700 hover:underline dark:text-cyan-400">
+                    <Link to={`/requerimientos/${r._id}`} className="text-sm font-medium text-brand-700 hover:underline dark:text-brand-400">
                       Ver detalle
                     </Link>
                   </Td>

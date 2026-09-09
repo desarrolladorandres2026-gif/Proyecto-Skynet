@@ -109,7 +109,7 @@ export default function ConfiguracionSigPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-4 flex items-center gap-2.5">
-        <Settings className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <Settings className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <h1 className="panel-mono text-lg font-semibold tracking-wide text-slate-900 dark:text-white">Configuración SIG</h1>
       </div>
 

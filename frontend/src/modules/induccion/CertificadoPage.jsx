@@ -160,7 +160,7 @@ export default function CertificadoPage() {
         <h1 className="mt-3 flex items-center justify-center gap-2 text-xl font-semibold text-slate-900 dark:text-white">
           <PartyPopper className="h-5 w-5" aria-hidden="true" /> ¡Felicitaciones!
         </h1>
-        <h2 className="mt-1 text-sm font-medium text-emerald-700 dark:text-emerald-300">Has completado exitosamente tu inducción</h2>
+        <h2 className="mt-1 text-sm font-medium text-accent-700 dark:text-accent-300">Has completado exitosamente tu inducción</h2>
         <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
           Bienvenido(a) nuevamente a <strong className="text-slate-700 dark:text-slate-200">Terminal de Transportes de Neiva S.A.</strong>
         </p>
@@ -175,7 +175,7 @@ export default function CertificadoPage() {
         </div>
 
         <form onSubmit={generarCertificado} className="mt-6 space-y-3 text-left">
-          <h3 className="flex items-center justify-center gap-1.5 text-center text-sm font-semibold text-cyan-700 dark:text-cyan-300">
+          <h3 className="flex items-center justify-center gap-1.5 text-center text-sm font-semibold text-brand-700 dark:text-brand-300">
             <GraduationCap className="h-4 w-4" aria-hidden="true" /> Genera tu certificado
           </h3>
           <p className="text-center text-xs text-slate-500">Ingresa tus datos y genera tu certificado con los puntajes reales de tus módulos.</p>

@@ -6,11 +6,11 @@ import { Activity, PieChart as PieIcon, TrendingUp } from 'lucide-react'
 import { cn } from '../../lib/cn.js'
 
 const COLORES_PIE = {
-  pendiente: '#f59e0b',
+  pendiente: '#e77f24',
   asignado: '#8b5cf6',
-  en_proceso: '#06b6d4',
-  en_espera: '#ec4899',
-  resuelto: '#10b981',
+  en_proceso: '#1f4d8f',
+  en_espera: '#475569',
+  resuelto: '#2f8552',
 }
 
 const NOMBRES_ESTADO = {
@@ -77,12 +77,12 @@ export function GraficasOperativas({
             <AreaChart data={safeFlujoSemanal} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorCreados" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#e77f24" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#e77f24" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorResueltos" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#2f8552" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#2f8552" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" strokeOpacity={0.25} />
@@ -99,7 +99,7 @@ export function GraficasOperativas({
                 type="monotone"
                 dataKey="creados"
                 name="Reportados"
-                stroke="#f59e0b"
+                stroke="#e77f24"
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorCreados)"
@@ -108,7 +108,7 @@ export function GraficasOperativas({
                 type="monotone"
                 dataKey="resueltos"
                 name="Resueltos"
-                stroke="#06b6d4"
+                stroke="#2f8552"
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorResueltos)"
@@ -122,7 +122,7 @@ export function GraficasOperativas({
       <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white/95 p-4 shadow-soft-sm backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/70">
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400">
               <PieIcon className="h-4 w-4" />
             </span>
             <div>
@@ -130,7 +130,7 @@ export function GraficasOperativas({
               <p className="text-[11px] text-slate-500 dark:text-slate-400">Incidentes y flujo de requerimientos</p>
             </div>
           </div>
-          <span className="panel-mono text-xs font-semibold text-cyan-700 dark:text-cyan-300">
+          <span className="panel-mono text-xs font-semibold text-brand-700 dark:text-brand-300">
             {totalDanosGrafica} activos
           </span>
         </div>
@@ -183,13 +183,13 @@ export function GraficasOperativas({
 
             {/* Micro barras de Requerimientos */}
             <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-2 gap-1.5 text-[11px]">
-              <div className="rounded-md bg-amber-500/10 border border-amber-500/20 p-1 text-center">
-                <p className="text-[9px] text-amber-800 dark:text-amber-300 font-medium">Financiero</p>
-                <p className="text-xs font-bold text-amber-900 dark:text-amber-200">{reqFlujo.financiero || 0}</p>
+              <div className="rounded-md bg-warn-500/10 border border-warn-500/20 p-1 text-center">
+                <p className="text-[9px] text-warn-800 dark:text-warn-300 font-medium">Financiero</p>
+                <p className="text-xs font-bold text-warn-900 dark:text-warn-200">{reqFlujo.financiero || 0}</p>
               </div>
-              <div className="rounded-md bg-cyan-500/10 border border-cyan-500/20 p-1 text-center">
-                <p className="text-[9px] text-cyan-800 dark:text-cyan-300 font-medium">Bodega</p>
-                <p className="text-xs font-bold text-cyan-900 dark:text-cyan-200">{reqFlujo.bodega || 0}</p>
+              <div className="rounded-md bg-brand-500/10 border border-brand-500/20 p-1 text-center">
+                <p className="text-[9px] text-brand-800 dark:text-brand-300 font-medium">Bodega</p>
+                <p className="text-xs font-bold text-brand-900 dark:text-brand-200">{reqFlujo.bodega || 0}</p>
               </div>
             </div>
           </div>

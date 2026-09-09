@@ -30,9 +30,9 @@ function Fila({ nombre, estado, detalle, arreglo }) {
           : CircleX
   const color =
     estado === ESTADO.OK
-      ? 'text-emerald-500'
+      ? 'text-accent-500'
       : estado === ESTADO.AVISO
-        ? 'text-amber-500'
+        ? 'text-warn-500'
         : estado === ESTADO.PROBANDO
           ? 'text-slate-400'
           : 'text-red-500'
@@ -47,7 +47,7 @@ function Fila({ nombre, estado, detalle, arreglo }) {
         <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{nombre}</p>
         {detalle && <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{detalle}</p>}
         {arreglo && estado !== ESTADO.OK && (
-          <p className="mt-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          <p className="mt-1.5 rounded-lg bg-warn-50 px-2.5 py-1.5 text-xs text-warn-900 dark:bg-warn-950/40 dark:text-warn-200">
             <span className="font-semibold">Cómo se arregla: </span>
             {arreglo}
           </p>
@@ -266,7 +266,7 @@ export default function DiagnosticoPage() {
           type="button"
           onClick={revisar}
           disabled={ejecutando}
-          className="flex items-center gap-1.5 rounded-xl bg-cyan-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-cyan-700 disabled:opacity-60"
+          className="flex items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${ejecutando ? 'animate-spin' : ''}`} aria-hidden="true" />
           Revisar

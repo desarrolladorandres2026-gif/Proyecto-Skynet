@@ -14,7 +14,7 @@ const PUNTO_COLORES = {
   vacaciones: 'bg-brand-500',
   permiso_remunerado: 'bg-violet-500',
   permiso_no_remunerado: 'bg-teal-500',
-  incapacidad: 'bg-orange-500',
+  incapacidad: 'bg-warn-500',
 }
 
 function aISO(fecha) {
@@ -114,7 +114,7 @@ export default function CalendarioAusenciasPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <h1 className="panel-mono mb-4 flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-        <CalendarCheck className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <CalendarCheck className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         Calendario de ausencias
       </h1>
 
@@ -147,7 +147,7 @@ export default function CalendarioAusenciasPage() {
             <button
               type="button"
               onClick={irAHoy}
-              className="panel-mono rounded-lg px-2.5 py-1 text-[11px] tracking-wide text-cyan-700 uppercase ring-1 ring-inset ring-cyan-700/30 hover:bg-cyan-500/10 dark:text-cyan-400 dark:ring-cyan-400/30"
+              className="panel-mono rounded-lg px-2.5 py-1 text-[11px] tracking-wide text-brand-700 uppercase ring-1 ring-inset ring-brand-700/30 hover:bg-brand-500/10 dark:text-brand-400 dark:ring-brand-400/30"
             >
               Hoy
             </button>
@@ -174,14 +174,14 @@ export default function CalendarioAusenciasPage() {
                   onClick={() => setDiaSeleccionado(iso)}
                   className={`flex min-h-[74px] flex-col items-start rounded-lg p-1.5 text-left ring-1 ring-inset transition-colors ${
                     esSeleccionado
-                      ? 'ring-2 ring-cyan-600 dark:ring-cyan-400'
+                      ? 'ring-2 ring-brand-600 dark:ring-brand-400'
                       : 'ring-slate-500/10 hover:ring-slate-500/25'
                   } ${esDelMes ? '' : 'opacity-40'}`}
                 >
                   <span
                     className={`panel-mono text-[11px] ${
                       esHoy
-                        ? 'rounded-full bg-cyan-600 px-1.5 py-0.5 text-white dark:bg-cyan-500'
+                        ? 'rounded-full bg-brand-600 px-1.5 py-0.5 text-white dark:bg-brand-500'
                         : 'text-slate-600 dark:text-slate-300'
                     }`}
                   >
@@ -215,7 +215,7 @@ export default function CalendarioAusenciasPage() {
 
         <div className="space-y-4">
           <Card>
-            <h2 className="panel-mono mb-2 text-[11px] tracking-[0.1em] text-cyan-700/80 uppercase dark:text-cyan-400/80">
+            <h2 className="panel-mono mb-2 text-[11px] tracking-[0.1em] text-brand-700/80 uppercase dark:text-brand-400/80">
               Fuera hoy ({fueraHoy.length})
             </h2>
             {fueraHoy.length === 0 ? (
@@ -241,7 +241,7 @@ export default function CalendarioAusenciasPage() {
           </Card>
 
           <Card>
-            <h2 className="panel-mono mb-2 text-[11px] tracking-[0.1em] text-cyan-700/80 uppercase dark:text-cyan-400/80">
+            <h2 className="panel-mono mb-2 text-[11px] tracking-[0.1em] text-brand-700/80 uppercase dark:text-brand-400/80">
               Vuelven esta semana ({vuelvenEstaSemana.length})
             </h2>
             {vuelvenEstaSemana.length === 0 ? (
@@ -263,7 +263,7 @@ export default function CalendarioAusenciasPage() {
       </div>
 
       <Card className="mt-4">
-        <h2 className="panel-mono mb-3 text-[11px] tracking-[0.1em] text-cyan-700/80 uppercase dark:text-cyan-400/80">
+        <h2 className="panel-mono mb-3 text-[11px] tracking-[0.1em] text-brand-700/80 uppercase dark:text-brand-400/80">
           {new Date(diaSeleccionado + 'T00:00:00').toLocaleDateString('es-CO', {
             weekday: 'long',
             day: 'numeric',

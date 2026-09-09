@@ -39,19 +39,60 @@
   --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 
-  /* Rampa de marca (cian) — la identidad corporativa se mantiene, pero
-     como escala real (50-950) en vez de 2-3 tonos sueltos hardcodeados. */
-  --color-brand-50: #ecfeff;
-  --color-brand-100: #cffafe;
-  --color-brand-200: #a5f3fc;
-  --color-brand-300: #67e8f9;
-  --color-brand-400: #22d3ee;
-  --color-brand-500: #06b6d4;
-  --color-brand-600: #0891b2;
-  --color-brand-700: #0e7490;
-  --color-brand-800: #155e75;
-  --color-brand-900: #164e63;
-  --color-brand-950: #083344;
+  /* IDENTIDAD DEL LOGO "El Terminal · Neiva": tres barras de color en
+     diagonal ascendente (movimiento hacia el destino) — AZUL, VERDE y
+     NARANJA. La plataforma usa las tres como sistema:
+       · brand  (AZUL)   = color primario / estructura (sidebar, botones,
+                           encabezados, foco). Es el que manda.
+       · accent (VERDE)   = operación / "vía libre": ítem de menú activo,
+                           éxito, confirmado, KPIs positivos, rutas activas.
+       · warn   (NARANJA) = atención / tránsito: avisos, pendientes, en
+                           proceso, destacados y acentos gráficos del logo.
+     Todo se deriva de estas tres escalas 50-950 — cambiar el tono de marca
+     se hace SOLO aquí. 600 = tono sólido primario; 700-800 = texto sobre
+     claro; 300-400 = acento sobre fondos oscuros. */
+
+  /* AZUL — tomado del azul del logo (azur corporativo, no cian neón). */
+  --color-brand-50: #eef5fb;
+  --color-brand-100: #d5e6f4;
+  --color-brand-200: #aacbe6;
+  --color-brand-300: #77a9d3;
+  --color-brand-400: #4585bd;
+  --color-brand-500: #2468a3;
+  --color-brand-600: #1c568c;
+  --color-brand-700: #184873;
+  --color-brand-800: #163c5e;
+  --color-brand-900: #14324e;
+  --color-brand-950: #0d2036;
+
+  /* VERDE — verde del logo (hoja/vía, vivo pero no lima). Segundo color
+     real de la identidad: señaliza operación normal y éxito. */
+  --color-accent-50: #f0f7ea;
+  --color-accent-100: #dcedcb;
+  --color-accent-200: #bcdd9d;
+  --color-accent-300: #96c86a;
+  --color-accent-400: #74b23f;
+  --color-accent-500: #5a982c;
+  --color-accent-600: #467a22;
+  --color-accent-700: #38601e;
+  --color-accent-800: #2f4d1c;
+  --color-accent-900: #29421b;
+  --color-accent-950: #13240b;
+
+  /* NARANJA — naranja del logo. Tercer color: atención, tránsito, pendientes
+     y acentos gráficos. Nunca como fondo de superficie amplia — es acento y
+     señalización, siempre acompañando al azul. */
+  --color-warn-50: #fdf3e8;
+  --color-warn-100: #fae0c6;
+  --color-warn-200: #f4c08a;
+  --color-warn-300: #ee9d4f;
+  --color-warn-400: #e77f24;
+  --color-warn-500: #d96b12;
+  --color-warn-600: #bd570e;
+  --color-warn-700: #97430f;
+  --color-warn-800: #7a3812;
+  --color-warn-900: #642f12;
+  --color-warn-950: #3a1907;
 
   /* Radios consistentes en todo el sistema nuevo */
   --radius-sm: 0.375rem;
@@ -403,13 +444,13 @@ body {
   position: relative;
   background: radial-gradient(circle at 50% 0%, #0f172a 0%, #020617 75%);
   box-shadow:
-    inset 0 1.01rem 0.2rem -1rem #22d3ee25,
+    inset 0 1.01rem 0.2rem -1rem #4e7cbe25,
     inset 0 -1.01rem 0.2rem -1rem #0000,
-    0 -1.02rem 0.2rem -1rem #22d3ee30,
+    0 -1.02rem 0.2rem -1rem #4e7cbe30,
     0 1rem 0.2rem -1rem #0000,
-    0 0 0 1px rgba(34, 211, 238, 0.3),
-    0 8px 30px 0 rgba(6, 182, 212, 0.25),
-    0 0 0 1px #083344;
+    0 0 0 1px rgba(78, 124, 190, 0.3),
+    0 8px 30px 0 rgba(45, 93, 163, 0.25),
+    0 0 0 1px #0d1b33;
   border-radius: 1.8rem;
   color: #fff;
   transition: all 0.4s ease-in-out, translate 0.4s ease-out;
@@ -427,7 +468,7 @@ body {
   top: calc(-1 * var(--offset));
   bottom: calc(-1 * var(--offset));
   margin: auto;
-  box-shadow: inset 0 0 0px 0.08rem rgba(34, 211, 238, 0.35);
+  box-shadow: inset 0 0 0px 0.08rem rgba(78, 124, 190, 0.35);
   border-radius: 2.4rem;
   --ax: 3rem;
   clip-path: polygon(var(--ax) 0,
@@ -462,7 +503,7 @@ body {
   --offset: 0.4rem;
   --ax: 6rem;
   border-radius: 2.2rem;
-  box-shadow: inset 0 0 0 0.1rem rgba(34, 211, 238, 0.6);
+  box-shadow: inset 0 0 0 0.1rem rgba(78, 124, 190, 0.6);
 }
 
 .luminous-light-layer {
@@ -486,8 +527,8 @@ body {
   width: 64%;
   height: 1.2rem;
   transform: rotateX(-76deg);
-  background: #082f49;
-  box-shadow: 0 0 8px 0 rgba(34, 211, 238, 0.4);
+  background: #132a4d;
+  box-shadow: 0 0 8px 0 rgba(78, 124, 190, 0.4);
   transition: all 0.4s ease-in-out;
 }
 
@@ -509,7 +550,7 @@ body {
 .luminous-lumen .min {
   width: 70%;
   height: 3rem;
-  background: linear-gradient(to top, rgba(34, 211, 238, 0.8), rgba(6, 182, 212, 0.05));
+  background: linear-gradient(to top, rgba(78, 124, 190, 0.8), rgba(45, 93, 163, 0.05));
   position: absolute;
   left: 0;
   right: 0;
@@ -523,7 +564,7 @@ body {
 .luminous-lumen .mid {
   width: 74%;
   height: 13rem;
-  background: linear-gradient(to top, rgba(34, 211, 238, 0.9), rgba(14, 116, 144, 0.05));
+  background: linear-gradient(to top, rgba(78, 124, 190, 0.9), rgba(26, 63, 117, 0.05));
   position: absolute;
   left: 0;
   right: 0;
@@ -539,7 +580,7 @@ body {
 .luminous-lumen .hi {
   width: 50%;
   height: 13rem;
-  background: linear-gradient(to top, rgba(56, 189, 248, 0.95), rgba(6, 182, 212, 0.1));
+  background: linear-gradient(to top, rgba(127, 164, 213, 0.95), rgba(45, 93, 163, 0.1));
   position: absolute;
   left: 0;
   right: 0;
@@ -590,7 +631,7 @@ body {
 .luminous-darken .ll {
   width: 62%;
   height: 10rem;
-  background: linear-gradient(#082f49aa, #0000);
+  background: linear-gradient(#132a4daa, #0000);
   position: absolute;
   left: 0;
   right: 0;
@@ -606,7 +647,7 @@ body {
 .luminous-darken .slt {
   width: 0.5rem;
   height: 4rem;
-  background: linear-gradient(rgba(6, 182, 212, 0.4), #0000);
+  background: linear-gradient(rgba(45, 93, 163, 0.4), #0000);
   position: absolute;
   left: 0;
   right: 11.5rem;
@@ -621,7 +662,7 @@ body {
 .luminous-darken .srt {
   width: 0.5rem;
   height: 4rem;
-  background: linear-gradient(rgba(6, 182, 212, 0.4), #0000);
+  background: linear-gradient(rgba(45, 93, 163, 0.4), #0000);
   position: absolute;
   right: 0;
   left: 11.5rem;
@@ -641,10 +682,10 @@ body {
   background: #020617;
   box-shadow:
     inset 0 -8px 8px 0.3rem #0008,
-    inset 0 0 1px 0.3rem #0891b2,
-    inset 0 -2px 1px 0.3rem #22d3ee,
+    inset 0 0 1px 0.3rem #1f4d8f,
+    inset 0 -2px 1px 0.3rem #4e7cbe,
     inset 0 1px 2px 0.3rem #000,
-    inset 0 0 1px 0.8rem #0e7490;
+    inset 0 0 1px 0.8rem #1a3f75;
   cursor: pointer;
   transition: all 0.4s ease-in-out;
 }
@@ -661,7 +702,7 @@ body {
   width: 3rem;
   height: 0.6rem;
   border-radius: 0.2rem;
-  background: #042f2e;
+  background: #0d1b33;
   transition: all 0.4s ease-in-out;
 }
 
@@ -673,12 +714,12 @@ body {
   left: 0.5rem;
   width: 40%;
   height: 45%;
-  background: #22d3ee;
+  background: #4e7cbe;
   border-radius: 0.2rem;
   box-shadow:
-    inset 0 1px 4px 0 #ecfeff,
-    inset 0 -1px 1px 0 #0891b2,
-    0 0 8px 2px #22d3ee,
+    inset 0 1px 4px 0 #eef4fb,
+    inset 0 -1px 1px 0 #1f4d8f,
+    0 0 8px 2px #4e7cbe,
     1px 3px 6px 1px #000a;
   transition: all 0.4s ease-in-out;
   pointer-events: none;
@@ -686,18 +727,18 @@ body {
 
 .luminous-active .luminous-card {
   box-shadow:
-    inset 0 1.01rem 0.1rem -1rem #22d3ee,
-    inset 0 -4rem 3rem -3rem #0891b240,
-    0 -1.02rem 0.2rem -1rem #22d3ee,
+    inset 0 1.01rem 0.1rem -1rem #4e7cbe,
+    inset 0 -4rem 3rem -3rem #1f4d8f40,
+    0 -1.02rem 0.2rem -1rem #4e7cbe,
     0 1rem 0.2rem -1rem #000,
-    0 0 0 1px rgba(34, 211, 238, 0.6),
-    0 0 45px 0 rgba(34, 211, 238, 0.5),
-    0 0 0 1px #22d3ee;
+    0 0 0 1px rgba(78, 124, 190, 0.6),
+    0 0 45px 0 rgba(78, 124, 190, 0.5),
+    0 0 0 1px #4e7cbe;
 }
 
 .luminous-active .luminous-slit {
-  background: #22d3ee;
-  box-shadow: 0 0 25px 6px #22d3ee;
+  background: #4e7cbe;
+  box-shadow: 0 0 25px 6px #4e7cbe;
 }
 
 .luminous-active .luminous-lumen {
@@ -725,17 +766,17 @@ body {
 }
 
 .luminous-active .luminous-toggle::before {
-  background: #22d3ee;
-  box-shadow: 0 0 0.5rem 0.2rem #22d3ee;
+  background: #4e7cbe;
+  box-shadow: 0 0 0.5rem 0.2rem #4e7cbe;
 }
 
 .luminous-active .luminous-handle {
   transform: translateX(1.4rem);
-  background: #cffafe;
+  background: #d7e4f4;
   box-shadow:
     inset 0 1px 12px 0 #fff,
-    inset 0 -1px 1px 0 #22d3ee,
-    0 0 12px 4px #22d3ee,
+    inset 0 -1px 1px 0 #4e7cbe,
+    0 0 12px 4px #4e7cbe,
     1px 3px 6px 1px #0004;
 }
 
@@ -748,8 +789,8 @@ body {
   box-shadow:
     15px 15px 30px rgb(18, 18, 18),
     -15px -15px 30px rgb(50, 50, 50),
-    0 0 25px rgba(34, 211, 238, 0.15);
-  border: 1px solid rgba(34, 211, 238, 0.25);
+    0 0 25px rgba(78, 124, 190, 0.15);
+  border: 1px solid rgba(78, 124, 190, 0.25);
 }
 
 .neumorphic-button {
@@ -765,8 +806,8 @@ body {
   box-shadow:
     2px 2px 6px rgb(15, 15, 15),
     -2px -2px 6px rgb(45, 45, 45),
-    0 0 12px rgba(34, 211, 238, 0.4);
-  border-color: rgba(34, 211, 238, 0.4);
+    0 0 12px rgba(78, 124, 190, 0.4);
+  border-color: rgba(78, 124, 190, 0.4);
 }
 
 .neumorphic-button:active {
@@ -780,7 +821,7 @@ body {
   box-shadow:
     inset 4px 4px 8px rgb(12, 12, 12),
     inset -4px -4px 8px rgb(38, 38, 38);
-  border: 1px solid rgba(34, 211, 238, 0.2);
+  border: 1px solid rgba(78, 124, 190, 0.2);
 }
 
 @keyframes skynetGpuBar {

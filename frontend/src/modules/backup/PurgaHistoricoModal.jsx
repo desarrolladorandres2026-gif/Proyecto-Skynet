@@ -96,7 +96,7 @@ export default function PurgaHistoricoModal({ abierto, meses, onCerrar, onElimin
       ancho="max-w-md"
     >
       <div className="space-y-4">
-        <p className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+        <p className="flex items-start gap-2 rounded-lg border border-warn-500/30 bg-warn-500/10 px-3 py-2 text-sm text-warn-800 dark:text-warn-300">
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           Esto borra permanentemente los registros de Requerimientos, Reportes de daños, Ausencias, Auditoría,
           Órdenes de mantenimiento, Movimientos de inventario y Bitácora de entradas anteriores a la fecha de

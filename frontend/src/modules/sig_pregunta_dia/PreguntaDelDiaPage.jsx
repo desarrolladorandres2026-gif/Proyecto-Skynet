@@ -53,17 +53,17 @@ function TarjetaPregunta({ pregunta, indice, total, seleccion, onSeleccionar, on
               className={cn(
                 'flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors',
                 'disabled:cursor-default',
-                mostrarComoCorrecta && 'border-emerald-500/50 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300',
+                mostrarComoCorrecta && 'border-accent-500/50 bg-accent-500/10 text-accent-800 dark:text-accent-300',
                 mostrarComoIncorrectaElegida && 'border-red-500/50 bg-red-500/10 text-red-800 dark:text-red-300',
-                !yaRespondida && esSeleccionada && 'border-cyan-500/60 bg-cyan-500/10 text-cyan-800 dark:text-cyan-300',
-                !yaRespondida && !esSeleccionada && 'border-slate-200 hover:border-cyan-500/40 hover:bg-cyan-500/5 dark:border-slate-700'
+                !yaRespondida && esSeleccionada && 'border-brand-500/60 bg-brand-500/10 text-brand-800 dark:text-brand-300',
+                !yaRespondida && !esSeleccionada && 'border-slate-200 hover:border-brand-500/40 hover:bg-brand-500/5 dark:border-slate-700'
               )}
             >
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[11px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                 {LETRAS[i]}
               </span>
               <span className="flex-1">{o.texto}</span>
-              {mostrarComoCorrecta && <CircleCheck className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />}
+              {mostrarComoCorrecta && <CircleCheck className="h-4 w-4 shrink-0 text-accent-600 dark:text-accent-400" aria-hidden="true" />}
               {mostrarComoIncorrectaElegida && <CircleX className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400" aria-hidden="true" />}
             </button>
           )
@@ -81,7 +81,7 @@ function TarjetaPregunta({ pregunta, indice, total, seleccion, onSeleccionar, on
           className={cn(
             'mt-4 rounded-xl border px-3 py-3 text-sm',
             miRespuesta?.esCorrecta
-              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
+              ? 'border-accent-500/30 bg-accent-500/10 text-accent-800 dark:text-accent-300'
               : 'border-red-500/30 bg-red-500/10 text-red-800 dark:text-red-300'
           )}
         >
@@ -144,12 +144,12 @@ export default function PreguntaDelDiaPage() {
   const encabezado = (
     <div className="mb-4 flex items-center justify-between gap-2.5">
       <div className="flex items-center gap-2.5">
-        <Brain className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <Brain className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <h1 className="text-lg font-semibold text-slate-900 dark:text-white">Cuestionario Programado</h1>
       </div>
       <Link
         to="/sig/mi-historial"
-        className="flex items-center gap-1 text-xs font-medium text-cyan-700 hover:underline dark:text-cyan-400"
+        className="flex items-center gap-1 text-xs font-medium text-brand-700 hover:underline dark:text-brand-400"
       >
         <History className="h-3.5 w-3.5" aria-hidden="true" /> Mi historial
       </Link>
@@ -204,7 +204,7 @@ export default function PreguntaDelDiaPage() {
             aria-label="Preguntas respondidas hoy"
           >
             <div
-              className="h-full rounded-full bg-cyan-600 transition-all dark:bg-cyan-500"
+              className="h-full rounded-full bg-brand-600 transition-all dark:bg-brand-500"
               style={{ width: `${(respondidas / preguntas.length) * 100}%` }}
             />
           </div>

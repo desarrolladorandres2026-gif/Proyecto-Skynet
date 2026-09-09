@@ -129,7 +129,7 @@ export default function ImportarPreguntasModal({ abierto, onCerrar, onImportado,
 
         {!resultado ? (
           <>
-            <Card className="!bg-cyan-500/5">
+            <Card className="!bg-brand-500/5">
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                 Descarga el formato, llénalo y sube ese mismo archivo aquí
               </p>
@@ -191,7 +191,7 @@ export default function ImportarPreguntasModal({ abierto, onCerrar, onImportado,
                 motivo de rechazo más común: se listan los válidos aquí mismo
                 para poder copiarlos tal cual al Excel. */}
             {componentes.length > 0 && (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
+              <div className="rounded-lg border border-warn-500/30 bg-warn-500/5 px-3 py-2">
                 <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
                   Componentes SIG válidos hoy — escribe uno de estos en la columna «Componente SIG»:
                 </p>
@@ -199,7 +199,7 @@ export default function ImportarPreguntasModal({ abierto, onCerrar, onImportado,
                   {componentes.map((componente) => (
                     <span
                       key={componente}
-                      className="panel-mono rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-[11px] font-medium text-cyan-800 dark:text-cyan-300"
+                      className="panel-mono rounded-full bg-brand-500/10 px-2.5 py-0.5 text-[11px] font-medium text-brand-800 dark:text-brand-300"
                     >
                       {componente}
                     </span>
@@ -222,9 +222,9 @@ export default function ImportarPreguntasModal({ abierto, onCerrar, onImportado,
               />
               <label
                 htmlFor="sig-archivo-preguntas"
-                className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center transition-colors hover:border-cyan-500/60 hover:bg-cyan-500/5 dark:border-slate-600"
+                className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center transition-colors hover:border-brand-500/60 hover:bg-brand-500/5 dark:border-slate-600"
               >
-                <FileSpreadsheet className="h-8 w-8 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+                <FileSpreadsheet className="h-8 w-8 text-brand-700 dark:text-brand-400" aria-hidden="true" />
                 {archivo ? (
                   <>
                     <span className="text-sm font-medium text-slate-800 dark:text-slate-100">{archivo.name}</span>
@@ -260,13 +260,13 @@ export default function ImportarPreguntasModal({ abierto, onCerrar, onImportado,
           <>
             <div className="grid grid-cols-3 gap-3 text-center">
               <Card>
-                <CircleCheck className="mx-auto mb-1 h-5 w-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{resultado.importadas}</p>
+                <CircleCheck className="mx-auto mb-1 h-5 w-5 text-accent-600 dark:text-accent-400" aria-hidden="true" />
+                <p className="text-2xl font-bold text-accent-600 dark:text-accent-400">{resultado.importadas}</p>
                 <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Importadas</p>
               </Card>
               <Card>
-                <TriangleAlert className="mx-auto mb-1 h-5 w-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{resultado.duplicadas.length}</p>
+                <TriangleAlert className="mx-auto mb-1 h-5 w-5 text-warn-600 dark:text-warn-400" aria-hidden="true" />
+                <p className="text-2xl font-bold text-warn-600 dark:text-warn-400">{resultado.duplicadas.length}</p>
                 <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Ya existían</p>
               </Card>
               <Card>

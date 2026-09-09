@@ -89,49 +89,49 @@ export function Switch({ checked, onChange, disabled = false, label }) {
 
 const BADGE_COLORES = {
   // mantenimiento
-  pendiente: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
+  pendiente: 'bg-warn-400/10 text-warn-700 dark:text-warn-300 ring-1 ring-inset ring-warn-400/30',
   programado: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
-  finalizado: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
+  finalizado: 'bg-accent-400/10 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-400/30',
   // tickets
   Nuevo: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   Asignado: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
-  'En progreso': 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
-  Resuelto: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
+  'En progreso': 'bg-warn-400/10 text-warn-700 dark:text-warn-300 ring-1 ring-inset ring-warn-400/30',
+  Resuelto: 'bg-accent-400/10 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-400/30',
   Cerrado: 'bg-slate-400/10 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-400/30',
   // reportes de daños (ver Backend/src/modules/danos/danos.service.js)
   asignado: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
-  en_proceso: 'bg-sky-400/10 text-sky-700 dark:text-sky-300 ring-1 ring-inset ring-sky-400/30',
-  resuelto: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
+  en_proceso: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
+  resuelto: 'bg-accent-400/10 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-400/30',
   cancelado: 'bg-slate-400/10 text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-400/30',
   // flota y operación
-  libre: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
-  ocupada: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
+  libre: 'bg-accent-400/10 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-400/30',
+  ocupada: 'bg-warn-400/10 text-warn-700 dark:text-warn-300 ring-1 ring-inset ring-warn-400/30',
   despachado: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
-  retrasado: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
+  retrasado: 'bg-warn-400/10 text-warn-700 dark:text-warn-300 ring-1 ring-inset ring-warn-400/30',
   anulado: 'bg-slate-400/10 text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-400/30',
-  abierta: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
+  abierta: 'bg-warn-400/10 text-warn-700 dark:text-warn-300 ring-1 ring-inset ring-warn-400/30',
   cerrada: 'bg-slate-400/10 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-400/30',
   custodia: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
-  entregado: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
-  activa: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
+  entregado: 'bg-accent-400/10 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-400/30',
+  activa: 'bg-accent-400/10 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-400/30',
   inactiva: 'bg-slate-400/10 text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-400/30',
   operativa: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   incidente: 'bg-rose-400/10 text-rose-700 dark:text-rose-300 ring-1 ring-inset ring-rose-400/30',
   baja: 'bg-slate-400/10 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-400/30',
-  media: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
+  media: 'bg-warn-400/10 text-warn-700 dark:text-warn-300 ring-1 ring-inset ring-warn-400/30',
   alta: 'bg-rose-400/10 text-rose-700 dark:text-rose-300 ring-1 ring-inset ring-rose-400/30',
   critica: 'bg-red-500/15 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-500/40',
   // Orden de Trabajo (CMMS, ver Backend/src/models/mantenimiento/Mantenimiento.js)
-  reportado: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
+  reportado: 'bg-warn-400/10 text-warn-700 dark:text-warn-300 ring-1 ring-inset ring-warn-400/30',
   programada: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   asignada: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
-  en_progreso: 'bg-sky-400/10 text-sky-700 dark:text-sky-300 ring-1 ring-inset ring-sky-400/30',
-  en_espera: 'bg-orange-400/10 text-orange-700 dark:text-orange-300 ring-1 ring-inset ring-orange-400/30',
-  resuelta: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
+  en_progreso: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
+  en_espera: 'bg-warn-400/10 text-warn-700 dark:text-warn-300 ring-1 ring-inset ring-warn-400/30',
+  resuelta: 'bg-accent-400/10 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-400/30',
   pendiente_aprobacion: 'bg-fuchsia-400/10 text-fuchsia-700 dark:text-fuchsia-300 ring-1 ring-inset ring-fuchsia-400/30',
   cancelada: 'bg-slate-400/10 text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-400/30',
   // usuarios
-  activo: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
+  activo: 'bg-accent-400/10 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-400/30',
   inactivo: 'bg-slate-400/10 text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-400/30',
   // roles (slugs de Rol, ver Backend/src/seedData/rbac.data.js)
   super_admin: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
@@ -140,30 +140,30 @@ const BADGE_COLORES = {
   operador: 'bg-slate-400/10 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-400/30',
   // ambito de Rol
   global: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
-  empresa: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
+  empresa: 'bg-warn-400/10 text-warn-700 dark:text-warn-300 ring-1 ring-inset ring-warn-400/30',
   // auditoria
-  exito: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
+  exito: 'bg-accent-400/10 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-400/30',
   error: 'bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-400/30',
   // requerimientos (estado raíz + bodega.estado, ver Backend/src/models/Requerimiento.js)
-  pendiente_financiero: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-400/30',
+  pendiente_financiero: 'bg-warn-400/10 text-warn-700 dark:text-warn-300 ring-1 ring-inset ring-warn-400/30',
   pendiente_bodega: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   rechazado: 'bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-400/30',
-  aprobada: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
+  aprobada: 'bg-accent-400/10 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-400/30',
   no_aprobada: 'bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-400/30',
   financiero: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
-  bodega: 'bg-sky-400/10 text-sky-700 dark:text-sky-300 ring-1 ring-inset ring-sky-400/30',
+  bodega: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   // ausencias: estado y tipo (ver Backend/src/models/Ausencia.js). 'pendiente',
   // 'aprobada' y 'cancelada' ya están arriba y se reutilizan tal cual.
   rechazada: 'bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-400/30',
   vacaciones: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   permiso_remunerado: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
   permiso_no_remunerado: 'bg-teal-400/10 text-teal-700 dark:text-teal-300 ring-1 ring-inset ring-teal-400/30',
-  incapacidad: 'bg-orange-400/10 text-orange-700 dark:text-orange-300 ring-1 ring-inset ring-orange-400/30',
+  incapacidad: 'bg-warn-400/10 text-warn-700 dark:text-warn-300 ring-1 ring-inset ring-warn-400/30',
   // Cuestionarios Programados: resultado de una respuesta y estado de una
   // programación/campaña (ver Backend/src/models/RespuestaSig.js,
   // ProgramacionSig.js, CampanaSig.js). 'activa'/'pausada'/'cancelada' ya
   // están arriba y se reutilizan tal cual.
-  correcta: 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
+  correcta: 'bg-accent-400/10 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-400/30',
   incorrecta: 'bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-400/30',
   publicada: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   finalizada: 'bg-slate-400/10 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-400/30',
@@ -194,7 +194,7 @@ export function ErrorMsg({ children }) {
 export function OkMsg({ children }) {
   if (!children) return null
   return (
-    <p className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+    <p className="mb-4 rounded-lg border border-accent-500/30 bg-accent-500/10 px-3 py-2 text-sm text-accent-700 dark:text-accent-300">
       {children}
     </p>
   )

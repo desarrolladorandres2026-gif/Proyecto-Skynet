@@ -28,7 +28,7 @@ function BarraAvance({ resumen }) {
   return (
     <div className="flex items-center gap-2">
       <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-        <div className="h-full rounded-full bg-cyan-600 dark:bg-cyan-500" style={{ width: `${resumen.porcentaje}%` }} />
+        <div className="h-full rounded-full bg-brand-600 dark:bg-brand-500" style={{ width: `${resumen.porcentaje}%` }} />
       </div>
       <span className="whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">
         {resumen.completados}/{resumen.total} · {resumen.porcentaje}%
@@ -251,7 +251,7 @@ export default function CapacitacionesTemaPage() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-          <GraduationCap className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+          <GraduationCap className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
           Capacitaciones por tema
         </h1>
         <Btn className="flex items-center gap-1.5" onClick={() => setCreando(true)}>

@@ -37,7 +37,7 @@ export default function PreferenciasIAPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
-        <Bot className="h-6 w-6 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <Bot className="h-6 w-6 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <div>
           <h1 className="panel-mono text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
             Mis avisos de IA
@@ -53,7 +53,7 @@ export default function PreferenciasIAPage() {
 
       <Card>
         <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-          <Volume2 className="h-4 w-4 text-cyan-600 dark:text-cyan-400" aria-hidden="true" />
+          <Volume2 className="h-4 w-4 text-brand-600 dark:text-brand-400" aria-hidden="true" />
           Voz
         </h2>
         <div className="flex items-center justify-between gap-4">

@@ -1,7 +1,7 @@
-/* Tema del shell móvil (los 6 roles no-admin): variante "app social" del
-   mismo acento cian de marca que panel.css (login/panel admin), pero con
-   fondos suaves tipo app en vez del negro HUD puro y esquinas más
-   redondeadas — más feed de tarjetas, menos consola táctica.
+/* Tema del shell móvil (los 6 roles no-admin): variante "app" del mismo
+   AZUL INSTITUCIONAL de marca que panel.css (login/panel admin), pero con
+   fondos suaves tipo app y esquinas más redondeadas — más feed de tarjetas,
+   menos consola. Acento = azul institucional del Terminal (#1f4d8f).
 
    A propósito usa un prefijo de clase totalmente distinto (m-*) en vez de
    reutilizar nombres panel-*: panel.css es CSS plano sin @layer, así que
@@ -18,12 +18,12 @@
   --mobile-bg: #f4f7f9;
   --mobile-surface: #ffffff;
   --mobile-surface-2: #eef3f6;
-  --mobile-border: rgba(8, 145, 178, 0.14);
+  --mobile-border: rgba(31, 77, 143, 0.16);
   --mobile-text: #0f172a;
   --mobile-text-dim: #64748b;
-  --mobile-accent: #0891b2;
+  --mobile-accent: #1f4d8f;
   --mobile-accent-fg: #ffffff;
-  --mobile-accent-soft: rgba(8, 145, 178, 0.1);
+  --mobile-accent-soft: rgba(31, 77, 143, 0.1);
   --mobile-shadow: rgba(15, 23, 42, 0.1);
   --mobile-bar-bg: rgba(255, 255, 255, 0.92);
   --mobile-backdrop: rgba(15, 23, 42, 0.4);
@@ -33,12 +33,12 @@
   --mobile-bg: #0a0f18;
   --mobile-surface: #121a26;
   --mobile-surface-2: #0d1420;
-  --mobile-border: rgba(0, 229, 255, 0.14);
+  --mobile-border: rgba(127, 164, 213, 0.16);
   --mobile-text: #e2e8f0;
   --mobile-text-dim: #94a3b8;
-  --mobile-accent: #00e5ff;
-  --mobile-accent-fg: #05070a;
-  --mobile-accent-soft: rgba(0, 229, 255, 0.12);
+  --mobile-accent: #7fa4d5;
+  --mobile-accent-fg: #0d1b33;
+  --mobile-accent-soft: rgba(127, 164, 213, 0.14);
   --mobile-shadow: rgba(0, 0, 0, 0.55);
   --mobile-bar-bg: rgba(11, 16, 24, 0.92);
   --mobile-backdrop: rgba(2, 4, 7, 0.6);

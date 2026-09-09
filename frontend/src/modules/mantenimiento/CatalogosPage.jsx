@@ -58,7 +58,7 @@ function ListaCatalogo({ titulo, tipo, items, onCambio }) {
       {items.length === 0 ? (
         <EmptyState mensaje="Catálogo vacío" />
       ) : (
-        <ul className="divide-y divide-cyan-600/15 dark:divide-cyan-400/10">
+        <ul className="divide-y divide-brand-600/15 dark:divide-brand-400/10">
           {items.map((item) => (
             <li key={item._id} className="flex items-center justify-between py-2">
               <span className="text-sm text-slate-700 dark:text-slate-200">{item.nombre}</span>

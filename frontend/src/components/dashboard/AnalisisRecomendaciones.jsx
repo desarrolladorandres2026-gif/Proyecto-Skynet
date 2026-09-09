@@ -13,27 +13,27 @@ const ESTILOS_TIPO = {
     btn: 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-900/20',
   },
   advertencia: {
-    borde: 'border-amber-200 hover:border-amber-300 dark:border-amber-500/30 dark:hover:border-amber-500/50',
-    bg: 'bg-amber-50/70 dark:bg-amber-950/30',
+    borde: 'border-warn-200 hover:border-warn-300 dark:border-warn-500/30 dark:hover:border-warn-500/50',
+    bg: 'bg-warn-50/70 dark:bg-warn-950/30',
     icono: AlertTriangle,
-    colorIcono: 'text-amber-600 dark:text-amber-400',
-    badge: 'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-300',
-    btn: 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/20',
+    colorIcono: 'text-warn-600 dark:text-warn-400',
+    badge: 'bg-warn-500/10 text-warn-700 border-warn-500/20 dark:text-warn-300',
+    btn: 'bg-warn-600 hover:bg-warn-500 text-white shadow-warn-900/20',
   },
   optimizacion: {
-    borde: 'border-emerald-200 hover:border-emerald-300 dark:border-emerald-500/30 dark:hover:border-emerald-500/50',
-    bg: 'bg-emerald-50/70 dark:bg-emerald-950/30',
+    borde: 'border-accent-200 hover:border-accent-300 dark:border-accent-500/30 dark:hover:border-accent-500/50',
+    bg: 'bg-accent-50/70 dark:bg-accent-950/30',
     icono: CheckCircle,
-    colorIcono: 'text-emerald-600 dark:text-emerald-400',
-    badge: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-300',
-    btn: 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20',
+    colorIcono: 'text-accent-600 dark:text-accent-400',
+    badge: 'bg-accent-500/10 text-accent-700 border-accent-500/20 dark:text-accent-300',
+    btn: 'bg-accent-600 hover:bg-accent-500 text-white shadow-accent-900/20',
   },
   informativo: {
-    borde: 'border-cyan-200 hover:border-cyan-300 dark:border-cyan-500/30 dark:hover:border-cyan-500/50',
-    bg: 'bg-cyan-50/70 dark:bg-cyan-950/30',
+    borde: 'border-brand-200 hover:border-brand-300 dark:border-brand-500/30 dark:hover:border-brand-500/50',
+    bg: 'bg-brand-50/70 dark:bg-brand-950/30',
     icono: Info,
-    colorIcono: 'text-cyan-600 dark:text-cyan-400',
-    badge: 'bg-cyan-500/10 text-cyan-700 border-cyan-500/20 dark:text-cyan-300',
+    colorIcono: 'text-brand-600 dark:text-brand-400',
+    badge: 'bg-brand-500/10 text-brand-700 border-brand-500/20 dark:text-brand-300',
     btn: 'bg-brand-600 hover:bg-brand-500 text-white shadow-brand-900/20',
   },
 }
@@ -93,7 +93,7 @@ export function AnalisisRecomendaciones({ recomendaciones = [], className = '' }
               onClick={() => setFiltro('advertencia')}
               className={cn(
                 'rounded-md px-2 py-0.5 font-medium transition-all',
-                filtro === 'advertencia' ? 'bg-amber-600 text-white' : 'text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/40'
+                filtro === 'advertencia' ? 'bg-warn-600 text-white' : 'text-warn-600 hover:bg-warn-50 dark:text-warn-400 dark:hover:bg-warn-950/40'
               )}
             >
               Advertencias ({conteoAdvertencia})
@@ -123,7 +123,7 @@ export function AnalisisRecomendaciones({ recomendaciones = [], className = '' }
                   <span className={cn('panel-mono text-[9px] font-semibold uppercase px-1.5 py-0.2 rounded border', estilo.badge)}>
                     {item.impacto ? `Impacto ${item.impacto}` : item.tipo}
                   </span>
-                  <h3 className="text-xs font-semibold text-slate-900 group-hover:text-brand-600 dark:text-white dark:group-hover:text-cyan-200 transition-colors truncate">
+                  <h3 className="text-xs font-semibold text-slate-900 group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-200 transition-colors truncate">
                     {item.titulo}
                   </h3>
                 </div>

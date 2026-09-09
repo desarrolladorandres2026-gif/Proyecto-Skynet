@@ -45,7 +45,7 @@ export function NotificacionesAdminTabs() {
         className={cn(
           'flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200',
           esHistorial
-            ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 shadow-sm'
+            ? 'bg-brand-500/15 text-brand-700 dark:text-brand-300 border border-brand-500/30 shadow-sm'
             : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
         )}
       >
@@ -58,13 +58,13 @@ export function NotificacionesAdminTabs() {
         className={cn(
           'flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200',
           esCanales
-            ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 shadow-sm'
+            ? 'bg-brand-500/15 text-brand-700 dark:text-brand-300 border border-brand-500/30 shadow-sm'
             : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
         )}
       >
         <SlidersHorizontal className="h-4 w-4" />
         <span>Elección de notificaciones</span>
-        <span className="rounded-full bg-cyan-600/10 dark:bg-cyan-400/15 px-2 py-0.5 text-[11px] font-semibold text-cyan-700 dark:text-cyan-300">
+        <span className="rounded-full bg-brand-600/10 dark:bg-brand-400/15 px-2 py-0.5 text-[11px] font-semibold text-brand-700 dark:text-brand-300">
           Canales
         </span>
       </Link>
@@ -243,7 +243,7 @@ export default function EleccionNotificacionesPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <SlidersHorizontal className="h-6 w-6 text-cyan-600 dark:text-cyan-400" aria-hidden="true" />
+            <SlidersHorizontal className="h-6 w-6 text-brand-600 dark:text-brand-400" aria-hidden="true" />
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               Elección de notificaciones
             </h1>
@@ -259,19 +259,19 @@ export default function EleccionNotificacionesPage() {
       <OkMsg>{okMsg}</OkMsg>
 
       {/* Banner de Control de Cuota Resend & Preajustes */}
-      <div className="relative overflow-hidden rounded-2xl border border-cyan-500/25 bg-gradient-to-br from-cyan-950/20 via-slate-900/40 to-slate-950/60 p-5 shadow-lg backdrop-blur-sm">
+      <div className="relative overflow-hidden rounded-2xl border border-brand-500/25 bg-gradient-to-br from-brand-950/20 via-slate-900/40 to-slate-950/60 p-5 shadow-lg backdrop-blur-sm">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1 max-w-xl">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-cyan-400" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">
+              <Sparkles className="h-4 w-4 text-brand-400" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-brand-400">
                 Optimización de Cuota Diaria de Correo (Resend)
               </span>
             </div>
             <p className="text-xs text-slate-300">
               Eventos frecuentes como los <strong>Cuestionarios Programados SIG</strong> o novedades de{' '}
               <strong>Mantenimiento</strong> pueden consumir decenas de correos diarios. Configurarlos en{' '}
-              <span className="text-cyan-300 font-medium">Solo Dispositivo</span> garantiza que los trabajadores reciban
+              <span className="text-brand-300 font-medium">Solo Dispositivo</span> garantiza que los trabajadores reciban
               sus avisos al instante en su teléfono o navegador sin agotar el límite de Resend.
             </p>
           </div>
@@ -281,9 +281,9 @@ export default function EleccionNotificacionesPage() {
               variante="primario"
               disabled={guardando}
               onClick={aplicarPresetAhorroResend}
-              className="text-xs py-1.5 px-3 shadow-cyan-500/20"
+              className="text-xs py-1.5 px-3 shadow-brand-500/20"
             >
-              <Zap className="h-3.5 w-3.5 mr-1 text-amber-300" />
+              <Zap className="h-3.5 w-3.5 mr-1 text-warn-300" />
               Modo Ahorro Cuota (Recomendado)
             </Btn>
             <Btn
@@ -311,7 +311,7 @@ export default function EleccionNotificacionesPage() {
       {/* Interruptores Maestros Globales */}
       <Card>
         <div className="flex items-center gap-2 mb-3">
-          <ShieldCheck className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+          <ShieldCheck className="h-4 w-4 text-brand-600 dark:text-brand-400" />
           <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Interruptores Maestros Globales</h2>
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
@@ -322,7 +322,7 @@ export default function EleccionNotificacionesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 p-3.5">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400">
                 <Mail className="h-5 w-5" />
               </div>
               <div>
@@ -346,7 +346,7 @@ export default function EleccionNotificacionesPage() {
 
           <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 p-3.5">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400">
                 <Smartphone className="h-5 w-5" />
               </div>
               <div>
@@ -397,7 +397,7 @@ export default function EleccionNotificacionesPage() {
                   'bg-white/80 dark:bg-slate-900/60 shadow-sm backdrop-blur-sm',
                   catConfig.activo === false
                     ? 'border-slate-200 dark:border-slate-800 opacity-60'
-                    : 'border-slate-200/80 dark:border-cyan-500/20 hover:border-cyan-400/40 hover:shadow-md'
+                    : 'border-slate-200/80 dark:border-brand-500/20 hover:border-brand-400/40 hover:shadow-md'
                 )}
               >
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -409,8 +409,8 @@ export default function EleccionNotificacionesPage() {
                         cat.key === 'sig_pregunta_dia'
                           ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
                           : cat.key === 'danos'
-                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                            : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20'
+                            ? 'bg-warn-500/10 text-warn-600 dark:text-warn-400 border border-warn-500/20'
+                            : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
                       )}
                     >
                       <Icono className="h-5 w-5" />
@@ -437,7 +437,7 @@ export default function EleccionNotificacionesPage() {
                       className={cn(
                         'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-200',
                         modo === 'ambos'
-                          ? 'bg-cyan-600 text-white shadow-sm shadow-cyan-600/30'
+                          ? 'bg-brand-600 text-white shadow-sm shadow-brand-600/30'
                           : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800'
                       )}
                     >
@@ -452,7 +452,7 @@ export default function EleccionNotificacionesPage() {
                       className={cn(
                         'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-200',
                         modo === 'solo_dispositivo'
-                          ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                          ? 'bg-accent-600 text-white shadow-sm shadow-accent-600/30'
                           : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800'
                       )}
                       title="Notifica en el teléfono / navegador sin gastar cuota de correo"
@@ -460,7 +460,7 @@ export default function EleccionNotificacionesPage() {
                       <Smartphone className="h-3.5 w-3.5" />
                       <span>Solo Dispositivo</span>
                       {modo === 'solo_dispositivo' && (
-                        <span className="text-[10px] bg-emerald-700/50 px-1.5 py-0.2 rounded text-emerald-100">
+                        <span className="text-[10px] bg-accent-700/50 px-1.5 py-0.2 rounded text-accent-100">
                           Ahorro
                         </span>
                       )}
@@ -473,7 +473,7 @@ export default function EleccionNotificacionesPage() {
                       className={cn(
                         'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-200',
                         modo === 'solo_email'
-                          ? 'bg-sky-600 text-white shadow-sm shadow-sky-600/30'
+                          ? 'bg-brand-600 text-white shadow-sm shadow-brand-600/30'
                           : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800'
                       )}
                     >

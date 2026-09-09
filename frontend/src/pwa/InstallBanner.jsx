@@ -26,7 +26,7 @@ export default function InstallBanner() {
         {!esIos && (
           <button
             onClick={instalar}
-            className="shrink-0 rounded-lg bg-sky-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-sky-700"
+            className="shrink-0 rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-brand-700"
           >
             Instalar
           </button>

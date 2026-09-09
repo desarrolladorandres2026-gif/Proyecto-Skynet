@@ -7,7 +7,7 @@ import ContenidoRuta from './ContenidoRuta.jsx'
 import { MOBILE_NAV_POR_ROL, INICIO_ITEM } from '../config/mobileNavPorRol.js'
 import { BottomSheet, ListRow } from '../components/mobileUi.jsx'
 import { AvatarUsuario } from '../components/AvatarUsuario.jsx'
-import claroLogo from '../assets/claro.png'
+import { MarcaSkynet } from '../components/MarcaSkynet.jsx'
 // panel.css y mobileShell.css se cargan globalmente desde index.css (ver
 // comentario ahí) — las páginas que todavía no pasaron por su etapa de
 // rediseño móvil siguen usando Card/Btn/Input/TablaWrap de components/ui.jsx
@@ -164,22 +164,22 @@ function TabItem({ to, end, icon: Icon, label }) {
             className={cn(
               'relative flex items-center justify-center p-2 rounded-2xl transition-all duration-300',
               isActive
-                ? 'bg-gradient-to-br from-cyan-500/20 to-sky-600/20 text-cyan-400 border border-cyan-400/40 shadow-[0_0_20px_rgba(34,211,238,0.4)] backdrop-blur-md'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-cyan-500/10'
+                ? 'bg-gradient-to-br from-brand-500/20 to-brand-600/20 text-brand-400 border border-brand-400/40 shadow-[0_0_20px_rgba(127,164,213,0.4)] backdrop-blur-md'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-brand-500/10'
             )}
           >
             <Icon className="h-5 w-5" aria-hidden="true" />
             {isActive && (
               <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400 border border-slate-900"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-400 border border-slate-900"></span>
               </span>
             )}
           </div>
           <span
             className={cn(
               'text-[10px] font-medium transition-colors',
-              isActive ? 'text-cyan-400 font-bold' : 'text-slate-400'
+              isActive ? 'text-brand-400 font-bold' : 'text-slate-400'
             )}
           >
             {label}
@@ -210,10 +210,7 @@ export default function MobileShell() {
   return (
     <div className="m-shell flex h-svh flex-col">
       <header className="m-bar flex shrink-0 items-center justify-between border-b px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <img src={claroLogo} alt="Logo Terminal" className="h-6 w-6 object-contain shrink-0" />
-          <span className="panel-mono panel-brand text-xs sm:text-sm font-bold tracking-[0.12em] truncate">TERMINAL DE NEIVA</span>
-        </div>
+        <MarcaSkynet variante="compacta" />
         <div className="flex items-center gap-2">
           <ToggleTema tema={tema} onToggle={alternarTema} />
           <button

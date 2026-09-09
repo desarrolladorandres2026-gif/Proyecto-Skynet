@@ -82,7 +82,7 @@ export default function MiFirmaPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="panel-mono mb-1 flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-        <Signature className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <Signature className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         Mi firma
       </h1>
       <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
@@ -117,7 +117,7 @@ export default function MiFirmaPage() {
               >
                 <img src={firma.url} alt="Tu firma" className="max-h-full max-w-full object-contain" />
               </div>
-              <div className="flex items-center gap-1.5 text-sm text-emerald-700 dark:text-emerald-400">
+              <div className="flex items-center gap-1.5 text-sm text-accent-700 dark:text-accent-400">
                 <ShieldCheck className="h-4 w-4" aria-hidden="true" />
                 Lista para firmar
               </div>

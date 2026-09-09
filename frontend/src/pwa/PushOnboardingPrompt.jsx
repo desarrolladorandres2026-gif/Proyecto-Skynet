@@ -22,7 +22,7 @@ export default function PushOnboardingPrompt() {
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 p-3 sm:inset-x-auto sm:bottom-4 sm:left-4 sm:w-96 sm:p-0">
       <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-800">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-600/10 text-sky-600 dark:text-sky-400">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600/10 text-brand-600 dark:text-brand-400">
           <Bell className="h-5 w-5" aria-hidden="true" />
         </div>
 
@@ -36,7 +36,7 @@ export default function PushOnboardingPrompt() {
             <button
               onClick={activar}
               disabled={push.cargando}
-              className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-sky-700 disabled:opacity-60"
+              className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
             >
               {push.cargando ? 'Activando…' : 'Activar'}
             </button>

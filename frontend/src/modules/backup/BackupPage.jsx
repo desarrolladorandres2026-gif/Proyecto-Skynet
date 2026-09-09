@@ -43,7 +43,7 @@ export default function BackupPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="mb-2 flex items-center gap-3">
-        <DatabaseBackup className="h-6 w-6 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <DatabaseBackup className="h-6 w-6 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <div>
           <h1 className="panel-mono text-xl font-semibold tracking-wide text-slate-900 dark:text-white">Copia de seguridad</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">Exclusivo Super Admin.</p>

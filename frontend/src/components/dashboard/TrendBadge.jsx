@@ -28,7 +28,7 @@ export function TrendBadge({ actual, anterior, incrementoEsBueno = true, titulo 
       className={cn(
         'panel-mono inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
         esFavorable
-          ? 'bg-emerald-400/10 text-emerald-700 dark:text-emerald-300'
+          ? 'bg-accent-400/10 text-accent-700 dark:text-accent-300'
           : 'bg-rose-400/10 text-rose-700 dark:text-rose-300'
       )}
     >

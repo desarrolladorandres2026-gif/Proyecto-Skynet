@@ -19,6 +19,7 @@ import { Breadcrumb } from '../components/Breadcrumb.jsx'
 import { CommandPalette, useCommandPalette } from '../components/CommandPalette.jsx'
 import { NotificacionesBell } from '../components/notificaciones/NotificacionesBell.jsx'
 import { AvatarUsuario } from '../components/AvatarUsuario.jsx'
+import { MarcaSkynet } from '../components/MarcaSkynet.jsx'
 // panel.css se importa una sola vez, globalmente, desde index.css — junto
 // con mobileShell.css — para que páginas universales (ej. Reportar daño)
 // tengan sus tokens sin importar qué shell (AppShell.jsx) las envuelva.
@@ -27,7 +28,8 @@ export const TEMA_KEY = 'skynet-tema'
 const SIDEBAR_KEY = 'skynet-sidebar-colapsado'
 
 function temaGuardado() {
-  return localStorage.getItem(TEMA_KEY) === 'light' ? 'light' : 'dark'
+  // Por defecto institucional: claro. Solo 'dark' si el usuario lo eligió.
+  return localStorage.getItem(TEMA_KEY) === 'dark' ? 'dark' : 'light'
 }
 
 // Compartido por AppLayout (panel admin) y MobileShell (roles no-admin):
@@ -66,12 +68,12 @@ export function ToggleTema({ tema, onToggle }) {
         type="button"
         onClick={onToggle}
         aria-label={esOscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-        className="group relative flex shrink-0 items-center justify-center rounded-xl p-2 transition-all duration-300 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-cyan-500/30 text-slate-700 dark:text-cyan-300 hover:border-cyan-400 dark:hover:border-cyan-400 dark:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:scale-105 active:scale-95"
+        className="group relative flex shrink-0 items-center justify-center rounded-xl p-2 transition-all duration-300 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200 dark:border-brand-500/30 text-slate-700 dark:text-brand-300 hover:border-brand-400 dark:hover:border-brand-400 dark:shadow-[0_0_15px_rgba(31,77,143,0.3)] hover:scale-105 active:scale-95"
       >
         {esOscuro ? (
-          <Sun className="h-4 w-4 text-amber-400 group-hover:rotate-45 transition-transform duration-300" aria-hidden="true" />
+          <Sun className="h-4 w-4 text-warn-400 group-hover:rotate-45 transition-transform duration-300" aria-hidden="true" />
         ) : (
-          <Moon className="h-4 w-4 text-cyan-600 group-hover:-rotate-12 transition-transform duration-300" aria-hidden="true" />
+          <Moon className="h-4 w-4 text-brand-600 group-hover:-rotate-12 transition-transform duration-300" aria-hidden="true" />
         )}
       </button>
     </Tooltip>
@@ -90,8 +92,8 @@ function EnlaceNav({ to, label, end, onNavigate, sub = false }) {
           'panel-nav-link group relative flex items-center gap-3 rounded-lg py-1.5 text-[13px] font-normal transition-all duration-300',
           sub ? 'pl-9 pr-3' : 'px-3',
           isActive
-            ? 'is-active text-cyan-700 dark:text-cyan-300 font-semibold shadow-sm'
-            : 'text-slate-600 dark:text-white hover:text-slate-900 dark:hover:text-cyan-200 hover:bg-cyan-500/10 dark:hover:bg-cyan-400/10'
+            ? 'is-active text-brand-700 dark:text-brand-300 font-semibold shadow-sm'
+            : 'text-slate-600 dark:text-white hover:text-slate-900 dark:hover:text-brand-200 hover:bg-brand-500/10 dark:hover:bg-brand-400/10'
         )
       }
     >
@@ -101,7 +103,7 @@ function EnlaceNav({ to, label, end, onNavigate, sub = false }) {
           {isActive && (
             <motion.span
               layoutId="sidebar-active-pill"
-              className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/15 to-sky-500/10 dark:from-cyan-500/25 dark:to-sky-500/15 border border-cyan-500/30 dark:border-cyan-400/40 shadow-[0_0_20px_rgba(6,182,212,0.25)] backdrop-blur-sm"
+              className="absolute inset-0 rounded-xl bg-gradient-to-r from-brand-500/15 to-brand-500/10 dark:from-brand-500/25 dark:to-brand-500/15 border border-brand-500/30 dark:border-brand-400/40 shadow-[0_0_20px_rgba(31,77,143,0.25)] backdrop-blur-sm"
               transition={{ type: 'spring', stiffness: 500, damping: 35 }}
             />
           )}
@@ -109,8 +111,8 @@ function EnlaceNav({ to, label, end, onNavigate, sub = false }) {
 
           {isActive && (
             <span className="relative z-10 flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-400"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-400"></span>
             </span>
           )}
         </>
@@ -136,15 +138,15 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
                 className={cn(
                   'relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-300 group',
                   activo
-                    ? 'bg-gradient-to-br from-cyan-500/20 to-sky-600/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/40 shadow-[0_0_18px_rgba(6,182,212,0.35)]'
-                    : 'text-slate-500 hover:text-slate-900 dark:text-white dark:hover:text-cyan-200 hover:bg-cyan-500/10 dark:hover:bg-cyan-400/10'
+                    ? 'bg-gradient-to-br from-brand-500/20 to-brand-600/20 text-brand-600 dark:text-brand-300 border border-brand-500/40 shadow-[0_0_18px_rgba(31,77,143,0.35)]'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-white dark:hover:text-brand-200 hover:bg-brand-500/10 dark:hover:bg-brand-400/10'
                 )}
               >
                 {/* Resplandor Neón flotante */}
                 <span
                   className={cn(
                     'absolute inset-0 rounded-xl transition-all duration-500 opacity-0 group-hover:opacity-100 pointer-events-none',
-                    'bg-cyan-500/10 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+                    'bg-brand-500/10 shadow-[0_0_15px_rgba(31,77,143,0.3)]'
                   )}
                 />
 
@@ -158,8 +160,8 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
 
                 {activo && (
                   <span className="absolute top-1 right-1 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-400"></span>
                   </span>
                 )}
               </button>
@@ -190,8 +192,8 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
         className={cn(
           'group flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition-all duration-300',
           activo
-            ? 'bg-cyan-500/10 dark:bg-cyan-400/15 text-cyan-700 dark:text-cyan-300 font-medium border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
-            : 'text-slate-600 hover:text-slate-900 dark:text-white dark:hover:text-cyan-200 hover:bg-cyan-500/8 dark:hover:bg-cyan-400/8'
+            ? 'bg-brand-500/10 dark:bg-brand-400/15 text-brand-700 dark:text-brand-300 font-medium border border-brand-500/30 shadow-[0_0_15px_rgba(31,77,143,0.2)]'
+            : 'text-slate-600 hover:text-slate-900 dark:text-white dark:hover:text-brand-200 hover:bg-brand-500/8 dark:hover:bg-brand-400/8'
         )}
       >
         {/* Contenedor del ícono con resplandor neón estilo Copiloto */}
@@ -199,8 +201,8 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
           className={cn(
             'relative flex h-5 w-5 items-center justify-center rounded-md transition-transform duration-300 group-hover:scale-110',
             activo
-              ? 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
-              : 'bg-slate-200/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-200 group-hover:text-cyan-500 dark:group-hover:text-cyan-400'
+              ? 'bg-brand-500/20 text-brand-600 dark:text-brand-300 border border-brand-400/40 shadow-[0_0_10px_rgba(31,77,143,0.3)]'
+              : 'bg-slate-200/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-200 group-hover:text-brand-500 dark:group-hover:text-brand-400'
           )}
         >
           <modulo.icon className="h-3 w-3 shrink-0" aria-hidden="true" />
@@ -215,14 +217,14 @@ function GrupoNav({ modulo, idPrefix, abierto, onToggle, onNavigate, colapsado, 
 
         {activo && (
           <span className="flex h-1.5 w-1.5 relative mr-1">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-400"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-400"></span>
           </span>
         )}
 
         <ChevronDown
           className={cn(
-            'h-3 w-3 shrink-0 transition-transform duration-200 text-slate-400 dark:text-slate-300 group-hover:text-cyan-400',
+            'h-3 w-3 shrink-0 transition-transform duration-200 text-slate-400 dark:text-slate-300 group-hover:text-brand-400',
             !abierto && '-rotate-90'
           )}
           aria-hidden="true"
@@ -348,18 +350,18 @@ function EstadoConexion() {
         className={cn(
           'relative flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-mono border transition-all duration-300',
           enLinea
-            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+            ? 'bg-accent-500/10 text-accent-600 dark:text-accent-400 border-accent-500/30 dark:shadow-[0_0_10px_rgba(90,152,44,0.3)]'
             : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 animate-pulse'
         )}
       >
         <span className="flex h-2 w-2 relative">
           {enLinea && (
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-400 opacity-75"></span>
           )}
           <span
             className={cn(
               'relative inline-flex rounded-full h-2 w-2',
-              enLinea ? 'bg-emerald-400' : 'bg-rose-500'
+              enLinea ? 'bg-accent-400' : 'bg-rose-500'
             )}
           ></span>
         </span>
@@ -406,9 +408,7 @@ export default function AppLayout() {
 
       {/* Header móvil */}
       <header className="panel-sidebar flex items-center justify-between border-b px-4 py-3 md:hidden">
-        <div className="flex items-center min-w-0">
-          <span className="panel-mono panel-brand text-xs sm:text-sm font-bold tracking-[0.12em] truncate">TERMINAL DE NEIVA</span>
-        </div>
+        <MarcaSkynet variante="compacta" />
         <div className="flex items-center gap-2">
           <ToggleTema tema={tema} onToggle={alternarTema} />
           <button
@@ -440,13 +440,11 @@ export default function AppLayout() {
           )}
         >
           {colapsado ? (
-            <Tooltip label="Terminal de Neiva" side="right">
-              <span className="panel-mono panel-brand text-xs font-bold tracking-wider">TN</span>
+            <Tooltip label="SKYNET · Terminal de Transportes de Neiva" side="right">
+              <span><MarcaSkynet variante="minima" /></span>
             </Tooltip>
           ) : (
-            <div className="flex items-center min-w-0">
-              <span className="panel-mono panel-brand text-sm font-bold tracking-[0.1em] truncate">TERMINAL DE NEIVA</span>
-            </div>
+            <MarcaSkynet variante="completa" />
           )}
           <Tooltip label={colapsado ? 'Expandir' : 'Colapsar'} side="right">
             <button
@@ -484,7 +482,7 @@ export default function AppLayout() {
                     <span className="block truncate text-sm font-medium text-slate-700 dark:text-white">
                       {usuario?.nombre}
                     </span>
-                    <span className="panel-mono block truncate text-[10px] tracking-wide text-brand-700/70 uppercase dark:text-cyan-300">
+                    <span className="panel-mono block truncate text-[10px] tracking-wide text-brand-700/70 uppercase dark:text-brand-300">
                       {usuario?.rol?.nombre}
                     </span>
                   </span>
@@ -539,18 +537,18 @@ export default function AppLayout() {
               suelto dentro de <main>. Único lugar del panel con
               glassmorphism real (panel-navbar en panel.css): flota sobre el
               contenido al hacer scroll. */}
-        <header className="panel-navbar sticky top-0 z-30 hidden items-center justify-between gap-4 border-b border-slate-200/80 dark:border-cyan-500/25 px-6 py-3 md:flex backdrop-blur-xl bg-white/80 dark:bg-slate-950/80 shadow-[0_4px_25px_rgba(6,182,212,0.08)] transition-colors duration-300">
+        <header className="panel-navbar sticky top-0 z-30 hidden items-center justify-between gap-4 border-b border-slate-200/80 dark:border-brand-500/25 px-6 py-3 md:flex backdrop-blur-xl bg-white/80 dark:bg-slate-950/80 shadow-[0_4px_25px_rgba(31,77,143,0.08)] transition-colors duration-300">
           <Breadcrumb items={breadcrumbItems} />
           <div className="flex shrink-0 items-center gap-2">
             {/* Botón de Búsqueda (Buscar, Ctrl K) con resplandor cibernético neón */}
             <button
               type="button"
               onClick={() => setPaletaAbierta(true)}
-              className="panel-mono group relative flex items-center gap-2.5 rounded-xl border border-slate-200 dark:border-cyan-500/30 bg-slate-100/80 dark:bg-slate-900/80 px-3.5 py-1.5 text-xs text-slate-600 dark:text-cyan-300/90 transition-all duration-300 hover:border-cyan-400 dark:hover:border-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-200 dark:shadow-[0_0_15px_rgba(6,182,212,0.25)] hover:shadow-[0_0_22px_rgba(34,211,238,0.4)]"
+              className="panel-mono group relative flex items-center gap-2.5 rounded-xl border border-slate-200 dark:border-brand-500/30 bg-slate-100/80 dark:bg-slate-900/80 px-3.5 py-1.5 text-xs text-slate-600 dark:text-brand-300/90 transition-all duration-300 hover:border-brand-400 dark:hover:border-brand-400 hover:text-brand-700 dark:hover:text-brand-200 dark:shadow-[0_0_15px_rgba(31,77,143,0.25)] hover:shadow-[0_0_22px_rgba(127,164,213,0.4)]"
             >
-              <Search className="h-3.5 w-3.5 text-cyan-500 dark:text-cyan-400 transition-transform duration-300 group-hover:scale-110" aria-hidden="true" />
+              <Search className="h-3.5 w-3.5 text-brand-500 dark:text-brand-400 transition-transform duration-300 group-hover:scale-110" aria-hidden="true" />
               <span className="font-semibold">Buscar</span>
-              <kbd className="rounded-md border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-bold text-cyan-600 dark:text-cyan-300 shadow-xs">
+              <kbd className="rounded-md border border-brand-500/30 bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-bold text-brand-600 dark:text-brand-300 shadow-xs">
                 Ctrl K
               </kbd>
             </button>
@@ -561,7 +559,7 @@ export default function AppLayout() {
               <Tooltip label="Módulos desactivados por el Super Admin" side="bottom">
                 <Link
                   to="/sistema/modulos"
-                  className="panel-mono flex items-center gap-1 rounded-full bg-amber-400/10 border border-amber-500/30 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+                  className="panel-mono flex items-center gap-1 rounded-full bg-warn-400/10 border border-warn-500/30 px-2.5 py-1 text-[11px] font-semibold text-warn-700 dark:text-warn-300 shadow-[0_0_10px_rgba(217,107,18,0.2)]"
                 >
                   {modulosApagados} apagado{modulosApagados === 1 ? '' : 's'}
                 </Link>

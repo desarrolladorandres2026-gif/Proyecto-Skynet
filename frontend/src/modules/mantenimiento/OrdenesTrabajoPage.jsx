@@ -103,7 +103,7 @@ function slaInfo(orden) {
   if (!limite || !ESTADOS_ACTIVOS.includes(orden.estado)) return null
   const restanteMs = new Date(limite).getTime() - Date.now()
   if (restanteMs < 0) return { texto: 'SLA vencido', clase: 'text-red-600 dark:text-red-400' }
-  if (restanteMs < 2 * 3600_000) return { texto: `Vence ${fmtFechaHora(limite)}`, clase: 'text-amber-600 dark:text-amber-400' }
+  if (restanteMs < 2 * 3600_000) return { texto: `Vence ${fmtFechaHora(limite)}`, clase: 'text-warn-600 dark:text-warn-400' }
   return { texto: `Vence ${fmtFechaHora(limite)}`, clase: 'text-slate-500 dark:text-slate-400' }
 }
 

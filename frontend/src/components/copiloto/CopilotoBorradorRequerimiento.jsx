@@ -11,13 +11,13 @@ export function CopilotoBorradorRequerimiento({ borrador, onConfirmar, onDescart
   if (!borrador) return null
 
   return (
-    <div className="mx-4 mb-3 rounded-2xl border border-cyan-500/30 bg-cyan-500/5 dark:bg-cyan-500/10 p-3.5 shadow-[0_0_20px_rgba(6,182,212,0.08)]">
+    <div className="mx-4 mb-3 rounded-2xl border border-brand-500/30 bg-brand-500/5 dark:bg-brand-500/10 p-3.5 shadow-[0_0_20px_rgba(45,93,163,0.08)]">
       <div className="flex items-center gap-2 mb-2.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-500/15 border border-cyan-500/30 shrink-0">
-          <ShoppingCart className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-300" />
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500/15 border border-brand-500/30 shrink-0">
+          <ShoppingCart className="h-3.5 w-3.5 text-brand-600 dark:text-brand-300" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-bold text-slate-800 dark:text-cyan-200 leading-tight">
+          <p className="text-xs font-bold text-slate-800 dark:text-brand-200 leading-tight">
             Borrador de requerimiento de compra
           </p>
           <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">
@@ -38,7 +38,7 @@ export function CopilotoBorradorRequerimiento({ borrador, onConfirmar, onDescart
             key={i}
             className="flex items-baseline gap-1.5 rounded-lg bg-white/60 dark:bg-slate-900/50 px-2.5 py-1.5 text-xs text-slate-700 dark:text-slate-200"
           >
-            <span className="font-bold text-cyan-600 dark:text-cyan-400 shrink-0">{item.cantidad}×</span>
+            <span className="font-bold text-brand-600 dark:text-brand-400 shrink-0">{item.cantidad}×</span>
             <span className="flex-1 min-w-0">
               {item.descripcionProducto}
               {item.destino && <span className="text-slate-400 dark:text-slate-500"> — {item.destino}</span>}
@@ -70,7 +70,7 @@ export function CopilotoBorradorRequerimiento({ borrador, onConfirmar, onDescart
           disabled={enviando}
           className={cn(
             'flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold text-white transition-all',
-            'bg-gradient-to-r from-cyan-600 to-sky-600 hover:shadow-[0_0_16px_rgba(6,182,212,0.5)] disabled:opacity-70'
+            'bg-gradient-to-r from-brand-600 to-brand-600 hover:shadow-[0_0_16px_rgba(45,93,163,0.5)] disabled:opacity-70'
           )}
         >
           {enviando ? (

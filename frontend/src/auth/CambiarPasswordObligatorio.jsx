@@ -41,7 +41,7 @@ export default function CambiarPasswordObligatorio() {
     <div className="flex min-h-svh items-center justify-center px-4">
       <Card className="w-full max-w-sm">
         <div className="mb-4 flex flex-col items-center gap-2 text-center">
-          <KeyRound className="h-8 w-8 text-cyan-600 dark:text-cyan-400" aria-hidden="true" />
+          <KeyRound className="h-8 w-8 text-brand-600 dark:text-brand-400" aria-hidden="true" />
           <h1 className="text-lg font-semibold text-slate-900 dark:text-white">Debes cambiar tu contraseña</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Tu contraseña actual fue asignada por un administrador. Elige una propia antes de continuar.

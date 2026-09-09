@@ -20,14 +20,14 @@ export default function LegalPage() {
       <div className="mx-auto max-w-3xl">
         <Link
           to="/"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Volver
         </Link>
 
         <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-400">
             Terminal de Transportes de Neiva
           </p>
           <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">
@@ -41,7 +41,7 @@ export default function LegalPage() {
             <a
               href="/politicas-sgi.pdf"
               download="Politicas-SGI-Terminal-Neiva.pdf"
-              className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-700"
+              className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700"
             >
               <Download className="h-3.5 w-3.5" aria-hidden="true" />
               Descargar PDF
@@ -49,19 +49,19 @@ export default function LegalPage() {
           </div>
 
           <nav className="mt-6 flex flex-wrap gap-2 text-xs font-medium">
-            <a href="#alcance" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-sky-400 hover:text-sky-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-sky-500 dark:hover:text-sky-400">
+            <a href="#alcance" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-brand-500 dark:hover:text-brand-400">
               Alcance del SGI
             </a>
-            <a href="#politica-sgi" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-sky-400 hover:text-sky-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-sky-500 dark:hover:text-sky-400">
+            <a href="#politica-sgi" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-brand-500 dark:hover:text-brand-400">
               Política del SGI
             </a>
-            <a href="#prevencion-spa" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-sky-400 hover:text-sky-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-sky-500 dark:hover:text-sky-400">
+            <a href="#prevencion-spa" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-brand-500 dark:hover:text-brand-400">
               Prevención alcohol, tabaco y SPA
             </a>
-            <a href="#no-discriminacion" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-sky-400 hover:text-sky-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-sky-500 dark:hover:text-sky-400">
+            <a href="#no-discriminacion" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-brand-500 dark:hover:text-brand-400">
               No discriminación
             </a>
-            <a href="#privacidad" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-sky-400 hover:text-sky-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-sky-500 dark:hover:text-sky-400">
+            <a href="#privacidad" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-brand-500 dark:hover:text-brand-400">
               Política de privacidad
             </a>
           </nav>

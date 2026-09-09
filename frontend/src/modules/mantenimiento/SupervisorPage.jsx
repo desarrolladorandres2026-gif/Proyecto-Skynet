@@ -21,10 +21,10 @@ import {
 const COLORES_GRAFICA = {
   grid: '#334155',
   eje: '#94a3b8',
-  abiertas: '#f59e0b',
-  cerradas: '#22d3ee',
+  abiertas: '#e77f24',
+  cerradas: '#2d5da3',
   costo: '#34d399',
-  sla: '#22d3ee',
+  sla: '#2d5da3',
   tooltipBg: '#0f172a',
   tooltipBorder: '#334155',
   tooltipText: '#f1f5f9',
@@ -57,7 +57,7 @@ function TabCentroControl() {
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
         <Card><p className="text-xs text-slate-400">SLA vencidas</p><p className="text-2xl font-semibold text-red-400">{datos.slaVencidas}</p></Card>
-        <Card><p className="text-xs text-slate-400">SLA próximas a vencer</p><p className="text-2xl font-semibold text-amber-400">{datos.slaProximasAVencer}</p></Card>
+        <Card><p className="text-xs text-slate-400">SLA próximas a vencer</p><p className="text-2xl font-semibold text-warn-400">{datos.slaProximasAVencer}</p></Card>
         <Card><p className="text-xs text-slate-400">Técnicos disponibles / ocupados</p><p className="text-2xl font-semibold text-white">{datos.tecnicosDisponibles} / {datos.tecnicosOcupados}</p></Card>
       </div>
       <Card>
@@ -82,11 +82,11 @@ function TabKanban() {
   return (
     <div className="flex gap-3 overflow-x-auto pb-2">
       {ESTADOS_KANBAN.map((estado) => (
-        <div key={estado} className="w-64 shrink-0 rounded-xl border border-cyan-400/10 bg-white/[0.02] p-2">
+        <div key={estado} className="w-64 shrink-0 rounded-xl border border-brand-400/10 bg-white/[0.02] p-2">
           <p className="panel-mono mb-2 px-1 text-xs uppercase tracking-wide text-slate-400">{estado} ({ordenes.filter((o) => o.estado === estado).length})</p>
           <div className="space-y-2">
             {ordenes.filter((o) => o.estado === estado).map((o) => (
-              <Link key={o._id} to={`/mantenimiento/ordenes/${o._id}`} className="block rounded-lg border border-cyan-400/10 bg-white/[0.03] p-2 text-xs hover:border-cyan-400/30">
+              <Link key={o._id} to={`/mantenimiento/ordenes/${o._id}`} className="block rounded-lg border border-brand-400/10 bg-white/[0.03] p-2 text-xs hover:border-brand-400/30">
                 <p className="font-medium text-slate-100">{o.equipo?.numero_inventario || '—'}</p>
                 <p className="mt-1 text-slate-400 truncate">{o.descripcion}</p>
                 <Badge valor={o.prioridad} />
@@ -251,7 +251,7 @@ function TabSLA() {
       <Card>
         <h2 className="mb-2 font-semibold text-white">Próximas a vencer ({datos.proximasAVencer.length})</h2>
         {datos.proximasAVencer.map((o) => (
-          <p key={o._id} className="text-sm text-amber-300">{o.equipo?.numero_inventario} — {o.tecnico_asignado?.nombre || 'sin asignar'}</p>
+          <p key={o._id} className="text-sm text-warn-300">{o.equipo?.numero_inventario} — {o.tecnico_asignado?.nombre || 'sin asignar'}</p>
         ))}
         {datos.proximasAVencer.length === 0 && <p className="text-sm text-slate-400">Ninguna.</p>}
       </Card>
@@ -281,7 +281,7 @@ function TabHallazgos() {
       {datos.tiposRecurrentes.length > 0 && (
         <Card>
           <h2 className="mb-2 font-semibold text-white">Tipos recurrentes</h2>
-          {datos.tiposRecurrentes.map((t, i) => <p key={i} className="text-sm text-amber-300">{t.tipo}: {t.total} veces</p>)}
+          {datos.tiposRecurrentes.map((t, i) => <p key={i} className="text-sm text-warn-300">{t.tipo}: {t.total} veces</p>)}
         </Card>
       )}
       <Card>
@@ -388,7 +388,7 @@ function TabAlertas() {
   return (
     <ul className="space-y-2">
       {alertas.map((a, i) => (
-        <li key={i} className="flex items-center justify-between rounded-lg border border-cyan-400/10 p-3 text-sm">
+        <li key={i} className="flex items-center justify-between rounded-lg border border-brand-400/10 p-3 text-sm">
           <span className="text-slate-200">{a.descripcion}</span>
           <Badge valor={a.prioridad} />
         </li>
@@ -531,7 +531,7 @@ function TabPlantillas() {
         </div>
         <Field label="Procedimiento"><Textarea value={form.procedimiento} onChange={(e) => setForm((f) => ({ ...f, procedimiento: e.target.value }))} /></Field>
         <div>
-          <p className="panel-mono mb-1 text-xs uppercase text-cyan-400/80">Checklist</p>
+          <p className="panel-mono mb-1 text-xs uppercase text-brand-400/80">Checklist</p>
           {items.map((it, i) => (
             <div key={i} className="mb-2 flex gap-2">
               <Input placeholder="Ítem del checklist" value={it.texto} onChange={(e) => setItems((arr) => arr.map((x, j) => j === i ? { ...x, texto: e.target.value } : x))} />
@@ -607,12 +607,12 @@ export default function SupervisorPage() {
   return (
     <div>
       <h1 className="mb-4 text-2xl font-semibold text-white">Supervisor de Mantenimiento</h1>
-      <div className="mb-4 flex flex-wrap gap-1 rounded-xl border border-cyan-400/10 bg-white/[0.02] p-1">
+      <div className="mb-4 flex flex-wrap gap-1 rounded-xl border border-brand-400/10 bg-white/[0.02] p-1">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${tab === t.key ? 'bg-cyan-400/15 text-cyan-200' : 'text-slate-400 hover:text-white'}`}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${tab === t.key ? 'bg-brand-400/15 text-brand-200' : 'text-slate-400 hover:text-white'}`}
           >
             {t.label}
           </button>

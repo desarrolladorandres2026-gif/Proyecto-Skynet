@@ -80,7 +80,7 @@ function textoDisponibilidad(t) {
 function Contador({ etiqueta, valor, resaltado = false }) {
   return (
     <Card className="flex-1 text-center">
-      <p className={`text-2xl font-bold ${resaltado ? 'text-amber-700 dark:text-amber-300' : 'text-slate-900 dark:text-white'}`}>{valor}</p>
+      <p className={`text-2xl font-bold ${resaltado ? 'text-warn-700 dark:text-warn-300' : 'text-slate-900 dark:text-white'}`}>{valor}</p>
       <p className="panel-mono text-[11px] uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">{etiqueta}</p>
     </Card>
   )
@@ -100,7 +100,7 @@ function PanelEquipo({ tecnicos, cargando }) {
         aria-expanded={abierto}
         className="flex w-full items-center gap-2 text-left"
       >
-        <Users className="h-4 w-4 shrink-0 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <Users className="h-4 w-4 shrink-0 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <span className="panel-mono text-sm font-semibold tracking-wide text-slate-900 dark:text-white">
           Equipo de mantenimiento
         </span>
@@ -130,12 +130,12 @@ function PanelEquipo({ tecnicos, cargando }) {
         ) : (
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {tecnicos.map((t) => (
-              <div key={t._id} className="rounded-lg border border-cyan-600/15 p-3 dark:border-cyan-400/10">
+              <div key={t._id} className="rounded-lg border border-brand-600/15 p-3 dark:border-brand-400/10">
                 <div className="flex items-center gap-2">
                   {t.libre ? (
-                    <CircleCheck className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                    <CircleCheck className="h-4 w-4 shrink-0 text-accent-600 dark:text-accent-400" aria-hidden="true" />
                   ) : (
-                    <CircleDot className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                    <CircleDot className="h-4 w-4 shrink-0 text-warn-600 dark:text-warn-400" aria-hidden="true" />
                   )}
                   <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">{t.nombre}</p>
                 </div>
@@ -191,7 +191,7 @@ function ModalAsignar({ reporte, tecnicos, puedeAsignarAOtros, miId, onCerrar, o
       <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">{reporte.descripcion}</p>
 
       {!puedeAsignarAOtros && (
-        <p className="mb-3 rounded-lg border border-cyan-600/25 bg-cyan-500/5 px-3 py-2 text-xs text-slate-600 dark:text-slate-300">
+        <p className="mb-3 rounded-lg border border-brand-600/25 bg-brand-500/5 px-3 py-2 text-xs text-slate-600 dark:text-slate-300">
           Puedes tomar esta tarea para ti. Repartirla a otro compañero lo hace un supervisor.
         </p>
       )}
@@ -207,7 +207,7 @@ function ModalAsignar({ reporte, tecnicos, puedeAsignarAOtros, miId, onCerrar, o
               className={`flex items-center gap-3 rounded-lg border p-3 ${
                 bloqueado || yaLoTiene
                   ? 'cursor-not-allowed border-slate-400/20 opacity-50'
-                  : 'cursor-pointer border-cyan-600/20 hover:bg-cyan-600/5 dark:border-cyan-400/15 dark:hover:bg-cyan-400/5'
+                  : 'cursor-pointer border-brand-600/20 hover:bg-brand-600/5 dark:border-brand-400/15 dark:hover:bg-brand-400/5'
               }`}
             >
               <input
@@ -217,7 +217,7 @@ function ModalAsignar({ reporte, tecnicos, puedeAsignarAOtros, miId, onCerrar, o
                 disabled={bloqueado || yaLoTiene}
                 checked={tecnicoId === t._id}
                 onChange={(e) => setTecnicoId(e.target.value)}
-                className="accent-cyan-600"
+                className="accent-brand-600"
               />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
@@ -228,7 +228,7 @@ function ModalAsignar({ reporte, tecnicos, puedeAsignarAOtros, miId, onCerrar, o
                 </p>
               </div>
               {t.libre && !yaLoTiene && (
-                <span className="panel-mono shrink-0 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[11px] text-emerald-700 ring-1 ring-inset ring-emerald-400/30 dark:text-emerald-300">
+                <span className="panel-mono shrink-0 rounded-full bg-accent-400/10 px-2 py-0.5 text-[11px] text-accent-700 ring-1 ring-inset ring-accent-400/30 dark:text-accent-300">
                   libre
                 </span>
               )}
@@ -242,8 +242,8 @@ function ModalAsignar({ reporte, tecnicos, puedeAsignarAOtros, miId, onCerrar, o
       </Field>
 
       {superaTope && (
-        <label className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-slate-600 dark:text-slate-300">
-          <input type="checkbox" checked={forzar} onChange={(e) => setForzar(e.target.checked)} className="mt-0.5 accent-cyan-600" />
+        <label className="mt-3 flex items-start gap-2 rounded-lg border border-warn-500/30 bg-warn-500/5 p-3 text-xs text-slate-600 dark:text-slate-300">
+          <input type="checkbox" checked={forzar} onChange={(e) => setForzar(e.target.checked)} className="mt-0.5 accent-brand-600" />
           <span>
             {elegido.nombre} ya tiene {elegido.activos} órdenes activas (máximo 5 sin autorización). Marca esto
             para asignarle de todas formas.
@@ -334,7 +334,7 @@ function ModalEstado({ reporte, onCerrar, onConfirmar }) {
       </Field>
 
       {estado === 'en_espera' && motivoEspera === 'repuestos' && (
-        <p className="mt-3 rounded-lg border border-cyan-600/25 bg-cyan-500/5 px-3 py-2 text-xs text-slate-600 dark:text-slate-300">
+        <p className="mt-3 rounded-lg border border-brand-600/25 bg-brand-500/5 px-3 py-2 text-xs text-slate-600 dark:text-slate-300">
           Después de guardar, usa <strong>Solicitar repuesto</strong> en el detalle del reporte para crear el
           requerimiento del componente que necesitas.
         </p>
@@ -368,11 +368,11 @@ function ModalDetalle({ reporte, onCerrar, onSolicitarRepuesto }) {
             <span className="flex items-center gap-1.5 text-sm text-slate-800 dark:text-slate-100">
               {reporte.asignadoA.nombre}
               {reporte.asignacionAutomatica && (
-                <Bot className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" aria-label="Asignación automática" />
+                <Bot className="h-3.5 w-3.5 text-brand-600 dark:text-brand-400" aria-label="Asignación automática" />
               )}
             </span>
           ) : (
-            <span className="text-sm text-amber-700 dark:text-amber-300">Sin asignar</span>
+            <span className="text-sm text-warn-700 dark:text-warn-300">Sin asignar</span>
           )}
         </Dato>
         <Dato
@@ -396,8 +396,8 @@ function ModalDetalle({ reporte, onCerrar, onSolicitarRepuesto }) {
       )}
 
       {reporte.reparacion?.fecha && (
-        <div className="mt-4 rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-3">
-          <p className="panel-mono text-[11px] uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+        <div className="mt-4 rounded-lg border border-accent-500/25 bg-accent-500/5 p-3">
+          <p className="panel-mono text-[11px] uppercase tracking-wide text-accent-700 dark:text-accent-300">
             Reparación registrada
           </p>
           <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
@@ -405,8 +405,8 @@ function ModalDetalle({ reporte, onCerrar, onSolicitarRepuesto }) {
             {{ regional: 'Regional', centenario: 'Centenario', modulo_mixto: 'Módulo Mixto' }[reporte.reparacion.modulo] || reporte.reparacion.modulo}
           </p>
           {reporte.observacionAtencion && (
-            <div className="mt-2 rounded-md border border-emerald-500/15 bg-emerald-500/5 px-3 py-2">
-              <p className="panel-mono text-[10px] uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+            <div className="mt-2 rounded-md border border-accent-500/15 bg-accent-500/5 px-3 py-2">
+              <p className="panel-mono text-[10px] uppercase tracking-wide text-accent-600 dark:text-accent-400">
                 Nota del técnico
               </p>
               <p className="mt-0.5 text-sm text-slate-700 dark:text-slate-200">{reporte.observacionAtencion}</p>
@@ -414,13 +414,13 @@ function ModalDetalle({ reporte, onCerrar, onSolicitarRepuesto }) {
           )}
           {reporte.reparacion.evidencias?.length > 0 && (
             <div className="mt-2">
-              <p className="panel-mono mb-1 text-[10px] uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+              <p className="panel-mono mb-1 text-[10px] uppercase tracking-wide text-accent-600 dark:text-accent-400">
                 Evidencia fotográfica ({reporte.reparacion.evidencias.length})
               </p>
               <div className="flex flex-wrap gap-2">
                 {reporte.reparacion.evidencias.map((ev, i) => (
                   <a key={i} href={ev.url} target="_blank" rel="noreferrer" className="group relative">
-                    <img src={ev.url} alt={`Evidencia ${i + 1} de la reparación`} className="h-20 w-20 rounded-lg object-cover ring-1 ring-emerald-500/20 transition-transform group-hover:scale-105" />
+                    <img src={ev.url} alt={`Evidencia ${i + 1} de la reparación`} className="h-20 w-20 rounded-lg object-cover ring-1 ring-accent-500/20 transition-transform group-hover:scale-105" />
                   </a>
                 ))}
               </div>
@@ -430,8 +430,8 @@ function ModalDetalle({ reporte, onCerrar, onSolicitarRepuesto }) {
       )}
 
       {!reporte.reparacion?.fecha && reporte.observacionAtencion && (
-        <div className="mt-4 rounded-lg border border-cyan-600/20 bg-cyan-500/5 p-3 dark:border-cyan-400/15">
-          <p className="panel-mono text-[10px] uppercase tracking-wide text-cyan-700 dark:text-cyan-400">
+        <div className="mt-4 rounded-lg border border-brand-600/20 bg-brand-500/5 p-3 dark:border-brand-400/15">
+          <p className="panel-mono text-[10px] uppercase tracking-wide text-brand-700 dark:text-brand-400">
             Última observación de mantenimiento
           </p>
           <p className="mt-0.5 text-sm text-slate-700 dark:text-slate-200">{reporte.observacionAtencion}</p>
@@ -439,7 +439,7 @@ function ModalDetalle({ reporte, onCerrar, onSolicitarRepuesto }) {
       )}
 
       <div className="mt-5 flex items-center justify-between gap-2">
-        <p className="panel-mono flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-cyan-700/80 dark:text-cyan-400/80">
+        <p className="panel-mono flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-brand-700/80 dark:text-brand-400/80">
           <PackagePlus className="h-3.5 w-3.5" aria-hidden="true" />
           Requerimientos ({reporte.requerimientos?.length || 0})
         </p>
@@ -460,14 +460,14 @@ function ModalDetalle({ reporte, onCerrar, onSolicitarRepuesto }) {
         </ul>
       )}
 
-      <p className="panel-mono mt-5 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-cyan-700/80 dark:text-cyan-400/80">
+      <p className="panel-mono mt-5 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-brand-700/80 dark:text-brand-400/80">
         <History className="h-3.5 w-3.5" aria-hidden="true" /> Historial
       </p>
-      <ol className="mt-2 space-y-2 border-l border-cyan-600/20 pl-4 dark:border-cyan-400/15">
+      <ol className="mt-2 space-y-2 border-l border-brand-600/20 pl-4 dark:border-brand-400/15">
         {[...(reporte.historial || [])].reverse().map((h, i) => (
           <li key={i} className="text-sm">
             <p className="text-slate-700 dark:text-slate-200">
-              <span className="panel-mono text-xs uppercase tracking-wide text-cyan-700 dark:text-cyan-400">{h.accion}</span>
+              <span className="panel-mono text-xs uppercase tracking-wide text-brand-700 dark:text-brand-400">{h.accion}</span>
               {h.de && h.a && <span className="text-slate-500 dark:text-slate-400"> · {h.de} → {h.a}</span>}
             </p>
             {h.nota && <p className="text-slate-600 dark:text-slate-300">{h.nota}</p>}
@@ -597,7 +597,7 @@ export default function TareasDanosPage() {
     <div className="mx-auto max-w-7xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-          <ClipboardList className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+          <ClipboardList className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
           Reportes de usuarios
         </h1>
         <div className="flex flex-wrap gap-2">
@@ -687,11 +687,11 @@ export default function TareasDanosPage() {
                     <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
                       {r.asignadoA.nombre}
                       {r.asignacionAutomatica && (
-                        <Bot className="h-3.5 w-3.5 shrink-0 text-cyan-600 dark:text-cyan-400" aria-label="Asignado automáticamente" />
+                        <Bot className="h-3.5 w-3.5 shrink-0 text-brand-600 dark:text-brand-400" aria-label="Asignado automáticamente" />
                       )}
                     </span>
                   ) : (
-                    <span className="text-xs text-amber-700 dark:text-amber-300">Sin asignar</span>
+                    <span className="text-xs text-warn-700 dark:text-warn-300">Sin asignar</span>
                   )}
                 </Td>
                 <Td>

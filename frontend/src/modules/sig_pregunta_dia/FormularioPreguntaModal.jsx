@@ -136,7 +136,7 @@ export default function FormularioPreguntaModal({ abierto, pregunta, componentes
                 className={
                   'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors ' +
                   (o.esCorrecta
-                    ? 'bg-emerald-500 text-white'
+                    ? 'bg-accent-500 text-white'
                     : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600')
                 }
               >

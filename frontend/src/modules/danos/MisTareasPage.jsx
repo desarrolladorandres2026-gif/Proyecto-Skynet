@@ -241,16 +241,16 @@ function HojaDetalle({ reporte, onCerrar, onCambiarEstado }) {
         )}
 
         {reporte.reparacion?.fecha && (
-          <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-3">
-            <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+          <div className="rounded-xl border border-accent-500/25 bg-accent-500/5 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-accent-700 dark:text-accent-300">
               <MapPin className="h-3.5 w-3.5" aria-hidden="true" /> Reparación registrada
             </p>
             <p className="mt-1 text-xs text-[var(--mobile-text-dim)]">
               {fmtFechaHora(reporte.reparacion.fecha)} · {MODULOS_TRABAJO.find((m) => m.valor === reporte.reparacion.modulo)?.label || reporte.reparacion.modulo}
             </p>
             {reporte.observacionAtencion && (
-              <div className="mt-2 rounded-lg border border-emerald-500/15 bg-emerald-500/5 px-3 py-2">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+              <div className="mt-2 rounded-lg border border-accent-500/15 bg-accent-500/5 px-3 py-2">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-accent-600 dark:text-accent-400">
                   Nota del técnico
                 </p>
                 <p className="mt-0.5 text-sm text-[var(--mobile-text)]">{reporte.observacionAtencion}</p>
@@ -258,13 +258,13 @@ function HojaDetalle({ reporte, onCerrar, onCambiarEstado }) {
             )}
             {reporte.reparacion.evidencias?.length > 0 && (
               <div className="mt-2">
-                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-accent-600 dark:text-accent-400">
                   Evidencia fotográfica ({reporte.reparacion.evidencias.length})
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {reporte.reparacion.evidencias.map((ev, i) => (
                     <a key={i} href={ev.url} target="_blank" rel="noreferrer">
-                      <img src={ev.url} alt={`Evidencia ${i + 1} de la reparación`} className="h-16 w-16 rounded-xl object-cover ring-1 ring-emerald-500/20" />
+                      <img src={ev.url} alt={`Evidencia ${i + 1} de la reparación`} className="h-16 w-16 rounded-xl object-cover ring-1 ring-accent-500/20" />
                     </a>
                   ))}
                 </div>

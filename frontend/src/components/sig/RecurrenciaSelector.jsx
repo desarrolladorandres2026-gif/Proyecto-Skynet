@@ -39,8 +39,8 @@ export default function RecurrenciaSelector({ recurrencia, onChange }) {
               className={
                 'rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ' +
                 (recurrencia.diasSemana.includes(d.value)
-                  ? 'border-cyan-500 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
-                  : 'border-slate-200 text-slate-600 hover:border-cyan-500/40 dark:border-slate-700 dark:text-slate-300')
+                  ? 'border-brand-500 bg-brand-500/10 text-brand-700 dark:text-brand-300'
+                  : 'border-slate-200 text-slate-600 hover:border-brand-500/40 dark:border-slate-700 dark:text-slate-300')
               }
             >
               {d.label}

@@ -100,7 +100,7 @@ export default function BancoPreguntasPage() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-          <Brain className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+          <Brain className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
           Banco de preguntas SIG
         </h1>
         <div className="flex items-center gap-2">
@@ -113,7 +113,7 @@ export default function BancoPreguntasPage() {
             <Filter className="h-4 w-4" aria-hidden="true" />
             Filtros
             {filtrosActivos > 0 && (
-              <span className="panel-mono rounded-full bg-cyan-600 px-1.5 py-0.5 text-[10px] font-semibold text-white dark:bg-cyan-500">
+              <span className="panel-mono rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold text-white dark:bg-brand-500">
                 {filtrosActivos}
               </span>
             )}

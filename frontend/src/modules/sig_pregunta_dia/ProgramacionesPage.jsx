@@ -170,14 +170,14 @@ export default function ProgramacionesPage() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-          <CalendarClock className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+          <CalendarClock className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
           Programación de preguntas
         </h1>
         <div className="flex items-center gap-3">
-          <Link to="/sig/calendario" className="text-xs font-medium text-cyan-700 hover:underline dark:text-cyan-400">
+          <Link to="/sig/calendario" className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-400">
             Ver calendario
           </Link>
-          <Link to="/sig/programacion/campanas" className="text-xs font-medium text-cyan-700 hover:underline dark:text-cyan-400">
+          <Link to="/sig/programacion/campanas" className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-400">
             Ver campañas
           </Link>
           <Btn className="flex items-center gap-1.5" onClick={abrirNueva}>
@@ -274,7 +274,7 @@ export default function ProgramacionesPage() {
                 preguntasFiltradas.map((p) => (
                   <label
                     key={p._id}
-                    className="flex cursor-pointer items-start gap-2 rounded px-1 py-1 text-sm text-slate-700 hover:bg-cyan-500/5 dark:text-slate-200"
+                    className="flex cursor-pointer items-start gap-2 rounded px-1 py-1 text-sm text-slate-700 hover:bg-brand-500/5 dark:text-slate-200"
                   >
                     <input
                       type="checkbox"
@@ -283,7 +283,7 @@ export default function ProgramacionesPage() {
                       onChange={() => alternarPregunta(p._id)}
                     />
                     <span className="flex-1">
-                      <span className="text-[11px] font-semibold tracking-wide text-cyan-700 uppercase dark:text-cyan-400">
+                      <span className="text-[11px] font-semibold tracking-wide text-brand-700 uppercase dark:text-brand-400">
                         {p.componenteSig}
                       </span>{' '}
                       {p.enunciado}

@@ -74,13 +74,13 @@ export default function NuevoRequerimientoPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <h1 className="panel-mono mb-4 flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-        <FilePlus2 className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <FilePlus2 className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         Nuevo requerimiento
       </h1>
 
       {dano && (
-        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-          <p className="panel-mono flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-amber-700 dark:text-amber-300">
+        <div className="mb-4 rounded-xl border border-warn-500/30 bg-warn-500/5 p-4">
+          <p className="panel-mono flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-warn-700 dark:text-warn-300">
             <TriangleAlert className="h-3.5 w-3.5" aria-hidden="true" />
             Repuesto para un daño reportado
           </p>
@@ -149,7 +149,7 @@ export default function NuevoRequerimientoPage() {
             <button
               type="submit"
               disabled={enviando}
-              className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700 disabled:opacity-60"
+              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
             >
               {enviando ? 'Enviando…' : 'Enviar a Financiero'}
             </button>

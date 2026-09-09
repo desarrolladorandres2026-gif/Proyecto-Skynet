@@ -23,7 +23,7 @@ export default function MiHistorialSigPage() {
   return (
     <div className="mx-auto max-w-lg">
       <div className="mb-4 flex items-center gap-2.5">
-        <History className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <History className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <h1 className="text-lg font-semibold text-slate-900 dark:text-white">Mi progreso SIG</h1>
       </div>
 
@@ -41,7 +41,7 @@ export default function MiHistorialSigPage() {
                   <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Preguntas</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{progreso.correctas}</p>
+                  <p className="text-2xl font-bold text-accent-600 dark:text-accent-400">{progreso.correctas}</p>
                   <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Correctas</p>
                 </div>
                 <div>
@@ -49,7 +49,7 @@ export default function MiHistorialSigPage() {
                   <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Incorrectas</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{progreso.porcentajeAcierto}%</p>
+                  <p className="text-2xl font-bold text-brand-600 dark:text-brand-400">{progreso.porcentajeAcierto}%</p>
                   <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Acierto</p>
                 </div>
               </div>
@@ -84,7 +84,7 @@ export default function MiHistorialSigPage() {
                   key={r._id}
                   leading={
                     r.esCorrecta ? (
-                      <CircleCheck className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                      <CircleCheck className="h-5 w-5 shrink-0 text-accent-600 dark:text-accent-400" aria-hidden="true" />
                     ) : (
                       <CircleX className="h-5 w-5 shrink-0 text-red-600 dark:text-red-400" aria-hidden="true" />
                     )

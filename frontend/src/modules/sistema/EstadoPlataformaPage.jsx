@@ -36,19 +36,19 @@ function aInputDateTime(valor) {
 
 const ESTILO_ESTADO = {
   operativa: {
-    punto: 'bg-emerald-500',
-    halo: 'bg-emerald-500/20',
-    texto: 'text-emerald-700 dark:text-emerald-300',
-    borde: 'border-emerald-500/30',
-    fondo: 'bg-emerald-500/[0.06]',
+    punto: 'bg-accent-500',
+    halo: 'bg-accent-500/20',
+    texto: 'text-accent-700 dark:text-accent-300',
+    borde: 'border-accent-500/30',
+    fondo: 'bg-accent-500/[0.06]',
     etiqueta: 'Plataforma operativa',
   },
   programado: {
-    punto: 'bg-amber-500',
-    halo: 'bg-amber-500/20',
-    texto: 'text-amber-700 dark:text-amber-300',
-    borde: 'border-amber-500/30',
-    fondo: 'bg-amber-500/[0.07]',
+    punto: 'bg-warn-500',
+    halo: 'bg-warn-500/20',
+    texto: 'text-warn-700 dark:text-warn-300',
+    borde: 'border-warn-500/30',
+    fondo: 'bg-warn-500/[0.07]',
     etiqueta: 'Mantenimiento programado',
   },
   en_mantenimiento: {
@@ -199,7 +199,7 @@ export default function EstadoPlataformaPage() {
   return (
     <div>
       <div className="mb-6 flex items-center gap-3">
-        <Activity className="h-6 w-6 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <Activity className="h-6 w-6 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <div>
           <h1 className="panel-mono text-xl font-semibold tracking-wide text-slate-900 dark:text-white">
             Estado de plataforma

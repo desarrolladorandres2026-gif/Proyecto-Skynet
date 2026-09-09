@@ -9,8 +9,8 @@ import './mantenimiento.css'
 
 function Dato({ icono: Icono, etiqueta, valor }) {
   return (
-    <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1 xs:gap-3 border-b border-amber-500/15 py-2 last:border-b-0">
-      <span className="skynet-mono flex items-center gap-2 text-[11px] tracking-[0.15em] text-amber-200/60 uppercase shrink-0">
+    <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1 xs:gap-3 border-b border-warn-500/15 py-2 last:border-b-0">
+      <span className="skynet-mono flex items-center gap-2 text-[11px] tracking-[0.15em] text-warn-200/60 uppercase shrink-0">
         <Icono className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         {etiqueta}
       </span>
@@ -63,7 +63,7 @@ export default function PantallaMantenimiento({ modo = 'mantenimiento', onContin
             alt="Terminal de Transporte de Neiva"
             className="mb-4 h-14 w-auto opacity-90"
           />
-          <p className="skynet-mono mb-2 text-[11px] tracking-[0.35em] text-amber-400/70 uppercase">
+          <p className="skynet-mono mb-2 text-[11px] tracking-[0.35em] text-warn-400/70 uppercase">
             {disponible ? 'Sistema · restablecido' : 'Sistema · mantenimiento'}
           </p>
           <h1 className="skynet-title text-xl sm:text-2xl text-white">TERMINAL DE NEIVA</h1>
@@ -96,7 +96,7 @@ export default function PantallaMantenimiento({ modo = 'mantenimiento', onContin
             <button
               type="button"
               onClick={onContinuar}
-              className="skynet-mono w-full rounded border border-emerald-400/40 bg-emerald-500/15 py-3 text-sm font-semibold tracking-[0.2em] text-emerald-300 uppercase transition-colors hover:bg-emerald-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
+              className="skynet-mono w-full rounded border border-accent-400/40 bg-accent-500/15 py-3 text-sm font-semibold tracking-[0.2em] text-accent-300 uppercase transition-colors hover:bg-accent-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/60"
             >
               Entrar a Skynet
             </button>
@@ -115,13 +115,13 @@ export default function PantallaMantenimiento({ modo = 'mantenimiento', onContin
                 tiempo restante sería inventar. */}
             {restante !== null && restante !== undefined ? (
               <div className="mb-5 text-center">
-                <p className="skynet-mono mb-1 text-[10px] tracking-[0.3em] text-amber-200/60 uppercase">
+                <p className="skynet-mono mb-1 text-[10px] tracking-[0.3em] text-warn-200/60 uppercase">
                   Tiempo estimado restante
                 </p>
                 <p className="mant-contador text-4xl sm:text-5xl">{formatearRestante(restante)}</p>
               </div>
             ) : (
-              <p className="skynet-mono mb-5 text-center text-[11px] tracking-[0.2em] text-amber-200/60 uppercase">
+              <p className="skynet-mono mb-5 text-center text-[11px] tracking-[0.2em] text-warn-200/60 uppercase">
                 Sin hora de finalización estimada
               </p>
             )}
@@ -133,7 +133,7 @@ export default function PantallaMantenimiento({ modo = 'mantenimiento', onContin
               />
             </div>
 
-            <div className="mb-5 rounded border border-amber-500/25 bg-amber-950/25 px-4 py-2">
+            <div className="mb-5 rounded border border-warn-500/25 bg-warn-950/25 px-4 py-2">
               <Dato icono={ShieldCheck} etiqueta="Estado" valor="EN MANTENIMIENTO" />
               <Dato icono={Clock} etiqueta="Inicio" valor={formatearFechaHora(estado?.scheduledStart)} />
               <Dato

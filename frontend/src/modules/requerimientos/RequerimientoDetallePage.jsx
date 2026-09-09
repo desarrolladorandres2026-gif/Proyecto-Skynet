@@ -240,7 +240,7 @@ export default function RequerimientoDetallePage() {
     <div className="mx-auto max-w-4xl space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-          <FileText className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+          <FileText className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
           Requerimiento de {req.tipo}
         </h1>
         <div className="flex items-center gap-2">
@@ -257,15 +257,15 @@ export default function RequerimientoDetallePage() {
       <Card className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
-            <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-cyan-700/80 dark:text-cyan-400/80">Solicitante</p>
+            <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-brand-700/80 dark:text-brand-400/80">Solicitante</p>
             <p className="text-sm text-slate-800 dark:text-slate-100">{req.solicitante?.nombre}</p>
           </div>
           <div>
-            <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-cyan-700/80 dark:text-cyan-400/80">Cargo</p>
+            <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-brand-700/80 dark:text-brand-400/80">Cargo</p>
             <p className="text-sm text-slate-800 dark:text-slate-100">{req.cargoSolicitante}</p>
           </div>
           <div>
-            <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-cyan-700/80 dark:text-cyan-400/80">Fecha</p>
+            <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-brand-700/80 dark:text-brand-400/80">Fecha</p>
             <p className="text-sm text-slate-800 dark:text-slate-100">{fmtFechaHora(req.fechaSolicitud)}</p>
           </div>
         </div>
@@ -277,7 +277,7 @@ export default function RequerimientoDetallePage() {
         ) : (
           req.areaOProceso && (
             <div>
-              <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-cyan-700/80 dark:text-cyan-400/80">Área o proceso</p>
+              <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-brand-700/80 dark:text-brand-400/80">Área o proceso</p>
               <p className="text-sm text-slate-800 dark:text-slate-100">{req.areaOProceso}</p>
             </div>
           )
@@ -286,7 +286,7 @@ export default function RequerimientoDetallePage() {
 
       {req.tipo === 'compra' ? (
         <Card>
-          <p className="panel-mono mb-2 text-[11px] uppercase tracking-[0.1em] text-cyan-700/80 dark:text-cyan-400/80">
+          <p className="panel-mono mb-2 text-[11px] uppercase tracking-[0.1em] text-brand-700/80 dark:text-brand-400/80">
             Productos solicitados
           </p>
           {puedeEditarFinanciero ? (
@@ -295,7 +295,7 @@ export default function RequerimientoDetallePage() {
             <>
               <div className="grid gap-2.5 sm:hidden">
                 {(req.itemsCompra || []).map((it, i) => (
-                  <div key={it._id || i} className="rounded-lg border border-cyan-600/15 p-3 dark:border-cyan-400/10">
+                  <div key={it._id || i} className="rounded-lg border border-brand-600/15 p-3 dark:border-brand-400/10">
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{it.descripcionProducto}</p>
                       <span className="panel-mono shrink-0 text-[11px] text-slate-500 dark:text-slate-400">
@@ -306,7 +306,7 @@ export default function RequerimientoDetallePage() {
                       Cantidad: {it.cantidad} · Destino: {it.destino || '—'}
                     </p>
                     {mostrarColumnaRecibido && (
-                      <div className="mt-2 border-t border-cyan-600/10 pt-2 text-sm dark:border-cyan-400/10">
+                      <div className="mt-2 border-t border-brand-600/10 pt-2 text-sm dark:border-brand-400/10">
                         {puedeControlRecibido ? (
                           <label className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                             <input
@@ -379,7 +379,7 @@ export default function RequerimientoDetallePage() {
                 </Field>
               ) : (
                 <>
-                  <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-cyan-700/80 dark:text-cyan-400/80">{label}</p>
+                  <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-brand-700/80 dark:text-brand-400/80">{label}</p>
                   <p className="whitespace-pre-wrap text-sm text-slate-800 dark:text-slate-100">{req.detalleServicio?.[campo] || '—'}</p>
                 </>
               )}
@@ -389,7 +389,7 @@ export default function RequerimientoDetallePage() {
       )}
 
       <Card className="space-y-3">
-        <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-cyan-700/80 dark:text-cyan-400/80">Financiero</p>
+        <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-brand-700/80 dark:text-brand-400/80">Financiero</p>
 
         {puedeEditarFinanciero ? (
           <Field label="Análisis técnico del requerimiento (opcional)">
@@ -446,7 +446,7 @@ export default function RequerimientoDetallePage() {
         {puedeEditarFinanciero && (
           <>
             {tieneFirma === false && (
-              <p className="flex items-center gap-1.5 text-sm text-amber-700 dark:text-amber-400">
+              <p className="flex items-center gap-1.5 text-sm text-warn-700 dark:text-warn-400">
                 <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
                 No tienes una firma registrada.{' '}
                 <Link to="/requerimientos/mi-firma" className="underline underline-offset-2">
@@ -476,7 +476,7 @@ export default function RequerimientoDetallePage() {
 
       {(req.estado === 'pendiente_bodega' || req.bodega?.fecha) && (
         <Card className="space-y-3">
-          <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-cyan-700/80 dark:text-cyan-400/80">Bodega</p>
+          <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-brand-700/80 dark:text-brand-400/80">Bodega</p>
           {puedeGestionarBodega ? (
             <Field label="Estado">
               <Select value={req.bodega?.estado || 'pendiente'} onChange={(e) => onCambiarEstadoBodega(e.target.value)}>

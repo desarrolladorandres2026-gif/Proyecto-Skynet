@@ -40,7 +40,7 @@ export function DashboardHeader({
                 className="font-bold tracking-tight text-slate-900 dark:text-white"
                 style={{ fontSize: 'var(--ui-title-size)' }}
               >
-                {saludo()}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 via-cyan-600 to-slate-900 dark:from-brand-300 dark:via-cyan-200 dark:to-white">{usuario?.nombre?.trim().split(/\s+/)[0] || usuario?.nombre}</span>
+                {saludo()}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 via-brand-600 to-slate-900 dark:from-brand-300 dark:via-brand-200 dark:to-white">{usuario?.nombre?.trim().split(/\s+/)[0] || usuario?.nombre}</span>
               </h1>
               <span className="panel-mono inline-flex items-center gap-1 rounded-md bg-brand-500/10 px-2 py-0.5 text-[11px] font-semibold text-brand-700 ring-1 ring-inset ring-brand-400/30 dark:bg-brand-500/15 dark:text-brand-300">
                 <ShieldCheck className="h-3 w-3" />

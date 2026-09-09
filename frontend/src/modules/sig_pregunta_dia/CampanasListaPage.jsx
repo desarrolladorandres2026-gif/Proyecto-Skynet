@@ -66,11 +66,11 @@ export default function CampanasListaPage() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
-          <Rocket className="h-5 w-5 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+          <Rocket className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
           Campañas SIG
         </h1>
         <div className="flex items-center gap-3">
-          <Link to="/sig/programacion" className="text-xs font-medium text-cyan-700 hover:underline dark:text-cyan-400">
+          <Link to="/sig/programacion" className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-400">
             Ver programación individual
           </Link>
           <Link to="/sig/programacion/campanas/nueva">

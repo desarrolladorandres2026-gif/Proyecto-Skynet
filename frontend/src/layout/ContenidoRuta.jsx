@@ -43,7 +43,7 @@ function PantallaDeError({ error, onReintentar }) {
 
   return (
     <div className="mx-auto flex min-h-[60svh] max-w-md flex-col items-center justify-center gap-3 text-center">
-      <TriangleAlert className="h-8 w-8 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+      <TriangleAlert className="h-8 w-8 text-warn-600 dark:text-warn-400" aria-hidden="true" />
       <p className="text-lg font-medium text-slate-700 dark:text-slate-200">
         No se pudo mostrar esta pantalla
       </p>

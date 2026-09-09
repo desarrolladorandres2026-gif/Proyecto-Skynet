@@ -94,7 +94,7 @@ export default function EmailConfiguracionPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
-        <SlidersHorizontal className="h-6 w-6 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+        <SlidersHorizontal className="h-6 w-6 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <div>
           <h1 className="panel-mono text-xl font-semibold tracking-wide text-slate-900 dark:text-white">
             Configuración de Email
@@ -109,7 +109,7 @@ export default function EmailConfiguracionPage() {
       <OkMsg>{ok}</OkMsg>
 
       {pendiente && (
-        <div className="flex items-start gap-2 rounded-lg border border-cyan-600/30 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-800 dark:border-cyan-400/20 dark:text-cyan-300">
+        <div className="flex items-start gap-2 rounded-lg border border-brand-600/30 bg-brand-500/10 px-3 py-2 text-sm text-brand-800 dark:border-brand-400/20 dark:text-brand-300">
           <MailCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <p>
             Te enviamos un correo a tu cuenta de Skynet describiendo este intento de conexión. Solo se conectará la
@@ -124,7 +124,7 @@ export default function EmailConfiguracionPage() {
           <div className="flex items-center gap-2 text-sm">
             {conexion?.conectada ? (
               <>
-                <CircleCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                <CircleCheck className="h-4 w-4 text-accent-600 dark:text-accent-400" aria-hidden="true" />
                 <span className="text-slate-700 dark:text-slate-300">Conectado como {conexion.cuenta}</span>
               </>
             ) : (
