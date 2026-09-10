@@ -11,6 +11,8 @@ import { escapeRegex } from '../../utils/regex.js'
 import { registrarAuditoria } from '../../utils/auditoria.js'
 import { ErrorValidacion, ErrorNoEncontrado, ErrorAutorizacion } from '../../utils/errores.js'
 import { logger } from '../../config/logger.js'
+import { generarAudioVoz } from './avisos.tts.js'
+import { esVozTtsValida, VOZ_TTS_DEFECTO, VOCES_TTS } from './vocesTts.js'
 
 // Frase fija con la que SIEMPRE arranca la locución, antes del texto que
 // escribe el administrador (ver especificación de "Avisos Terminal de
@@ -158,17 +160,38 @@ async function enviarPushEntrega(entrega, aviso) {
   }
 }
 
-export async function crearYTransmitirAviso({ texto, destinatarios, admin }) {
+export async function crearYTransmitirAviso({ texto, destinatarios, voz, admin }) {
   const textoLimpio = sanitizarTexto(texto)
+  const textoLocucion = construirLocucion(textoLimpio)
   const { usuariosDocs, etiqueta } = await resolverDestinatarios(destinatarios || {})
 
   if (!usuariosDocs.length) {
     throw new ErrorValidacion('No hay destinatarios activos para el criterio seleccionado')
   }
 
+  const vozElegida = esVozTtsValida(voz) ? voz : VOZ_TTS_DEFECTO
+
+  // Se genera el audio institucional ANTES de crear el aviso (así se guarda
+  // todo en un solo insert), pero un fallo acá NUNCA debe impedir la
+  // transmisión — es lo más importante del requisito de robustez: el motivo
+  // más probable es la cuota gratuita del modelo de voz (3/min, ver
+  // avisos.ttsCuota.js), y un administrador que transmite varios avisos
+  // seguidos no puede quedarse sin poder avisar por eso. Sin audio generado,
+  // cada dispositivo simplemente cae a su propia voz local (ver
+  // AvisoTerminalPlayer.jsx) — sigue sonando, solo que no con la MISMA voz
+  // en todos los celulares.
+  let audio
+  try {
+    audio = await generarAudioVoz(textoLocucion, vozElegida)
+  } catch (err) {
+    logger.warn('No se pudo generar el audio institucional del Aviso Terminal de Neiva (se transmite sin él)', {
+      error: err.message,
+    })
+  }
+
   const aviso = await AvisoTerminal.create({
     texto: textoLimpio,
-    textoLocucion: construirLocucion(textoLimpio),
+    textoLocucion,
     destinatarios: {
       tipo: destinatarios.tipo,
       usuarios: destinatarios.tipo === 'usuario' ? usuariosDocs.map((u) => u._id) : [],
@@ -182,6 +205,8 @@ export async function crearYTransmitirAviso({ texto, destinatarios, admin }) {
       nombre: admin.nombre_usuario,
       rolNombre: admin.rol?.nombre,
     },
+    voz: vozElegida,
+    audio: audio ? { data: audio.data, mimeType: audio.mimeType } : undefined,
   })
 
   // Las dos inserciones son independientes entre sí (ninguna necesita el
@@ -222,7 +247,7 @@ export async function crearYTransmitirAviso({ texto, destinatarios, admin }) {
     cambios: { texto: textoLimpio, destinatarios: aviso.destinatarios },
   })
 
-  return { aviso, totalDestinatarios: usuariosDocs.length }
+  return { aviso, totalDestinatarios: usuariosDocs.length, audioGenerado: Boolean(audio) }
 }
 
 export async function listarOpcionesDestinatarios() {
@@ -233,6 +258,13 @@ export async function listarOpcionesDestinatarios() {
   return {
     roles: roles.map((r) => ({ id: r._id, nombre: r.nombre })),
     dependencias: dependencias.map((d) => d.nombre),
+    // Catálogo de voces institucionales servido desde acá (no duplicado en el
+    // frontend): a diferencia de las voces de SpeechSynthesis del navegador
+    // (inherentemente locales a cada dispositivo, nunca "enviables"), estas
+    // SÍ son una lista que decide el backend — es la única fuente de verdad
+    // de qué nombres acepta generarAudioVoz() (ver vocesTts.js).
+    voces: VOCES_TTS,
+    vozDefecto: VOZ_TTS_DEFECTO,
   }
 }
 
@@ -296,6 +328,39 @@ export async function obtenerDetalle(id) {
   if (!aviso) throw new ErrorNoEncontrado('Aviso no encontrado')
 
   return { aviso, entregas }
+}
+
+// Audio institucional (WAV) de un aviso ya transmitido. Autoriza a dos
+// tipos de persona: quien TRANSMITE (puede reescuchar cualquier aviso desde
+// el historial) y quien lo RECIBIÓ (tiene una AvisoTerminalEntrega propia) —
+// nunca a un tercero sin relación con el aviso. Devuelve null (no error)
+// cuando el aviso existe pero no tiene audio generado (falló la síntesis o
+// se transmitió antes de que este campo existiera): el reproductor cae a la
+// voz local del dispositivo en ese caso, no es un fallo del endpoint.
+export async function obtenerAudioParaUsuario(avisoId, usuario) {
+  if (!mongoose.Types.ObjectId.isValid(avisoId)) throw new ErrorNoEncontrado('Aviso no encontrado')
+
+  const puedeVerCualquiera = usuario.esSuperAdmin || usuario.permisos?.has('avisos_terminal:transmitir') || usuario.permisos?.has('avisos_terminal:ver_historial')
+
+  const [aviso, tieneEntregaPropia] = await Promise.all([
+    AvisoTerminal.findById(avisoId).select('+audio.data audio.mimeType'),
+    puedeVerCualquiera ? Promise.resolve(true) : AvisoTerminalEntrega.exists({ aviso: avisoId, usuario: usuario.id_usuario }),
+  ])
+  if (!aviso) throw new ErrorNoEncontrado('Aviso no encontrado')
+  if (!tieneEntregaPropia) throw new ErrorAutorizacion('No tienes acceso al audio de este aviso')
+  if (!aviso.audio?.data) return null
+
+  return { data: aviso.audio.data, mimeType: aviso.audio.mimeType || 'audio/wav' }
+}
+
+// Genera una muestra corta con una voz institucional SIN guardar nada — para
+// el botón "Probar voz" del panel de Transmitir, antes de decidirse. Cuenta
+// contra la misma cuota compartida que una transmisión real (ver
+// avisos.ttsCuota.js): a propósito no tiene su propio presupuesto aparte,
+// para no poder agotar en pruebas la cuota que necesita la transmisión real.
+export async function probarVozInstitucional(texto, voz) {
+  const textoLimpio = sanitizarTexto(texto)
+  return generarAudioVoz(construirLocucion(textoLimpio), voz)
 }
 
 // Entregas que el reproductor global (AvisoTerminalPlayer.jsx) todavía no ha

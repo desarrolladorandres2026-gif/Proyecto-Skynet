@@ -19,6 +19,15 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
 })
 
+// Red de seguridad para un SW que se quedó en "waiting". El skipWaiting() de
+// arriba lo cubre en el caso normal, pero no cuando el SW que hoy controla la
+// pestaña es una build ANTERIOR a esa línea: ese SW viejo no cede el control
+// solo. src/pwa/actualizacionAutomatica.js manda este mensaje después de cada
+// registration.update() si encuentra un registration.waiting.
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting()
+})
+
 // Sin este listener, un push que el backend manda (ver
 // Backend/src/modules/notificaciones/notificaciones.service.js) llega al
 // navegador pero nunca se muestra como notificación del sistema — es la

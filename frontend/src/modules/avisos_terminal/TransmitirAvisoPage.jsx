@@ -49,7 +49,67 @@ export default function TransmitirAvisoPage() {
     () => avisosTerminal.opcionesDestinatarios(),
     { ttlMs: 5 * 60_000 }
   )
-  const opciones = opcionesData || { roles: [], dependencias: [] }
+  const opciones = opcionesData || { roles: [], dependencias: [], voces: [], vozDefecto: '' }
+
+  // Voz institucional: la que se GENERA UNA VEZ en el servidor y escuchan
+  // TODOS los destinatarios (a diferencia del selector de más abajo, que solo
+  // afecta el respaldo local de este dispositivo). Se inicializa apenas
+  // llega el catálogo del backend.
+  const [vozInstitucional, setVozInstitucional] = useState('')
+  useEffect(() => {
+    if (!vozInstitucional && opciones.vozDefecto) setVozInstitucional(opciones.vozDefecto)
+  }, [opciones.vozDefecto, vozInstitucional])
+
+  const [probandoInstitucional, setProbandoInstitucional] = useState(false)
+  const [esperaProbarInstitucional, setEsperaProbarInstitucional] = useState(0)
+  const audioMuestraRef = useRef(null)
+  const temporizadorEsperaRef = useRef(null)
+
+  useEffect(
+    () => () => {
+      clearInterval(temporizadorEsperaRef.current)
+      audioMuestraRef.current?.pause()
+    },
+    []
+  )
+
+  // Cooldown tras cada prueba: el modelo de voz institucional comparte una
+  // cuota gratuita muy estrecha (3 peticiones/min PARA TODO EL PROYECTO, ver
+  // Backend/src/modules/avisos_terminal/avisos.ttsCuota.js) — probar varias
+  // voces seguidas sin freno podría dejar sin cupo la transmisión real.
+  const ESPERA_ENTRE_PRUEBAS_S = 20
+  function iniciarEsperaPrueba() {
+    setEsperaProbarInstitucional(ESPERA_ENTRE_PRUEBAS_S)
+    clearInterval(temporizadorEsperaRef.current)
+    temporizadorEsperaRef.current = setInterval(() => {
+      setEsperaProbarInstitucional((s) => {
+        if (s <= 1) {
+          clearInterval(temporizadorEsperaRef.current)
+          return 0
+        }
+        return s - 1
+      })
+    }, 1000)
+  }
+
+  async function probarVozInstitucionalReal() {
+    if (texto.trim().length < 3 || probandoInstitucional || esperaProbarInstitucional > 0) return
+    setProbandoInstitucional(true)
+    setError('')
+    try {
+      const blob = await avisosTerminal.probarVoz({ texto: texto.trim(), voz: vozInstitucional })
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audioMuestraRef.current = audio
+      audio.play().catch(() => {})
+      audio.addEventListener('ended', () => URL.revokeObjectURL(url), { once: true })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setProbandoInstitucional(false)
+      iniciarEsperaPrueba()
+    }
+  }
 
   const { data: historialData, cargando: cargandoHistorial, recargar: recargarHistorial } = useDatosConCache(
     `avisosTerminal:historial:${page}`,
@@ -107,11 +167,16 @@ export default function TransmitirAvisoPage() {
     setError('')
     setOk('')
     try {
-      const { totalDestinatarios } = await avisosTerminal.transmitir({
+      const { totalDestinatarios, audioGenerado } = await avisosTerminal.transmitir({
         texto: texto.trim(),
         destinatarios: armarDestinatarios(),
+        voz: vozInstitucional,
       })
-      setOk(`Aviso transmitido a ${totalDestinatarios} destinatario(s).`)
+      setOk(
+        audioGenerado
+          ? `Aviso transmitido a ${totalDestinatarios} destinatario(s) — todos escucharán la misma voz institucional.`
+          : `Aviso transmitido a ${totalDestinatarios} destinatario(s). No se pudo generar la voz institucional en este momento (probablemente por el límite de la API): cada dispositivo lo leerá con su propia voz.`
+      )
       setTexto('')
       setUsuariosSeleccionados([])
       setRolId('')
@@ -154,6 +219,27 @@ export default function TransmitirAvisoPage() {
             />
           </Field>
           <p className="mt-1 text-right text-[11px] text-slate-400">{texto.length}/{TEXTO_MAX}</p>
+
+          <Field label="Voz institucional (la escuchan todos)" className="mt-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={vozInstitucional} onChange={(e) => setVozInstitucional(e.target.value)} className="max-w-[12rem]">
+                {opciones.voces.map((v) => (
+                  <option key={v.id} value={v.id}>{v.nombre} — {v.descripcion}</option>
+                ))}
+              </Select>
+              <Btn
+                variante="secundario"
+                disabled={texto.trim().length < 3 || probandoInstitucional || esperaProbarInstitucional > 0}
+                onClick={probarVozInstitucionalReal}
+              >
+                <Volume2 className="h-4 w-4" aria-hidden="true" />
+                {probandoInstitucional ? 'Generando…' : esperaProbarInstitucional > 0 ? `Espera ${esperaProbarInstitucional}s` : 'Probar'}
+              </Btn>
+            </div>
+            <p className="mt-1 text-[11px] text-slate-400">
+              Se genera una sola vez y todos los destinatarios escuchan exactamente esta voz.
+            </p>
+          </Field>
 
           <Field label="Destinatarios" className="mt-4">
             <Select value={tipo} onChange={(e) => setTipo(e.target.value)}>
@@ -231,14 +317,6 @@ export default function TransmitirAvisoPage() {
           )}
 
           <div className="mt-5 flex flex-wrap items-center gap-2">
-            <Btn
-              variante="secundario"
-              disabled={!textoListo}
-              onClick={() => (reproduciendo ? detener() : reproducir(textoLocucionPreview))}
-            >
-              <Volume2 className="h-4 w-4" aria-hidden="true" />
-              {reproduciendo ? 'Detener' : 'Probar voz'}
-            </Btn>
             <Btn disabled={!textoListo || !destinoListo || enviando} onClick={() => setConfirmando(true)}>
               <Send className="h-4 w-4" aria-hidden="true" />
               Transmitir aviso
@@ -246,14 +324,27 @@ export default function TransmitirAvisoPage() {
           </div>
 
           {vocesDisponibles.length > 0 && (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-slate-500 dark:text-slate-400">Voz de este dispositivo:</span>
-              <SelectorVozAviso voces={vocesDisponibles} vozElegidaURI={vozElegidaURI} onElegir={elegirVoz} onProbar={probarVoz} />
+            <div className="mt-4 border-t border-slate-200/60 pt-3 dark:border-slate-700/60">
+              <p className="mb-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+                Respaldo si la voz institucional no se puede generar (ver más abajo): con qué voz LOCAL de este dispositivo
+                se leería el aviso en ese caso. No afecta lo que oirán los destinatarios.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-slate-500 dark:text-slate-400">Voz de respaldo de este dispositivo:</span>
+                <SelectorVozAviso voces={vocesDisponibles} vozElegidaURI={vozElegidaURI} onElegir={elegirVoz} onProbar={probarVoz} />
+                <Btn
+                  variante="fantasma"
+                  disabled={!textoListo}
+                  onClick={() =>
+                    reproduciendo ? detener() : reproducir({ textoLocucion: textoLocucionPreview })
+                  }
+                >
+                  <Volume2 className="h-4 w-4" aria-hidden="true" />
+                  {reproduciendo ? 'Detener' : 'Probar respaldo'}
+                </Btn>
+              </div>
             </div>
           )}
-          <p className="mt-1 text-[11px] text-slate-400">
-            Cada persona escucha con las voces instaladas en su propio dispositivo — esta elección solo afecta esta prueba, no lo que oirán los destinatarios.
-          </p>
         </div>
 
         <div className="panel-card rounded-xl p-[var(--ui-card-padding)]">

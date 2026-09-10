@@ -28,7 +28,7 @@ export default function AvisoTerminalPlayer() {
   const { usuario, moduloActivo } = useAuth()
   const activo = Boolean(usuario) && moduloActivo('avisos_terminal')
 
-  const { reproducir, detener: detenerVoz, fase } = useAnuncioVoz()
+  const { reproducir, reintentar, detener: detenerVoz, fase } = useAnuncioVoz()
   const [entregaActual, setEntregaActual] = useState(null)
   const [estadoVisual, setEstadoVisual] = useState('inactivo') // 'reproduciendo' | 'bloqueado' | 'finalizado'
 
@@ -90,7 +90,7 @@ export default function AvisoTerminalPlayer() {
     // del requisito de estados).
     avisosTerminal.confirmarEstadoEntrega(siguiente._id, 'entregado').catch(() => {})
 
-    const resultado = await reproducir(siguiente.aviso.textoLocucion)
+    const resultado = await reproducir({ textoLocucion: siguiente.aviso.textoLocucion, avisoId: siguiente.aviso._id })
 
     if (resultado.bloqueadoPorAutoplay) {
       // El navegador no dejó que la voz arrancara sola (sin gesto reciente):
@@ -125,27 +125,30 @@ export default function AvisoTerminalPlayer() {
   useEffect(() => () => limpiarGracia(), [limpiarGracia])
 
   // El clic de "Escuchar" (tras un bloqueo de autoplay) SÍ es un gesto real
-  // del usuario: la voz puede arrancar sola esta vez.
+  // del usuario: el audio puede arrancar solo esta vez. reintentar() repite
+  // el ÚLTIMO intento del hook (mismo avisoId, así que si había audio
+  // institucional generado, lo vuelve a pedir en vez de cambiar a la voz
+  // local a mitad de camino).
   const reintentarConGesto = useCallback(() => {
     if (!entregaActual || procesandoRef.current) return
     esperandoGestoRef.current = false
     procesandoRef.current = true
     setEstadoVisual('reproduciendo')
-    reproducir(entregaActual.aviso.textoLocucion).then((resultado) => {
+    reintentar().then((resultado) => {
       if (resultado.completado) {
         avisosTerminal.confirmarEstadoEntrega(entregaActual._id, 'reproducido').catch(() => {})
       }
       avanzarOFinalizar()
     })
-  }, [avanzarOFinalizar, entregaActual, reproducir])
+  }, [avanzarOFinalizar, entregaActual, reintentar])
 
   const repetir = useCallback(() => {
     if (!entregaActual || procesandoRef.current) return
     limpiarGracia()
     procesandoRef.current = true
     setEstadoVisual('reproduciendo')
-    reproducir(entregaActual.aviso.textoLocucion).then(() => avanzarOFinalizar())
-  }, [avanzarOFinalizar, entregaActual, limpiarGracia, reproducir])
+    reintentar().then(() => avanzarOFinalizar())
+  }, [avanzarOFinalizar, entregaActual, limpiarGracia, reintentar])
 
   const detenerTodo = useCallback(() => {
     limpiarGracia()

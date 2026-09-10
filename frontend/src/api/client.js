@@ -1,6 +1,10 @@
 import { comprimirSiEsImagen } from '../lib/imageCompression.js'
 
-const BASE = import.meta.env.VITE_API_URL || '/api'
+// Exportado (no solo usado internamente): requestBlob() y cualquier caller
+// que necesite construir una URL de subrecurso directamente (p. ej. un
+// <audio src>) sin pasar por fetch, lo necesitan para saber contra qué host
+// apuntar.
+export const BASE = import.meta.env.VITE_API_URL || '/api'
 
 // El token de sesión vive en una cookie httpOnly puesta por el backend: este
 // código JS nunca la lee ni la escribe (por diseño, para que un XSS no pueda
@@ -137,4 +141,38 @@ export async function request(path, options = {}) {
 
   if (!res.ok) throw new Error(data?.error || `Error ${res.status}`)
   return data
+}
+
+// Variante de request() para respuestas binarias (hoy: el audio WAV de un
+// Aviso Terminal de Neiva — ver api/avisosTerminal.js). No puede reutilizar
+// request() tal cual porque esa siempre hace res.json() sobre el cuerpo
+// completo, y un .json() sobre bytes de audio revienta. Reimplementa el
+// mismo timeout/cookie/mantenimiento que request() sobre el camino feliz;
+// deliberadamente NO dispara skynet:logout en un 401 (a diferencia de
+// request()) — un audio que no cargó por sesión vencida no debe cerrarle la
+// sesión a alguien que sigue activo en otra pestaña, el próximo request()
+// normal ya se encargará si de verdad expiró.
+export async function requestBlob(path, options = {}) {
+  const timeoutMs = options.timeoutMs ?? TIMEOUT_MS_DEFECTO
+  const signal = AbortSignal.timeout(timeoutMs)
+
+  let res
+  try {
+    res = await fetch(`${BASE}${path}`, { ...options, credentials: 'include', signal })
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('La solicitud tardó demasiado. Verifica tu conexión e inténtalo de nuevo.')
+    }
+    throw err
+  }
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null)
+    if (res.status === 503 && data?.mantenimiento === true) {
+      window.dispatchEvent(new CustomEvent('skynet:mantenimiento', { detail: data.estado || null }))
+    }
+    throw new Error(data?.error || `Error ${res.status}`)
+  }
+
+  return res.blob()
 }

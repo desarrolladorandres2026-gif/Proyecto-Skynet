@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { reproducirCampanita } from './campanitaInstitucional.js'
+import { avisosTerminal } from '../../api/avisosTerminal.js'
 
 // Pausa entre la campanita y el arranque de la voz — pedida explícitamente
 // entre 300 y 500 ms: suficiente para que el oído "suelte" el timbre de la
@@ -17,16 +18,16 @@ function vocesEnEspanol(voces) {
   return voces.filter((v) => /^es/i.test(v.lang))
 }
 
-// La Web Speech API solo puede usar voces YA instaladas en el sistema/
-// navegador del dispositivo que reproduce — no hay forma de "subir" una voz
-// mejor desde acá. Lo único que este código controla es CUÁL de las
-// instaladas usar por defecto, y ahí sí hay una diferencia real: en Chrome,
-// las voces marcadas `localService:false` ("Google español", etc.) son
-// sintetizadas en la nube con un motor mucho más natural que las voces
-// locales del sistema operativo (en Windows, el motor SAPI local es el que
-// suena más "robótico" — la queja típica). Se prioriza una voz de red en
-// español sobre una local cuando ambas están disponibles; dentro de cada
-// grupo, se prefiere el español latino (es-CO primero) sobre es-ES.
+// La Web Speech API local solo se usa como RESPALDO (ver reproducir() más
+// abajo) cuando el aviso no trae audio generado por el servidor — no hay
+// forma de "subir" una voz mejor desde acá para ese caso. Lo único que este
+// código controla es CUÁL de las voces instaladas usar por defecto, y ahí sí
+// hay una diferencia real: en Chrome, las voces marcadas `localService:false`
+// ("Google español", etc.) son sintetizadas en la nube con un motor mucho
+// más natural que las voces locales del sistema operativo (en Windows, el
+// motor SAPI local es el que suena más "robótico"). Se prioriza una voz de
+// red en español sobre una local cuando ambas están disponibles; dentro de
+// cada grupo, se prefiere el español latino (es-CO primero) sobre es-ES.
 function puntuarVoz(v) {
   let puntos = 0
   if (v.localService === false) puntos += 10 // voz de red (Google) — menos "robótica"
@@ -69,10 +70,11 @@ function cargarVoces() {
   })
 }
 
-// Preferencia de voz POR DISPOSITIVO (localStorage, no viaja al backend): la
-// síntesis ocurre en el navegador de cada destinatario, así que cada quien
-// elige entre las voces que su propio equipo tiene instaladas — no existe
-// una sola voz que se pueda "transmitir" igual a todos.
+// Preferencia de voz LOCAL de respaldo, por dispositivo (localStorage, no
+// viaja al backend): solo entra en juego cuando el aviso no trae audio
+// generado en el servidor (ver reproducir()) — no existe una sola voz local
+// que se pueda "transmitir" igual a todos, por eso el aviso normal usa la
+// voz institucional generada una sola vez en el servidor en vez de esto.
 const CLAVE_VOZ_PREFERIDA = 'skynet_voz_aviso_terminal'
 
 function leerVozGuardada() {
@@ -83,13 +85,48 @@ function leerVozGuardada() {
   }
 }
 
+// Reproduce un <audio> apuntando a un Blob URL y resuelve cuando termina.
+// Usa el mismo contrato { completado, bloqueadoPorAutoplay } que hablar():
+// a diferencia de SpeechSynthesisUtterance (cuyo bloqueo por autoplay solo
+// se puede inferir por no haber llegado a 'onstart'), HTMLMediaElement.play()
+// rechaza DIRECTAMENTE con NotAllowedError cuando el navegador lo bloquea
+// por falta de gesto reciente — señal limpia, sin heurística.
+function reproducirElementoAudio(url, audioRef, { volumen = 1 } = {}) {
+  return new Promise((resolve) => {
+    const audio = new Audio(url)
+    audio.volume = volumen
+    audioRef.current = audio
+
+    let resuelto = false
+    const terminar = (resultado) => {
+      if (resuelto) return
+      resuelto = true
+      resolve(resultado)
+    }
+
+    audio.addEventListener('ended', () => terminar({ completado: true, bloqueadoPorAutoplay: false }))
+    audio.addEventListener('error', () => terminar({ completado: false, bloqueadoPorAutoplay: false }))
+    audio.play().catch((err) => {
+      terminar({ completado: false, bloqueadoPorAutoplay: err.name === 'NotAllowedError' })
+    })
+  })
+}
+
 // Reproduce el flujo completo de un Aviso Terminal de Neiva: campanita ->
-// pausa -> locución. Expone `fase` para que la UI pueda mostrar "sonando la
-// campanita" vs "hablando" con estados visuales distintos, `detener()` para
-// poder cortar el audio en cualquier punto del flujo (incluida la
-// campanita), y control de voz (`vocesDisponibles`/`elegirVoz`/`probarVoz`)
-// para quien quiera una que suene menos sintética que la que trae por
-// defecto su sistema operativo.
+// pausa -> voz. La voz prioriza el audio institucional generado UNA VEZ en
+// el servidor (misma voz para todos los destinatarios, ver
+// Backend/src/modules/avisos_terminal/avisos.tts.js) — si el aviso no trae
+// audio (falló la generación, típicamente por la cuota gratuita del modelo
+// de voz, o es un aviso viejo de antes de esta función) cae a la voz local
+// del dispositivo (SpeechSynthesis), igual que antes.
+//
+// Expone `fase` para que la UI pueda mostrar "sonando la campanita" vs
+// "hablando" con estados visuales distintos, `detener()` para poder cortar
+// el audio en cualquier punto del flujo, `reintentar()` para repetir el
+// último intento con un gesto real del usuario (tras un bloqueo de
+// autoplay), y control de la voz LOCAL de respaldo
+// (`vocesDisponibles`/`elegirVoz`/`probarVoz`) para quien reciba un aviso
+// sin audio institucional.
 export function useAnuncioVoz() {
   const [reproduciendo, setReproduciendo] = useState(false)
   const [fase, setFase] = useState('inactivo') // 'campanita' | 'voz' | 'inactivo'
@@ -97,6 +134,8 @@ export function useAnuncioVoz() {
   const [vozElegidaURI, setVozElegidaURI] = useState(leerVozGuardada)
   const canceladoRef = useRef(false)
   const vozElegidaRef = useRef(null)
+  const audioActualRef = useRef(null)
+  const ultimoIntentoRef = useRef(null) // { textoLocucion, avisoId }
 
   const soportado = typeof window !== 'undefined' && 'speechSynthesis' in window
 
@@ -125,9 +164,9 @@ export function useAnuncioVoz() {
   // avisos entrantes) y esta misma página cuando alguien "prueba"/"repite"
   // una voz son instancias SEPARADAS de este hook — a propósito, para que
   // reproducir manualmente un aviso viejo no interfiera con la cola
-  // automática en curso. Sin este evento, cambiar la voz desde "Mis avisos"
-  // solo se notaría en el próximo aviso recibido DESPUÉS de recargar la
-  // página, porque cada instancia solo lee localStorage una vez al montarse.
+  // automática en curso. Sin este evento, cambiar la voz local de respaldo
+  // desde "Mis avisos" solo se notaría DESPUÉS de recargar la página, porque
+  // cada instancia solo lee localStorage una vez al montarse.
   useEffect(() => {
     function alCambiar(event) {
       if (typeof event.detail === 'string') setVozElegidaURI(event.detail)
@@ -157,6 +196,10 @@ export function useAnuncioVoz() {
   const detener = useCallback(() => {
     canceladoRef.current = true
     if (soportado) window.speechSynthesis.cancel()
+    if (audioActualRef.current) {
+      audioActualRef.current.pause()
+      audioActualRef.current = null
+    }
     setReproduciendo(false)
     setFase('inactivo')
     limpiarMediaSession()
@@ -177,10 +220,6 @@ export function useAnuncioVoz() {
       // sobrepasa ni toca el volumen del sistema — ver requisitos de
       // audibilidad ("sin saltarse el control de volumen del usuario").
       utterance.volume = volumen
-      // Ritmo natural (1.0): frenar el rate en motores de baja calidad tiende
-      // a acentuar el artefacto "robótico" en vez de sonar más institucional
-      // — la claridad se busca eligiendo mejor voz (ver puntuarVoz), no
-      // hablando más despacio.
       utterance.rate = rate
       utterance.pitch = 1
 
@@ -192,9 +231,6 @@ export function useAnuncioVoz() {
       utterance.onerror = () =>
         resolve({
           completado: false,
-          // Sin haber llegado a onstart = el navegador bloqueó el audio por
-          // política de autoplay (sin gesto reciente): es la señal real para
-          // pedirle al usuario un toque, no un error genérico que ocultar.
           bloqueadoPorAutoplay: !empezoAHablar && !canceladoRef.current,
         })
 
@@ -202,8 +238,8 @@ export function useAnuncioVoz() {
     })
   }
 
-  // Deja oír una voz específica sin afectar la que está elegida ni el flujo
-  // en curso — para un botón "probar" en el selector, antes de decidirse.
+  // Deja oír una voz LOCAL específica (de respaldo) sin afectar la que está
+  // elegida ni el flujo en curso — para un botón "probar" en el selector.
   const probarVoz = useCallback(
     (voiceURI) => {
       if (!soportado) return
@@ -214,12 +250,29 @@ export function useAnuncioVoz() {
     [soportado, vocesDisponibles]
   )
 
+  const encenderMediaSession = useCallback(() => {
+    try {
+      if ('mediaSession' in navigator && 'MediaMetadata' in window) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: 'Aviso institucional',
+          artist: 'Terminal de Transportes de Neiva',
+        })
+        navigator.mediaSession.setActionHandler('stop', () => detener())
+        navigator.mediaSession.setActionHandler('pause', () => detener())
+        navigator.mediaSession.playbackState = 'playing'
+      }
+    } catch {
+      /* MediaSession es un realce, no un requisito — el anuncio sigue sonando sin él */
+    }
+  }, [detener])
+
   // Devuelve { completado, bloqueadoPorAutoplay } — el reproductor global usa
   // `bloqueadoPorAutoplay` para mostrar el botón "Toca para escuchar" cuando
-  // el navegador no permitió que la voz arrancara sola (política de autoplay
-  // sin gesto reciente del usuario), en vez de fingir que sonó.
-  const reproducir = useCallback(
-    async (textoLocucion) => {
+  // el navegador no permitió que el audio arrancara solo (política de
+  // autoplay sin gesto reciente del usuario), en vez de fingir que sonó.
+  const intentar = useCallback(
+    async ({ textoLocucion, avisoId = null }) => {
+      ultimoIntentoRef.current = { textoLocucion, avisoId }
       canceladoRef.current = false
       setReproduciendo(true)
       setFase('campanita')
@@ -240,6 +293,26 @@ export function useAnuncioVoz() {
       }
 
       setFase('voz')
+      encenderMediaSession()
+
+      // Camino principal: la voz institucional generada en el servidor
+      // (misma para todos). Si el aviso no tiene audio (404: no se generó,
+      // ver crearYTransmitirAviso en avisos.service.js), obtenerAudio()
+      // lanza y se cae al respaldo local de abajo.
+      if (avisoId) {
+        try {
+          const blob = await avisosTerminal.obtenerAudio(avisoId)
+          const url = URL.createObjectURL(blob)
+          const resultado = await reproducirElementoAudio(url, audioActualRef, { volumen: 1 })
+          URL.revokeObjectURL(url)
+          setReproduciendo(false)
+          setFase('inactivo')
+          limpiarMediaSession()
+          return resultado
+        } catch {
+          // Sin audio institucional disponible: sigue al respaldo local.
+        }
+      }
 
       if (!soportado) {
         setReproduciendo(false)
@@ -255,20 +328,6 @@ export function useAnuncioVoz() {
           : elegirVozPorDefecto(vocesEnEspanol(window.speechSynthesis.getVoices()))
       }
 
-      try {
-        if ('mediaSession' in navigator && 'MediaMetadata' in window) {
-          navigator.mediaSession.metadata = new MediaMetadata({
-            title: 'Aviso institucional',
-            artist: 'Terminal de Transportes de Neiva',
-          })
-          navigator.mediaSession.setActionHandler('stop', () => detener())
-          navigator.mediaSession.setActionHandler('pause', () => detener())
-          navigator.mediaSession.playbackState = 'playing'
-        }
-      } catch {
-        /* MediaSession es un realce, no un requisito — el anuncio sigue sonando sin él */
-      }
-
       const resultado = await hablar(textoLocucion, undefined, { volumen: 1, rate: 1 })
 
       setReproduciendo(false)
@@ -276,11 +335,22 @@ export function useAnuncioVoz() {
       limpiarMediaSession()
       return resultado
     },
-    [detener, limpiarMediaSession, soportado, vocesDisponibles.length, vozElegidaURI]
+    [encenderMediaSession, limpiarMediaSession, soportado, vocesDisponibles.length, vozElegidaURI]
   )
+
+  const reproducir = useCallback((args) => intentar(args), [intentar])
+
+  // Repite el ÚLTIMO intento (mismo aviso, mismo avisoId si tenía audio
+  // institucional) con un gesto real del usuario — para el botón "Escuchar"
+  // tras un bloqueo de autoplay, o "Repetir" una vez terminado.
+  const reintentar = useCallback(() => {
+    if (!ultimoIntentoRef.current) return Promise.resolve({ completado: false, bloqueadoPorAutoplay: false })
+    return intentar(ultimoIntentoRef.current)
+  }, [intentar])
 
   return {
     reproducir,
+    reintentar,
     detener,
     reproduciendo,
     fase,

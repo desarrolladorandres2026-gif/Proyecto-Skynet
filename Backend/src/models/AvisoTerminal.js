@@ -48,6 +48,20 @@ const avisoTerminalSchema = new mongoose.Schema(
       nombre: { type: String, required: true, trim: true },
       rolNombre: { type: String, trim: true },
     },
+
+    // Voz institucional elegida por el admin para este aviso (ver
+    // vocesTts.js) — se guarda aunque la generación falle, para que el
+    // historial muestre qué se INTENTÓ usar. `audio.data` solo existe si la
+    // generación tuvo éxito (ver generarAudioVoz() en avisos.tts.js): un
+    // aviso sin audio no es un error, cada dispositivo cae a su propia voz
+    // local (ver AvisoTerminalPlayer.jsx) — normalmente por haberse agotado
+    // la cuota gratuita del modelo de voz (3 peticiones/min, compartida por
+    // todo el proyecto).
+    voz: { type: String, trim: true },
+    audio: {
+      data: { type: Buffer, select: false }, // select:false: nunca viaja en listados/historial, solo en el endpoint de audio
+      mimeType: { type: String, trim: true, default: 'audio/wav' },
+    },
   },
   { timestamps: true }
 )

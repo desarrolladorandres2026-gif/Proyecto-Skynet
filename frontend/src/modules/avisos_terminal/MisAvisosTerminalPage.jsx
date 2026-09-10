@@ -30,7 +30,9 @@ export default function MisAvisosTerminalPage() {
       return
     }
     setReproduciendoId(entrega._id)
-    reproducir(entrega.aviso.textoLocucion).finally(() => setReproduciendoId(null))
+    reproducir({ textoLocucion: entrega.aviso.textoLocucion, avisoId: entrega.aviso._id }).finally(() =>
+      setReproduciendoId(null)
+    )
   }
 
   return (

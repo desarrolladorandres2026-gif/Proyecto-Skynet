@@ -10,6 +10,8 @@ import {
   obtenerPendientes,
   obtenerMisAvisos,
   confirmarEstadoEntrega,
+  obtenerAudioAviso,
+  probarVoz,
 } from './avisos.controller.js'
 
 const router = safeRouter()
@@ -25,11 +27,19 @@ router.get('/pendientes', obtenerPendientes)
 router.get('/mias', obtenerMisAvisos)
 router.put('/entregas/:id/estado', confirmarEstadoEntrega)
 
+// Audio institucional de un aviso: universal también, pero NO por
+// requierePermiso — la autorización es condicional (propia entrega O
+// permiso de transmitir/ver_historial) y vive dentro de
+// obtenerAudioParaUsuario() en avisos.service.js, mismo criterio que
+// actualizarEstadoEntrega.
+router.get('/:id/audio', obtenerAudioAviso)
+
 // Transmitir es exclusivo de quien tenga el permiso — ver seedData/rbac.data.js
 // (avisos_terminal:transmitir, asignado a Administrador/Dir. Administrativo y
 // Gestión/Comunicador; Super Admin bypassa por esSuperAdmin).
 router.get('/destinatarios/opciones', requierePermiso('avisos_terminal:transmitir'), obtenerOpcionesDestinatarios)
 router.get('/destinatarios/usuarios', requierePermiso('avisos_terminal:transmitir'), buscarUsuarios)
+router.post('/voz/probar', requierePermiso('avisos_terminal:transmitir'), probarVoz)
 router.post('/', requierePermiso('avisos_terminal:transmitir'), transmitirAviso)
 
 // Historial administrativo: transmitir ya implica poder verlo; ver_historial
