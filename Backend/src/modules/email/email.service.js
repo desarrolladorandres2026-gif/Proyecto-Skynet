@@ -190,7 +190,7 @@ export async function aprobarConexionGmail(token) {
     { new: true }
   )
   if (!solicitud) {
-    throw new Error('El enlace de aprobación no es válido o ya venció. Vuelve a hacer clic en "Conectar" en Skynet.')
+    throw new Error('El enlace de aprobación no es válido o ya venció. Vuelve a hacer clic en "Conectar" en la plataforma.')
   }
 
   const auth = clienteOAuth()
@@ -240,7 +240,7 @@ export async function conectarGmailCallback(code, state) {
     { new: true }
   )
   if (!solicitud) {
-    throw new Error('La solicitud de conexión ya no es válida. Vuelve a hacer clic en "Conectar" en Skynet.')
+    throw new Error('La solicitud de conexión ya no es válida. Vuelve a hacer clic en "Conectar" en la plataforma.')
   }
 
   const auth = clienteOAuth()

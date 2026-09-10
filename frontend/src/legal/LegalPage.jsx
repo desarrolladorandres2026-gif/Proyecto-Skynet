@@ -287,7 +287,7 @@ export default function LegalPage() {
                 <p><span className="font-medium text-slate-700 dark:text-slate-200">Teléfono:</span> (317) 440 5981</p>
               </div>
               <p>
-                Skynet trata los datos personales de sus usuarios (nombre, correo, cargo, dependencia y
+                El Terminal de Transportes de Neiva trata los datos personales de sus usuarios (nombre, correo, cargo, dependencia y
                 registros de actividad dentro del sistema) con el único fin de operar la plataforma:
                 autenticación, asignación de tareas, trazabilidad y generación de reportes internos.
               </p>

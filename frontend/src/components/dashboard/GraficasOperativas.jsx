@@ -183,11 +183,11 @@ export function GraficasOperativas({
 
             {/* Micro barras de Requerimientos */}
             <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-2 gap-1.5 text-[11px]">
-              <div className="rounded-md bg-warn-500/10 border border-warn-500/20 p-1 text-center">
+              <div className="text-center">
                 <p className="text-[9px] text-warn-800 dark:text-warn-300 font-medium">Financiero</p>
                 <p className="text-xs font-bold text-warn-900 dark:text-warn-200">{reqFlujo.financiero || 0}</p>
               </div>
-              <div className="rounded-md bg-brand-500/10 border border-brand-500/20 p-1 text-center">
+              <div className="text-center">
                 <p className="text-[9px] text-brand-800 dark:text-brand-300 font-medium">Bodega</p>
                 <p className="text-xs font-bold text-brand-900 dark:text-brand-200">{reqFlujo.bodega || 0}</p>
               </div>

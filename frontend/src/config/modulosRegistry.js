@@ -1,6 +1,6 @@
 import {
   Wrench, Users, ShieldCheck, ScrollText, TriangleAlert,
-  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays, Mail, Bot, LayoutList, Brain,
+  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays, Mail, Bot, LayoutList, Brain, Megaphone,
 } from 'lucide-react'
 
 // Registro único de módulos para el sidebar (AppLayout.jsx) y para decidir
@@ -129,6 +129,21 @@ export const MODULOS_REGISTRO = [
     items: [
       { to: '/ia/preferencias', label: 'Mis avisos' },
       { to: '/ia/configuracion', label: 'Configuración', permiso: 'ia:configurar' },
+    ],
+  },
+  {
+    // Igual que 'ia': módulo propio activable/desactivable desde Sistema →
+    // Módulos. "Mis avisos" es universal (recibir un anuncio institucional no
+    // es un permiso, es la mitad "destinatario" del flujo); "Transmitir"
+    // exige avisos_terminal:transmitir y solo lo ven Administrador, Dir.
+    // Administrativo y Gestión, Comunicador y Super Admin.
+    key: 'avisos_terminal',
+    label: 'Avisos Terminal de Neiva',
+    icon: Megaphone,
+    publico: true,
+    items: [
+      { to: '/avisos-terminal/mios', label: 'Mis avisos' },
+      { to: '/avisos-terminal/transmitir', label: 'Transmitir aviso', permiso: 'avisos_terminal:transmitir' },
     ],
   },
   {

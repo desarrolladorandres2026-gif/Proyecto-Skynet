@@ -46,7 +46,7 @@ async function enviarConReintentos(datosCorreo, intentos = 3) {
 // nombre de perfil de la cuenta de Gmail usada como SMTP (p. ej. "sigittn"),
 // no "Skynet" — confuso para quien lo recibe y además una señal más de
 // remitente genérico/no confiable para los filtros antispam.
-const REMITENTE = `"Skynet" <${env.EMAIL_FROM}>`
+const REMITENTE = `"Terminal de Transportes de Neiva" <${env.EMAIL_FROM}>`
 
 // Punto de entrada genérico usado por notificaciones.service.js (y por
 // cualquier flujo transaccional futuro que necesite mandar un correo con
@@ -86,7 +86,7 @@ export async function enviarEmailConexionGmail(destinatario, nombreUsuario, { ap
   await enviarConReintentos({
     from: REMITENTE,
     to: destinatario,
-    subject: '⚠ Intento de conexión de Gmail en Skynet',
+    subject: '⚠ Intento de conexión de Gmail',
     html: correoConexionCuenta({
       nombreUsuario,
       proveedor: 'Gmail',
@@ -96,7 +96,7 @@ export async function enviarEmailConexionGmail(destinatario, nombreUsuario, { ap
       userAgent,
       scopeDescripcion: SCOPE_GMAIL,
     }),
-    text: `Alguien intentó conectar una cuenta de Gmail en Skynet (IP: ${ip || 'desconocida'}, dispositivo: ${userAgent || 'desconocido'}).\nAprobar: ${aprobarLink}\nDenegar: ${denegarLink}\nSi no fuiste tú, deniega y cambia tu contraseña.`,
+    text: `Alguien intentó conectar una cuenta de Gmail (IP: ${ip || 'desconocida'}, dispositivo: ${userAgent || 'desconocido'}).\nAprobar: ${aprobarLink}\nDenegar: ${denegarLink}\nSi no fuiste tú, deniega y cambia tu contraseña.`,
   })
 }
 

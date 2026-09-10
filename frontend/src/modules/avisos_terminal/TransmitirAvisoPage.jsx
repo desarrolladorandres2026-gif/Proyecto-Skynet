@@ -1,0 +1,331 @@
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Megaphone, Volume2, Send, X, Search } from 'lucide-react'
+import { avisosTerminal } from '../../api/avisosTerminal.js'
+import { useDatosConCache, invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
+import { Field, Input, Select, Textarea, Btn, Badge, EmptyState, TablaWrap, Th, Td, ErrorMsg, OkMsg, Pager, fmtFechaHora } from '../../components/ui.jsx'
+import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
+import { useAnuncioVoz } from './useAnuncioVoz.js'
+import { SelectorVozAviso } from './SelectorVozAviso.jsx'
+
+// Debe coincidir EXACTO con PREFIJO_INSTITUCIONAL en
+// Backend/src/modules/avisos_terminal/avisos.service.js — el backend es la
+// fuente de verdad de lo que en verdad se pronuncia; esto es solo la vista
+// previa para que el administrador vea (y escuche) lo mismo antes de enviar.
+const PREFIJO_INSTITUCIONAL = 'El Terminal de Transportes de Neiva informa que:'
+
+const TEXTO_MAX = 500
+
+function resumenDestinatarios({ tipo, usuarios, rolNombre, dependencia }) {
+  if (tipo === 'todos') return 'todos los usuarios activos del sistema'
+  if (tipo === 'usuario') {
+    if (!usuarios.length) return 'ningún usuario seleccionado todavía'
+    return usuarios.length === 1 ? usuarios[0].nombre : `${usuarios.length} usuarios seleccionados`
+  }
+  if (tipo === 'rol') return rolNombre ? `todo el personal con el rol "${rolNombre}"` : 'un rol por seleccionar'
+  if (tipo === 'dependencia') return dependencia ? `todo el personal de "${dependencia}"` : 'una dependencia por seleccionar'
+  return ''
+}
+
+export default function TransmitirAvisoPage() {
+  const navigate = useNavigate()
+  const [texto, setTexto] = useState('')
+  const [tipo, setTipo] = useState('todos')
+  const [usuariosSeleccionados, setUsuariosSeleccionados] = useState([])
+  const [busquedaUsuario, setBusquedaUsuario] = useState('')
+  const [resultadosBusqueda, setResultadosBusqueda] = useState([])
+  const [rolId, setRolId] = useState('')
+  const [dependencia, setDependencia] = useState('')
+  const [confirmando, setConfirmando] = useState(false)
+  const [enviando, setEnviando] = useState(false)
+  const [error, setError] = useState('')
+  const [ok, setOk] = useState('')
+  const [page, setPage] = useState(1)
+
+  const { reproducir, detener, reproduciendo, vocesDisponibles, vozElegidaURI, elegirVoz, probarVoz } = useAnuncioVoz()
+
+  const { data: opcionesData } = useDatosConCache(
+    'avisosTerminal:opciones',
+    () => avisosTerminal.opcionesDestinatarios(),
+    { ttlMs: 5 * 60_000 }
+  )
+  const opciones = opcionesData || { roles: [], dependencias: [] }
+
+  const { data: historialData, cargando: cargandoHistorial, recargar: recargarHistorial } = useDatosConCache(
+    `avisosTerminal:historial:${page}`,
+    () => avisosTerminal.historial({ page }),
+    { ttlMs: 15_000 }
+  )
+  const avisos = historialData?.avisos || []
+  const paginasHistorial = historialData?.pages || 1
+
+  // Búsqueda de usuarios con pequeño debounce: cada tecla no debe disparar
+  // una petición — solo cuando la persona hace una pausa al escribir.
+  const debounceRef = useRef(null)
+  useEffect(() => {
+    if (tipo !== 'usuario' || busquedaUsuario.trim().length < 2) {
+      setResultadosBusqueda([])
+      return
+    }
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      avisosTerminal
+        .buscarUsuarios(busquedaUsuario.trim())
+        .then(({ usuarios }) => setResultadosBusqueda(usuarios || []))
+        .catch(() => setResultadosBusqueda([]))
+    }, 300)
+    return () => clearTimeout(debounceRef.current)
+  }, [busquedaUsuario, tipo])
+
+  function agregarUsuario(u) {
+    setUsuariosSeleccionados((prev) => (prev.some((x) => x._id === u._id) ? prev : [...prev, u]))
+    setBusquedaUsuario('')
+    setResultadosBusqueda([])
+  }
+
+  function quitarUsuario(id) {
+    setUsuariosSeleccionados((prev) => prev.filter((u) => u._id !== id))
+  }
+
+  const rolSeleccionado = opciones.roles.find((r) => r.id === rolId)
+  const textoListo = texto.trim().length >= 3
+  const destinoListo =
+    tipo === 'todos' ||
+    (tipo === 'usuario' && usuariosSeleccionados.length > 0) ||
+    (tipo === 'rol' && Boolean(rolId)) ||
+    (tipo === 'dependencia' && Boolean(dependencia))
+
+  function armarDestinatarios() {
+    if (tipo === 'usuario') return { tipo, usuarios: usuariosSeleccionados.map((u) => u._id) }
+    if (tipo === 'rol') return { tipo, rol: rolId }
+    if (tipo === 'dependencia') return { tipo, dependencia }
+    return { tipo: 'todos' }
+  }
+
+  async function transmitir() {
+    setEnviando(true)
+    setError('')
+    setOk('')
+    try {
+      const { totalDestinatarios } = await avisosTerminal.transmitir({
+        texto: texto.trim(),
+        destinatarios: armarDestinatarios(),
+      })
+      setOk(`Aviso transmitido a ${totalDestinatarios} destinatario(s).`)
+      setTexto('')
+      setUsuariosSeleccionados([])
+      setRolId('')
+      setDependencia('')
+      setPage(1)
+      invalidarCachePorPrefijo('avisosTerminal:historial:')
+      recargarHistorial()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setEnviando(false)
+      setConfirmando(false)
+    }
+  }
+
+  const textoLocucionPreview = textoListo ? `${PREFIJO_INSTITUCIONAL} ${texto.trim()}` : ''
+
+  return (
+    <div>
+      <div className="mb-1 flex items-center gap-2.5">
+        <Megaphone className="h-5 w-5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Avisos Terminal de Neiva</h1>
+      </div>
+      <p className="mb-5 text-sm text-slate-500 dark:text-slate-400">
+        Escribe un mensaje institucional y transmítelo por voz al dispositivo del personal. Empieza siempre con
+        &quot;{PREFIJO_INSTITUCIONAL}&quot;, seguido exactamente de lo que escribas abajo.
+      </p>
+
+      <ErrorMsg>{error}</ErrorMsg>
+      <OkMsg>{ok}</OkMsg>
+
+      <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr]">
+        <div className="panel-card rounded-xl p-[var(--ui-card-padding)]">
+          <Field label="Mensaje del aviso">
+            <Textarea
+              value={texto}
+              onChange={(e) => setTexto(e.target.value.slice(0, TEXTO_MAX))}
+              placeholder="Escribe aquí el aviso institucional…"
+              rows={4}
+            />
+          </Field>
+          <p className="mt-1 text-right text-[11px] text-slate-400">{texto.length}/{TEXTO_MAX}</p>
+
+          <Field label="Destinatarios" className="mt-4">
+            <Select value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              <option value="todos">Todos los usuarios</option>
+              <option value="usuario">Usuario específico</option>
+              <option value="rol">Rol específico</option>
+              <option value="dependencia">Dependencia / grupo</option>
+            </Select>
+          </Field>
+
+          {tipo === 'usuario' && (
+            <div className="mt-3">
+              <div className="relative">
+                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                <Input
+                  value={busquedaUsuario}
+                  onChange={(e) => setBusquedaUsuario(e.target.value)}
+                  placeholder="Buscar por nombre o usuario…"
+                  className="pl-9"
+                />
+              </div>
+              {resultadosBusqueda.length > 0 && (
+                <div className="panel-card mt-1.5 max-h-48 overflow-y-auto rounded-lg p-1">
+                  {resultadosBusqueda.map((u) => (
+                    <button
+                      key={u._id}
+                      type="button"
+                      onClick={() => agregarUsuario(u)}
+                      className="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-brand-500/10"
+                    >
+                      <span>{u.nombre}</span>
+                      <span className="text-xs text-slate-400">{u.dependencia || u.cargo || ''}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {usuariosSeleccionados.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {usuariosSeleccionados.map((u) => (
+                    <span
+                      key={u._id}
+                      className="inline-flex items-center gap-1 rounded-full bg-brand-500/10 py-1 pr-1.5 pl-2.5 text-xs text-brand-700 dark:text-brand-300"
+                    >
+                      {u.nombre}
+                      <button type="button" onClick={() => quitarUsuario(u._id)} aria-label={`Quitar ${u.nombre}`}>
+                        <X className="h-3 w-3" aria-hidden="true" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tipo === 'rol' && (
+            <Field label="Rol" className="mt-3">
+              <Select value={rolId} onChange={(e) => setRolId(e.target.value)}>
+                <option value="">Selecciona un rol…</option>
+                {opciones.roles.map((r) => (
+                  <option key={r.id} value={r.id}>{r.nombre}</option>
+                ))}
+              </Select>
+            </Field>
+          )}
+
+          {tipo === 'dependencia' && (
+            <Field label="Dependencia / grupo" className="mt-3">
+              <Select value={dependencia} onChange={(e) => setDependencia(e.target.value)}>
+                <option value="">Selecciona una dependencia…</option>
+                {opciones.dependencias.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </Select>
+            </Field>
+          )}
+
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <Btn
+              variante="secundario"
+              disabled={!textoListo}
+              onClick={() => (reproduciendo ? detener() : reproducir(textoLocucionPreview))}
+            >
+              <Volume2 className="h-4 w-4" aria-hidden="true" />
+              {reproduciendo ? 'Detener' : 'Probar voz'}
+            </Btn>
+            <Btn disabled={!textoListo || !destinoListo || enviando} onClick={() => setConfirmando(true)}>
+              <Send className="h-4 w-4" aria-hidden="true" />
+              Transmitir aviso
+            </Btn>
+          </div>
+
+          {vocesDisponibles.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-slate-500 dark:text-slate-400">Voz de este dispositivo:</span>
+              <SelectorVozAviso voces={vocesDisponibles} vozElegidaURI={vozElegidaURI} onElegir={elegirVoz} onProbar={probarVoz} />
+            </div>
+          )}
+          <p className="mt-1 text-[11px] text-slate-400">
+            Cada persona escucha con las voces instaladas en su propio dispositivo — esta elección solo afecta esta prueba, no lo que oirán los destinatarios.
+          </p>
+        </div>
+
+        <div className="panel-card rounded-xl p-[var(--ui-card-padding)]">
+          <p className="panel-mono mb-2 text-[11px] tracking-[0.1em] text-brand-700/80 uppercase dark:text-brand-300/80">
+            Vista previa de la locución
+          </p>
+          <p className="rounded-lg border border-dashed border-brand-600/25 p-3.5 text-sm text-slate-700 italic dark:border-brand-400/20 dark:text-slate-300">
+            {textoListo ? (
+              <>
+                <span className="font-semibold not-italic">{PREFIJO_INSTITUCIONAL}</span> {texto.trim()}
+              </>
+            ) : (
+              'Escribe un mensaje para ver (y probar) cómo sonará…'
+            )}
+          </p>
+          <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+            Se transmitirá a <strong>{resumenDestinatarios({ tipo, usuarios: usuariosSeleccionados, rolNombre: rolSeleccionado?.nombre, dependencia })}</strong>.
+          </p>
+        </div>
+      </div>
+
+      <h2 className="mt-8 mb-3 text-lg font-semibold text-slate-900 dark:text-white">Historial de avisos transmitidos</h2>
+      {!cargandoHistorial && avisos.length === 0 ? (
+        <EmptyState mensaje="Todavía no se ha transmitido ningún aviso" />
+      ) : (
+        <>
+          <TablaWrap>
+            <thead>
+              <tr>
+                <Th>Fecha</Th>
+                <Th>Administrador</Th>
+                <Th>Destinatarios</Th>
+                <Th>Mensaje</Th>
+                <Th>Enviados</Th>
+                <Th>Entregados</Th>
+                <Th>Reproducidos</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {avisos.map((a) => (
+                <tr
+                  key={a._id}
+                  onClick={() => navigate(`/avisos-terminal/${a._id}`)}
+                  className="cursor-pointer hover:bg-brand-500/5"
+                >
+                  <Td>{fmtFechaHora(a.createdAt)}</Td>
+                  <Td>{a.creadoPor?.nombre}</Td>
+                  <Td>
+                    <Badge valor={a.destinatarios?.tipo} label={a.destinatarios?.etiqueta || a.destinatarios?.tipo} />
+                  </Td>
+                  <Td className="max-w-xs truncate">{a.texto}</Td>
+                  <Td>{(a.conteos?.enviado || 0) + (a.conteos?.entregado || 0) + (a.conteos?.reproducido || 0)}/{a.totalDestinatarios}</Td>
+                  <Td>{(a.conteos?.entregado || 0) + (a.conteos?.reproducido || 0)}/{a.totalDestinatarios}</Td>
+                  <Td>{a.conteos?.reproducido || 0}/{a.totalDestinatarios}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </TablaWrap>
+          <Pager page={page} pages={paginasHistorial} onPage={setPage} />
+        </>
+      )}
+
+      <ConfirmDialog
+        abierto={confirmando}
+        onCancelar={() => setConfirmando(false)}
+        onConfirmar={transmitir}
+        titulo="Transmitir aviso institucional"
+        descripcion={`Vas a transmitir este aviso por voz a ${resumenDestinatarios({ tipo, usuarios: usuariosSeleccionados, rolNombre: rolSeleccionado?.nombre, dependencia })}. Esta acción no se puede deshacer.`}
+        confirmarLabel="Transmitir"
+        variante="primario"
+        cargando={enviando}
+      />
+    </div>
+  )
+}

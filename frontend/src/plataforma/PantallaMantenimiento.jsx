@@ -88,7 +88,7 @@ export default function PantallaMantenimiento({ modo = 'mantenimiento', onContin
 
         {disponible ? (
           <div className="text-center">
-            <h2 className="mb-2 text-xl font-semibold text-white">Skynet ya está disponible</h2>
+            <h2 className="mb-2 text-xl font-semibold text-white">Terminal de Transportes de Neiva ya está disponible</h2>
             <p className="mb-6 text-sm leading-relaxed text-slate-300">
               El mantenimiento ha finalizado correctamente. La plataforma ya se encuentra disponible
               y puedes volver a ingresar.
@@ -98,13 +98,13 @@ export default function PantallaMantenimiento({ modo = 'mantenimiento', onContin
               onClick={onContinuar}
               className="skynet-mono w-full rounded border border-accent-400/40 bg-accent-500/15 py-3 text-sm font-semibold tracking-[0.2em] text-accent-300 uppercase transition-colors hover:bg-accent-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/60"
             >
-              Entrar a Skynet
+              Entrar a la plataforma
             </button>
           </div>
         ) : (
           <>
             <h2 className="mb-3 text-center text-xl font-semibold text-white sm:text-2xl">
-              Skynet está en mantenimiento
+              Terminal de Transportes de Neiva está en mantenimiento
             </h2>
 
             {estado?.message && (

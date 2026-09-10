@@ -85,8 +85,8 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
       manifest: {
-        name: 'Skynet',
-        short_name: 'Skynet',
+        name: 'Terminal de Transportes de Neiva',
+        short_name: 'TTN Neiva',
         description: 'Sistema unificado de Mantenimiento',
         theme_color: '#0f172a',
         background_color: '#0f172a',
@@ -102,6 +102,17 @@ export default defineConfig({
   ],
   server: {
     host: true, // escucha en 0.0.0.0: accesible desde otros dispositivos en la misma red (celular, etc.)
+    // El repo vive dentro de OneDrive (ver memoria del proyecto), que sincroniza
+    // archivos como "placeholders" y frecuentemente NO dispara los eventos nativos
+    // de FS (ReadDirectoryChangesW) que chokidar necesita para detectar cambios.
+    // Resultado: Vite se queda sin ver el archivo modificado y hace falta un
+    // Ctrl+Shift+R (recarga dura) para notar el cambio. usePolling fuerza a
+    // chokidar a revisar los archivos por intervalo en vez de esperar el evento
+    // nativo, a costa de algo de CPU.
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
     proxy: {
       '/api': {
         target: process.env.VITE_BACKEND_URL || 'http://localhost:3001',

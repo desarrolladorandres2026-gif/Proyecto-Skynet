@@ -267,7 +267,7 @@ export async function generarPlantillaExcel() {
   const config = await obtenerOCrearConfiguracion()
 
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Skynet'
+  workbook.creator = 'Terminal de Transportes de Neiva'
   workbook.created = new Date()
 
   const hoja = workbook.addWorksheet('Preguntas')

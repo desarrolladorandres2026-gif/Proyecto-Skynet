@@ -116,8 +116,8 @@ export default function LoginPage() {
       {/* =========================================================
           COLUMNA 1: HERO IMAGE SHOWCASE (EL TERMINAL DE NEIVA)
           ========================================================= */}
-      <div className="skynet-hero-col relative lg:col-span-7 xl:col-span-7 2xl:col-span-8 flex shrink-0 flex-col justify-end overflow-hidden p-4 sm:p-10 lg:p-12 xl:p-16 min-h-[120px] max-h-[24svh] lg:max-h-none lg:min-h-svh">
-        
+      <div className="skynet-hero-col relative lg:col-span-7 xl:col-span-7 2xl:col-span-8 flex shrink-0 flex-col justify-end overflow-hidden p-4 sm:p-10 lg:p-12 xl:p-16 min-h-[80px] max-h-[14svh] sm:max-h-[24svh] lg:max-h-none lg:min-h-svh">
+
         {/* Foto real del Terminal con gradientes cinemáticos a pantalla completa */}
         <div className="skynet-hero-img-wrapper absolute inset-0">
           <div className="skynet-hero-img" />
@@ -126,11 +126,14 @@ export default function LoginPage() {
 
         {/* Pie inferior del Hero: Título institucional y lema */}
         <div className="relative z-10 pt-0 lg:pt-10">
-          <h2 className="text-base sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white drop-shadow-lg leading-tight">
+          <h2 className="hidden sm:block text-4xl lg:text-5xl font-extrabold tracking-tight text-white drop-shadow-lg leading-tight">
             Terminal de Transportes <br className="hidden sm:block" />
             <span className="bg-gradient-to-r from-blue-300 via-emerald-300 to-amber-300 bg-clip-text text-transparent">
               de Neiva S.A.
             </span>
+          </h2>
+          <h2 className="sm:hidden text-sm font-bold tracking-tight text-white drop-shadow-lg leading-tight">
+            Terminal de Transportes de Neiva S.A.
           </h2>
 
           <p className="mt-3 hidden sm:block text-sm sm:text-base lg:text-lg text-slate-200/90 font-normal max-w-xl leading-relaxed drop-shadow">
@@ -145,7 +148,7 @@ export default function LoginPage() {
           COLUMNA 2: TARJETA DE LOGIN / ACCESO (PANTALLA COMPLETA)
           ========================================================= */}
       <div
-        className={`skynet-card-col relative lg:col-span-5 xl:col-span-5 2xl:col-span-4 flex min-h-0 flex-1 flex-col justify-center overflow-y-auto p-4 sm:p-10 lg:min-h-svh lg:flex-none lg:p-12 xl:p-14 bg-slate-900/95 lg:bg-slate-900/90 backdrop-blur-2xl border-t lg:border-t-0 lg:border-l border-white/10 shadow-2xl z-20 ${
+        className={`skynet-card-col relative lg:col-span-5 xl:col-span-5 2xl:col-span-4 flex min-h-0 flex-1 flex-col justify-center overflow-y-auto p-6 sm:p-10 lg:min-h-svh lg:flex-none lg:p-12 xl:p-14 bg-slate-900/95 lg:bg-slate-900/90 backdrop-blur-2xl border-t lg:border-t-0 lg:border-l border-white/10 shadow-2xl z-20 ${
           fase === 'verificando'
             ? 'skynet-card-verificando'
             : enSecuencia
@@ -156,7 +159,7 @@ export default function LoginPage() {
         {/* Barra superior de acento tricolor corporativo (Azul - Verde - Naranja) */}
         <div className="absolute top-0 left-0 right-0 h-1.5 w-full bg-gradient-to-r from-[#1c568c] via-[#5a982c] to-[#d96b12]" />
 
-        <div className="w-full max-w-md mx-auto my-auto py-2 lg:py-6">
+        <div className="w-full max-w-md mx-auto my-auto py-4 lg:py-6">
           {/* Haz de escaneo activo durante la verificación */}
           {fase === 'verificando' && <div className="skynet-scan-beam" aria-hidden="true" />}
 
@@ -174,7 +177,7 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <div className="inline-block rounded-full bg-emerald-500/10 px-3 py-1 border border-emerald-500/30 text-[11px] font-bold tracking-[0.25em] text-emerald-400 uppercase mb-2">
+                <div className="inline-block text-[11px] font-bold tracking-[0.25em] text-emerald-400 uppercase mb-2">
                   ACCESO CONCEDIDO
                 </div>
 
@@ -218,8 +221,8 @@ export default function LoginPage() {
                  ========================================================= */
               <div className="flex flex-col justify-center">
                 {/* Logo institucional con aura */}
-                <div className="mb-4 sm:mb-6 text-center">
-                  <div className="group relative mx-auto mb-2.5 sm:mb-3.5 flex h-14 w-14 sm:h-24 sm:w-24 items-center justify-center rounded-2xl bg-gradient-to-b from-white to-slate-100 p-2 sm:p-2.5 shadow-xl ring-4 ring-blue-500/20 transition-transform duration-300 hover:scale-105">
+                <div className="mb-7 sm:mb-6 text-center">
+                  <div className="group relative mx-auto mb-4 sm:mb-3.5 flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-2xl bg-gradient-to-b from-white to-slate-100 p-2.5 shadow-xl ring-4 ring-blue-500/20 transition-transform duration-300 hover:scale-105">
                     <img
                       src={logoClaro}
                       alt="Terminal de Transportes de Neiva"
@@ -227,18 +230,18 @@ export default function LoginPage() {
                     />
                   </div>
 
-                  <p className="font-mono text-[10px] sm:text-[11px] font-semibold tracking-[0.25em] text-[#4585bd] uppercase">
+                  <p className="font-mono text-[11px] font-semibold tracking-[0.25em] text-[#4585bd] uppercase">
                     PORTAL DE GESTIÓN &amp; CONTROL
                   </p>
-                  <h1 className="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-white">
+                  <h1 className="mt-1.5 text-2xl sm:text-2xl font-bold tracking-tight text-white">
                     Iniciar Sesión
                   </h1>
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1.5 text-sm sm:text-xs text-slate-400">
                     Ingresa tus credenciales autorizadas
                   </p>
                 </div>
 
-                <form onSubmit={onSubmit} className="space-y-3 sm:space-y-4">
+                <form onSubmit={onSubmit} className="space-y-5 sm:space-y-4">
                   {/* Campo Correo */}
                   <div className="space-y-1.5">
                     <label
@@ -259,7 +262,7 @@ export default function LoginPage() {
                         disabled={cargando}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full rounded-xl border border-white/15 bg-slate-950/60 py-2.5 pl-10 pr-3.5 text-sm text-white placeholder-slate-500 shadow-inner outline-none transition duration-200 focus:border-[#4585bd] focus:bg-slate-950/90 focus:ring-2 focus:ring-[#4585bd]/30 disabled:opacity-50"
+                        className="w-full rounded-xl border border-white/15 bg-slate-950/60 py-3 sm:py-2.5 pl-10 pr-3.5 text-base sm:text-sm text-white placeholder-slate-500 shadow-inner outline-none transition duration-200 focus:border-[#4585bd] focus:bg-slate-950/90 focus:ring-2 focus:ring-[#4585bd]/30 disabled:opacity-50"
                         placeholder="usuario@terminalneiva.com"
                       />
                     </div>
@@ -287,7 +290,7 @@ export default function LoginPage() {
                         disabled={cargando}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full rounded-xl border border-white/15 bg-slate-950/60 py-2.5 pl-10 pr-10 text-sm text-white placeholder-slate-500 shadow-inner outline-none transition duration-200 focus:border-[#4585bd] focus:bg-slate-950/90 focus:ring-2 focus:ring-[#4585bd]/30 disabled:opacity-50"
+                        className="w-full rounded-xl border border-white/15 bg-slate-950/60 py-3 sm:py-2.5 pl-10 pr-10 text-base sm:text-sm text-white placeholder-slate-500 shadow-inner outline-none transition duration-200 focus:border-[#4585bd] focus:bg-slate-950/90 focus:ring-2 focus:ring-[#4585bd]/30 disabled:opacity-50"
                         placeholder="••••••••••••"
                       />
                       <button
@@ -350,7 +353,7 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={cargando}
-                    className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-[#1c568c] via-[#2468a3] to-[#1c568c] py-3 px-4 text-sm font-semibold tracking-wide text-white shadow-lg shadow-blue-900/40 transition-all duration-200 hover:from-[#2468a3] hover:to-[#184873] hover:shadow-blue-800/60 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-[#1c568c] via-[#2468a3] to-[#1c568c] py-3.5 sm:py-3 px-4 text-sm font-semibold tracking-wide text-white shadow-lg shadow-blue-900/40 transition-all duration-200 hover:from-[#2468a3] hover:to-[#184873] hover:shadow-blue-800/60 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <span className="font-mono flex items-center justify-center gap-2">
                       {fase === 'verificando' ? (

@@ -4,6 +4,7 @@ import AppLayout from './AppLayout.jsx'
 import MobileShell from './MobileShell.jsx'
 import PushOnboardingPrompt from '../pwa/PushOnboardingPrompt.jsx'
 import CopilotoWidget from '../components/copiloto/CopilotoWidget.jsx'
+import AvisoTerminalPlayer from '../modules/avisos_terminal/AvisoTerminalPlayer.jsx'
 import { TooltipProvider } from '../components/Tooltip.jsx'
 
 // Único punto de bifurcación de interfaz: rol Y dispositivo (decisión del
@@ -35,6 +36,7 @@ export default function AppShell() {
     <TooltipProvider>
       {mostrarPanelDenso ? <AppLayout /> : <MobileShell />}
       <PushOnboardingPrompt />
+      <AvisoTerminalPlayer />
       <CopilotoWidget />
     </TooltipProvider>
   )

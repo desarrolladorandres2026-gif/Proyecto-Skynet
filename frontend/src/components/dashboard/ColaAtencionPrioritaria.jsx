@@ -18,7 +18,7 @@ export function ColaAtencionPrioritaria({ cola = [], className = '' }) {
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
             Cola de Atención Prioritaria
-            <span className="panel-mono text-[10px] font-semibold bg-rose-500/10 text-rose-700 border border-rose-500/20 px-2 py-0.5 rounded-full dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30">
+            <span className="panel-mono text-[10px] font-semibold text-rose-700 dark:text-rose-300">
               {cola.length}
             </span>
           </h2>

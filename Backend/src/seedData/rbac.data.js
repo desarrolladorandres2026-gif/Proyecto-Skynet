@@ -34,6 +34,13 @@ export const PERMISOS = [
   // criterio que auditoria:leer.
   permiso('notificaciones', 'ver_historial', 'Ver historial de envíos de notificaciones'),
   permiso('notificaciones', 'configurar_canales', 'Configurar canales y elección de notificaciones'),
+  // Avisos Terminal de Neiva: anuncios institucionales por voz, transmitidos
+  // a todo el personal o a un usuario/rol/dependencia específico (ver
+  // modules/avisos_terminal). Separado de 'notificaciones' porque interrumpe
+  // con audio en tiempo real y no es silenciable por preferencia individual
+  // — solo quien tiene este permiso decide si se transmite.
+  permiso('avisos_terminal', 'transmitir', 'Transmitir avisos institucionales por voz (Avisos Terminal de Neiva)'),
+  permiso('avisos_terminal', 'ver_historial', 'Ver historial de avisos institucionales transmitidos'),
   // Catálogos de Dependencia y Cargo (selects reutilizados en Usuarios,
   // Requerimientos y Equipos). Ver que existan o listarlos es universal para
   // todo autenticado (mismo principio que danos:gestionar); este permiso solo
@@ -172,6 +179,8 @@ const PERMISOS_ADMINISTRADOR_BASE = [
   'ia:configurar',
   'notificaciones:ver_historial',
   'notificaciones:configurar_canales',
+  'avisos_terminal:transmitir',
+  'avisos_terminal:ver_historial',
 ]
 
 // Administrador + las 2 capacidades de Requerimientos que NO comparte con
@@ -348,6 +357,10 @@ export const ROLES = [
       'noticias:gestionar',
       'eventos:gestionar',
       'pqrs:gestionar',
+      // Comunicaciones institucionales por voz: mismo dueño natural que el
+      // resto de este rol (email, publicaciones, PQRS).
+      'avisos_terminal:transmitir',
+      'avisos_terminal:ver_historial',
     ],
   },
 ]

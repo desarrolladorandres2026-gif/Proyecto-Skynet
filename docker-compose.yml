@@ -1,0 +1,25 @@
+services:
+  backend:
+    build: ./Backend
+    ports:
+      - '3001:3001'
+    env_file:
+      - ./Backend/.env
+    volumes:
+      - backend-storage:/app/storage
+
+  frontend:
+    build: ./frontend
+    ports:
+      - '5173:80'
+    depends_on:
+      - backend
+
+volumes:
+  backend-storage:
+
+# Producción usa MongoDB Atlas (remoto) — por eso no hay un servicio `mongo`
+# aquí por defecto: Backend/.env ya trae el MONGO_URI de Atlas que usas en
+# desarrollo sin Docker, y env_file lo reutiliza tal cual. Si prefieres un
+# Mongo 100% local, agrega un servicio `mongo: image: mongo:7` y apunta
+# MONGO_URI en Backend/.env a `mongodb://mongo:27017/skynet`.

@@ -385,9 +385,9 @@ function SeccionEvidencias({ orden, puedoEjecutar, onCambio }) {
     <Card>
       <h2 className="mb-2 font-semibold text-white">Evidencias</h2>
       {orden.evidencias?.length ? (
-        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {orden.evidencias.map((ev) => (
-            <li key={ev._id} className="rounded-lg border border-brand-400/10 p-2 text-xs">
+            <li key={ev._id} className="text-xs">
               <a href={urlEvidencia(orden._id, ev.archivo)} target="_blank" rel="noreferrer" className="font-medium text-brand-400 hover:underline">
                 {ev.tipo} ({ev.momento})
               </a>

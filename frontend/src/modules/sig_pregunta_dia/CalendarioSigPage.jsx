@@ -135,7 +135,7 @@ export default function CalendarioSigPage() {
                   esSeleccionado ? 'ring-2 ring-brand-600 dark:ring-brand-400' : 'ring-slate-500/10 hover:ring-slate-500/25'
                 } ${esDelMes ? '' : 'opacity-40'}`}
               >
-                <span className={`panel-mono text-[11px] ${esHoy ? 'rounded-full bg-brand-600 px-1.5 py-0.5 text-white dark:bg-brand-500' : 'text-slate-600 dark:text-slate-300'}`}>
+                <span className={`panel-mono text-[11px] ${esHoy ? 'font-semibold text-brand-600 dark:text-brand-400' : 'text-slate-600 dark:text-slate-300'}`}>
                   {dia.getDate()}
                 </span>
                 <div className="mt-1 flex w-full flex-col gap-0.5">
@@ -171,9 +171,9 @@ export default function CalendarioSigPage() {
         ) : detalleDia.length === 0 ? (
           <EmptyState mensaje="No hay preguntas programadas este día" />
         ) : (
-          <div className="space-y-2">
+          <div className="divide-y divide-slate-200 dark:divide-slate-700">
             {detalleDia.map((p) => (
-              <div key={p._id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-500/5 px-3 py-2">
+              <div key={p._id} className="flex flex-wrap items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
                 <div>
                   <p className="font-medium text-slate-900 dark:text-white">
                     {p.pregunta?.enunciado || p.snapshotPregunta?.enunciado || '—'}

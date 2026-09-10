@@ -206,7 +206,7 @@ export default function EstadoPlataformaPage() {
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Programa ventanas de mantenimiento, actívalas y finalízalas. Durante un mantenimiento
-            activo nadie más que tú puede usar Skynet.
+            activo nadie más que tú puede usar la plataforma.
           </p>
         </div>
       </div>
@@ -402,7 +402,7 @@ export default function EstadoPlataformaPage() {
             <Textarea
               rows={3}
               maxLength={1000}
-              placeholder="Skynet realizará mantenimiento programado para mejorar el rendimiento y la estabilidad de la plataforma."
+              placeholder="El Terminal de Transportes de Neiva realizará mantenimiento programado para mejorar el rendimiento y la estabilidad de la plataforma."
               value={form.message}
               onChange={(e) => setForm({ ...form, message: e.target.value })}
             />
@@ -502,7 +502,7 @@ export default function EstadoPlataformaPage() {
       <ConfirmDialog
         abierto={confirmarFinalizar}
         titulo="¿Finalizar el mantenimiento?"
-        descripcion="Skynet volverá a estar disponible de inmediato y se notificará a todo el personal que ya puede ingresar."
+        descripcion="El Terminal de Transportes de Neiva volverá a estar disponible de inmediato y se notificará a todo el personal que ya puede ingresar."
         confirmarLabel="Finalizar ahora"
         variante="primario"
         cargando={guardando}

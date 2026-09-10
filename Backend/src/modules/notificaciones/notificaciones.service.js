@@ -171,13 +171,13 @@ async function enviarPush(envio) {
   await sub.save()
 }
 
-// "Skynet · Ticket asignado" en vez de solo "Ticket asignado": un asunto
+// "TTN · Ticket asignado" en vez de solo "Ticket asignado": un asunto
 // corto y sin contexto de remitente se parece al de un correo masivo
 // genérico, y además Gmail agrupa mejor los hilos cuando el asunto es
 // consistente. No se repite el nombre del módulo (ya va en el cuerpo) para
 // no comerse el ancho útil del asunto en móvil.
 function asuntoDe(envio) {
-  return `Skynet · ${envio.titulo}`
+  return `TTN · ${envio.titulo}`
 }
 
 async function enviarEmail(envio) {

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { mantenimientoApi } from '../../api/mantenimiento.js'
-import { Card, ErrorMsg } from '../../components/ui.jsx'
+import { ErrorMsg } from '../../components/ui.jsx'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 
 export default function MantenimientoHome() {
@@ -46,11 +46,11 @@ export default function MantenimientoHome() {
 
 function StatCard({ label, value }) {
   return (
-    <Card>
+    <div className="text-center">
       <p className="panel-mono text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
       <p className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">
         {value ?? '—'}
       </p>
-    </Card>
+    </div>
   )
 }

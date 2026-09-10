@@ -175,8 +175,12 @@ const BADGE_COLORES = {
 // que sigue mapeado por `valor`.
 export function Badge({ valor, label }) {
   const color = BADGE_COLORES[valor] || 'bg-slate-400/10 text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-400/30'
+  const textoColor = color
+    .split(/\s+/)
+    .filter((c) => c.startsWith('text-') || c.startsWith('dark:text-'))
+    .join(' ')
   return (
-    <span className={cn('panel-mono inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-wide', color)}>
+    <span className={cn('panel-mono inline-block text-[11px] font-medium tracking-wide', textoColor)}>
       {label ?? valor}
     </span>
   )

@@ -14,7 +14,7 @@ async function descargarArchivo(path, nombrePorDefecto) {
 
 export const backup = {
   exportar() {
-    return descargarArchivo('/backup/exportar', 'skynet-backup.xlsx')
+    return descargarArchivo('/backup/exportar', 'ttn-backup.xlsx')
   },
   listarColecciones() {
     return request('/backup/colecciones')
@@ -27,13 +27,13 @@ export const backup = {
     if (formato) params.set('formato', formato)
     const qs = params.toString()
     const extension = formato === 'csv' ? 'zip' : formato === 'json' ? 'json' : 'xlsx'
-    return descargarArchivo(`/backup/exportar${qs ? `?${qs}` : ''}`, `skynet-backup.${extension}`)
+    return descargarArchivo(`/backup/exportar${qs ? `?${qs}` : ''}`, `ttn-backup.${extension}`)
   },
   previsualizarPurga(meses) {
     return request(`/backup/purga/previsualizar?meses=${meses}`)
   },
   rescatarPurga(meses) {
-    return descargarArchivo(`/backup/purga/rescate?meses=${meses}`, `skynet-rescate-${meses}m.xlsx`)
+    return descargarArchivo(`/backup/purga/rescate?meses=${meses}`, `ttn-rescate-${meses}m.xlsx`)
   },
   purgar(meses, password) {
     return request('/backup/purga', {

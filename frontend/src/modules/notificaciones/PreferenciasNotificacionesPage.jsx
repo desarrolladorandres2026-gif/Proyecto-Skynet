@@ -63,7 +63,7 @@ export default function PreferenciasNotificacionesPage() {
           Preferencias de notificaciones
         </h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Elige cómo quieres enterarte de lo que pasa en Skynet.
+          Elige cómo quieres enterarte de lo que pasa en la plataforma.
         </p>
       </div>
 

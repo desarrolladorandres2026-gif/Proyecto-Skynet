@@ -100,7 +100,7 @@ export default function EmailConfiguracionPage() {
             Configuración de Email
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Conecta un proveedor de correo. Skynet nunca almacena tu contraseña: la conexión se hace por OAuth.
+            Conecta un proveedor de correo. El Terminal de Transportes de Neiva nunca almacena tu contraseña: la conexión se hace por OAuth.
           </p>
         </div>
       </div>
@@ -112,7 +112,7 @@ export default function EmailConfiguracionPage() {
         <div className="flex items-start gap-2 rounded-lg border border-brand-600/30 bg-brand-500/10 px-3 py-2 text-sm text-brand-800 dark:border-brand-400/20 dark:text-brand-300">
           <MailCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <p>
-            Te enviamos un correo a tu cuenta de Skynet describiendo este intento de conexión. Solo se conectará la
+            Te enviamos un correo a tu cuenta describiendo este intento de conexión. Solo se conectará la
             cuenta de Gmail si apruebas el acceso desde ese correo (el enlace vence en 15 minutos).
           </p>
         </div>

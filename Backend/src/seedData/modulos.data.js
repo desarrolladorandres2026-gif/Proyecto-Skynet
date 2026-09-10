@@ -109,4 +109,12 @@ export const MODULOS_SISTEMA = [
     esNucleo: false,
     orden: 16,
   },
+  {
+    key: 'avisos_terminal',
+    nombre: 'Avisos Terminal de Neiva',
+    descripcion:
+      'Anuncios institucionales por voz: un administrador escribe un mensaje y se transmite como locución (con señal sonora previa) al dispositivo de todo el personal, un rol, una dependencia o una persona específica.',
+    esNucleo: false,
+    orden: 18,
+  },
 ]

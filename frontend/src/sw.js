@@ -30,28 +30,49 @@ self.addEventListener('push', (event) => {
   try {
     payload = event.data.json()
   } catch {
-    payload = { title: 'Skynet', body: event.data.text() }
+    payload = { title: 'Terminal de Transportes de Neiva', body: event.data.text() }
   }
 
-  const { title = 'Skynet', body = '', url = '/', tag } = payload
+  const { title = 'Terminal de Transportes de Neiva', body = '', url = '/', tag, tipo, textoLocucion } = payload
+  // Avisos Terminal de Neiva (anuncio institucional por voz, ver
+  // Backend/src/modules/avisos_terminal): la campanita y la reproducción de
+  // voz las arma AvisoTerminalPlayer.jsx en la propia página, nunca el
+  // Service Worker (no hay audio que reproducir "sin abrir la app": las
+  // restricciones de autoplay de Android/iOS lo impiden — un SW no puede
+  // tocar audio por sí mismo). Lo único que hace este handler es mostrar la
+  // notificación visual del sistema, usando `textoLocucion` (ya resuelto por
+  // el backend, con el prefijo institucional incluido) en vez de reconstruir
+  // esa frase acá: el backend es la única fuente de verdad de cómo empieza
+  // un aviso (ver PREFIJO_INSTITUCIONAL en avisos.service.js) — repetirla
+  // aquí como literal solo crea una tercera copia que se puede desincronizar
+  // si el texto cambia algún día.
+  const esAvisoTerminal = tipo === 'aviso_terminal'
 
   event.waitUntil(
     Promise.all([
       self.registration.showNotification(title, {
-        body,
+        body: esAvisoTerminal && textoLocucion ? textoLocucion : body,
         tag,
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
-        data: { url },
+        data: { url, tipo },
       }),
       // Le avisa a cada pestaña/ventana abierta de la PWA que llegó un push
-      // real, para que la campana (useCentroNotificaciones.js) refresque su
-      // contador de una vez en vez de esperar hasta 45s al próximo tick de
-      // su polling de respaldo. `includeUncontrolled` porque una pestaña
-      // abierta ANTES de que este SW tomara control también debe enterarse.
-      self.clients
-        .matchAll({ type: 'window', includeUncontrolled: true })
-        .then((clientes) => clientes.forEach((c) => c.postMessage({ type: 'SKYNET_PUSH_RECEIVED' }))),
+      // real. La campana (useCentroNotificaciones.js) escucha
+      // SKYNET_PUSH_RECEIVED para refrescar su contador de una vez en vez de
+      // esperar hasta 45s al próximo tick de su polling de respaldo; el
+      // reproductor de avisos (useAvisosTerminalPendientes.js) escucha
+      // SKYNET_AVISO_RECIBIDO para lo mismo con su propio polling de 8s.
+      // Ambos mensajes se mandan siempre (no solo el que aplica) para no
+      // tener que ramificar esta lista según el tipo de payload.
+      // `includeUncontrolled` porque una pestaña abierta ANTES de que este SW
+      // tomara control también debe enterarse.
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientes) =>
+        clientes.forEach((c) => {
+          c.postMessage({ type: 'SKYNET_PUSH_RECEIVED' })
+          if (esAvisoTerminal) c.postMessage({ type: 'SKYNET_AVISO_RECIBIDO' })
+        })
+      ),
     ])
   )
 })

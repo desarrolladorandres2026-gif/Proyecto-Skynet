@@ -62,6 +62,9 @@ import PreferenciasNotificacionesPage from './modules/notificaciones/Preferencia
 import CentroNotificacionesPage from './modules/notificaciones/CentroNotificacionesPage.jsx'
 import HistorialEnviosPage from './modules/notificaciones/HistorialEnviosPage.jsx'
 import EleccionNotificacionesPage from './modules/notificaciones/EleccionNotificacionesPage.jsx'
+import TransmitirAvisoPage from './modules/avisos_terminal/TransmitirAvisoPage.jsx'
+import MisAvisosTerminalPage from './modules/avisos_terminal/MisAvisosTerminalPage.jsx'
+import AvisoTerminalDetallePage from './modules/avisos_terminal/AvisoTerminalDetallePage.jsx'
 import AsistentePage from './escritorio/AsistentePage.jsx'
 import DiagnosticoPage from './escritorio/DiagnosticoPage.jsx'
 
@@ -187,6 +190,31 @@ export default function App() {
             />
             <Route path="ia/preferencias" element={<ModuloActivoRoute modulo="ia"><PreferenciasIAPage /></ModuloActivoRoute>} />
             <Route path="ia/configuracion" element={<ModuloActivoRoute modulo="ia"><PermissionRoute permiso="ia:configurar"><ConfiguracionIAPage /></PermissionRoute></ModuloActivoRoute>} />
+            {/* Avisos Terminal de Neiva: "Mis avisos" (recibir) es universal,
+                igual que la campana — el backend nunca confía en un usuarioId
+                del cliente (ver avisos.routes.js). Transmitir/ver historial
+                exige el permiso avisos_terminal:transmitir|ver_historial. */}
+            <Route path="avisos-terminal/mios" element={<ModuloActivoRoute modulo="avisos_terminal"><MisAvisosTerminalPage /></ModuloActivoRoute>} />
+            <Route
+              path="avisos-terminal/transmitir"
+              element={
+                <ModuloActivoRoute modulo="avisos_terminal">
+                  <PermissionRoute permiso="avisos_terminal:transmitir">
+                    <TransmitirAvisoPage />
+                  </PermissionRoute>
+                </ModuloActivoRoute>
+              }
+            />
+            <Route
+              path="avisos-terminal/:id"
+              element={
+                <ModuloActivoRoute modulo="avisos_terminal">
+                  <PermissionRoute permiso={['avisos_terminal:transmitir', 'avisos_terminal:ver_historial']}>
+                    <AvisoTerminalDetallePage />
+                  </PermissionRoute>
+                </ModuloActivoRoute>
+              }
+            />
             <Route path="danos/reportar" element={<ModuloActivoRoute modulo="danos"><ReportarDanoPage /></ModuloActivoRoute>} />
             <Route path="danos/tareas" element={<ModuloActivoRoute modulo="danos"><PermissionRoute permiso="danos:gestionar"><TareasDanosPage /></PermissionRoute></ModuloActivoRoute>} />
             {/* Mantenimiento (mantenimiento:ejecutar sin danos:gestionar): solo ve y

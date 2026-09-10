@@ -31,7 +31,7 @@ export default function FiltrosDashboardSig({ filtros, onChange, onAplicar, comp
         <Filter className="h-4 w-4" aria-hidden="true" />
         Filtros
         {activos > 0 && (
-          <span className="panel-mono rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold text-white dark:bg-brand-500">
+          <span className="panel-mono text-[10px] font-semibold text-brand-600 dark:text-brand-400">
             {activos}
           </span>
         )}

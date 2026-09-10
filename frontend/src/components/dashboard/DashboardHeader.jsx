@@ -26,11 +26,8 @@ export function DashboardHeader({
   }).format(new Date())
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-brand-500/20 bg-gradient-to-br from-brand-50/70 via-white to-slate-50 p-3.5 shadow-soft-md backdrop-blur-md dark:border-brand-400/20 dark:from-brand-950/40 dark:via-slate-900/60 dark:to-slate-950/80">
-      {/* Luz ambiental sutil */}
-      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-brand-500/10 blur-3xl" />
-
-      <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="border-b border-slate-200/80 pb-3 dark:border-slate-800/80 sm:pb-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Lado izquierdo: Saludo e identidad */}
         <div className="flex flex-wrap items-center gap-3">
           <AvatarUsuario usuario={usuario} className="h-11 w-11 shadow-sm border-2 border-brand-500/30 shrink-0" />
@@ -42,7 +39,7 @@ export function DashboardHeader({
               >
                 {saludo()}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 via-brand-600 to-slate-900 dark:from-brand-300 dark:via-brand-200 dark:to-white">{usuario?.nombre?.trim().split(/\s+/)[0] || usuario?.nombre}</span>
               </h1>
-              <span className="panel-mono inline-flex items-center gap-1 rounded-md bg-brand-500/10 px-2 py-0.5 text-[11px] font-semibold text-brand-700 ring-1 ring-inset ring-brand-400/30 dark:bg-brand-500/15 dark:text-brand-300">
+              <span className="panel-mono inline-flex items-center gap-1 text-[11px] font-semibold text-brand-700 dark:text-brand-300">
                 <ShieldCheck className="h-3 w-3" />
                 {usuario?.rol?.nombre || 'Panel Principal'}
               </span>

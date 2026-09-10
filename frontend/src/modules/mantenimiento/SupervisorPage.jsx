@@ -49,25 +49,25 @@ function TabCentroControl() {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {Object.entries(datos.conteosPorEstado).map(([estado, total]) => (
-          <Card key={estado}>
+          <div key={estado} className="text-center">
             <p className="panel-mono text-xs uppercase text-slate-400">{estado}</p>
             <p className="mt-1 text-2xl font-semibold text-white">{total}</p>
-          </Card>
+          </div>
         ))}
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card><p className="text-xs text-slate-400">SLA vencidas</p><p className="text-2xl font-semibold text-red-400">{datos.slaVencidas}</p></Card>
-        <Card><p className="text-xs text-slate-400">SLA próximas a vencer</p><p className="text-2xl font-semibold text-warn-400">{datos.slaProximasAVencer}</p></Card>
-        <Card><p className="text-xs text-slate-400">Técnicos disponibles / ocupados</p><p className="text-2xl font-semibold text-white">{datos.tecnicosDisponibles} / {datos.tecnicosOcupados}</p></Card>
+        <div className="text-center"><p className="text-xs text-slate-400">SLA vencidas</p><p className="text-2xl font-semibold text-red-400">{datos.slaVencidas}</p></div>
+        <div className="text-center"><p className="text-xs text-slate-400">SLA próximas a vencer</p><p className="text-2xl font-semibold text-warn-400">{datos.slaProximasAVencer}</p></div>
+        <div className="text-center"><p className="text-xs text-slate-400">Técnicos disponibles / ocupados</p><p className="text-2xl font-semibold text-white">{datos.tecnicosDisponibles} / {datos.tecnicosOcupados}</p></div>
       </div>
-      <Card>
+      <div>
         <h2 className="mb-2 font-semibold text-white">Alertas destacadas</h2>
         {datos.alertasDestacadas.length ? (
           <ul className="space-y-1 text-sm">
             {datos.alertasDestacadas.map((a, i) => <li key={i} className="text-slate-300">• {a.descripcion}</li>)}
           </ul>
         ) : <p className="text-sm text-slate-400">Sin alertas activas.</p>}
-      </Card>
+      </div>
     </div>
   )
 }
@@ -241,29 +241,29 @@ function TabSLA() {
 
   return (
     <div className="space-y-4">
-      <Card>
+      <div>
         <h2 className="mb-2 font-semibold text-white">Vencidas ({datos.vencidas.length})</h2>
         {datos.vencidas.map((o) => (
           <p key={o._id} className="text-sm text-red-300">{o.equipo?.numero_inventario} — {o.tecnico_asignado?.nombre || 'sin asignar'}</p>
         ))}
         {datos.vencidas.length === 0 && <p className="text-sm text-slate-400">Ninguna.</p>}
-      </Card>
-      <Card>
+      </div>
+      <div>
         <h2 className="mb-2 font-semibold text-white">Próximas a vencer ({datos.proximasAVencer.length})</h2>
         {datos.proximasAVencer.map((o) => (
           <p key={o._id} className="text-sm text-warn-300">{o.equipo?.numero_inventario} — {o.tecnico_asignado?.nombre || 'sin asignar'}</p>
         ))}
         {datos.proximasAVencer.length === 0 && <p className="text-sm text-slate-400">Ninguna.</p>}
-      </Card>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
+        <div>
           <h2 className="mb-2 font-semibold text-white">Técnicos comprometidos</h2>
           {datos.tecnicosComprometidos.map((t, i) => <p key={i} className="text-sm text-slate-300">{t.nombre}: {t.total}</p>)}
-        </Card>
-        <Card>
+        </div>
+        <div>
           <h2 className="mb-2 font-semibold text-white">Dependencias con más incumplimientos</h2>
           {datos.dependenciasConMasIncumplimientos.map((d, i) => <p key={i} className="text-sm text-slate-300">{d.dependencia}: {d.total}</p>)}
-        </Card>
+        </div>
       </div>
     </div>
   )
@@ -279,10 +279,10 @@ function TabHallazgos() {
   return (
     <div className="space-y-4">
       {datos.tiposRecurrentes.length > 0 && (
-        <Card>
+        <div>
           <h2 className="mb-2 font-semibold text-white">Tipos recurrentes</h2>
           {datos.tiposRecurrentes.map((t, i) => <p key={i} className="text-sm text-warn-300">{t.tipo}: {t.total} veces</p>)}
-        </Card>
+        </div>
       )}
       <Card>
         <h2 className="mb-2 font-semibold text-white">Todos los hallazgos ({datos.hallazgos.length})</h2>
@@ -386,9 +386,9 @@ function TabAlertas() {
   if (alertas.length === 0) return <EmptyState mensaje="Sin alertas activas" />
 
   return (
-    <ul className="space-y-2">
+    <ul className="divide-y divide-brand-400/10">
       {alertas.map((a, i) => (
-        <li key={i} className="flex items-center justify-between rounded-lg border border-brand-400/10 p-3 text-sm">
+        <li key={i} className="flex items-center justify-between py-2 text-sm">
           <span className="text-slate-200">{a.descripcion}</span>
           <Badge valor={a.prioridad} />
         </li>
@@ -425,10 +425,10 @@ function TabDashboard() {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
         {items.map(([label, valor]) => (
-          <Card key={label}>
+          <div key={label} className="text-center">
             <p className="text-xl font-semibold text-white">{valor}</p>
             <p className="text-xs text-slate-400">{label}</p>
-          </Card>
+          </div>
         ))}
       </div>
 
@@ -481,7 +481,7 @@ function TabDashboard() {
         </Card>
       </div>
 
-      <Card>
+      <div>
         <h2 className="mb-2 font-semibold text-white">Activos más problemáticos</h2>
         {datos.activos_mas_problematicos.length ? (
           <ul className="space-y-1 text-sm">
@@ -490,7 +490,7 @@ function TabDashboard() {
             ))}
           </ul>
         ) : <p className="text-sm text-slate-400">Sin datos suficientes.</p>}
-      </Card>
+      </div>
     </div>
   )
 }

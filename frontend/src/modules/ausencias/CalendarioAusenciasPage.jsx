@@ -181,7 +181,7 @@ export default function CalendarioAusenciasPage() {
                   <span
                     className={`panel-mono text-[11px] ${
                       esHoy
-                        ? 'rounded-full bg-brand-600 px-1.5 py-0.5 text-white dark:bg-brand-500'
+                        ? 'font-semibold text-brand-600 dark:text-brand-400'
                         : 'text-slate-600 dark:text-slate-300'
                     }`}
                   >

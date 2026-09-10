@@ -56,7 +56,7 @@ export function AnalisisRecomendaciones({ recomendaciones = [], className = '' }
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
             Análisis & Recomendaciones
-            <span className="panel-mono text-[10px] font-semibold bg-brand-500/10 text-brand-700 border border-brand-500/20 px-2 py-0.5 rounded-full dark:bg-brand-500/20 dark:text-brand-300 dark:border-brand-500/30">
+            <span className="panel-mono text-[10px] font-semibold text-brand-700 dark:text-brand-300">
               {recomendaciones.length}
             </span>
           </h2>

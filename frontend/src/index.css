@@ -776,11 +776,24 @@ body {
 }
 
 /* ============================================================ */
-/* ESTILOS NEUMORPHIC SKYNET CARD (#212121)                     */
+/* ESTILOS NEUMORPHIC SKYNET CARD — claro por defecto, #212121   */
+/* en modo oscuro (clase .dark en <html>, ver useTema en         */
+/* AppLayout.jsx). Antes esta tarjeta era siempre oscura sin     */
+/* importar el tema elegido; ahora sigue el mismo interruptor    */
+/* que el resto de la app.                                       */
 /* ============================================================ */
 .neumorphic-skynet-card {
-  background: #212121;
+  background: #eef1f6;
   border-radius: 30px;
+  box-shadow:
+    15px 15px 30px rgba(163, 177, 198, 0.55),
+    -15px -15px 30px rgba(255, 255, 255, 0.85),
+    0 0 25px rgba(78, 124, 190, 0.1);
+  border: 1px solid rgba(78, 124, 190, 0.18);
+}
+
+.dark .neumorphic-skynet-card {
+  background: #212121;
   box-shadow:
     15px 15px 30px rgb(18, 18, 18),
     -15px -15px 30px rgb(50, 50, 50),
@@ -789,15 +802,31 @@ body {
 }
 
 .neumorphic-button {
+  background: #eef1f6;
+  box-shadow:
+    4px 4px 10px rgba(163, 177, 198, 0.5),
+    -4px -4px 10px rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(78, 124, 190, 0.1);
+  transition: all 0.2s ease-in-out;
+}
+
+.dark .neumorphic-button {
   background: #212121;
   box-shadow:
     4px 4px 10px rgb(15, 15, 15),
     -4px -4px 10px rgb(45, 45, 45);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.2s ease-in-out;
 }
 
 .neumorphic-button:hover {
+  box-shadow:
+    2px 2px 6px rgba(163, 177, 198, 0.5),
+    -2px -2px 6px rgba(255, 255, 255, 0.85),
+    0 0 12px rgba(78, 124, 190, 0.25);
+  border-color: rgba(78, 124, 190, 0.4);
+}
+
+.dark .neumorphic-button:hover {
   box-shadow:
     2px 2px 6px rgb(15, 15, 15),
     -2px -2px 6px rgb(45, 45, 45),
@@ -807,11 +836,25 @@ body {
 
 .neumorphic-button:active {
   box-shadow:
+    inset 3px 3px 6px rgba(163, 177, 198, 0.5),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.85);
+}
+
+.dark .neumorphic-button:active {
+  box-shadow:
     inset 3px 3px 6px rgb(15, 15, 15),
     inset -3px -3px 6px rgb(45, 45, 45);
 }
 
 .neumorphic-inset-input {
+  background: #e4e9f1;
+  box-shadow:
+    inset 4px 4px 8px rgba(163, 177, 198, 0.5),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(78, 124, 190, 0.18);
+}
+
+.dark .neumorphic-inset-input {
   background: #1a1a1a;
   box-shadow:
     inset 4px 4px 8px rgb(12, 12, 12),

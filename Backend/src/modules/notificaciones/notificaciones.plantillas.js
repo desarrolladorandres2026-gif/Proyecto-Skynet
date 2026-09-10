@@ -106,10 +106,10 @@ export function plantillaNotificacion({ titulo, cuerpo, url, usuarioId, transacc
   // para quien recibe el correo.
   const bloqueAccion = frontendPublico
     ? `<a href="${enlaceAccion}" style="display:inline-block;font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:1px;color:${info.color};text-decoration:none;padding:10px 18px;">
-         VER EN SKYNET →
+         VER EN LA PLATAFORMA →
        </a>`
     : `<span style="display:inline-block;font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:1px;color:${info.color};padding:10px 18px;">
-         VER EN SKYNET${urlSegura ? ` · ${escaparHtml(urlSegura)}` : ''}
+         VER EN LA PLATAFORMA${urlSegura ? ` · ${escaparHtml(urlSegura)}` : ''}
        </span>`
 
   return `<!doctype html>
@@ -129,7 +129,7 @@ export function plantillaNotificacion({ titulo, cuerpo, url, usuarioId, transacc
                       <div style="width:6px;height:6px;background-color:#00e5ff;font-size:0;line-height:0;">&nbsp;</div>
                     </td>
                     <td valign="middle">
-                      <span style="font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:5px;color:#e2e8f0;">SKYNET</span>
+                      <span style="font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:5px;color:#e2e8f0;">TTN</span>
                     </td>
                   </tr>
                 </table>
@@ -226,7 +226,7 @@ export function plantillaNotificacion({ titulo, cuerpo, url, usuarioId, transacc
                           ? `<a href="${enlaceBaja}" style="font-family:${MONO};font-size:10px;letter-spacing:0.5px;color:#4b5d70;text-decoration:underline;">DARSE DE BAJA DE CORREOS NO CRÍTICOS</a>`
                           : transaccional
                             ? `<span style="font-family:${MONO};font-size:10px;letter-spacing:0.5px;color:#3d4c5c;">CORREO DE SEGURIDAD — NO SE PUEDE DESACTIVAR</span>`
-                            : `<span style="font-family:${MONO};font-size:10px;letter-spacing:0.5px;color:#3d4c5c;">GESTIONA TUS AVISOS EN SKYNET › PREFERENCIAS DE NOTIFICACIONES</span>`
+                            : `<span style="font-family:${MONO};font-size:10px;letter-spacing:0.5px;color:#3d4c5c;">GESTIONA TUS AVISOS EN PREFERENCIAS DE NOTIFICACIONES</span>`
                       }
                     </td>
                   </tr>
@@ -260,7 +260,7 @@ export function plantillaNotificacionTexto({ titulo, cuerpo, url, usuarioId, tra
   const etiqueta = CATEGORIA_INFO[categoria]?.etiqueta || (categoria || 'SISTEMA').toUpperCase()
 
   const lineas = [
-    `SKYNET · ${etiqueta} · ${fmtFechaCorta(fecha)}`,
+    `TTN · ${etiqueta} · ${fmtFechaCorta(fecha)}`,
     '',
     titulo,
     cuerpo,
@@ -270,9 +270,9 @@ export function plantillaNotificacionTexto({ titulo, cuerpo, url, usuarioId, tra
   // Mismo criterio que la versión HTML: sin URL pública no se imprime una
   // dirección que el destinatario no podría abrir.
   if (esUrlPublica(env.FRONTEND_URL)) {
-    lineas.push(`Ver en Skynet: ${urlSegura ? `${env.FRONTEND_URL}${urlSegura}` : env.FRONTEND_URL}`)
+    lineas.push(`Ver en la plataforma: ${urlSegura ? `${env.FRONTEND_URL}${urlSegura}` : env.FRONTEND_URL}`)
   } else {
-    lineas.push(`Ver en Skynet${urlSegura ? ` · ${urlSegura}` : ''}`)
+    lineas.push(`Ver en la plataforma${urlSegura ? ` · ${urlSegura}` : ''}`)
   }
 
   if (transaccional) {
@@ -280,7 +280,7 @@ export function plantillaNotificacionTexto({ titulo, cuerpo, url, usuarioId, tra
   } else if (esUrlPublica(env.API_PUBLIC_URL)) {
     lineas.push('', `Darte de baja de correos no críticos: ${enlaceBajaDe(usuarioId)}`)
   } else {
-    lineas.push('', 'Gestiona tus avisos en Skynet › Preferencias de notificaciones.')
+    lineas.push('', 'Gestiona tus avisos en Preferencias de notificaciones.')
   }
   return lineas.join('\n')
 }
@@ -309,9 +309,9 @@ export function paginaConfirmacionBaja() {
 <html lang="es">
   <body style="margin:0;padding:0;background-color:#05070a;font-family:${SANS};display:flex;align-items:center;justify-content:center;min-height:100vh;">
     <div style="max-width:420px;padding:32px;text-align:center;color:#e2e8f0;">
-      <span style="font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:4px;color:#00e5ff;">SKYNET</span>
+      <span style="font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:4px;color:#00e5ff;">TTN</span>
       <h1 style="font-size:18px;color:#f1f5f9;margin:16px 0 12px;font-weight:600;">Preferencia actualizada</h1>
-      <p style="font-size:14px;line-height:1.6;color:#94a3b8;">Ya no recibirás correos no críticos de Skynet. Puedes reactivarlos cuando quieras desde tu perfil, en «Preferencias de notificaciones».</p>
+      <p style="font-size:14px;line-height:1.6;color:#94a3b8;">Ya no recibirás correos no críticos. Puedes reactivarlos cuando quieras desde tu perfil, en «Preferencias de notificaciones».</p>
     </div>
   </body>
 </html>`

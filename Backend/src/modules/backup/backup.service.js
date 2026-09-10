@@ -70,7 +70,7 @@ function nombreArchivoSeguro(texto) {
 
 async function construirBufferExcel(datos, mapas, usuarioActor) {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Skynet'
+  workbook.creator = 'Terminal de Transportes de Neiva'
   workbook.created = new Date()
 
   const resumen = workbook.addWorksheet('Resumen')

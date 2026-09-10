@@ -10,7 +10,7 @@ export async function rescatar(req, res) {
   const fecha = new Date().toISOString().slice(0, 10)
   res.set({
     'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'Content-Disposition': `attachment; filename="skynet-rescate-${req.query.meses}m-${fecha}.xlsx"`,
+    'Content-Disposition': `attachment; filename="ttn-rescate-${req.query.meses}m-${fecha}.xlsx"`,
   })
   res.send(buffer)
 }

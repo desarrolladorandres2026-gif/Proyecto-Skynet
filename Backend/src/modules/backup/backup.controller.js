@@ -10,7 +10,7 @@ export async function exportarBackup(req, res) {
   const fecha = new Date().toISOString().slice(0, 10)
   res.set({
     'Content-Type': contentType,
-    'Content-Disposition': `attachment; filename="skynet-backup-${fecha}.${extension}"`,
+    'Content-Disposition': `attachment; filename="ttn-backup-${fecha}.${extension}"`,
   })
   res.send(buffer)
 }

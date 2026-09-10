@@ -79,10 +79,10 @@ function textoDisponibilidad(t) {
 
 function Contador({ etiqueta, valor, resaltado = false }) {
   return (
-    <Card className="flex-1 text-center">
+    <div className="text-center">
       <p className={`text-2xl font-bold ${resaltado ? 'text-warn-700 dark:text-warn-300' : 'text-slate-900 dark:text-white'}`}>{valor}</p>
       <p className="panel-mono text-[11px] uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">{etiqueta}</p>
-    </Card>
+    </div>
   )
 }
 
@@ -128,9 +128,9 @@ function PanelEquipo({ tecnicos, cargando }) {
             Asígnalo a un rol desde Roles y permisos para que aparezcan aquí.
           </p>
         ) : (
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {tecnicos.map((t) => (
-              <div key={t._id} className="rounded-lg border border-brand-600/15 p-3 dark:border-brand-400/10">
+              <div key={t._id}>
                 <div className="flex items-center gap-2">
                   {t.libre ? (
                     <CircleCheck className="h-4 w-4 shrink-0 text-accent-600 dark:text-accent-400" aria-hidden="true" />
@@ -228,7 +228,7 @@ function ModalAsignar({ reporte, tecnicos, puedeAsignarAOtros, miId, onCerrar, o
                 </p>
               </div>
               {t.libre && !yaLoTiene && (
-                <span className="panel-mono shrink-0 rounded-full bg-accent-400/10 px-2 py-0.5 text-[11px] text-accent-700 ring-1 ring-inset ring-accent-400/30 dark:text-accent-300">
+                <span className="panel-mono shrink-0 text-[11px] text-accent-700 dark:text-accent-300">
                   libre
                 </span>
               )}

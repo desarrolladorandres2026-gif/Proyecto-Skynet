@@ -293,9 +293,9 @@ export default function RequerimientoDetallePage() {
             <FormularioCompra items={items} onChange={setItems} />
           ) : (
             <>
-              <div className="grid gap-2.5 sm:hidden">
+              <div className="divide-y divide-brand-600/10 sm:hidden dark:divide-brand-400/10">
                 {(req.itemsCompra || []).map((it, i) => (
-                  <div key={it._id || i} className="rounded-lg border border-brand-600/15 p-3 dark:border-brand-400/10">
+                  <div key={it._id || i} className="py-2.5 first:pt-0 last:pb-0">
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{it.descripcionProducto}</p>
                       <span className="panel-mono shrink-0 text-[11px] text-slate-500 dark:text-slate-400">
@@ -306,7 +306,7 @@ export default function RequerimientoDetallePage() {
                       Cantidad: {it.cantidad} · Destino: {it.destino || '—'}
                     </p>
                     {mostrarColumnaRecibido && (
-                      <div className="mt-2 border-t border-brand-600/10 pt-2 text-sm dark:border-brand-400/10">
+                      <div className="mt-2 text-sm">
                         {puedeControlRecibido ? (
                           <label className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                             <input

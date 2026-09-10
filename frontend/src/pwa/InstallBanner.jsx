@@ -11,7 +11,7 @@ export default function InstallBanner() {
         <img src="/icons/icon-192.png" alt="" className="h-12 w-12 shrink-0 rounded-xl" />
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">Instala Skynet</p>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">Instala la app del Terminal</p>
           {esIos ? (
             <p className="text-xs text-slate-500 dark:text-slate-400">
               En Safari toca el botón Compartir y luego «Añadir a pantalla de inicio».

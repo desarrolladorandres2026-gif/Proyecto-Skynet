@@ -25,24 +25,29 @@ const COLOR_INCORRECTAS = '#f43f5e'
 
 function Indicador({ icon: Icon, label, valor, color = 'text-brand-700 dark:text-brand-400' }) {
   return (
-    <Card>
-      <div className="flex items-center gap-3">
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 ${color}`}>
-          <Icon className="h-4.5 w-4.5" aria-hidden="true" />
-        </span>
-        <div>
-          <p className="text-xl font-bold text-slate-900 dark:text-white">{valor}</p>
-          <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">{label}</p>
-        </div>
+    <div className="flex items-center gap-3">
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 ${color}`}>
+        <Icon className="h-4.5 w-4.5" aria-hidden="true" />
+      </span>
+      <div>
+        <p className="text-xl font-bold text-slate-900 dark:text-white">{valor}</p>
+        <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">{label}</p>
       </div>
-    </Card>
+    </div>
   )
 }
 
 const FILTROS_VACIOS = { desde: '', hasta: '', dependencia: '', cargo: '', componenteSig: '', tema: '', resultado: '' }
 
+// Por defecto el dashboard abre mostrando el día actual (no todo el
+// histórico): desde/hasta arrancan en hoy y el usuario puede ampliar el
+// rango desde el panel de filtros si lo necesita.
+function hoyISO() {
+  return new Date().toISOString().slice(0, 10)
+}
+
 export default function DashboardSigPage() {
-  const [filtros, setFiltros] = useState(FILTROS_VACIOS)
+  const [filtros, setFiltros] = useState(() => ({ ...FILTROS_VACIOS, desde: hoyISO(), hasta: hoyISO() }))
 
   const { data: configYCatalogos } = useDatosConCache(
     'sig:dashboard:configYCatalogos',

@@ -19,7 +19,7 @@ function ListaComponentes({ componentes, onChange }) {
     <div>
       <div className="mb-2 flex flex-wrap gap-2">
         {componentes.map((c) => (
-          <span key={c} className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+          <span key={c} className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-200">
             {c}
             <button type="button" aria-label={`Quitar ${c}`} onClick={() => onChange(componentes.filter((x) => x !== c))}>
               <Trash2 className="h-3.5 w-3.5 text-slate-400 hover:text-red-500" aria-hidden="true" />

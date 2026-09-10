@@ -23,7 +23,7 @@ function TarjetaPregunta({ pregunta, indice, total, seleccion, onSeleccionar, on
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {total > 1 && (
-            <span className="panel-mono rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+            <span className="panel-mono text-[11px] font-semibold text-slate-600 dark:text-slate-300">
               {indice + 1}/{total}
             </span>
           )}

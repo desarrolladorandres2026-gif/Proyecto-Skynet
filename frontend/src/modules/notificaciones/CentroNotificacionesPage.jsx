@@ -14,6 +14,7 @@ const ETIQUETA_CATEGORIA = {
   ausencias: 'Ausencias',
   sig_pregunta_dia: 'Cuestionarios',
   sistema: 'Sistema',
+  avisos_terminal: 'Avisos Terminal de Neiva',
 }
 
 export default function CentroNotificacionesPage() {
@@ -113,7 +114,7 @@ export default function CentroNotificacionesPage() {
         )}
       </div>
       <p className="mb-5 text-sm text-slate-500 dark:text-slate-400">
-        Todo lo que Skynet te ha avisado, incluido lo que pasó mientras no estabas conectado.
+        Todo lo que la plataforma te ha avisado, incluido lo que pasó mientras no estabas conectado.
       </p>
 
       <ErrorMsg>{error}</ErrorMsg>

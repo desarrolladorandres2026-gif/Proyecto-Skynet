@@ -162,19 +162,16 @@ export default function ImportarPreguntasModal({ abierto, onCerrar, onImportado,
               <p className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
                 Qué debe llevar cada pregunta
               </p>
-              <ul className="grid gap-2 sm:grid-cols-2">
+              <ul className="grid gap-3 sm:grid-cols-2">
                 {COLUMNAS_PLANTILLA.map((columna) => (
-                  <li
-                    key={columna.titulo}
-                    className="rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700"
-                  >
+                  <li key={columna.titulo}>
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="text-sm font-medium text-slate-800 dark:text-slate-100">{columna.titulo}</span>
                       <span
                         className={
                           columna.obligatoria
-                            ? 'panel-mono rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium tracking-wide text-red-700 uppercase dark:text-red-300'
-                            : 'panel-mono rounded-full bg-slate-400/10 px-2 py-0.5 text-[10px] font-medium tracking-wide text-slate-600 uppercase dark:text-slate-300'
+                            ? 'panel-mono text-[10px] font-medium tracking-wide text-red-700 uppercase dark:text-red-300'
+                            : 'panel-mono text-[10px] font-medium tracking-wide text-slate-600 uppercase dark:text-slate-300'
                         }
                       >
                         {columna.obligatoria ? 'Obligatoria' : 'Opcional'}
@@ -199,7 +196,7 @@ export default function ImportarPreguntasModal({ abierto, onCerrar, onImportado,
                   {componentes.map((componente) => (
                     <span
                       key={componente}
-                      className="panel-mono rounded-full bg-brand-500/10 px-2.5 py-0.5 text-[11px] font-medium text-brand-800 dark:text-brand-300"
+                      className="panel-mono text-[11px] font-medium text-brand-800 dark:text-brand-300"
                     >
                       {componente}
                     </span>
@@ -259,21 +256,21 @@ export default function ImportarPreguntasModal({ abierto, onCerrar, onImportado,
         ) : (
           <>
             <div className="grid grid-cols-3 gap-3 text-center">
-              <Card>
+              <div>
                 <CircleCheck className="mx-auto mb-1 h-5 w-5 text-accent-600 dark:text-accent-400" aria-hidden="true" />
                 <p className="text-2xl font-bold text-accent-600 dark:text-accent-400">{resultado.importadas}</p>
                 <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Importadas</p>
-              </Card>
-              <Card>
+              </div>
+              <div>
                 <TriangleAlert className="mx-auto mb-1 h-5 w-5 text-warn-600 dark:text-warn-400" aria-hidden="true" />
                 <p className="text-2xl font-bold text-warn-600 dark:text-warn-400">{resultado.duplicadas.length}</p>
                 <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Ya existían</p>
-              </Card>
-              <Card>
+              </div>
+              <div>
                 <CircleX className="mx-auto mb-1 h-5 w-5 text-red-600 dark:text-red-400" aria-hidden="true" />
                 <p className="text-2xl font-bold text-red-600 dark:text-red-400">{resultado.errores.length}</p>
                 <p className="text-[11px] text-slate-500 uppercase dark:text-slate-400">Con error</p>
-              </Card>
+              </div>
             </div>
 
             <p className="text-xs text-slate-500 dark:text-slate-400">

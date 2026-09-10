@@ -154,7 +154,7 @@ export function CopilotoButtonDemo() {
         }`}
       >
         <div className="absolute top-4 left-4 z-20">
-          <span className="text-xs font-mono uppercase tracking-widest text-slate-400 dark:text-brand-400/80 bg-slate-800/40 px-3 py-1 rounded-full border border-brand-500/20">
+          <span className="text-xs font-mono uppercase tracking-widest text-slate-400 dark:text-brand-400/80">
             Demostración Interactiva — Haz clic en el botón para abrir/cerrar la tarjeta
           </span>
         </div>

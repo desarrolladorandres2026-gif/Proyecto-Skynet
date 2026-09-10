@@ -49,10 +49,7 @@ export function KpiRibbon({ visibles = [], tarjetas = {}, className = '' }) {
           <Link
             key={item.clave}
             to={item.to}
-            className={cn(
-              'group relative flex items-center justify-between gap-2.5 rounded-xl border p-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-soft-sm backdrop-blur-md w-full',
-              tono.bg
-            )}
+            className="group relative flex items-center justify-between gap-2.5 p-2.5 transition-all duration-200 w-full"
           >
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', tono.iconBg)}>

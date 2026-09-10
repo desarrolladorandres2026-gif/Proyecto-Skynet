@@ -14,6 +14,7 @@ const ETIQUETA_CATEGORIA = {
   ausencias: 'Ausencias',
   sig_pregunta_dia: 'Cuestionarios',
   sistema: 'Sistema',
+  avisos_terminal: 'Avisos Terminal de Neiva',
 }
 
 function etiquetaDe(categoria) {
@@ -56,7 +57,7 @@ export function NotificacionesBell() {
           >
             <Bell className="h-4 w-4 text-brand-600 dark:text-brand-400 group-hover:rotate-12 transition-transform duration-300" aria-hidden="true" />
             {noLeidas > 0 && (
-              <span className="panel-mono absolute -top-1 -right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white shadow-[0_0_8px_rgba(244,63,94,0.6)]">
+              <span className="panel-mono absolute -top-1 -right-1 text-[10px] font-bold leading-none text-rose-500">
                 {noLeidas > 9 ? '9+' : noLeidas}
               </span>
             )}
@@ -115,7 +116,7 @@ export function NotificacionesBell() {
                     <span className="panel-mono shrink-0 text-[10px] text-slate-400 dark:text-slate-500">{tiempoRelativo(n.createdAt)}</span>
                   </div>
                   {n.cuerpo && <p className="mt-0.5 line-clamp-2 text-[12px] text-slate-500 dark:text-slate-400">{n.cuerpo}</p>}
-                  <span className="panel-mono mt-1 inline-block rounded-full bg-brand-600/10 px-1.5 py-0.5 text-[10px] font-medium text-brand-700 dark:bg-brand-400/10 dark:text-brand-300">
+                  <span className="panel-mono mt-1 inline-block text-[10px] font-medium text-brand-700 dark:text-brand-300">
                     {etiquetaDe(n.categoria)}
                   </span>
                 </div>

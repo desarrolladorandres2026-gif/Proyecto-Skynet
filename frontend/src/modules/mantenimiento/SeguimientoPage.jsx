@@ -24,9 +24,9 @@ export default function SeguimientoPage() {
       ) : tecnicos.length === 0 ? (
         <EmptyState mensaje="No hay técnicos con permiso de ejecución registrados" />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {tecnicos.map((t) => (
-            <Card key={t.tecnico._id}>
+            <div key={t.tecnico._id}>
               <div className="mb-2 flex items-center justify-between">
                 <h2 className="font-semibold text-white">{t.tecnico.nombre}</h2>
                 <Badge valor={t.disponible ? 'activo' : 'ocupada'} />
@@ -46,7 +46,7 @@ export default function SeguimientoPage() {
               <p className="mt-2 text-xs text-slate-500">
                 Última actividad: {t.ultimaActividadEn ? fmtFechaHora(t.ultimaActividadEn) : 'sin registro'}
               </p>
-            </Card>
+            </div>
           ))}
         </div>
       )}

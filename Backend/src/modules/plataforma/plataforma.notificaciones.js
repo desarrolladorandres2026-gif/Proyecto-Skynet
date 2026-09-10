@@ -44,10 +44,10 @@ export async function avisarProgramado(estado) {
     usuarios,
     categoria: 'plataforma',
     tipo: 'plataforma_programado',
-    titulo: 'Mantenimiento programado de Skynet',
+    titulo: 'Mantenimiento programado del Terminal de Transportes de Neiva',
     cuerpo:
       estado.message ||
-      `Skynet realizará mantenimiento programado el ${formatearFechaHora(estado.scheduledStart)}${fin}.` +
+      `El Terminal de Transportes de Neiva realizará mantenimiento programado el ${formatearFechaHora(estado.scheduledStart)}${fin}.` +
         (estado.reason ? ` Motivo: ${estado.reason}.` : ''),
     url: '/',
   })
@@ -59,7 +59,7 @@ export async function avisarInicioProximo(estado, minutos) {
     usuarios,
     categoria: 'plataforma',
     tipo: 'plataforma_inicio_proximo',
-    titulo: `Skynet entra en mantenimiento en ${minutos} minutos`,
+    titulo: `El Terminal de Transportes de Neiva entra en mantenimiento en ${minutos} minutos`,
     cuerpo:
       `El mantenimiento comienza a las ${formatearFechaHora(estado.scheduledStart)}. ` +
       'Guarda tu trabajo: la plataforma dejará de estar disponible durante la ventana.',
@@ -76,7 +76,7 @@ export async function avisarInicio(estado) {
     usuarios,
     categoria: 'plataforma',
     tipo: 'plataforma_iniciado',
-    titulo: 'Skynet está en mantenimiento',
+    titulo: 'El Terminal de Transportes de Neiva está en mantenimiento',
     cuerpo: `${estado.message || 'La plataforma no está disponible temporalmente.'} ${fin}`,
     url: '/',
     transaccional: true,
@@ -92,9 +92,9 @@ export async function avisarDisponible() {
     usuarios,
     categoria: 'plataforma',
     tipo: 'plataforma_disponible',
-    titulo: 'Skynet ya está disponible',
+    titulo: 'El Terminal de Transportes de Neiva ya está disponible',
     cuerpo:
-      'El mantenimiento de Skynet ha finalizado correctamente. ' +
+      'El mantenimiento ha finalizado correctamente. ' +
       'La plataforma ya se encuentra disponible y puedes volver a ingresar.',
     url: '/',
     transaccional: true,

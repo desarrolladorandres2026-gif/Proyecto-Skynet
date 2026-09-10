@@ -1,3 +1,5 @@
+import { logger } from '../config/logger.js'
+
 export function notFoundHandler(_req, res) {
   res.status(404).json({ error: 'Ruta no encontrada' })
 }
@@ -22,7 +24,7 @@ function mensajeDuplicado(err) {
 export function errorHandler(err, req, res, _next) {
   // req.id (ver middleware/requestId.js) permite correlacionar este log con
   // el error genérico que ve el usuario, sin exponerle detalles internos.
-  console.error(`Error no controlado [${req.id || 'sin-id'}]:`, err)
+  logger.error('Error no controlado', { requestId: req.id, error: err })
 
   if (err.code === 11000) {
     return res.status(409).json({ error: mensajeDuplicado(err) })

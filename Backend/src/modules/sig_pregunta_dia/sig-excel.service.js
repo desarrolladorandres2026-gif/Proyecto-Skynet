@@ -38,7 +38,7 @@ export async function exportarRespuestas({ desde, hasta, dependencia, cargo, com
   if (truncado) respuestas.length = LIMITE_FILAS_SIN_RANGO
 
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Skynet'
+  workbook.creator = 'Terminal de Transportes de Neiva'
   workbook.created = new Date()
 
   const hoja = workbook.addWorksheet('Respuestas SIG')

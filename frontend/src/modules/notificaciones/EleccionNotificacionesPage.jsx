@@ -64,7 +64,7 @@ export function NotificacionesAdminTabs() {
       >
         <SlidersHorizontal className="h-4 w-4" />
         <span>Elección de notificaciones</span>
-        <span className="rounded-full bg-brand-600/10 dark:bg-brand-400/15 px-2 py-0.5 text-[11px] font-semibold text-brand-700 dark:text-brand-300">
+        <span className="text-[11px] font-semibold text-brand-700 dark:text-brand-300">
           Canales
         </span>
       </Link>
@@ -419,7 +419,7 @@ export default function EleccionNotificacionesPage() {
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{cat.nombre}</h3>
                         {cat.key === 'sig_pregunta_dia' && (
-                          <span className="rounded-full bg-purple-500/10 px-2 py-0.5 text-[10px] font-semibold text-purple-600 dark:text-purple-300">
+                          <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-300">
                             Alto volumen diario
                           </span>
                         )}

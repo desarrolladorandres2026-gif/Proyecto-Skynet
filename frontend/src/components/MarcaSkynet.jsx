@@ -40,7 +40,7 @@ export function MarcaSkynet({ variante = 'completa', className = '' }) {
       <span className="h-6 w-px shrink-0 bg-slate-900/10 dark:bg-white/15" aria-hidden="true" />
       <span className="flex min-w-0 flex-col leading-none">
         <span className="font-display text-sm font-bold tracking-[0.22em] text-brand-800 dark:text-white">
-          SKYNET
+          TTN
         </span>
         {variante === 'completa' && (
           <span className="panel-mono mt-1 truncate text-[9px] font-medium tracking-[0.14em] text-slate-500 uppercase dark:text-brand-200/70">

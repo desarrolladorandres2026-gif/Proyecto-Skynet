@@ -18,7 +18,7 @@ export default function CookieConsent() {
   const [rechazado, setRechazado] = useState(false)
 
   useEffect(() => {
-    if (rechazado) document.title = 'Skynet — acceso cancelado'
+    if (rechazado) document.title = 'Terminal de Transportes de Neiva — acceso cancelado'
   }, [rechazado])
 
   if (aceptado) return null
@@ -42,7 +42,7 @@ export default function CookieConsent() {
         <div className="max-w-sm text-center">
           <p className="text-lg font-semibold text-white">Acceso cancelado</p>
           <p className="mt-2 text-sm text-slate-400">
-            Skynet necesita el uso de cookies para funcionar (sesión, preferencias y seguridad).
+            El Terminal de Transportes de Neiva necesita el uso de cookies para funcionar (sesión, preferencias y seguridad).
             Puedes cerrar esta pestaña o volver a intentarlo si cambias de opinión.
           </p>
         </div>
@@ -55,7 +55,7 @@ export default function CookieConsent() {
       <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-slate-800">
         <p className="text-base font-semibold text-slate-900 dark:text-white">Uso de cookies</p>
         <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-          Skynet usa cookies y almacenamiento local estrictamente necesarios para mantener tu sesión
+          El Terminal de Transportes de Neiva usa cookies y almacenamiento local estrictamente necesarios para mantener tu sesión
           iniciada, recordar tus preferencias y proteger el sistema. Sin aceptarlas no es posible
           usar la plataforma.
         </p>

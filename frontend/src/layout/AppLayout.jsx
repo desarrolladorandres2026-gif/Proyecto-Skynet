@@ -440,7 +440,7 @@ export default function AppLayout() {
           )}
         >
           {colapsado ? (
-            <Tooltip label="SKYNET · Terminal de Transportes de Neiva" side="right">
+            <Tooltip label="TTN · Terminal de Transportes de Neiva" side="right">
               <span><MarcaSkynet variante="minima" /></span>
             </Tooltip>
           ) : (

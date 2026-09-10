@@ -36,7 +36,7 @@ export const CATEGORIAS_NOTIFICACION = [
   {
     key: 'plataforma',
     nombre: 'Estado de la plataforma',
-    descripcion: 'Mantenimientos programados de Skynet y aviso de que la plataforma volvió a estar disponible.',
+    descripcion: 'Mantenimientos programados y aviso de que la plataforma volvió a estar disponible.',
   },
 ]
 

@@ -4,7 +4,10 @@ import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 import mongoSanitize from 'express-mongo-sanitize'
 import compression from 'compression'
+import swaggerUi from 'swagger-ui-express'
 import { env } from './config/env.js'
+import { swaggerSpec } from './config/swagger.js'
+import { logger } from './config/logger.js'
 import { connectDB } from './config/db.js'
 import routes from './routes/index.js'
 import { sincronizarCatalogoSistema, precalentarCacheModulos } from './modules/sistema/sistema.service.js'
@@ -113,6 +116,14 @@ app.use(mongoSanitize())
 // Cuando no hay mantenimiento activo (el caso normal) resuelve con una
 // lectura de caché en memoria y llama a next() — no agrega ni una consulta a
 // Mongo al camino feliz.
+// Documentación interactiva de la API. Antes del gate de mantenimiento (para
+// poder seguir consultándola con la plataforma bloqueada) y solo fuera de
+// producción: no tiene sentido exponer el mapa completo de endpoints al
+// público en el VPS real.
+if (env.NODE_ENV !== 'production') {
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+}
+
 app.use(bloqueoMantenimiento)
 
 app.use('/api', routes)
@@ -176,13 +187,13 @@ async function start() {
   try {
     await evaluarTransiciones()
   } catch (err) {
-    console.error('No se pudieron evaluar las transiciones de mantenimiento al arrancar:', err.message)
+    logger.error('No se pudieron evaluar las transiciones de mantenimiento al arrancar', { error: err.message })
   }
   iniciarWorkerPlataforma()
 
   const server = app.listen(env.PORT, () => {
-    console.log(`\n🚀  Backend Skynet corriendo en http://localhost:${env.PORT}`)
-    console.log(`📋  API disponible en http://localhost:${env.PORT}/api\n`)
+    logger.info(`Backend Skynet corriendo en http://localhost:${env.PORT}`)
+    logger.info(`API disponible en http://localhost:${env.PORT}/api`)
   })
 
   // Corta conexiones colgadas (slowloris, cliente que nunca termina de mandar
@@ -197,8 +208,10 @@ async function start() {
       // puerto al reiniciar tras un cambio de archivo. Falla con un mensaje
       // claro en vez de un stack trace, en vez de cerrar el proceso siempre
       // (así --watch puede seguir esperando cambios en vez de morir del todo).
-      console.error(`\n❌  El puerto ${env.PORT} ya está en uso por otro proceso.`)
-      console.error(`    Cierra ese proceso (en Windows: netstat -ano | findstr :${env.PORT}, luego taskkill /PID <pid> /F) y vuelve a intentarlo.\n`)
+      logger.error(
+        `El puerto ${env.PORT} ya está en uso por otro proceso. ` +
+          `Cierra ese proceso (en Windows: netstat -ano | findstr :${env.PORT}, luego taskkill /PID <pid> /F) y vuelve a intentarlo.`
+      )
       return
     }
     throw err
@@ -216,6 +229,6 @@ async function start() {
 // aquí a propósito, para no encadenar conexiones/procesos si Mongo sigue
 // caído.
 start().catch((err) => {
-  console.error('❌  El backend no pudo arrancar:', err.message)
+  logger.error('El backend no pudo arrancar', { error: err.message })
   process.exit(1)
 })

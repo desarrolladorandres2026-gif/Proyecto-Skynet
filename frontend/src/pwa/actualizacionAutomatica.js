@@ -41,7 +41,7 @@ export function registrarActualizacionAutomatica() {
     onNeedReload() {
       if (sessionStorage.getItem(CLAVE_RECARGA_EN_CURSO)) return
       sessionStorage.setItem(CLAVE_RECARGA_EN_CURSO, '1')
-      toast.info('Hay una nueva versión de Skynet disponible. Actualizando…')
+      toast.info('Hay una nueva versión disponible. Actualizando…')
       // El pequeño retraso es solo para que el aviso alcance a leerse antes
       // de que la pestaña se recargue con la versión nueva ya activa.
       setTimeout(() => window.location.reload(), 1500)

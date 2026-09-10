@@ -161,7 +161,7 @@ export default function BannerMantenimiento() {
         <span className="min-w-0 flex-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed break-words">
           {estado.message || (
             <>
-              Skynet no estará disponible desde el <strong>{formatearFechaHora(inicio)}</strong>
+              Terminal de Transportes de Neiva no estará disponible desde el <strong>{formatearFechaHora(inicio)}</strong>
               {estado.scheduledEnd && <> hasta el <strong>{formatearFechaHora(estado.scheduledEnd)}</strong></>}.
             </>
           )}

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles,
@@ -31,10 +31,12 @@ import { CopilotoConfirmacion } from './CopilotoConfirmacion.jsx'
 import { cn } from '../../lib/cn'
 
 /**
- * CopilotoChatCard - Tarjeta Neumórfica #212121 para Skynet IA
+ * CopilotoChatCard - Tarjeta Neumórfica para Skynet IA
  *
  * Características Estéticas:
- * - Base Neumórfica en #212121 con doble sombra suave relieve 3D.
+ * - Base Neumórfica clara (#eef1f6) en modo claro, #212121 en modo oscuro —
+ *   sigue la clase `dark` de <html> (ver useTema en AppLayout.jsx), con doble
+ *   sombra suave de relieve 3D en ambos casos.
  * - Sin nombre "JARVIS" (marca oficial: SKYNET AI / CORE).
  * - Utiliza exactamente el MISMO ícono animado vectorial (`CopilotoAnimatedIcon`) del botón flotante.
  * - Acentos de luz Neón Cian adaptados perfectamente a la estética del botón.
@@ -104,15 +106,44 @@ export function CopilotoChatCard({
   // fija a su alto de siempre, empujada fuera de la pantalla o con el campo
   // de texto escondido detrás del teclado — el "se traba" que se reporta.
   const conTeclado = alturaTeclado > 0
+  // La tarjeta vive dentro de un contenedor `fixed` sin alto propio (se
+  // ajusta a su contenido), así que `h-full`/`max-h-full` por CSS no sirven
+  // de referencia: no hay alto de padre del que heredar. Por eso el alto se
+  // fija siempre por `style`, calculado en JS.
   const estiloTarjeta = conTeclado
-    ? { maxHeight: `calc(100dvh - ${alturaTeclado}px - 5rem)`, transform: `translateY(-${alturaTeclado}px)` }
-    : undefined
+    ? { height: `calc(100dvh - ${alturaTeclado}px - 5rem)`, transform: `translateY(-${alturaTeclado}px)` }
+    // Sin teclado: ya no se fuerza 35rem fijo. En pantallas bajas (celulares
+    // chicos, apaisado) eso la hacía desbordar el viewport y quedar cortada
+    // arriba/abajo. Con `dvh` como techo, se achica sola en pantallas cortas
+    // y deja aire arriba y abajo.
+    : { height: 'min(35rem, calc(100dvh - 6rem))' }
 
-  const suguerenciasRapidas = [
+  // ★ Insight: antes había 3 preguntas fijas que salían siempre iguales.
+  // Ahora hay un banco más grande y cada vez que se ABRE el chat (isOpen
+  // pasa a true) se sortean 3 distintas, así el usuario ve variedad sin que
+  // cambien en medio de una conversación ya abierta.
+  const bancoSugerencias = [
     '¿Cómo va mi último requerimiento?',
     '¿Qué tengo pendiente hoy?',
     '¿En qué van los daños que reporté?',
+    '¿Hay compras próximas a vencer?',
+    '¿Qué mantenimientos tengo agendados?',
+    '¿Cuáles son mis últimas notificaciones?',
+    '¿Qué reportes corporativos hay disponibles?',
+    '¿Tengo ausencias pendientes de aprobar?',
+    '¿Cómo está el estado del inventario?',
+    '¿Qué tareas vencen esta semana?',
   ]
+
+  const suguerenciasRapidas = useMemo(() => {
+    const copia = [...bancoSugerencias]
+    for (let i = copia.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[copia[i], copia[j]] = [copia[j], copia[i]]
+    }
+    return copia.slice(0, 3)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
 
   const handleSugerenciaClick = (texto) => {
     setEntrada(texto)
@@ -129,10 +160,7 @@ export function CopilotoChatCard({
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           onAnimationComplete={enfocarSiAbrio}
           style={estiloTarjeta}
-          className={cn(
-            'relative mb-3 flex w-[calc(100vw-2rem)] max-w-[390px] flex-col overflow-hidden neumorphic-skynet-card z-50 select-text font-sans p-5',
-            conTeclado ? 'h-auto' : 'h-[35rem]'
-          )}
+          className="relative mb-3 flex w-[calc(100vw-2rem)] max-w-[390px] flex-col overflow-hidden neumorphic-skynet-card z-50 select-text font-sans p-3 sm:p-5"
         >
           {/* ============================================================ */}
           {/* ENCABEZADO NEUMÓRFICO CON ÍCONO ANIMADO DEL BOTÓN */}
@@ -141,20 +169,21 @@ export function CopilotoChatCard({
             {/* Asa de arrastre con el MISMO diseño de botón flotante de Skynet */}
             <div
               onPointerDown={onIniciarArrastre}
-              className="flex flex-1 min-w-0 cursor-grab touch-none items-center gap-3.5 active:cursor-grabbing group"
+              className="flex flex-1 min-w-0 cursor-grab touch-none items-center gap-2 sm:gap-3.5 active:cursor-grabbing group"
             >
               {/* Miniatura exacta del Botón de Skynet */}
               <div className="relative shrink-0 flex items-center justify-center p-1 rounded-full bg-transparent drop-shadow-[0_0_20px_rgba(78,124,190,0.7)] group-hover:drop-shadow-[0_0_30px_rgba(78,124,190,0.95)] group-hover:scale-105 transition-all duration-300">
-                <CopilotoAnimatedIcon size={44} speed="normal" showPulseRing={true} />
+                <CopilotoAnimatedIcon size={36} speed="normal" showPulseRing={true} className="sm:hidden" />
+                <CopilotoAnimatedIcon size={44} speed="normal" showPulseRing={true} className="hidden sm:block" />
                 <span className="absolute top-0 right-0 flex h-3.5 w-3.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-brand-400 border-2 border-[#212121]"></span>
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-brand-400 border-2 border-[#eef1f6] dark:border-[#212121]"></span>
                 </span>
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-black tracking-widest text-brand-300 font-mono uppercase drop-shadow-[0_0_10px_rgba(78,124,190,0.6)]">
-                    SKYNET AI
+                    TTN
                   </h2>
                   <span className="flex h-2 w-2 relative">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
@@ -169,13 +198,13 @@ export function CopilotoChatCard({
             </div>
 
             {/* Acciones de la Tarjeta */}
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0 flex-wrap justify-end">
               {hablando && onCallar && (
                 <button
                   type="button"
                   onClick={onCallar}
                   title="Detener lectura"
-                  className="rounded-xl p-2 text-brand-300 neumorphic-button text-xs"
+                  className="rounded-xl p-1.5 sm:p-2 text-brand-300 neumorphic-button text-xs"
                 >
                   <Square className="h-3.5 w-3.5 fill-current" />
                 </button>
@@ -187,8 +216,8 @@ export function CopilotoChatCard({
                   onClick={onAlternarVoz}
                   title={vozActiva ? 'Respuestas habladas activadas' : 'Respuestas habladas desactivadas'}
                   className={cn(
-                    'rounded-xl p-2 text-xs transition-all neumorphic-button',
-                    vozActiva ? 'text-brand-300 border-brand-400/40 shadow-[0_0_10px_rgba(78,124,190,0.3)]' : 'text-slate-400'
+                    'rounded-xl p-1.5 sm:p-2 text-xs transition-all neumorphic-button',
+                    vozActiva ? 'text-brand-300 border-brand-400/40 shadow-[0_0_10px_rgba(78,124,190,0.3)]' : 'text-slate-500 dark:text-slate-400'
                   )}
                 >
                   {vozActiva ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
@@ -202,8 +231,8 @@ export function CopilotoChatCard({
                   disabled={pidiendoPermisoMicrofono}
                   title={wakeActivo ? 'Desactivar Oye Skynet' : 'Activar Oye Skynet'}
                   className={cn(
-                    'relative rounded-xl p-2 text-xs transition-all neumorphic-button',
-                    wakeActivo ? 'text-brand-300 border-brand-400/50 shadow-[0_0_12px_rgba(78,124,190,0.4)]' : 'text-slate-400'
+                    'relative rounded-xl p-1.5 sm:p-2 text-xs transition-all neumorphic-button',
+                    wakeActivo ? 'text-brand-300 border-brand-400/50 shadow-[0_0_12px_rgba(78,124,190,0.4)]' : 'text-slate-500 dark:text-slate-400'
                   )}
                 >
                   <Ear className="h-3.5 w-3.5" />
@@ -222,7 +251,7 @@ export function CopilotoChatCard({
                     <button
                       type="button"
                       title="Ajustes de Voz"
-                      className="rounded-xl p-2 text-xs text-slate-400 hover:text-brand-300 neumorphic-button"
+                      className="rounded-xl p-1.5 sm:p-2 text-xs text-slate-500 dark:text-slate-400 hover:text-brand-300 neumorphic-button"
                     >
                       {modoRespuesta === 'texto' ? (
                         <MessageSquare className="h-3.5 w-3.5" />
@@ -231,7 +260,7 @@ export function CopilotoChatCard({
                       )}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent align="end" className="w-64 max-h-80 overflow-y-auto p-2 bg-[#1a1a1a] border border-brand-500/30 text-brand-100 shadow-2xl backdrop-blur-xl rounded-2xl">
+                  <PopoverContent align="end" className="w-64 max-h-80 overflow-y-auto p-2 bg-white dark:bg-[#1a1a1a] border border-brand-500/30 text-slate-700 dark:text-brand-100 shadow-2xl backdrop-blur-xl rounded-2xl">
                     {onElegirModoRespuesta && (
                       <>
                         <p className="px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider text-brand-400">
@@ -250,18 +279,18 @@ export function CopilotoChatCard({
                               'flex w-full items-start gap-2 rounded-xl px-2.5 py-1.5 text-left transition-colors',
                               modoRespuesta === valor
                                 ? 'bg-brand-500/20 text-brand-300 border border-brand-400/30'
-                                : 'hover:bg-[#252525] text-slate-300'
+                                : 'hover:bg-slate-100 dark:hover:bg-[#252525] text-slate-600 dark:text-slate-300'
                             )}
                           >
                             <Icono className="h-3.5 w-3.5 shrink-0 mt-0.5 text-brand-400" />
                             <span className="flex-1 min-w-0">
                               <span className="block text-xs font-semibold leading-tight">{titulo}</span>
-                              <span className="block text-[10px] text-slate-400 leading-tight">{detalle}</span>
+                              <span className="block text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{detalle}</span>
                             </span>
                             {modoRespuesta === valor && <Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-brand-300" />}
                           </button>
                         ))}
-                        <div className="my-1.5 border-t border-slate-800" />
+                        <div className="my-1.5 border-t border-slate-200 dark:border-slate-800" />
                       </>
                     )}
 
@@ -287,7 +316,7 @@ export function CopilotoChatCard({
                               'flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-400',
                               v.voiceURI === vozElegidaURI
                                 ? 'bg-brand-500/20 text-brand-300 border border-brand-400/30'
-                                : 'hover:bg-[#252525] text-slate-300'
+                                : 'hover:bg-slate-100 dark:hover:bg-[#252525] text-slate-600 dark:text-slate-300'
                             )}
                           >
                             {v.voiceURI === vozElegidaURI ? (
@@ -304,7 +333,7 @@ export function CopilotoChatCard({
                                   onProbarVoz(v.voiceURI)
                                 }}
                                 title="Escuchar voz"
-                                className="shrink-0 rounded-md p-1 text-slate-400 hover:text-brand-300"
+                                className="shrink-0 rounded-md p-1 text-slate-500 dark:text-slate-400 hover:text-brand-300"
                               >
                                 <Play className="h-3 w-3" />
                               </button>
@@ -322,7 +351,7 @@ export function CopilotoChatCard({
                   type="button"
                   onClick={onLimpiarHistorial}
                   title="Limpiar chat"
-                  className="rounded-xl p-2 text-xs text-slate-400 hover:text-brand-300 neumorphic-button"
+                  className="rounded-xl p-1.5 sm:p-2 text-xs text-slate-500 dark:text-slate-400 hover:text-brand-300 neumorphic-button"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -332,7 +361,7 @@ export function CopilotoChatCard({
                 type="button"
                 onClick={onClose}
                 aria-label="Cerrar chat de Skynet"
-                className="rounded-xl p-2 text-xs text-slate-400 hover:text-red-400 neumorphic-button"
+                className="rounded-xl p-1.5 sm:p-2 text-xs text-slate-500 dark:text-slate-400 hover:text-red-400 neumorphic-button"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -340,7 +369,7 @@ export function CopilotoChatCard({
           </header>
 
           {/* ============================================================ */}
-          {/* CUERPO DEL CHAT NEUMÓRFICO (#212121) */}
+          {/* CUERPO DEL CHAT NEUMÓRFICO */}
           {/* ============================================================ */}
           <div
             className="flex-1 space-y-3.5 overflow-y-auto py-4 px-1 custom-scrollbar relative z-10"
@@ -355,14 +384,14 @@ export function CopilotoChatCard({
                   <CopilotoAnimatedIcon size={64} speed="normal" showPulseRing={true} />
                   <span className="absolute top-1 right-1 flex h-4 w-4">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-4 w-4 bg-brand-400 border-2 border-[#212121]"></span>
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-brand-400 border-2 border-[#eef1f6] dark:border-[#212121]"></span>
                   </span>
                 </div>
                 <div>
                   <h3 className="text-sm font-bold tracking-wide font-mono text-brand-200 uppercase">
-                    Skynet AI // En línea
+                    TTN // En línea
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed font-sans">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs leading-relaxed font-sans">
                     Asistente para compras, mantenimiento, reportes corporativos y datos del sistema.
                   </p>
                 </div>
@@ -370,7 +399,7 @@ export function CopilotoChatCard({
                 {/* Sugerencias Rápidas Neumórficas */}
                 <div className="w-full space-y-2 pt-2">
                   <p className="text-[10px] uppercase font-mono font-bold tracking-wider text-brand-400 flex items-center justify-center gap-1">
-                    <Zap className="w-3 h-3 text-brand-400 animate-bounce" /> Preguntas sugeridas
+                    <Zap className="w-3 h-3 text-brand-400" /> Preguntas sugeridas
                   </p>
                   <div className="flex flex-col gap-2">
                     {suguerenciasRapidas.map((sug, idx) => (
@@ -378,7 +407,7 @@ export function CopilotoChatCard({
                         key={idx}
                         type="button"
                         onClick={() => handleSugerenciaClick(sug)}
-                        className="text-left text-xs px-4 py-2.5 rounded-2xl transition-all neumorphic-button text-brand-100 flex items-center justify-between group"
+                        className="text-left text-xs px-4 py-2.5 rounded-2xl transition-all neumorphic-button text-slate-700 dark:text-brand-100 flex items-center justify-between group"
                       >
                         <span>{sug}</span>
                         <CornerDownLeft className="w-3.5 h-3.5 text-brand-400 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -401,7 +430,7 @@ export function CopilotoChatCard({
                   className={cn('flex gap-2.5', m.rol === 'user' ? 'justify-end' : 'justify-start')}
                 >
                   {m.rol !== 'user' && (
-                    <div className="w-7 h-7 rounded-2xl bg-[#1a1a1a] border border-brand-400/40 text-brand-300 flex items-center justify-center shrink-0 mt-1 shadow-md">
+                    <div className="w-7 h-7 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-brand-400/40 text-brand-300 flex items-center justify-center shrink-0 mt-1 shadow-md">
                       <Bot className="w-4 h-4" />
                     </div>
                   )}
@@ -411,16 +440,16 @@ export function CopilotoChatCard({
                       'max-w-[85%] rounded-2xl px-4 py-3 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed shadow-lg',
                       m.rol === 'user'
                         ? // Usuario: Sello Neumórfico
-                          'bg-[#282828] text-white border border-brand-500/30 rounded-br-xs font-medium'
+                          'bg-slate-200 dark:bg-[#282828] text-slate-900 dark:text-white border border-brand-500/30 rounded-br-xs font-medium'
                         : // Skynet IA: Panel Cibernético Neumórfico
-                          'bg-[#1a1a1a] text-brand-100 border border-brand-400/20 rounded-bl-xs shadow-[0_0_15px_rgba(45,93,163,0.12)] border-l-2 border-l-brand-400'
+                          'bg-white dark:bg-[#1a1a1a] text-slate-700 dark:text-brand-100 border border-brand-400/20 rounded-bl-xs shadow-[0_0_15px_rgba(45,93,163,0.12)] border-l-2 border-l-brand-400'
                     )}
                   >
                     {m.texto}
                   </div>
 
                   {m.rol === 'user' && (
-                    <div className="w-7 h-7 rounded-2xl bg-[#2a2a2a] text-slate-300 border border-slate-700 flex items-center justify-center shrink-0 mt-1 shadow-md">
+                    <div className="w-7 h-7 rounded-2xl bg-slate-200 dark:bg-[#2a2a2a] text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700 flex items-center justify-center shrink-0 mt-1 shadow-md">
                       <User className="w-4 h-4" />
                     </div>
                   )}
@@ -429,10 +458,10 @@ export function CopilotoChatCard({
 
             {cargando && !mensajes[mensajes.length - 1]?.texto && (
               <div className="flex items-center gap-2.5 justify-start">
-                <div className="w-7 h-7 rounded-2xl bg-[#1a1a1a] border border-brand-400/50 text-brand-300 flex items-center justify-center shrink-0 animate-pulse">
+                <div className="w-7 h-7 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-brand-400/50 text-brand-300 flex items-center justify-center shrink-0 animate-pulse">
                   <Bot className="w-4 h-4" />
                 </div>
-                <div className="flex items-center gap-2 rounded-2xl bg-[#1a1a1a] border border-brand-500/30 px-3.5 py-2 text-xs text-brand-300 shadow-md font-mono">
+                <div className="flex items-center gap-2 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-brand-500/30 px-3.5 py-2 text-xs text-brand-300 shadow-md font-mono">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-400" />
                   <span>Procesando consulta cibernética…</span>
                 </div>
@@ -443,7 +472,7 @@ export function CopilotoChatCard({
           </div>
 
           {wakeActivo && !error && (
-            <div className="shrink-0 border-t border-brand-500/20 bg-[#181818] px-3 py-1.5 text-[10px] text-brand-300 font-mono flex items-center gap-1.5 rounded-xl mb-2">
+            <div className="shrink-0 border-t border-brand-500/20 bg-slate-100 dark:bg-[#181818] px-3 py-1.5 text-[10px] text-brand-600 dark:text-brand-300 font-mono flex items-center gap-1.5 rounded-xl mb-2">
               <Volume2 className="h-3 w-3 shrink-0 text-brand-400 animate-pulse" />
               {parcialVoz ? (
                 <span className="italic truncate">"{parcialVoz}"</span>
@@ -508,7 +537,7 @@ export function CopilotoChatCard({
                 value={entrada}
                 onChange={(e) => setEntrada(e.target.value)}
                 placeholder={escuchando ? parcialVoz || 'Escuchando…' : 'Escribe tu consulta a Skynet…'}
-                className="w-full rounded-2xl neumorphic-inset-input px-4 py-2.5 text-xs sm:text-sm text-brand-50 placeholder-brand-700/60 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 transition-all font-sans"
+                className="w-full rounded-2xl neumorphic-inset-input px-4 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-brand-50 placeholder-slate-400 dark:placeholder-brand-700/60 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 transition-all font-sans"
                 disabled={cargando}
               />
             </div>
@@ -521,7 +550,7 @@ export function CopilotoChatCard({
                 'h-11 w-11 shrink-0 rounded-2xl flex items-center justify-center transition-all neumorphic-button',
                 entrada.trim() && !cargando
                   ? 'text-brand-300 border-brand-400/50 shadow-[0_0_15px_rgba(78,124,190,0.5)] active:scale-95'
-                  : 'text-slate-600 cursor-not-allowed'
+                  : 'text-slate-400 dark:text-slate-600 cursor-not-allowed'
               )}
             >
               <Send className="h-4 w-4" />

@@ -53,7 +53,7 @@ export default function ModuloAcordeon({ modulo, expandido, completado, puntajeG
           <p className="truncate text-base font-semibold text-slate-900 dark:text-white">{modulo.titulo}</p>
         </div>
         {completado && (
-          <span className="panel-mono shrink-0 rounded-full bg-accent-400/10 px-2 py-0.5 text-[11px] font-medium text-accent-700 ring-1 ring-inset ring-accent-400/30 dark:text-accent-300">
+          <span className="panel-mono shrink-0 text-[11px] font-medium text-accent-700 dark:text-accent-300">
             Completado{puntajeGuardado ? ` · ${puntajeGuardado}` : ''}
           </span>
         )}

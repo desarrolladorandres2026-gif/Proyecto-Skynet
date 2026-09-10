@@ -15,6 +15,7 @@ import operacionRoutes from '../modules/operacion/operacion.routes.js'
 import sistemaRoutes from '../modules/sistema/sistema.routes.js'
 import plataformaRoutes from '../modules/plataforma/plataforma.routes.js'
 import notificacionesRoutes from '../modules/notificaciones/notificaciones.routes.js'
+import avisosTerminalRoutes from '../modules/avisos_terminal/avisos.routes.js'
 import perfilRoutes from '../modules/perfil/perfil.routes.js'
 import copilotoRoutes from '../modules/copiloto/copiloto.routes.js'
 import backupRoutes from '../modules/backup/backup.routes.js'
@@ -56,6 +57,7 @@ router.use('/sistema', sistemaRoutes)
 // consultarlo sin sesión. El resto exige permiso 'plataforma:gestionar'.
 router.use('/plataforma', plataformaRoutes)
 router.use('/notificaciones', notificacionesRoutes)
+router.use('/avisos-terminal', avisosTerminalRoutes)
 router.use('/perfil', perfilRoutes)
 router.use('/copiloto', copilotoRoutes)
 router.use('/backup', backupRoutes)

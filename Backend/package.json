@@ -18,6 +18,7 @@
     "migrate:usuarios-prueba": "node scripts/marcar-usuarios-prueba.js",
     "migrate:sig-componentes": "node scripts/migrate-sig-componentes.js",
     "test": "vitest run",
+    "lint": "oxlint",
     "test:fechas": "node scripts/verificar-fechas-tz.js",
     "test:notificaciones": "node scripts/test-notificaciones.js",
     "test:flujo-notificaciones": "node scripts/test-flujo-notificaciones.js",
@@ -52,12 +53,16 @@
     "mongoose": "^8.5.0",
     "multer": "^2.0.1",
     "nodemailer": "^9.0.3",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
     "web-push": "^3.6.7",
+    "winston": "^3.19.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "mongodb-memory-server": "^10.1.2",
     "mysql2": "^3.11.0",
+    "oxlint": "^1.82.0",
     "supertest": "^7.0.0",
     "vitest": "^2.1.5"
   }

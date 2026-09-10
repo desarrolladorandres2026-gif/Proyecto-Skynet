@@ -14,7 +14,7 @@ export function TrendBadge({ actual, anterior, incrementoEsBueno = true, titulo 
   const pct = Math.round(((actual - anterior) / anterior) * 100)
   if (pct === 0) {
     return (
-      <span className="panel-mono inline-flex items-center gap-1 rounded-full bg-slate-400/10 px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+      <span className="panel-mono inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
         Sin cambio
       </span>
     )
@@ -26,10 +26,10 @@ export function TrendBadge({ actual, anterior, incrementoEsBueno = true, titulo 
     <span
       title={titulo}
       className={cn(
-        'panel-mono inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+        'panel-mono inline-flex items-center gap-1 text-[11px] font-semibold',
         esFavorable
-          ? 'bg-accent-400/10 text-accent-700 dark:text-accent-300'
-          : 'bg-rose-400/10 text-rose-700 dark:text-rose-300'
+          ? 'text-accent-700 dark:text-accent-300'
+          : 'text-rose-700 dark:text-rose-300'
       )}
     >
       {sube ? <TrendingUp className="h-3 w-3" aria-hidden="true" /> : <TrendingDown className="h-3 w-3" aria-hidden="true" />}

@@ -112,7 +112,7 @@ export function correoConexionCuenta({
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;">
             <tr>
               <td style="padding-bottom:20px;">
-                <span style="font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:4px;color:#00e5ff;">SKYNET</span>
+                <span style="font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:4px;color:#00e5ff;">TTN</span>
               </td>
             </tr>
 
@@ -127,7 +127,7 @@ export function correoConexionCuenta({
                 <span style="display:inline-block;font-family:${MONO};font-size:10px;font-weight:700;letter-spacing:0.14em;color:${color};border:1px solid ${color}55;border-radius:3px;padding:3px 8px;">⚠ SEGURIDAD</span>
                 <h1 style="margin:14px 0 4px;font-family:${SANS};font-size:18px;font-weight:700;color:#f1f5f9;">Intento de conexión de correo</h1>
                 <p style="margin:0 0 18px;font-family:${SANS};font-size:14px;line-height:1.6;color:#94a3b8;">
-                  Hola ${esc(nombreUsuario)}, alguien con acceso a tu cuenta de Skynet intentó conectar una cuenta de
+                  Hola ${esc(nombreUsuario)}, alguien con acceso a tu cuenta intentó conectar una cuenta de
                   <strong style="color:#e2e8f0;">${esc(proveedor)}</strong> al módulo Email. No se conectó nada todavía:
                   hace falta tu aprobación, desde este correo.
                 </p>
@@ -143,8 +143,8 @@ export function correoConexionCuenta({
                 ${boton(denegarLink, 'Denegar', { color: '#1e293b', colorTexto: '#cbd5e1' })}
 
                 <p style="margin:20px 0 0;font-family:${SANS};font-size:12px;line-height:1.6;color:#64748b;">
-                  Este enlace vence en ${ttlMinutos} minutos. Si no fuiste tú, denégalo y cambia tu contraseña de
-                  Skynet cuanto antes — alguien más tiene sesión iniciada en tu cuenta.
+                  Este enlace vence en ${ttlMinutos} minutos. Si no fuiste tú, denégalo y cambia tu contraseña
+                  cuanto antes — alguien más tiene sesión iniciada en tu cuenta.
                 </p>
               </td>
               <td style="border-right:1.5px solid ${color};padding:0;" width="12"></td>
@@ -157,7 +157,7 @@ export function correoConexionCuenta({
 
             <tr>
               <td style="padding-top:20px;font-family:${MONO};font-size:10px;letter-spacing:0.08em;color:#334155;">
-                SKYNET · TERMINAL DE TRANSPORTE NEIVA — correo automático, no respondas a este mensaje.
+                TERMINAL DE TRANSPORTES DE NEIVA — correo automático, no respondas a este mensaje.
               </td>
             </tr>
           </table>
@@ -197,7 +197,7 @@ function shellDespliegue({ badge, titulo, cuerpoHtml }) {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;">
             <tr>
               <td style="padding-bottom:20px;">
-                <span style="font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:4px;color:${COLOR_DESPLIEGUE};">SKYNET</span>
+                <span style="font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:4px;color:${COLOR_DESPLIEGUE};">TTN</span>
               </td>
             </tr>
             <tr>
@@ -221,7 +221,7 @@ function shellDespliegue({ badge, titulo, cuerpoHtml }) {
             </tr>
             <tr>
               <td style="padding-top:20px;font-family:${MONO};font-size:10px;letter-spacing:0.08em;color:#334155;">
-                SKYNET · TERMINAL DE TRANSPORTE NEIVA — correo automático, no respondas a este mensaje.
+                TERMINAL DE TRANSPORTES DE NEIVA — correo automático, no respondas a este mensaje.
               </td>
             </tr>
           </table>
@@ -243,7 +243,7 @@ function parrafo(texto, { destacado = false } = {}) {
 // interpolarse.
 export function correoPruebaComunicaciones() {
   const cuerpoHtml = [
-    parrafo('Esta es únicamente una prueba de funcionamiento del sistema de comunicaciones de Skynet.'),
+    parrafo('Esta es únicamente una prueba de funcionamiento del sistema de comunicaciones de la plataforma.'),
     parrafo('Estamos verificando que el sistema pueda enviar correctamente los mensajes a los usuarios registrados antes del lanzamiento oficial.'),
     parrafo('No es necesario realizar ninguna acción.'),
     parrafo('Si recibiste este mensaje, la prueba de comunicaciones funcionó correctamente.', { destacado: true }),
@@ -253,12 +253,12 @@ export function correoPruebaComunicaciones() {
 
 export function correoPruebaComunicacionesTexto() {
   return [
-    'Esta es únicamente una prueba de funcionamiento del sistema de comunicaciones de Skynet.',
+    'Esta es únicamente una prueba de funcionamiento del sistema de comunicaciones de la plataforma.',
     'Estamos verificando que el sistema pueda enviar correctamente los mensajes a los usuarios registrados antes del lanzamiento oficial.',
     'No es necesario realizar ninguna acción.',
     'Si recibiste este mensaje, la prueba de comunicaciones funcionó correctamente.',
     '',
-    '— Equipo Skynet',
+    '— Equipo Terminal de Transportes de Neiva',
   ].join('\n')
 }
 
@@ -268,30 +268,30 @@ export function correoPruebaComunicacionesTexto() {
 export function correoDespliegueOficial({ loginUrl }) {
   const cuerpoHtml = [
     parrafo('Hoy damos un nuevo paso en la forma en que gestionamos nuestra operación.'),
-    parrafo('Skynet ya está disponible. Tu acceso a la plataforma está habilitado.'),
-    boton(loginUrl, 'ACCEDER A SKYNET', { color: COLOR_DESPLIEGUE }),
+    parrafo('La plataforma ya está disponible. Tu acceso está habilitado.'),
+    boton(loginUrl, 'ACCEDER A LA PLATAFORMA', { color: COLOR_DESPLIEGUE }),
     parrafo('Te recomendamos ingresar con tus credenciales y realizar tu primer acceso.'),
     parrafo('Si es tu primer ingreso, durante la capacitación te acompañaremos paso a paso para que conozcas las principales funciones de la plataforma.'),
-    parrafo('Bienvenido a Skynet. Un solo sistema. Una operación más conectada.', { destacado: true }),
+    parrafo('Bienvenido al Terminal de Transportes de Neiva. Un solo sistema. Una operación más conectada.', { destacado: true }),
   ].join('\n')
   return shellDespliegue({ badge: '🚀 LANZAMIENTO', titulo: 'El sistema está listo.', cuerpoHtml })
 }
 
 export function correoDespliegueOficialTexto({ loginUrl }) {
   return [
-    'SKYNET',
+    'TERMINAL DE TRANSPORTES DE NEIVA',
     '',
     'El sistema está listo.',
     'Hoy damos un nuevo paso en la forma en que gestionamos nuestra operación.',
-    'Skynet ya está disponible. Tu acceso a la plataforma está habilitado.',
+    'La plataforma ya está disponible. Tu acceso está habilitado.',
     '',
     `Accede aquí: ${loginUrl}`,
     '',
     'Te recomendamos ingresar con tus credenciales y realizar tu primer acceso.',
     'Si es tu primer ingreso, durante la capacitación te acompañaremos paso a paso para que conozcas las principales funciones de la plataforma.',
     '',
-    'Bienvenido a Skynet. Un solo sistema. Una operación más conectada.',
+    'Bienvenido al Terminal de Transportes de Neiva. Un solo sistema. Una operación más conectada.',
     '',
-    '— Equipo Skynet',
+    '— Equipo Terminal de Transportes de Neiva',
   ].join('\n')
 }

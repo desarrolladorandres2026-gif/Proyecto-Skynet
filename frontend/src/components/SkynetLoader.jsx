@@ -53,7 +53,7 @@ export default function SkynetLoader({
               className={`${tamanoCore} bg-[#101f38] border border-[#4e7cbe]/50 flex items-center justify-center shadow-[0_0_15px_rgba(79, 124, 190,0.35)]`}
             >
               <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-[#d7e4f4] to-[#4e7cbe]">
-                S
+                T
               </span>
             </div>
           </div>
