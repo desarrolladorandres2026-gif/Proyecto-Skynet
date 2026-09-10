@@ -275,9 +275,9 @@ export default function CalendarioAusenciasPage() {
         ) : detalleDia.length === 0 ? (
           <EmptyState mensaje="Nadie tiene ausencias aprobadas este día" />
         ) : (
-          <div className="space-y-2">
+          <div className="divide-y divide-slate-500/10">
             {detalleDia.map((a) => (
-              <div key={a._id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-500/5 px-3 py-2">
+              <div key={a._id} className="flex flex-wrap items-center justify-between gap-3 py-2">
                 <div>
                   <p className="font-medium text-slate-900 dark:text-white">{nombreDe(a)}</p>
                   <p className="text-sm text-slate-500 dark:text-slate-400">

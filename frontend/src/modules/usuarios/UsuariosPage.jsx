@@ -367,7 +367,7 @@ export default function UsuariosPage() {
         <form onSubmit={guardar} className="space-y-4">
           <ErrorMsg>{errorForm}</ErrorMsg>
 
-          <div className="flex items-center gap-3 rounded-lg border border-slate-200/80 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-900/40">
+          <div className="flex items-center gap-3">
             <AvatarUsuario className="h-12 w-12 shadow-xs border-2 border-brand-500/30" />
             <div>
               <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">Foto de perfil oficial</p>

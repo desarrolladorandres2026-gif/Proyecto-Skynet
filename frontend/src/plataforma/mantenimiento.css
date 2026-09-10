@@ -70,7 +70,7 @@
    cambiar cada segundo — sin esto, un 11 seguido de un 00 desplaza toda la
    línea y el contador se ve nervioso. */
 .mant-contador {
-  font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  font-family: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   letter-spacing: 0.08em;

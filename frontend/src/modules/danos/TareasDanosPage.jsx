@@ -428,6 +428,7 @@ function ModalDetalle({ reporte, onCerrar, onSolicitarRepuesto }) {
           )}
         </div>
       )}
+      
 
       {!reporte.reparacion?.fecha && reporte.observacionAtencion && (
         <div className="mt-4 rounded-lg border border-brand-600/20 bg-brand-500/5 p-3 dark:border-brand-400/15">
@@ -559,7 +560,6 @@ export default function TareasDanosPage() {
   }
 
   async function verDetalle(reporte) {
-    setErrorDetalle('')
     try {
       const { reporte: completo } = await danosApi.detalle(reporte._id)
       setDetalle(completo)

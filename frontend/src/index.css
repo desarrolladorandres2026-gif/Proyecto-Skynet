@@ -1,20 +1,13 @@
 @import "tailwindcss";
 
-/* Tipografía self-hosted (@fontsource*): esta app es una PWA instalable
-   (vite-plugin-pwa, ver vite.config.js) — un <link> a Google Fonts/Fontshare
-   pelea contra el objetivo offline-first y agrega una petición de terceros
-   en cada carga. Cada @font-face trae su propio unicode-range: el navegador
-   solo descarga el archivo del subset que realmente aparece en la página
-   (aquí, latin/latin-ext), así que importar el index.css completo de cada
-   paquete (todos los pesos) no cuesta más en la práctica que importar solo
-   pesos puntuales — ninguna @font-face sin uso dispara una descarga.
-   JetBrains Mono ya se usaba como panel-mono en toda la app (no solo este
-   panel) pero nunca se cargó su archivo: sin @font-face en ningún lado, todo
-   ese texto renderizaba en la mono del sistema operativo. Esto lo corrige
-   gratis para toda la app, login incluido. */
-@import "@fontsource-variable/plus-jakarta-sans";
+/* Tipografía self-hosted (@fontsource-variable/inter): esta app es una PWA
+   instalable (vite-plugin-pwa, ver vite.config.js) — un <link> a Google
+   Fonts pelea contra el objetivo offline-first y agrega una petición de
+   terceros en cada carga. Inter es la ÚNICA familia tipográfica de toda la
+   app (títulos, cuerpo, formularios, tablas, stats, mono/labels incluidos):
+   la jerarquía se logra con peso (400/500/600/700), tamaño y espaciado, no
+   mezclando familias distintas. */
 @import "@fontsource-variable/inter";
-@import "@fontsource/jetbrains-mono";
 
 /* Los dos temas de shell (panel denso admin y shell móvil no-admin, ver
    layout/AppShell.jsx) se cargan SIEMPRE, sin importar cuál esté montado:
@@ -32,12 +25,14 @@
    claro/oscuro) de esta misma rampa --color-brand-* en vez de valores
    sueltos, para que un solo lugar controle el tono de marca. */
 @theme {
-  /* display = títulos con personalidad, sans = cuerpo/UI densa (la mayoría
-     de esta app: tablas y formularios), mono = datos/labels (panel-mono) —
-     mismo rol que cumplían antes, ahora con el archivo realmente cargado. */
-  --font-display: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  /* Inter como única familia tipográfica de toda la app. display/sans/mono
+     se mantienen como alias (los usan clases Tailwind font-display/font-sans
+     /font-mono repartidas por ~40 componentes) pero los tres apuntan a la
+     misma familia: la jerarquía se resuelve con peso, tamaño y espaciado,
+     no mezclando fuentes distintas para títulos, números o labels. */
+  --font-display: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --font-mono: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   /* IDENTIDAD DEL LOGO "El Terminal · Neiva": tres barras de color en
      diagonal ascendente (movimiento hacia el destino) — AZUL, VERDE y
@@ -157,16 +152,16 @@ body {
   min-height: 100svh;
 }
 
-/* Encabezados con personalidad propia (pedido explícito: "que cada título
-   tenga personalidad") sin tener que repetir font-display en cada <h1-4> de
-   las 39 páginas de módulo. */
+/* Jerarquía de encabezados vía peso + espaciado (no vía una familia
+   distinta): Inter en semibold/bold con tracking negativo leve. */
 @layer base {
 
   h1,
   h2,
   h3,
   h4 {
-    font-family: var(--font-display);
+    font-family: var(--font-sans);
+    font-weight: 600;
     letter-spacing: -0.01em;
   }
 }

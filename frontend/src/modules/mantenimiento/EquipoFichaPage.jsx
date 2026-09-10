@@ -100,7 +100,7 @@ export default function EquipoFichaPage() {
             ))}
           </dl>
           {equipo.observaciones && (
-            <p className="mt-3 rounded-lg bg-slate-900/5 p-2 text-sm text-slate-600 dark:bg-white/5 dark:text-slate-300">
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
               {equipo.observaciones}
             </p>
           )}
