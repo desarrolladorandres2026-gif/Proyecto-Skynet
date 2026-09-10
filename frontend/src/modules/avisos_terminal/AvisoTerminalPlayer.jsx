@@ -90,7 +90,18 @@ export default function AvisoTerminalPlayer() {
     // del requisito de estados).
     avisosTerminal.confirmarEstadoEntrega(siguiente._id, 'entregado').catch(() => {})
 
-    const resultado = await reproducir({ textoLocucion: siguiente.aviso.textoLocucion, avisoId: siguiente.aviso._id })
+    let resultado
+    try {
+      resultado = await reproducir({ textoLocucion: siguiente.aviso.textoLocucion, avisoId: siguiente.aviso._id })
+    } catch {
+      // Cualquier fallo inesperado en la cadena de audio (campanita, fetch
+      // del audio institucional, síntesis local) NUNCA debe dejar la cola
+      // congelada esperando una promesa que ya no va a resolver — sin este
+      // catch, procesandoRef.current se quedaba en true para siempre y
+      // ningún aviso nuevo volvía a sonar solo hasta recargar la app (el
+      // bug real reportado: "el aviso queda pendiente hasta reabrir").
+      resultado = { completado: false, bloqueadoPorAutoplay: false }
+    }
 
     if (resultado.bloqueadoPorAutoplay) {
       // El navegador no dejó que la voz arrancara sola (sin gesto reciente):
@@ -134,12 +145,14 @@ export default function AvisoTerminalPlayer() {
     esperandoGestoRef.current = false
     procesandoRef.current = true
     setEstadoVisual('reproduciendo')
-    reintentar().then((resultado) => {
-      if (resultado.completado) {
-        avisosTerminal.confirmarEstadoEntrega(entregaActual._id, 'reproducido').catch(() => {})
-      }
-      avanzarOFinalizar()
-    })
+    reintentar()
+      .then((resultado) => {
+        if (resultado.completado) {
+          avisosTerminal.confirmarEstadoEntrega(entregaActual._id, 'reproducido').catch(() => {})
+        }
+      })
+      .catch(() => {}) // ver el catch de procesarSiguiente: nunca dejar la cola congelada
+      .finally(() => avanzarOFinalizar())
   }, [avanzarOFinalizar, entregaActual, reintentar])
 
   const repetir = useCallback(() => {
@@ -147,7 +160,9 @@ export default function AvisoTerminalPlayer() {
     limpiarGracia()
     procesandoRef.current = true
     setEstadoVisual('reproduciendo')
-    reintentar().then(() => avanzarOFinalizar())
+    reintentar()
+      .catch(() => {})
+      .finally(() => avanzarOFinalizar())
   }, [avanzarOFinalizar, entregaActual, limpiarGracia, reintentar])
 
   const detenerTodo = useCallback(() => {

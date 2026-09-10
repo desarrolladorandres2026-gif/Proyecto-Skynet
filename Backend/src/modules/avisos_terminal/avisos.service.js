@@ -113,6 +113,20 @@ async function resolverDestinatarios({ tipo, usuarios, rol, dependencia }) {
 // disponible por *polling* en cuanto la persona abra la app (ver
 // listarPendientes) — un dispositivo desconectado nunca es un error, solo
 // una entrega diferida.
+// urgency:'high' le dice al servicio de push del navegador (FCM en
+// Android/Chrome, APNs en iOS/Safari) que este mensaje puede despertar al
+// dispositivo incluso en modo ahorro de batería/Doze — es la única palanca
+// real que expone la Web Push API para pedir entrega prioritaria; no hay
+// forma de ir más allá de esto desde una PWA sin código nativo (ver
+// AvisoTerminalPlayer.jsx y la nota de arquitectura en avisos.routes.js).
+// TTL corto (1h, no las 4 semanas por defecto de la librería): un aviso
+// institucional que no se pudo entregar en una hora ya no tiene sentido
+// como notificación "en tiempo real" — mejor que el servicio de push lo
+// descarte a que aparezca de sorpresa horas después. Coincide con
+// VENTANA_AUTOPLAY_MS en listarPendientes(), que aplica el mismo criterio
+// del lado del polling.
+const TTL_PUSH_SEGUNDOS = 3600
+
 async function enviarPushEntrega(entrega, aviso) {
   try {
     const suscripciones = await PushSubscription.find({ usuario: entrega.usuario, estado: 'activa' })
@@ -136,7 +150,11 @@ async function enviarPushEntrega(entrega, aviso) {
     await Promise.allSettled(
       suscripciones.map(async (sub) => {
         try {
-          await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload)
+          await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            payload,
+            { urgency: 'high', TTL: TTL_PUSH_SEGUNDOS }
+          )
           idsExitosos.push(sub._id)
         } catch (err) {
           // 404/410 = el navegador descartó la suscripción (mismo criterio
@@ -366,10 +384,23 @@ export async function probarVozInstitucional(texto, voz) {
 // Entregas que el reproductor global (AvisoTerminalPlayer.jsx) todavía no ha
 // confirmado como reproducidas — es lo que trae el polling y lo que dispara
 // el Service Worker vía postMessage cuando llega un push en primer plano.
+// Un Aviso Terminal de Neiva es un anuncio EN VIVO, no un mensaje que deba
+// esperar en bandeja: si nadie lo recibió en la primera hora (dispositivo
+// apagado, sin señal, app nunca abierta), reproducirlo tarde ya no
+// corresponde al momento del aviso original y solo confunde ("¿esto es de
+// ahora?"). Mismo criterio y misma ventana que TTL_PUSH_SEGUNDOS en
+// enviarPushEntrega(): pasada la hora, la entrega deja de aparecer aquí (no
+// se auto-reproduce ni se acumula en la cola del reproductor) aunque siga
+// existiendo en la base para el historial/auditoría — nunca se borra ni se
+// oculta de "Mis avisos".
+const VENTANA_AUTOPLAY_MS = 60 * 60 * 1000
+
 export async function listarPendientes(usuarioId) {
+  const corte = new Date(Date.now() - VENTANA_AUTOPLAY_MS)
   const entregas = await AvisoTerminalEntrega.find({
     usuario: usuarioId,
     estado: { $in: ['pendiente', 'enviado', 'entregado'] },
+    createdAt: { $gte: corte },
   })
     .populate({ path: 'aviso', select: 'texto textoLocucion createdAt' })
     .sort({ createdAt: 1 })

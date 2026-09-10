@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Megaphone, Volume2, Send, X, Search } from 'lucide-react'
 import { avisosTerminal } from '../../api/avisosTerminal.js'
-import { useDatosConCache, invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
-import { Field, Input, Select, Textarea, Btn, Badge, EmptyState, TablaWrap, Th, Td, ErrorMsg, OkMsg, Pager, fmtFechaHora } from '../../components/ui.jsx'
+import { useDatosConCache } from '../../hooks/useDatosConCache.js'
+import { Field, Input, Select, Textarea, Btn, ErrorMsg, OkMsg } from '../../components/ui.jsx'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 import { useAnuncioVoz } from './useAnuncioVoz.js'
 import { SelectorVozAviso } from './SelectorVozAviso.jsx'
@@ -28,7 +27,6 @@ function resumenDestinatarios({ tipo, usuarios, rolNombre, dependencia }) {
 }
 
 export default function TransmitirAvisoPage() {
-  const navigate = useNavigate()
   const [texto, setTexto] = useState('')
   const [tipo, setTipo] = useState('todos')
   const [usuariosSeleccionados, setUsuariosSeleccionados] = useState([])
@@ -40,7 +38,6 @@ export default function TransmitirAvisoPage() {
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
-  const [page, setPage] = useState(1)
 
   const { reproducir, detener, reproduciendo, vocesDisponibles, vozElegidaURI, elegirVoz, probarVoz } = useAnuncioVoz()
 
@@ -111,14 +108,6 @@ export default function TransmitirAvisoPage() {
     }
   }
 
-  const { data: historialData, cargando: cargandoHistorial, recargar: recargarHistorial } = useDatosConCache(
-    `avisosTerminal:historial:${page}`,
-    () => avisosTerminal.historial({ page }),
-    { ttlMs: 15_000 }
-  )
-  const avisos = historialData?.avisos || []
-  const paginasHistorial = historialData?.pages || 1
-
   // Búsqueda de usuarios con pequeño debounce: cada tecla no debe disparar
   // una petición — solo cuando la persona hace una pausa al escribir.
   const debounceRef = useRef(null)
@@ -181,9 +170,6 @@ export default function TransmitirAvisoPage() {
       setUsuariosSeleccionados([])
       setRolId('')
       setDependencia('')
-      setPage(1)
-      invalidarCachePorPrefijo('avisosTerminal:historial:')
-      recargarHistorial()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -365,47 +351,6 @@ export default function TransmitirAvisoPage() {
           </p>
         </div>
       </div>
-
-      <h2 className="mt-8 mb-3 text-lg font-semibold text-slate-900 dark:text-white">Historial de avisos transmitidos</h2>
-      {!cargandoHistorial && avisos.length === 0 ? (
-        <EmptyState mensaje="Todavía no se ha transmitido ningún aviso" />
-      ) : (
-        <>
-          <TablaWrap>
-            <thead>
-              <tr>
-                <Th>Fecha</Th>
-                <Th>Administrador</Th>
-                <Th>Destinatarios</Th>
-                <Th>Mensaje</Th>
-                <Th>Enviados</Th>
-                <Th>Entregados</Th>
-                <Th>Reproducidos</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {avisos.map((a) => (
-                <tr
-                  key={a._id}
-                  onClick={() => navigate(`/avisos-terminal/${a._id}`)}
-                  className="cursor-pointer hover:bg-brand-500/5"
-                >
-                  <Td>{fmtFechaHora(a.createdAt)}</Td>
-                  <Td>{a.creadoPor?.nombre}</Td>
-                  <Td>
-                    <Badge valor={a.destinatarios?.tipo} label={a.destinatarios?.etiqueta || a.destinatarios?.tipo} />
-                  </Td>
-                  <Td className="max-w-xs truncate">{a.texto}</Td>
-                  <Td>{(a.conteos?.enviado || 0) + (a.conteos?.entregado || 0) + (a.conteos?.reproducido || 0)}/{a.totalDestinatarios}</Td>
-                  <Td>{(a.conteos?.entregado || 0) + (a.conteos?.reproducido || 0)}/{a.totalDestinatarios}</Td>
-                  <Td>{a.conteos?.reproducido || 0}/{a.totalDestinatarios}</Td>
-                </tr>
-              ))}
-            </tbody>
-          </TablaWrap>
-          <Pager page={page} pages={paginasHistorial} onPage={setPage} />
-        </>
-      )}
 
       <ConfirmDialog
         abierto={confirmando}

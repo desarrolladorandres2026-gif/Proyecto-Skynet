@@ -92,28 +92,50 @@ function reproducirCampanitaSintetizada(volumen) {
 // sabe; se resuelve la primera vez que se reproduce un aviso.
 let archivoDedicadoDisponible = null
 
+// Tope duro para el intento del archivo dedicado: sin esto, un <audio> hacia
+// un recurso 404 puede disparar el evento 'error' Y el rechazo de
+// audio.play() por separado (llamando dos veces a la campanita sintetizada,
+// una encima de la otra) o, en algunos WebView/Safari viejos, NINGUNO de los
+// dos de forma confiable — dejando esta promesa colgada para siempre. Como
+// el aviso entero espera a que la campanita termine antes de hablar (ver
+// useAnuncioVoz.js), una campanita colgada significaba un Aviso Terminal de
+// Neiva que nunca llegaba a reproducirse ni a liberar la cola automática
+// del siguiente aviso — el bug real detrás de "el aviso se queda pendiente
+// hasta reabrir la app" (auditoría 2026-09-10).
+const TIMEOUT_ARCHIVO_DEDICADO_MS = 800
+
 // `volumen` en 0-1, relativo al volumen multimedia del dispositivo (nunca
 // toca el volumen del sistema — ver requisitos de audibilidad). Devuelve una
 // promesa que se resuelve cuando la campanita terminó de sonar, para que el
-// llamador pueda encadenar la pausa + la voz después.
+// llamador pueda encadenar la pausa + la voz después. GARANTIZADO a resolver
+// (nunca queda colgada ni dispara dos veces la sintetizada) gracias al
+// flag `decidido` de una sola vía y al timeout de arriba.
 export function reproducirCampanita({ volumen = 0.8 } = {}) {
   if (archivoDedicadoDisponible === false) {
     return reproducirCampanitaSintetizada(volumen)
   }
 
   return new Promise((resolve) => {
-    let resuelto = false
-    const terminar = (disponible) => {
-      archivoDedicadoDisponible = disponible
-      if (resuelto) return
-      resuelto = true
+    let decidido = false
+
+    const irASintetizada = () => {
+      if (decidido) return
+      decidido = true
+      archivoDedicadoDisponible = false
+      reproducirCampanitaSintetizada(volumen).then(resolve)
+    }
+    const terminarConExito = () => {
+      if (decidido) return
+      decidido = true
+      archivoDedicadoDisponible = true
       resolve()
     }
 
     const audio = new Audio(RUTA_ARCHIVO_DEDICADO)
     audio.volume = Math.min(1, Math.max(0, volumen))
-    audio.addEventListener('ended', () => terminar(true), { once: true })
-    audio.addEventListener('error', () => reproducirCampanitaSintetizada(volumen).then(() => terminar(false)), { once: true })
-    audio.play().catch(() => reproducirCampanitaSintetizada(volumen).then(() => terminar(false)))
+    audio.addEventListener('ended', terminarConExito, { once: true })
+    audio.addEventListener('error', irASintetizada, { once: true })
+    audio.play().catch(irASintetizada)
+    setTimeout(irASintetizada, TIMEOUT_ARCHIVO_DEDICADO_MS)
   })
 }

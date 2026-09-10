@@ -65,6 +65,25 @@ self.addEventListener('push', (event) => {
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
         data: { url, tipo },
+        // Avisos Terminal de Neiva: se comportan como un anuncio oficial, no
+        // como un mensaje de chat que se puede pasar por alto.
+        // requireInteraction mantiene la notificación visible hasta que la
+        // persona la atienda (Android igual puede recortarla tras un rato en
+        // segundo plano — es un pedido, no una garantía del sistema, pero es
+        // lo más fuerte que expone la Notifications API). El patrón de
+        // vibración es intencionalmente distinto al de cualquier otra
+        // notificación del sistema (dos pulsos cortos + uno largo) para que
+        // se sienta a un anuncio institucional y no a un mensaje cualquiera.
+        // La acción "Escuchar ahora" es un atajo directo al mismo destino
+        // que tocar el cuerpo (ver notificationclick abajo) — mismo
+        // resultado, solo una superficie de toque adicional.
+        ...(esAvisoTerminal
+          ? {
+              requireInteraction: true,
+              vibrate: [200, 80, 200, 80, 400],
+              actions: [{ action: 'escuchar', title: '🔊 Escuchar ahora' }],
+            }
+          : {}),
       }),
       // Le avisa a cada pestaña/ventana abierta de la PWA que llegó un push
       // real. La campana (useCentroNotificaciones.js) escucha
