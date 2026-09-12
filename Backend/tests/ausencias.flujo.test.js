@@ -31,13 +31,19 @@ async function crearPermiso(codigo) {
   return Permiso.findOneAndUpdate({ codigo }, { codigo, modulo, accion, nombre: codigo }, { upsert: true, new: true })
 }
 
+// Se concede siempre 'notificaciones:recibir_email' porque el canal correo lo
+// exige (ver notificaciones.service.js) y estas pruebas verifican que
+// Ausencias avise a quien aprueba y al solicitante. En producción ambos lo
+// tienen: Talento Humano lo trae del seed y el solicitante recibe igual el
+// push y la campana interna aunque su rol no lo tenga.
 async function crearActor(codigo) {
   const permiso = codigo ? await crearPermiso(codigo) : null
+  const permisoEmail = await crearPermiso('notificaciones:recibir_email')
   const sufijo = Math.random().toString(36).slice(2)
   const rol = await Rol.create({
     nombre: `Rol-${sufijo}`,
     slug: `rol-${sufijo}`,
-    permisos: permiso ? [permiso._id] : [],
+    permisos: permiso ? [permiso._id, permisoEmail._id] : [permisoEmail._id],
   })
   const usuario = await Usuario.create({
     nombre_usuario: `user-${sufijo}`,

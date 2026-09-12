@@ -102,7 +102,7 @@ describe('Backup — generación del Excel', () => {
 
     expect(res.status).toBe(200)
     expect(res.headers['content-type']).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    expect(res.headers['content-disposition']).toMatch(/attachment; filename="skynet-backup-\d{4}-\d{2}-\d{2}\.xlsx"/)
+    expect(res.headers['content-disposition']).toMatch(/attachment; filename="ttn-backup-\d{4}-\d{2}-\d{2}\.xlsx"/)
 
     const workbook = new ExcelJS.Workbook()
     await workbook.xlsx.load(res.body)

@@ -207,6 +207,27 @@ export async function crearYTransmitirAviso({ texto, destinatarios, voz, admin }
     })
   }
 
+  // Un Aviso Terminal es un anuncio EN VIVO, no una bandeja de mensajes:
+  // solo debe sonar el más reciente. Sin este paso, alguien que no tuvo la
+  // app abierta mientras se transmitían varios avisos seguidos los
+  // encontraba TODOS pendientes al volver a entrar (ver listarPendientes,
+  // hasta 10 dentro de la última hora) y el reproductor los encolaba uno
+  // tras otro apenas conectaba — el bug real reportado: "se acumulan y
+  // hablan todos casi al mismo tiempo". Cancelar aquí lo que seguía sin
+  // reproducirse de CUALQUIER aviso anterior — sin importar destinatario —
+  // garantiza que solo quede pendiente el que se transmite ahora, igual que
+  // un sistema de altavoces real: el anuncio nuevo reemplaza al que no
+  // alcanzó a sonar, no se hace fila. Debe ejecutarse ANTES de crear las
+  // entregas nuevas de abajo (nunca en paralelo con ellas) para no arriesgar
+  // que el propio insertMany quede atrapado por este mismo updateMany. No
+  // toca 'reproducido' (ya se escuchó, es historia) ni 'fallido' (otro
+  // estado terminal): "Mis avisos" sigue mostrando el aviso igual, solo que
+  // como no reproducido.
+  await AvisoTerminalEntrega.updateMany(
+    { estado: { $in: ['pendiente', 'enviado', 'entregado'] } },
+    { $set: { estado: 'cancelado', canceladoEn: new Date() } }
+  )
+
   const aviso = await AvisoTerminal.create({
     texto: textoLimpio,
     textoLocucion,

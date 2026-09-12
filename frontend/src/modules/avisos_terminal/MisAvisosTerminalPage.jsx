@@ -73,7 +73,14 @@ export default function MisAvisosTerminalPage() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-slate-700 dark:text-slate-200">{e.aviso.texto}</p>
                   <p className="panel-mono mt-0.5 text-[11px] tracking-wide text-slate-400 uppercase">
-                    {fmtFechaHora(e.aviso.createdAt)} · {e.estado === 'reproducido' ? 'Reproducido' : e.estado === 'entregado' ? 'Recibido' : 'Enviado'}
+                    {fmtFechaHora(e.aviso.createdAt)} ·{' '}
+                    {e.estado === 'reproducido'
+                      ? 'Reproducido'
+                      : e.estado === 'entregado'
+                        ? 'Recibido'
+                        : e.estado === 'cancelado'
+                          ? 'Reemplazado por un aviso más nuevo'
+                          : 'Enviado'}
                   </p>
                 </div>
               </div>

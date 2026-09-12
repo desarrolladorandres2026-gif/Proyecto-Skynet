@@ -43,10 +43,19 @@ async function enviarConReintentos(datosCorreo, intentos = 3) {
 }
 
 // Nombre de remitente explícito: sin él, el cliente de correo muestra el
-// nombre de perfil de la cuenta de Gmail usada como SMTP (p. ej. "sigittn"),
-// no "Skynet" — confuso para quien lo recibe y además una señal más de
-// remitente genérico/no confiable para los filtros antispam.
-const REMITENTE = `"Terminal de Transportes de Neiva" <${env.EMAIL_FROM}>`
+// nombre de perfil de la cuenta usada como SMTP (p. ej. "sigittn" o
+// "resend"), que para quien recibe es un remitente desconocido y para los
+// filtros antispam una señal más de correo genérico.
+//
+// Es la institución la que remite, no el sistema: quien recibe el correo
+// reconoce "El Terminal de Neiva", no el nombre interno de la plataforma.
+// Ojo con lo que este valor NO puede cambiar: la DIRECCIÓN sigue siendo
+// EMAIL_FROM (hoy notificaciones@skynetttn.online), y Gmail la muestra al
+// lado del nombre. Para que tampoco aparezca ahí el dominio de la
+// plataforma hay que verificar elterminalneiva.com en el proveedor SMTP
+// (Resend: registros SPF/DKIM en el DNS del dominio) y solo entonces
+// apuntar EMAIL_FROM allí — no es algo que se resuelva en el código.
+const REMITENTE = `"El Terminal de Neiva" <${env.EMAIL_FROM}>`
 
 // Punto de entrada genérico usado por notificaciones.service.js (y por
 // cualquier flujo transaccional futuro que necesite mandar un correo con
