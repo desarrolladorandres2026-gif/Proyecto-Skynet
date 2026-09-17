@@ -5,32 +5,24 @@ import { cn } from '../../lib/cn.js'
 
 const ESTILOS_TIPO = {
   critico: {
-    borde: 'border-rose-200 hover:border-rose-300 dark:border-rose-500/30 dark:hover:border-rose-500/50',
-    bg: 'bg-rose-50/70 dark:bg-rose-950/30',
     icono: AlertCircle,
     colorIcono: 'text-rose-600 dark:text-rose-400',
     badge: 'bg-rose-500/10 text-rose-700 border-rose-500/20 dark:text-rose-300',
     btn: 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-900/20',
   },
   advertencia: {
-    borde: 'border-warn-200 hover:border-warn-300 dark:border-warn-500/30 dark:hover:border-warn-500/50',
-    bg: 'bg-warn-50/70 dark:bg-warn-950/30',
     icono: AlertTriangle,
     colorIcono: 'text-warn-600 dark:text-warn-400',
     badge: 'bg-warn-500/10 text-warn-700 border-warn-500/20 dark:text-warn-300',
     btn: 'bg-warn-600 hover:bg-warn-500 text-white shadow-warn-900/20',
   },
   optimizacion: {
-    borde: 'border-accent-200 hover:border-accent-300 dark:border-accent-500/30 dark:hover:border-accent-500/50',
-    bg: 'bg-accent-50/70 dark:bg-accent-950/30',
     icono: CheckCircle,
     colorIcono: 'text-accent-600 dark:text-accent-400',
     badge: 'bg-accent-500/10 text-accent-700 border-accent-500/20 dark:text-accent-300',
     btn: 'bg-accent-600 hover:bg-accent-500 text-white shadow-accent-900/20',
   },
   informativo: {
-    borde: 'border-brand-200 hover:border-brand-300 dark:border-brand-500/30 dark:hover:border-brand-500/50',
-    bg: 'bg-brand-50/70 dark:bg-brand-950/30',
     icono: Info,
     colorIcono: 'text-brand-600 dark:text-brand-400',
     badge: 'bg-brand-500/10 text-brand-700 border-brand-500/20 dark:text-brand-300',
@@ -51,7 +43,7 @@ export function AnalisisRecomendaciones({ recomendaciones = [], className = '' }
   const conteoAdvertencia = recomendaciones.filter((r) => r.tipo === 'advertencia').length
 
   return (
-    <div className={cn('flex flex-col rounded-xl border border-slate-200 bg-white/95 p-4 shadow-soft-sm backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/70 w-full', className)}>
+    <div className={cn('flex flex-col w-full', className)}>
       <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-800/80">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -111,11 +103,7 @@ export function AnalisisRecomendaciones({ recomendaciones = [], className = '' }
           return (
             <div
               key={item.id}
-              className={cn(
-                'group flex items-start justify-between gap-3 rounded-lg border p-2.5 transition-all duration-150 hover:shadow-soft-xs',
-                estilo.borde,
-                estilo.bg
-              )}
+              className="group flex items-start justify-between gap-3 py-2.5 border-b border-slate-100 last:border-b-0 dark:border-slate-800/80"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">

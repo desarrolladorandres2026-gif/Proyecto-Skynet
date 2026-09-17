@@ -329,7 +329,7 @@ describe('CAMBIO DE PASSWORD (autoservicio, sesión ya autenticada)', () => {
     expect(res.status).toBe(401)
   })
 
-  it('rechaza una contraseña nueva que no cumple la política (mínimo 12 caracteres)', async () => {
+  it('rechaza una contraseña nueva que no cumple la política (mínimo 8 caracteres)', async () => {
     const token = firmarToken(usuario)
     const res = await request(app)
       .post('/api/auth/cambiar-password')

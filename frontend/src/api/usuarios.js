@@ -16,7 +16,7 @@ export const usuarios = {
   convertirReal(id) {
     return request(`/usuarios/${id}/convertir-real`, { method: 'POST' })
   },
-  eliminar(id) {
-    return request(`/usuarios/${id}`, { method: 'DELETE' })
+  eliminar(id, password) {
+    return request(`/usuarios/${id}`, { method: 'DELETE', body: JSON.stringify({ password }) })
   },
 }

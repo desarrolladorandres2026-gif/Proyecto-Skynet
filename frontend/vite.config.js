@@ -64,7 +64,7 @@ export default defineConfig({
       // navegador por spec solo revisa SW nuevo una vez cada 24h por su
       // cuenta, lo cual es la causa real de que haga falta Ctrl+Shift+R).
       injectRegister: false,
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icons/icon-512-maskable.png'],
       injectManifest: {
         // El motor de voz offline (vosk-browser) son ~5,8 MB de WebAssembly
         // que SOLO usa el asistente de escritorio (ver
@@ -93,9 +93,20 @@ export default defineConfig({
         display: 'standalone',
         start_url: '/',
         icons: [
-          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          // El ícono normal ocupa el lienzo casi borde a borde, así que al
+          // aplicarle una máscara adaptable (círculo/squircle en Android)
+          // "El Terminal NEIVA" quedaba cortado. Este archivo tiene el mismo
+          // logo pero reducido al ~62% del lienzo, dentro de la zona segura
+          // que garantiza el spec de maskable icons para cualquier forma de
+          // máscara (ver public/icons/icon-512-maskable.png).
+          {
+            src: 'icons/icon-512-maskable.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
         ],
       },
     }),

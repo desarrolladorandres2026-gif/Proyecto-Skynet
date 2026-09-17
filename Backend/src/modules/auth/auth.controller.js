@@ -116,6 +116,21 @@ function populateRol(query) {
   return query.populate({ path: 'rol', populate: { path: 'permisos', select: 'codigo' } })
 }
 
+export { populateRol }
+
+// Reemite la cookie de sesión del propio actor tras una acción que él mismo
+// disparó y que de otro modo lo desautenticaría (p. ej. editar el rol que él
+// mismo tiene, ver roles.controller.js). Requiere `usuario` con `rol`
+// populado y `sesionesActivas` seleccionado, y ya con el tokenVersion NUEVO
+// (post-invalidación) — si no, esta misma reemisión quedaría invalidada por
+// el $inc que la disparó.
+export async function reemitirSesion(usuario, res) {
+  const jti = crypto.randomBytes(16).toString('hex')
+  await registrarSesion(usuario, jti)
+  const token = firmarToken(usuario, jti)
+  setAuthCookie(res, token)
+}
+
 // Adjunta las keys de módulos desactivados por el Super Admin: el frontend
 // las usa para ocultar módulos del sidebar y bloquear sus rutas (AuthContext.
 // moduloActivo). No es dato de autorización — el backend ya bloquea por su

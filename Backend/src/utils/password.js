@@ -7,7 +7,7 @@ export const BCRYPT_ROUNDS = 12
 
 // Longitud mínima de contraseña. La longitud es el factor de fortaleza más
 // eficaz frente a complejidad forzada de caracteres.
-export const PASSWORD_MIN = 12
+export const PASSWORD_MIN = 8
 
 // bcrypt solo usa los primeros 72 bytes de la contraseña. Rechazar longitudes
 // mayores evita una falsa sensación de fortaleza (los caracteres extra se

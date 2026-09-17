@@ -10,6 +10,7 @@ import { Btn, Badge, ErrorMsg, Field, Input, Select, Modal } from '../../compone
 import { CatalogoSelect } from '../../components/CatalogoSelect.jsx'
 import { DataTable } from '../../components/DataTable.jsx'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
+import ReautenticacionModal from '../../components/ReautenticacionModal.jsx'
 import { CheckboxLabel } from '../../components/Checkbox.jsx'
 import { AvatarUsuario } from '../../components/AvatarUsuario.jsx'
 
@@ -79,7 +80,6 @@ export default function UsuariosPage() {
   const [errorForm, setErrorForm] = useState('')
 
   const [porEliminar, setPorEliminar] = useState(null)
-  const [eliminando, setEliminando] = useState(false)
 
   const [porConvertir, setPorConvertir] = useState(null)
   const [convirtiendo, setConvirtiendo] = useState(false)
@@ -150,18 +150,10 @@ export default function UsuariosPage() {
     }
   }
 
-  async function confirmarEliminar() {
-    setEliminando(true)
-    try {
-      await usuariosApi.eliminar(porEliminar._id)
-      toast.success('Usuario eliminado')
-      setPorEliminar(null)
-      recargar()
-    } catch (err) {
-      toast.error(err.message)
-    } finally {
-      setEliminando(false)
-    }
+  async function confirmarEliminar(password) {
+    await usuariosApi.eliminar(porEliminar._id, password)
+    toast.success('Usuario eliminado')
+    recargar()
   }
 
   async function confirmarConvertir() {
@@ -397,7 +389,7 @@ export default function UsuariosPage() {
                   // Debe coincidir con PASSWORD_MIN de Backend/src/utils/password.js:
                   // con un mínimo menor, el navegador deja enviar el formulario y el
                   // rechazo llega como error 400 del servidor en vez de validarse aquí.
-                  minLength={12}
+                  minLength={8}
                   className="pr-9"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -416,7 +408,7 @@ export default function UsuariosPage() {
               <Input
                 type={mostrarPassword ? 'text' : 'password'}
                 required={!editandoId || Boolean(form.password)}
-                minLength={12}
+                minLength={8}
                 value={form.confirmarPassword}
                 onChange={(e) => setForm({ ...form, confirmarPassword: e.target.value })}
               />
@@ -484,14 +476,12 @@ export default function UsuariosPage() {
         </form>
       </Modal>
 
-      <ConfirmDialog
+      <ReautenticacionModal
         abierto={Boolean(porEliminar)}
-        onCancelar={() => setPorEliminar(null)}
-        onConfirmar={confirmarEliminar}
-        cargando={eliminando}
         titulo={`¿Eliminar al usuario "${porEliminar?.nombre_usuario}"?`}
-        descripcion="Esta acción no se puede deshacer."
-        confirmarLabel="Eliminar"
+        descripcion="Esta acción no se puede deshacer. Reingresa tu contraseña para confirmar."
+        onConfirmar={confirmarEliminar}
+        onCerrar={() => setPorEliminar(null)}
       />
 
       <ConfirmDialog

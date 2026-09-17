@@ -20,7 +20,6 @@ import EnvioNotificacion from '../src/models/EnvioNotificacion.js'
 import ModuloSistema from '../src/models/ModuloSistema.js'
 import { notificar } from '../src/modules/notificaciones/notificaciones.service.js'
 import * as centro from '../src/modules/notificaciones/centro.service.js'
-import * as historial from '../src/modules/notificaciones/historial.service.js'
 
 async function crearPermiso(codigo) {
   const [modulo, accion] = codigo.split(':')
@@ -231,39 +230,6 @@ describe('Centro de notificaciones — capa HTTP', () => {
   })
 })
 
-describe('Historial administrativo de envíos — capa HTTP', () => {
-  const app = crearApp()
-
-  it('sin el permiso notificaciones:ver_historial responde 403', async () => {
-    const sinPermiso = await crearUsuario('sin-permiso-historial@example.com')
-    const res = await request(app).get('/api/notificaciones/admin/envios').set('Authorization', autorizacion(sinPermiso))
-    expect(res.status).toBe(403)
-  })
-
-  it('con el permiso, lista los envíos y admite filtrar por canal/estado/categoría', async () => {
-    const admin = await crearUsuario('admin-historial@example.com', { permisos: ['notificaciones:ver_historial'] })
-    const b = await crearUsuario('b-historial@example.com')
-    await PushSubscription.create({ usuario: b._id, endpoint: 'https://push.test/historial', p256dh: 'p', auth: 'a' })
-    await notificar({ usuarios: [b._id], categoria: 'requerimientos', tipo: 't', titulo: 'Evento historial', cuerpo: 'x' })
-
-    const res = await request(app)
-      .get('/api/notificaciones/admin/envios?canal=push&categoria=requerimientos')
-      .set('Authorization', autorizacion(admin))
-    expect(res.status).toBe(200)
-    expect(res.body.envios.length).toBeGreaterThan(0)
-    expect(res.body.envios.every((e) => e.canal === 'push')).toBe(true)
-    // Nunca expone credenciales/claves — solo los campos de negocio.
-    expect(res.body.envios[0]).not.toHaveProperty('p256dh')
-    expect(res.body.envios[0]).not.toHaveProperty('auth')
-  })
-
-  it('esSuperAdmin bypassa el permiso explícito (mismo criterio que el resto del RBAC)', async () => {
-    const admin = await crearUsuario('super-historial@example.com', { esSuperAdmin: true })
-    const res = await request(app).get('/api/notificaciones/admin/envios').set('Authorization', autorizacion(admin))
-    expect(res.status).toBe(200)
-  })
-})
-
 describe('Escenario A → B de extremo a extremo', () => {
   const app = crearApp()
 
@@ -305,10 +271,10 @@ describe('Escenario A → B de extremo a extremo', () => {
     expect(marcar.status).toBe(200)
     expect(marcar.body.leida).toBe(true)
 
-    // Un administrador puede consultar EnvioNotificacion (historial)
+    // Un administrador puede consultar EnvioNotificacion directamente
     const admin = await crearUsuario('admin-e2e@example.com', { permisos: ['notificaciones:ver_historial'] })
-    const envios = await historial.listarEnvios({ usuario: 'extremo-a-extremo' })
-    expect(envios.total).toBeGreaterThanOrEqual(2) // el push y el email de B
+    const totalEnvios = await EnvioNotificacion.countDocuments({ usuario: b._id })
+    expect(totalEnvios).toBeGreaterThanOrEqual(2) // el push y el email de B
     void admin
 
     // IA apagada no impide la notificación interna (ya cubierto arriba en

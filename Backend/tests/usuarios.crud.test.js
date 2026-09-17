@@ -182,14 +182,14 @@ describe('Usuarios — crear', () => {
     expect(res.status).toBe(400)
   })
 
-  it('rechaza una contraseña por debajo del mínimo de política (12 caracteres)', async () => {
+  it('rechaza una contraseña por debajo del mínimo de política (8 caracteres)', async () => {
     const res = await request(app)
       .post('/api/usuarios')
       .set('Authorization', authAdmin)
       .send({ ...nuevo(), password: 'corta1' })
 
     expect(res.status).toBe(400)
-    expect(res.body.error).toMatch(/12 caracteres/)
+    expect(res.body.error).toMatch(/8 caracteres/)
   })
 
   it('rechaza un rol inexistente o con id malformado sin reventar en 500', async () => {
