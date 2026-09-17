@@ -34,6 +34,26 @@ export const PERMISOS = [
   // criterio que auditoria:leer.
   permiso('notificaciones', 'ver_historial', 'Ver historial de envíos de notificaciones'),
   permiso('notificaciones', 'configurar_canales', 'Configurar canales y elección de notificaciones'),
+  // Gobierna quién recibe notificaciones por CORREO (el canal email de
+  // modules/notificaciones/notificaciones.service.js#notificar). Sin este
+  // permiso el usuario sigue recibiendo el aviso por push y en la campana
+  // interna: apagar el correo no lo deja sin enterarse, solo deja de
+  // escribirle al buzón.
+  //
+  // Existe porque el correo del Terminal es un recurso escaso y dirigido, no
+  // un canal de difusión: (1) el personal operativo — 85 de los 101 usuarios
+  // activos — no gestiona nada por correo, y (2) mandarles a todos cada
+  // evento agotaba la cuota diaria del proveedor SMTP, con lo cual los
+  // correos que SÍ exigen una acción administrativa (requerimientos por
+  // aprobar, ventanas de mantenimiento) se quedaban sin enviar. Ver el
+  // diagnóstico del 2026-09-12: 210 envíos fallidos por "550 daily email
+  // sending quota", todos posteriores a la publicación diaria del SIG.
+  //
+  // Es un permiso de RECEPCIÓN, no de acción: no habilita ninguna pantalla ni
+  // endpoint, así que asignarlo a un rol no le da ninguna capacidad nueva
+  // sobre el sistema. Por eso es seguro delegarlo con criterio amplio desde
+  // la pantalla Roles.
+  permiso('notificaciones', 'recibir_email', 'Recibir notificaciones por correo electrónico'),
   // Avisos Terminal de Neiva: anuncios institucionales por voz, transmitidos
   // a todo el personal o a un usuario/rol/dependencia específico (ver
   // modules/avisos_terminal). Separado de 'notificaciones' porque interrumpe
@@ -179,6 +199,7 @@ const PERMISOS_ADMINISTRADOR_BASE = [
   'ia:configurar',
   'notificaciones:ver_historial',
   'notificaciones:configurar_canales',
+  'notificaciones:recibir_email',
   'avisos_terminal:transmitir',
   'avisos_terminal:ver_historial',
 ]
@@ -221,7 +242,7 @@ export const ROLES = [
     esSuperAdmin: false,
     ambito: 'global',
     esSistema: true,
-    permisos: [],
+    permisos: ['notificaciones:recibir_email'],
   },
   {
     // Reinstaurado (2026-08-20) tras eliminarse el 2026-08-05. El motivo de
@@ -247,7 +268,16 @@ export const ROLES = [
     // cambiar esSuperAdmin (ver roles.service.js:actualizarRol), el rol
     // vacío no puede convertirse en total por accidente desde RolesPage.
     esSistema: true,
-    permisos: [],
+    // La única excepción al "privilegio cero" de este rol, y lo es solo en
+    // apariencia: notificaciones:recibir_email no habilita ninguna pantalla ni
+    // endpoint (ver su definición arriba), es un permiso de RECEPCIÓN. Está
+    // aquí porque el Terminal quiere que TODO el personal reciba los avisos
+    // por correo, en particular el de cada cuestionario programado disponible.
+    //
+    // Es también el interruptor por el cual se recorta ese alcance si vuelve a
+    // hacer falta: quitarlo de este rol desde la pantalla Roles deja sin correo
+    // a los ~86 operativos sin tocar código ni quitarles el push ni la campana.
+    permisos: ['notificaciones:recibir_email'],
   },
   {
     nombre: 'Operador',
@@ -262,6 +292,9 @@ export const ROLES = [
       'pqrs:gestionar',
       'publicaciones:gestionar',
       'reportes:ver_basicos',
+      // Atiende PQRS y publicaciones: trabajo administrativo que sí se
+      // coordina por correo (ver notificaciones:recibir_email).
+      'notificaciones:recibir_email',
     ],
   },
   {
@@ -276,7 +309,7 @@ export const ROLES = [
     // supervisión — hoy Administrador — para que un técnico nunca pueda
     // repartirse trabajo a sí mismo ni ver la cola de sus compañeros
     // (ver danos.service.js: puedeVerTodo()).
-    permisos: ['mantenimiento:ejecutar'],
+    permisos: ['mantenimiento:ejecutar', 'notificaciones:recibir_email'],
   },
   {
     // Reemplaza al rol dedicado 'Financiero' (eliminado 2026-08-05): la firma
@@ -305,7 +338,10 @@ export const ROLES = [
     esSuperAdmin: false,
     ambito: 'global',
     esSistema: true,
-    permisos: ['requerimientos:gestionar_bodega'],
+    // recibir_email: es el siguiente paso del flujo de Requerimientos tras la
+    // firma de Financiero — si no le llega el correo, un requerimiento
+    // aprobado se queda esperando a que alguien entre a mirar.
+    permisos: ['requerimientos:gestionar_bodega', 'notificaciones:recibir_email'],
   },
   {
     nombre: 'Talento Humano',
@@ -316,7 +352,7 @@ export const ROLES = [
     // No es esSistema: no viene de la especificación original de 6 roles, así
     // que sí puede renombrarse o eliminarse desde la pantalla de Roles.
     esSistema: false,
-    permisos: ['ausencias:aprobar', 'ausencias:ver_todas'],
+    permisos: ['ausencias:aprobar', 'ausencias:ver_todas', 'notificaciones:recibir_email'],
   },
   {
     nombre: 'SIG / HSEQ',
@@ -333,6 +369,7 @@ export const ROLES = [
       'sig_pregunta_dia:programar',
       'sig_pregunta_dia:ver_reportes',
       'sig_pregunta_dia:configurar',
+      'notificaciones:recibir_email',
     ],
   },
   {
@@ -361,6 +398,37 @@ export const ROLES = [
       // resto de este rol (email, publicaciones, PQRS).
       'avisos_terminal:transmitir',
       'avisos_terminal:ver_historial',
+      'notificaciones:recibir_email',
     ],
+  },
+  {
+    // Mismo piso de privilegios que 'Usuario Común' (ninguna capacidad propia
+    // más allá de las universales de cualquier autenticado), con una sola
+    // diferencia: recibe las notificaciones por correo.
+    //
+    // Existe porque "personal administrativo" y "privilegio cero" son dos ejes
+    // distintos, y antes de este rol el catálogo los confundía: la persona que
+    // administra el edificio o el aprendiz del área administrativa no
+    // gestionan módulos, así que su sitio natural era 'Usuario Común' — pero
+    // ese rol lo comparten los ~86 operativos, y darle correo a todo el rol es
+    // exactamente lo que agotaba la cuota diaria del proveedor SMTP (ver el
+    // comentario de notificaciones:recibir_email arriba).
+    //
+    // La alternativa descartada fue mandarlos a 'Operador': ese rol trae
+    // pqrs:gestionar, publicaciones:gestionar y reportes:ver_basicos, así que
+    // usarlo como "Usuario Común con correo" sería la misma escalada de
+    // privilegios silenciosa que documenta 'Usuario Común' más arriba.
+    //
+    // Se llama "Personal Administrativo" y no "Administrativo" para que no se
+    // confunda de un vistazo con 'Administrador' en el selector de rol.
+    nombre: 'Personal Administrativo',
+    slug: 'personal_administrativo',
+    descripcion: 'Trabajador del área administrativa sin funciones de gestión en el sistema. Tiene las mismas capacidades que Usuario Común y además recibe las notificaciones por correo electrónico.',
+    esSuperAdmin: false,
+    ambito: 'global',
+    // No es esSistema: no viene de la especificación original de 6 roles, así
+    // que puede renombrarse o eliminarse desde la pantalla de Roles.
+    esSistema: false,
+    permisos: ['notificaciones:recibir_email'],
   },
 ]

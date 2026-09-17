@@ -11,6 +11,7 @@ const ESTADO_LABEL = {
   entregado: 'Recibido',
   reproducido: 'Reproducido',
   fallido: 'Fallido',
+  cancelado: 'Reemplazado',
 }
 const ESTADO_COLOR = {
   pendiente: 'pendiente',
@@ -18,6 +19,7 @@ const ESTADO_COLOR = {
   entregado: 'programado',
   reproducido: 'activo',
   fallido: 'error',
+  cancelado: 'cancelado',
 }
 
 export default function AvisoTerminalDetallePage() {

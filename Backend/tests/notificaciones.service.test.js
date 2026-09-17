@@ -7,10 +7,13 @@ import webpush from '../src/utils/webpush.js'
 import { enviarEmailGenerico } from '../src/utils/email.js'
 import Usuario from '../src/models/Usuario.js'
 import Rol from '../src/models/Rol.js'
+import Permiso from '../src/models/Permiso.js'
 import PushSubscription from '../src/models/PushSubscription.js'
 import PreferenciaNotificacion from '../src/models/PreferenciaNotificacion.js'
 import ConfiguracionCanalesNotificacion from '../src/models/ConfiguracionCanalesNotificacion.js'
 import EnvioNotificacion from '../src/models/EnvioNotificacion.js'
+import Notificacion from '../src/models/Notificacion.js'
+import { env } from '../src/config/env.js'
 import {
   notificar,
   procesarPendientes,
@@ -19,9 +22,24 @@ import {
 } from '../src/modules/notificaciones/notificaciones.service.js'
 import { notificarUsuarios } from '../src/utils/sendPush.js'
 
-async function crearUsuario() {
+// El canal correo exige que el rol tenga 'notificaciones:recibir_email' (ver
+// notificaciones.service.js#rolesQuePuedenRecibirEmail). `recibeEmail` por
+// defecto en true reproduce un rol con cargo administrativo: así los tests de
+// preferencias/canales de abajo siguen ejercitando lo que les corresponde sin
+// que el filtro de rol les tape el resultado. Pasarlo en false es lo que
+// ejercita el filtro mismo.
+async function crearUsuario({ recibeEmail = true } = {}) {
   const sufijo = Math.random().toString(36).slice(2)
-  const rol = await Rol.create({ nombre: `Rol-${sufijo}`, slug: `rol-${sufijo}` })
+  const permisos = []
+  if (recibeEmail) {
+    const permiso = await Permiso.findOneAndUpdate(
+      { codigo: 'notificaciones:recibir_email' },
+      { codigo: 'notificaciones:recibir_email', modulo: 'notificaciones', accion: 'recibir_email', nombre: 'Recibir notificaciones por correo electrónico' },
+      { upsert: true, new: true }
+    )
+    permisos.push(permiso._id)
+  }
+  const rol = await Rol.create({ nombre: `Rol-${sufijo}`, slug: `rol-${sufijo}`, permisos })
   return Usuario.create({
     nombre_usuario: `user-${sufijo}`,
     nombre: 'Usuario Prueba',
@@ -48,6 +66,34 @@ describe('notificaciones.service', () => {
     expect(envios).toHaveLength(2)
     expect(envios.map((e) => e.canal).sort()).toEqual(['email', 'push'])
     expect(envios.every((e) => e.estado === 'pendiente')).toBe(true)
+  })
+
+  it('un rol sin notificaciones:recibir_email no recibe correo, pero sí push y campana interna', async () => {
+    const usuario = await crearUsuario({ recibeEmail: false })
+    await PushSubscription.create({ usuario: usuario._id, endpoint: 'https://push.test/sin-email', p256dh: 'p', auth: 'a' })
+
+    await notificar({
+      usuarios: [usuario._id], categoria: 'requerimientos', tipo: 'test', titulo: 'Título', cuerpo: 'Cuerpo',
+    })
+
+    const envios = await EnvioNotificacion.find({ usuario: usuario._id })
+    expect(envios.map((e) => e.canal)).toEqual(['push'])
+    // Lo importante del filtro no es solo que falte el correo: es que el aviso
+    // igual llega. Si esto se rompiera, la restricción habría dejado a la
+    // persona sin enterarse en vez de solo sin correo.
+    expect(await Notificacion.countDocuments({ usuario: usuario._id })).toBe(1)
+  })
+
+  it('un evento transaccional manda correo aunque el rol no tenga el permiso', async () => {
+    const usuario = await crearUsuario({ recibeEmail: false })
+
+    await notificar({
+      usuarios: [usuario._id], categoria: 'sistema', tipo: 'alerta-seguridad', titulo: 'Alerta', cuerpo: 'Cuerpo',
+      transaccional: true,
+    })
+
+    const envios = await EnvioNotificacion.find({ usuario: usuario._id })
+    expect(envios.map((e) => e.canal)).toEqual(['email'])
   })
 
   it('una categoría desactivada por el usuario bloquea ambos canales para esa categoría', async () => {
@@ -128,6 +174,49 @@ describe('notificaciones.service', () => {
     expect(envioActualizado.estado).toBe('pendiente')
     expect(envioActualizado.intentos).toBe(1)
     expect(envioActualizado.proximoIntentoEn.getTime()).toBeGreaterThan(Date.now())
+  })
+
+  it('los correos del lote arrancan espaciados (límite de peticiones/segundo del SMTP) y el push no espera por ellos', async () => {
+    const usuario = await crearUsuario()
+    const sub = await PushSubscription.create({ usuario: usuario._id, endpoint: 'https://push.test/ritmo', p256dh: 'p', auth: 'a' })
+
+    // Se registra el instante de cada arranque, no de cada final: el techo
+    // que impone el proveedor es de peticiones por segundo, así que lo que
+    // hay que verificar es la separación entre arranques.
+    const arranquesEmail = []
+    enviarEmailGenerico.mockImplementation(async () => { arranquesEmail.push(Date.now()) })
+    let arranquePush = null
+    webpush.sendNotification.mockImplementation(async () => { arranquePush = Date.now() })
+
+    const base = {
+      usuario: usuario._id, categoria: 'requerimientos', tipo: 'test', titulo: 'T', cuerpo: 'C',
+      estado: 'pendiente', proximoIntentoEn: new Date(),
+    }
+    await EnvioNotificacion.create([
+      { ...base, canal: 'push', pushSubscription: sub._id },
+      { ...base, canal: 'email', emailDestino: usuario.email },
+      { ...base, canal: 'email', emailDestino: usuario.email },
+      { ...base, canal: 'email', emailDestino: usuario.email },
+    ])
+
+    const t0 = Date.now()
+    await procesarPendientes(10)
+
+    expect(arranquesEmail).toHaveLength(3)
+    for (let i = 1; i < arranquesEmail.length; i++) {
+      // Margen de 20 ms por la granularidad de setTimeout; lo que importa es
+      // que no salgan todos en la misma ráfaga, que es lo que provocaba el
+      // "550 Too many requests" del proveedor.
+      expect(arranquesEmail[i] - arranquesEmail[i - 1]).toBeGreaterThanOrEqual(env.NOTIF_EMAIL_INTERVALO_MS - 20)
+    }
+
+    // El push del mismo lote no queda detrás de la cola de correos: sale al
+    // principio, junto con el primer correo.
+    expect(arranquePush).not.toBeNull()
+    expect(arranquePush - t0).toBeLessThan(env.NOTIF_EMAIL_INTERVALO_MS)
+
+    enviarEmailGenerico.mockReset()
+    webpush.sendNotification.mockReset()
   })
 
   it('un envío que agota maxIntentos se marca fallido', async () => {

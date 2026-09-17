@@ -26,9 +26,15 @@ async function crearPermiso(codigo) {
   return Permiso.findOneAndUpdate({ codigo }, { codigo, modulo, accion, nombre: codigo }, { upsert: true, new: true })
 }
 
-async function crearUsuario(email, { permisos = [], esSuperAdmin = false } = {}) {
+// recibeEmail: el canal correo exige 'notificaciones:recibir_email' en el rol
+// (ver notificaciones.service.js#rolesQuePuedenRecibirEmail). Por defecto se
+// concede, porque estos tests verifican el recorrido completo de un evento por
+// los tres canales; el filtro de rol tiene su propia prueba en
+// notificaciones.service.test.js.
+async function crearUsuario(email, { permisos = [], esSuperAdmin = false, recibeEmail = true } = {}) {
+  const codigos = recibeEmail ? [...permisos, 'notificaciones:recibir_email'] : permisos
   const docsPermiso = []
-  for (const codigo of permisos) docsPermiso.push(await crearPermiso(codigo))
+  for (const codigo of codigos) docsPermiso.push(await crearPermiso(codigo))
   const sufijo = Math.random().toString(36).slice(2)
   const rol = await Rol.create({
     nombre: `Rol-${sufijo}`,

@@ -81,6 +81,18 @@ export const env = {
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
   NOTIF_WORKER_INTERVALO_MS: Number(process.env.NOTIF_WORKER_INTERVALO_MS) || 5000,
   NOTIF_WORKER_LOTE: Number(process.env.NOTIF_WORKER_LOTE) || 25,
+  // Espaciado mínimo entre el ARRANQUE de dos envíos de correo dentro del
+  // mismo lote del worker (ver notificaciones.service.js#procesarPendientes).
+  // Existe porque el proveedor SMTP limita por PETICIONES POR SEGUNDO, no por
+  // conexiones simultáneas: Resend corta en 10/s y devuelve "550 Too many
+  // requests" — 142 envíos se perdieron así antes de este espaciado.
+  //
+  // 120 ms deja el ritmo en ~8,3 correos/s: margen deliberado por debajo del
+  // techo de 10, porque el reloj que cuenta es el del proveedor y no el
+  // nuestro (latencia de red y redondeo pueden hacer que dos arranques caigan
+  // en la misma ventana de un segundo). Si se cambia de proveedor, este es el
+  // único valor que hay que ajustar a su límite documentado.
+  NOTIF_EMAIL_INTERVALO_MS: Number(process.env.NOTIF_EMAIL_INTERVALO_MS) || 120,
   // Worker de la prueba de comunicaciones (ver
   // modules/copiloto/copiloto.despliegue.worker.js). Este intervalo NO
   // determina lo que tarda en arrancar el envío en el caso normal: al

@@ -50,13 +50,21 @@ async function esperarNotificaciones(filtro, intentos = 50) {
 // requerimientos.service.js) — cualquier test que apruebe como Financiero
 // necesita crear a ese actor con conFirma:true, o el service corta con
 // ErrorValidacion antes de tocar el documento.
+// Todo actor de estos tests recibe además 'notificaciones:recibir_email': el
+// canal correo lo exige (ver notificaciones.service.js), y lo que estas
+// pruebas verifican es que Requerimientos avise en cada etapa por los canales
+// que le corresponden — no el filtro de rol, que se prueba aparte en
+// notificaciones.service.test.js. El actor sí lo tendría en producción: los
+// roles reales del flujo (Dir. Administrativo y Gestión, Bodega) lo traen del
+// seed, ver seedData/rbac.data.js.
 async function crearUsuarioConPermiso(codigo, { conFirma = false } = {}) {
   const permiso = codigo ? await crearPermiso(codigo) : null
+  const permisoEmail = await crearPermiso('notificaciones:recibir_email')
   const sufijo = Math.random().toString(36).slice(2)
   const rol = await Rol.create({
     nombre: `Rol-${sufijo}`,
     slug: `rol-${sufijo}`,
-    permisos: permiso ? [permiso._id] : [],
+    permisos: permiso ? [permiso._id, permisoEmail._id] : [permisoEmail._id],
   })
   const passwordPlano = 'clave-segura-123'
   const usuario = await Usuario.create({
@@ -137,7 +145,11 @@ describe('flujo de Requerimientos con notificaciones', () => {
       await crearUsuarioConPermiso('requerimientos:aprobar_financiero', { conFirma: true })
     const { actor: actorBodega } = await crearUsuarioConPermiso('requerimientos:gestionar_bodega')
 
-    const rolAdmin = await Rol.create({ nombre: 'Administrador', slug: 'administrador', permisos: [] })
+    const rolAdmin = await Rol.create({
+      nombre: 'Administrador',
+      slug: 'administrador',
+      permisos: [(await crearPermiso('notificaciones:recibir_email'))._id],
+    })
     const admin = await Usuario.create({
       nombre_usuario: `admin-${Math.random().toString(36).slice(2)}`,
       nombre: 'Admin Prueba',

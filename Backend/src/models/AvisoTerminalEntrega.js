@@ -7,7 +7,7 @@ import mongoose from 'mongoose'
 // panel necesita poder mostrar los dos ("enviado" vs "reproducido" del
 // enunciado del requerimiento).
 //
-// Ciclo de vida (nunca retrocede):
+// Ciclo de vida (nunca retrocede, salvo la excepción de 'cancelado' abajo):
 //   pendiente  -> creada al transmitir, antes de cualquier intento de push
 //   enviado    -> se intentó Web Push a al menos un dispositivo activo del
 //                 usuario (o no tenía ninguno: igual pasa a 'enviado' porque
@@ -19,18 +19,26 @@ import mongoose from 'mongoose'
 //   fallido    -> nunca se pudo entregar (usuario inactivo al momento de
 //                 resolver audiencia; no debería ocurrir en la práctica
 //                 porque resolverDestinatarios() ya filtra por activo)
+//   cancelado  -> todavía no se había reproducido cuando se transmitió un
+//                 aviso MÁS NUEVO (ver crearYTransmitirAviso en
+//                 avisos.service.js): un Aviso Terminal es un anuncio en
+//                 vivo, no una bandeja, así que el más reciente reemplaza al
+//                 que nadie alcanzó a escuchar en vez de acumularse con él.
+//                 Sigue viéndose en "Mis avisos" (solo se excluye del
+//                 polling de reproducción automática).
 const avisoTerminalEntregaSchema = new mongoose.Schema(
   {
     aviso: { type: mongoose.Schema.Types.ObjectId, ref: 'AvisoTerminal', required: true },
     usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
     estado: {
       type: String,
-      enum: ['pendiente', 'enviado', 'entregado', 'reproducido', 'fallido'],
+      enum: ['pendiente', 'enviado', 'entregado', 'reproducido', 'fallido', 'cancelado'],
       default: 'pendiente',
     },
     enviadoEn: { type: Date },
     entregadoEn: { type: Date },
     reproducidoEn: { type: Date },
+    canceladoEn: { type: Date },
     error: { type: String, trim: true },
   },
   { timestamps: true }
