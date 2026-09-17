@@ -9,7 +9,6 @@ import {
   Zap,
   CheckCircle2,
   AlertTriangle,
-  History,
   ShieldCheck,
   Wrench,
   TriangleAlert,
@@ -35,24 +34,10 @@ const ICONOS_CATEGORIA = {
 
 export function NotificacionesAdminTabs() {
   const location = useLocation()
-  const esHistorial = location.pathname.includes('/historial')
   const esCanales = location.pathname.includes('/canales')
 
   return (
     <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
-      <Link
-        to="/notificaciones/historial"
-        className={cn(
-          'flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200',
-          esHistorial
-            ? 'bg-brand-500/15 text-brand-700 dark:text-brand-300 border border-brand-500/30 shadow-sm'
-            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
-        )}
-      >
-        <History className="h-4 w-4" />
-        <span>Historial de envíos</span>
-      </Link>
-
       <Link
         to="/notificaciones/canales"
         className={cn(

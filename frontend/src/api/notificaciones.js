@@ -43,23 +43,6 @@ export const notificaciones = {
     return request('/notificaciones/mias/leidas', { method: 'PUT' })
   },
 
-  // Historial administrativo de envíos (push/email) — exige el permiso
-  // notificaciones:ver_historial en el backend.
-  historialEnvios({ page = 1, limit = 25, usuario, categoria, canal, estado, desde, hasta, soloErrores } = {}) {
-    const params = new URLSearchParams({ page, limit })
-    if (usuario) params.set('usuario', usuario)
-    if (categoria) params.set('categoria', categoria)
-    if (canal) params.set('canal', canal)
-    if (estado) params.set('estado', estado)
-    if (desde) params.set('desde', desde)
-    if (hasta) params.set('hasta', hasta)
-    if (soloErrores) params.set('soloErrores', 'true')
-    return request(`/notificaciones/admin/envios?${params.toString()}`)
-  },
-  historialFiltros() {
-    return request('/notificaciones/admin/envios/filtros')
-  },
-
   // Elección y configuración administrativa de canales (Email / Push)
   configuracionCanales() {
     return request('/notificaciones/admin/canales')

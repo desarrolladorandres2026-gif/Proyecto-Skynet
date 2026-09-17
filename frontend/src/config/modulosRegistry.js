@@ -207,7 +207,6 @@ export const MODULOS_REGISTRO = [
     icon: Bell,
     permiso: ['notificaciones:ver_historial', 'notificaciones:configurar_canales'],
     items: [
-      { to: '/notificaciones/historial', label: 'Historial de envíos', permiso: 'notificaciones:ver_historial' },
       { to: '/notificaciones/canales', label: 'Elección de notificaciones', permiso: ['notificaciones:ver_historial', 'notificaciones:configurar_canales'] },
     ],
   },

@@ -20,7 +20,6 @@ import {
   marcarNotificacionLeida,
   marcarTodasNotificacionesLeidas,
 } from './centro.controller.js'
-import { listarEnviosAdmin, obtenerFiltrosEnvios } from './historial.controller.js'
 
 const router = safeRouter()
 
@@ -53,13 +52,6 @@ router.get('/mias', misNotificaciones)
 router.get('/mias/no-leidas', contarNoLeidas)
 router.put('/mias/leidas', marcarTodasNotificacionesLeidas)
 router.put('/mias/:id/leida', marcarNotificacionLeida)
-
-// Historial administrativo de envíos (push/email): solo lectura, exclusivo
-// de "Ver historial de envíos de notificaciones" (esSuperAdmin ya bypassa
-// vía requierePermiso, se deja el permiso explícito por si se delega a otro
-// rol más adelante — mismo criterio que auditoria:leer).
-router.get('/admin/envios/filtros', requierePermiso('notificaciones:ver_historial'), obtenerFiltrosEnvios)
-router.get('/admin/envios', requierePermiso('notificaciones:ver_historial'), listarEnviosAdmin)
 
 // Elección y configuración de canales de notificación (Email/Push por categoría)
 router.get('/admin/canales', requierePermiso(['notificaciones:ver_historial', 'notificaciones:configurar_canales']), obtenerCanalesAdmin)

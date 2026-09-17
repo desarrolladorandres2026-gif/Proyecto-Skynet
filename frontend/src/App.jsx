@@ -60,7 +60,6 @@ import CookieConsent from './legal/CookieConsent.jsx'
 import LegalPage from './legal/LegalPage.jsx'
 import PreferenciasNotificacionesPage from './modules/notificaciones/PreferenciasNotificacionesPage.jsx'
 import CentroNotificacionesPage from './modules/notificaciones/CentroNotificacionesPage.jsx'
-import HistorialEnviosPage from './modules/notificaciones/HistorialEnviosPage.jsx'
 import EleccionNotificacionesPage from './modules/notificaciones/EleccionNotificacionesPage.jsx'
 import TransmitirAvisoPage from './modules/avisos_terminal/TransmitirAvisoPage.jsx'
 import MisAvisosTerminalPage from './modules/avisos_terminal/MisAvisosTerminalPage.jsx'
@@ -172,14 +171,6 @@ export default function App() {
                 solo lo suyo — el backend nunca confía en un usuarioId del
                 cliente (ver notificaciones.routes.js). */}
             <Route path="notificaciones/centro" element={<CentroNotificacionesPage />} />
-            <Route
-              path="notificaciones/historial"
-              element={
-                <PermissionRoute permiso="notificaciones:ver_historial">
-                  <HistorialEnviosPage />
-                </PermissionRoute>
-              }
-            />
             <Route
               path="notificaciones/canales"
               element={

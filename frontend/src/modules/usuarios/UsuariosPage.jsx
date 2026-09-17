@@ -397,7 +397,7 @@ export default function UsuariosPage() {
                   // Debe coincidir con PASSWORD_MIN de Backend/src/utils/password.js:
                   // con un mínimo menor, el navegador deja enviar el formulario y el
                   // rechazo llega como error 400 del servidor en vez de validarse aquí.
-                  minLength={12}
+                  minLength={8}
                   className="pr-9"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -416,7 +416,7 @@ export default function UsuariosPage() {
               <Input
                 type={mostrarPassword ? 'text' : 'password'}
                 required={!editandoId || Boolean(form.password)}
-                minLength={12}
+                minLength={8}
                 value={form.confirmarPassword}
                 onChange={(e) => setForm({ ...form, confirmarPassword: e.target.value })}
               />

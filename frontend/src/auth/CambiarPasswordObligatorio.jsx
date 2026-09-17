@@ -58,13 +58,13 @@ export default function CambiarPasswordObligatorio() {
               required
             />
           </Field>
-          <Field label="Nueva contraseña (mínimo 12 caracteres)">
+          <Field label="Nueva contraseña (mínimo 8 caracteres)">
             <Input
               type="password"
               value={passwordNueva}
               onChange={(e) => setPasswordNueva(e.target.value)}
               autoComplete="new-password"
-              minLength={12}
+              minLength={8}
               required
             />
           </Field>
@@ -74,7 +74,7 @@ export default function CambiarPasswordObligatorio() {
               value={confirmacion}
               onChange={(e) => setConfirmacion(e.target.value)}
               autoComplete="new-password"
-              minLength={12}
+              minLength={8}
               required
             />
           </Field>
