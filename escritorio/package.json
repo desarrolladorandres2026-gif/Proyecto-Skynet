@@ -38,13 +38,16 @@
       }
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "recursos/icono.ico"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "shortcutName": "Skynet",
-      "createDesktopShortcut": true
+      "createDesktopShortcut": true,
+      "installerIcon": "recursos/icono.ico",
+      "uninstallerIcon": "recursos/icono.ico"
     },
     "artifactName": "Skynet-Instalador-${version}.${ext}",
     "publish": [
