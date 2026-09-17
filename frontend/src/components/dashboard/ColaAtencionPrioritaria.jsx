@@ -13,7 +13,7 @@ export function ColaAtencionPrioritaria({ cola = [], className = '' }) {
   if (!cola || cola.length === 0) return null
 
   return (
-    <div className={cn('flex flex-col rounded-xl border border-slate-200 bg-white/95 p-4 shadow-soft-sm backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/70 w-full', className)}>
+    <div className={cn('flex flex-col w-full', className)}>
       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800/80">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -38,7 +38,7 @@ export function ColaAtencionPrioritaria({ cola = [], className = '' }) {
           return (
             <div
               key={item.id}
-              className="group flex items-center justify-between gap-2.5 rounded-lg border border-slate-200/80 bg-slate-50/70 p-2 transition-colors hover:bg-slate-100/80 dark:border-slate-800/60 dark:bg-slate-950/40 dark:hover:bg-slate-800/40"
+              className="group flex items-center justify-between gap-2.5 py-2 border-b border-slate-100 last:border-b-0 dark:border-slate-800/80"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <div className="shrink-0">

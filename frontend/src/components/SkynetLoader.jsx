@@ -31,13 +31,7 @@ export default function SkynetLoader({
         role="status"
         aria-label={mensaje}
       >
-        <div className="relative flex flex-col items-center justify-center w-full max-w-sm p-6 sm:p-8 rounded-md border border-[#4e7cbe]/20 bg-[#142744]/95 shadow-2xl shadow-black/80 ring-1 ring-[#4e7cbe]/15">
-          {/* Brackets HUD estilo Login */}
-          <span className="absolute -top-[1px] -left-[1px] w-3 h-3 border-t-2 border-l-2 border-[#4e7cbe]/70 pointer-events-none" />
-          <span className="absolute -top-[1px] -right-[1px] w-3 h-3 border-t-2 border-r-2 border-[#4e7cbe]/70 pointer-events-none" />
-          <span className="absolute -bottom-[1px] -left-[1px] w-3 h-3 border-b-2 border-l-2 border-[#4e7cbe]/70 pointer-events-none" />
-          <span className="absolute -bottom-[1px] -right-[1px] w-3 h-3 border-b-2 border-r-2 border-[#4e7cbe]/70 pointer-events-none" />
-
+        <div className="relative flex flex-col items-center justify-center w-full max-w-sm p-6 sm:p-8">
           {/* Orbe Holográfico */}
           <div className={`relative ${tamanoOrb} flex items-center justify-center mb-4 transform-gpu`}>
             <div className="absolute -inset-2 rounded-full bg-[#4e7cbe]/20 blur-md animate-pulse transform-gpu" />

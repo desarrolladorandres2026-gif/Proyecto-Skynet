@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import {
   Bell, ChevronDown, ChevronsLeft, ChevronsRight, FileText, LogOut, Moon, Search,
-  Settings, Sun, Wifi, WifiOff,
+  Settings, Sun,
 } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Toaster, toast } from 'sonner'
@@ -327,50 +327,6 @@ function useBreadcrumbItems(modulosVisibles, pathname) {
   }, [modulosVisibles, pathname])
 }
 
-// Pill honesta de conectividad (navigator.onLine): nada de métricas
-// inventadas tipo latencia falsa — si no hay un dato real que mostrar, no
-// se inventa uno para que la barra "se vea llena".
-function EstadoConexion() {
-  const [enLinea, setEnLinea] = useState(() => navigator.onLine)
-
-  useEffect(() => {
-    function marcarOnline() { setEnLinea(true) }
-    function marcarOffline() { setEnLinea(false) }
-    window.addEventListener('online', marcarOnline)
-    window.addEventListener('offline', marcarOffline)
-    return () => {
-      window.removeEventListener('online', marcarOnline)
-      window.removeEventListener('offline', marcarOffline)
-    }
-  }, [])
-
-  return (
-    <Tooltip label={enLinea ? 'Conectado al servidor' : 'Sin conexión — algunos datos pueden estar desactualizados'} side="bottom">
-      <span
-        className={cn(
-          'relative flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-mono border transition-all duration-300',
-          enLinea
-            ? 'bg-accent-500/10 text-accent-600 dark:text-accent-400 border-accent-500/30 dark:shadow-[0_0_10px_rgba(90,152,44,0.3)]'
-            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 animate-pulse'
-        )}
-      >
-        <span className="flex h-2 w-2 relative">
-          {enLinea && (
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-400 opacity-75"></span>
-          )}
-          <span
-            className={cn(
-              'relative inline-flex rounded-full h-2 w-2',
-              enLinea ? 'bg-accent-400' : 'bg-rose-500'
-            )}
-          ></span>
-        </span>
-        {enLinea ? <Wifi className="h-3.5 w-3.5" aria-hidden="true" /> : <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />}
-      </span>
-    </Tooltip>
-  )
-}
-
 
 export default function AppLayout() {
   const { usuario, logout, tienePermiso } = useAuth()
@@ -389,7 +345,6 @@ export default function AppLayout() {
   const { pathname } = useLocation()
   const prefiereReducido = useReducedMotion()
   const breadcrumbItems = useBreadcrumbItems(modulosVisibles, pathname)
-  const modulosApagados = usuario?.modulosDesactivados?.length ?? 0
 
   return (
     <div className="panel-shell flex h-svh flex-col md:flex-row">
@@ -552,19 +507,6 @@ export default function AppLayout() {
                 Ctrl K
               </kbd>
             </button>
-
-            <EstadoConexion />
-
-            {tienePermiso('sistema:gestionar_modulos') && modulosApagados > 0 && (
-              <Tooltip label="Módulos desactivados por el Super Admin" side="bottom">
-                <Link
-                  to="/sistema/modulos"
-                  className="panel-mono flex items-center gap-1 rounded-full bg-warn-400/10 border border-warn-500/30 px-2.5 py-1 text-[11px] font-semibold text-warn-700 dark:text-warn-300 shadow-[0_0_10px_rgba(217,107,18,0.2)]"
-                >
-                  {modulosApagados} apagado{modulosApagados === 1 ? '' : 's'}
-                </Link>
-              </Tooltip>
-            )}
 
             {/* Centro de notificaciones: contador de no leídas + lista +
                 marcar leída/todas leídas (ver components/notificaciones). La

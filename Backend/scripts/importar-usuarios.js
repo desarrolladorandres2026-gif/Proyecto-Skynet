@@ -86,7 +86,14 @@ async function main() {
 
     const nombre_usuario = await resolverNombreUsuario(u.username || email)
     const modulos = u.mantenimiento === true ? ['mantenimiento'] : []
-    const passwordHash = await hashPassword(u.password)
+    // La contraseña inicial es siempre el propio email (normalizado igual que
+    // arriba), nunca el campo "password" del JSON de origen: ese campo no
+    // pasa por normalizarEmail(), así que una diferencia de mayúsculas o un
+    // espacio ahí produce un hash que no coincide con lo que el usuario
+    // escribe al iniciar sesión (bcrypt.compare es case-sensitive). Como de
+    // todos modos se fuerza debeCambiarPassword, no hay razón para depender
+    // de ese campo.
+    const passwordHash = await hashPassword(email)
 
     try {
       await Usuario.create({
