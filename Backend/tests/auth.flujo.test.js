@@ -308,15 +308,35 @@ describe('RESET de contraseña', () => {
 })
 
 describe('CAMBIO DE PASSWORD (autoservicio, sesión ya autenticada)', () => {
-  it('nueva contraseña válida: cambia sin exigir la actual y reemite sesión', async () => {
+  it('contraseña actual correcta + nueva válida: cambia y reemite sesión', async () => {
+    const token = firmarToken(usuario)
+    const res = await request(app)
+      .post('/api/auth/cambiar-password')
+      .set('Cookie', `skynet_token=${token}`)
+      .send({ passwordActual: PASSWORD_OK, passwordNueva: 'Nueva.Clave.Segura.9' })
+
+    expect(res.status).toBe(200)
+    expect(res.headers['set-cookie']?.[0]).toMatch(/skynet_token=/)
+  })
+
+  it('contraseña actual incorrecta se rechaza y no cambia nada', async () => {
+    const token = firmarToken(usuario)
+    const res = await request(app)
+      .post('/api/auth/cambiar-password')
+      .set('Cookie', `skynet_token=${token}`)
+      .send({ passwordActual: 'no-es-esta', passwordNueva: 'Nueva.Clave.Segura.9' })
+
+    expect(res.status).toBe(401)
+  })
+
+  it('sin contraseña actual se rechaza fuera del flujo de primer login forzado', async () => {
     const token = firmarToken(usuario)
     const res = await request(app)
       .post('/api/auth/cambiar-password')
       .set('Cookie', `skynet_token=${token}`)
       .send({ passwordNueva: 'Nueva.Clave.Segura.9' })
 
-    expect(res.status).toBe(200)
-    expect(res.headers['set-cookie']?.[0]).toMatch(/skynet_token=/)
+    expect(res.status).toBe(400)
   })
 
   it('rechaza una contraseña nueva que no cumple la política (mínimo 8 caracteres)', async () => {
@@ -324,7 +344,7 @@ describe('CAMBIO DE PASSWORD (autoservicio, sesión ya autenticada)', () => {
     const res = await request(app)
       .post('/api/auth/cambiar-password')
       .set('Cookie', `skynet_token=${token}`)
-      .send({ passwordNueva: 'corta' })
+      .send({ passwordActual: PASSWORD_OK, passwordNueva: 'corta' })
 
     expect(res.status).toBe(400)
   })
@@ -338,7 +358,7 @@ describe('CAMBIO DE PASSWORD (autoservicio, sesión ya autenticada)', () => {
     await request(app)
       .post('/api/auth/cambiar-password')
       .set('Cookie', `skynet_token=${tokenViejo}`)
-      .send({ passwordNueva: 'Nueva.Clave.Segura.9' })
+      .send({ passwordActual: PASSWORD_OK, passwordNueva: 'Nueva.Clave.Segura.9' })
 
     const recargado = await Usuario.findById(usuario._id)
     expect(recargado.tokenVersion).toBe(usuario.tokenVersion + 1)
@@ -346,6 +366,21 @@ describe('CAMBIO DE PASSWORD (autoservicio, sesión ya autenticada)', () => {
     // El token viejo (tokenVersion anterior) ya no sirve.
     const meConViejo = await request(app).get('/api/auth/me').set('Cookie', `skynet_token=${tokenViejo}`)
     expect(meConViejo.status).toBe(401)
+  })
+
+  it('primer login forzado (debeCambiarPassword=true): cambia sin exigir la contraseña actual', async () => {
+    const usuarioForzado = await crearUsuario(rol, { debeCambiarPassword: true })
+    const token = firmarToken(usuarioForzado)
+    const res = await request(app)
+      .post('/api/auth/cambiar-password')
+      .set('Cookie', `skynet_token=${token}`)
+      .send({ passwordNueva: 'Nueva.Clave.Segura.9' })
+
+    expect(res.status).toBe(200)
+    expect(res.headers['set-cookie']?.[0]).toMatch(/skynet_token=/)
+
+    const recargado = await Usuario.findById(usuarioForzado._id)
+    expect(recargado.debeCambiarPassword).toBe(false)
   })
 })
 

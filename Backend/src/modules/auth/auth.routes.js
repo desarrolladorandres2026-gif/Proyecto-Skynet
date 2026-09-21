@@ -71,7 +71,7 @@ router.get('/me', verificarToken, me)
  *       200:
  *         description: Contraseña actualizada
  *       401:
- *         description: No autenticado
+ *         description: No autenticado o contraseña actual incorrecta
  */
 router.post('/cambiar-password', verificarToken, cambiarPassword)
 
