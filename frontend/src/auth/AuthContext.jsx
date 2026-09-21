@@ -108,8 +108,8 @@ export function AuthProvider({ children }) {
   // un primer login con contraseña de seed/asignada por un admin, ver
   // ProtectedRoute). El backend reemite la cookie de sesión, así que el
   // usuario sigue logueado sin tener que volver a autenticarse.
-  const cambiarPassword = useCallback(async (passwordActual, passwordNueva) => {
-    const u = await auth.cambiarPassword(passwordActual, passwordNueva)
+  const cambiarPassword = useCallback(async (passwordNueva) => {
+    const u = await auth.cambiarPassword(passwordNueva)
     setUsuario(u)
     return u
   }, [])

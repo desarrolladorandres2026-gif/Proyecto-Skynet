@@ -8,7 +8,6 @@ import { Btn, Card, ErrorMsg, Field, Input } from '../components/ui.jsx'
 // admin): bloquea el resto de Skynet hasta que la persona ponga una propia.
 export default function CambiarPasswordObligatorio() {
   const { cambiarPassword } = useAuth()
-  const [passwordActual, setPasswordActual] = useState('')
   const [passwordNueva, setPasswordNueva] = useState('')
   const [confirmacion, setConfirmacion] = useState('')
   const [error, setError] = useState('')
@@ -22,14 +21,10 @@ export default function CambiarPasswordObligatorio() {
       setError('La nueva contraseña y su confirmación no coinciden.')
       return
     }
-    if (passwordNueva === passwordActual) {
-      setError('La nueva contraseña debe ser distinta de la actual.')
-      return
-    }
 
     setEnviando(true)
     try {
-      await cambiarPassword(passwordActual, passwordNueva)
+      await cambiarPassword(passwordNueva)
     } catch (err) {
       setError(err.message || 'No se pudo cambiar la contraseña.')
     } finally {
@@ -49,15 +44,6 @@ export default function CambiarPasswordObligatorio() {
         </div>
 
         <form onSubmit={onSubmit} className="space-y-3" noValidate>
-          <Field label="Contraseña actual">
-            <Input
-              type="password"
-              value={passwordActual}
-              onChange={(e) => setPasswordActual(e.target.value)}
-              autoComplete="current-password"
-              required
-            />
-          </Field>
           <Field label="Nueva contraseña (mínimo 8 caracteres)">
             <Input
               type="password"

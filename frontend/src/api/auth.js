@@ -34,10 +34,10 @@ export const auth = {
     const data = await request('/auth/me', { suppressAuthEvent: true })
     return data.usuario
   },
-  async cambiarPassword(passwordActual, passwordNueva) {
+  async cambiarPassword(passwordNueva) {
     const data = await request('/auth/cambiar-password', {
       method: 'POST',
-      body: JSON.stringify({ passwordActual, passwordNueva }),
+      body: JSON.stringify({ passwordNueva }),
     })
     localStorage.setItem('skynet_usuario', JSON.stringify(data.usuario))
     return data.usuario

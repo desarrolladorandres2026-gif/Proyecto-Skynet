@@ -352,13 +352,12 @@ export async function restablecerPassword(req, res) {
 // Autoservicio dentro de una sesión ya autenticada (a diferencia del flujo de
 // reset por email, que no exige conocer la contraseña anterior). Es también
 // cómo se cumple el "debeCambiarPassword" forzado tras un primer login con
-// contraseña de seed/asignada por un admin.
+// contraseña de seed/asignada por un admin: no se exige la contraseña actual
+// porque ya se sabe que es el correo del usuario (o la que asignó un admin) y
+// la sesión ya está autenticada con ella.
 export async function cambiarPassword(req, res) {
-  const { passwordActual, passwordNueva } = req.body
+  const { passwordNueva } = req.body
 
-  if (typeof passwordActual !== 'string' || !passwordActual) {
-    return res.status(400).json({ error: 'Debes ingresar tu contraseña actual' })
-  }
   const errorPassword = validarPassword(passwordNueva)
   if (errorPassword) {
     return res.status(400).json({ error: errorPassword })
@@ -366,11 +365,6 @@ export async function cambiarPassword(req, res) {
 
   const usuario = await populateRol(Usuario.findById(req.usuario.id_usuario).select('+password +sesionesActivas'))
   if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' })
-
-  const passwordOk = await bcrypt.compare(passwordActual, usuario.password)
-  if (!passwordOk) {
-    return res.status(401).json({ error: 'La contraseña actual no es correcta' })
-  }
 
   usuario.password = await hashPassword(passwordNueva)
   usuario.debeCambiarPassword = false
