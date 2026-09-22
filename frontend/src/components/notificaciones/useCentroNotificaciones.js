@@ -9,35 +9,18 @@ import { notificaciones as notificacionesApi } from '../../api/notificaciones.js
 // postMessage a cada pestaña abierta y esta salta la espera.
 const INTERVALO_POLLING_MS = 45_000
 
-// Cuánto se queda visible una notificación ya leída en la campana antes de
-// desaparecer sola de la lista. Es solo un efecto de la UI del dropdown: el
-// documento sigue intacto en Mongo y sigue apareciendo en el historial
-// completo (CentroNotificacionesPage) — acá solo se limpia `notificaciones`.
-const RETARDO_OCULTAR_LEIDA_MS = 5_000
+// CentroNotificacionesPage (el historial completo) marca notificaciones como
+// leídas por su cuenta, con su propio fetch — no comparte estado con este
+// hook (cada <NotificacionesBell> tiene su propia instancia). Sin este
+// evento, el contador de la campana quedaba desactualizado hasta el próximo
+// poll (45s) o cambio de foco, aunque el usuario ya las hubiera leído.
+export const EVENTO_NOTIFICACIONES_ACTUALIZADAS = 'skynet:notificaciones-actualizadas'
 
 export function useCentroNotificaciones() {
   const [noLeidas, setNoLeidas] = useState(0)
   const [notificaciones, setNotificaciones] = useState([])
   const [cargando, setCargando] = useState(false)
   const cargandoListaRef = useRef(false)
-  const timersOcultarRef = useRef(new Map())
-
-  const programarOcultar = useCallback((id) => {
-    if (timersOcultarRef.current.has(id)) return
-    const timerId = setTimeout(() => {
-      timersOcultarRef.current.delete(id)
-      setNotificaciones((lista) => lista.filter((n) => n._id !== id))
-    }, RETARDO_OCULTAR_LEIDA_MS)
-    timersOcultarRef.current.set(id, timerId)
-  }, [])
-
-  useEffect(() => {
-    const timers = timersOcultarRef.current
-    return () => {
-      timers.forEach(clearTimeout)
-      timers.clear()
-    }
-  }, [])
 
   const refrescarContador = useCallback(async () => {
     try {
@@ -56,19 +39,20 @@ export function useCentroNotificaciones() {
     try {
       const { notificaciones: lista } = await notificacionesApi.misNotificaciones({ page: 1, limit: 15 })
       setNotificaciones(lista)
-      lista.forEach((n) => n.leida && programarOcultar(n._id))
     } catch {
       // Igual que arriba: el usuario puede reintentar abriendo de nuevo.
     } finally {
       setCargando(false)
       cargandoListaRef.current = false
     }
-  }, [programarOcultar])
+  }, [])
 
+  // Leer una notificación la borra de Mongo en el acto (ver
+  // centro.service.js#marcarLeida) — no queda registro, así que acá también
+  // desaparece de inmediato, sin retardo ni estado "leída" intermedio.
   const marcarLeida = useCallback(async (id) => {
-    setNotificaciones((lista) => lista.map((n) => (n._id === id ? { ...n, leida: true } : n)))
+    setNotificaciones((lista) => lista.filter((n) => n._id !== id))
     setNoLeidas((n) => Math.max(0, n - 1))
-    programarOcultar(id)
     try {
       await notificacionesApi.marcarLeida(id)
     } catch {
@@ -76,20 +60,17 @@ export function useCentroNotificaciones() {
       // próximo refrescarContador() (poll o push) corrige el número si de
       // verdad no se guardó.
     }
-  }, [programarOcultar])
+  }, [])
 
   const marcarTodasLeidas = useCallback(async () => {
-    setNotificaciones((lista) => {
-      lista.forEach((n) => programarOcultar(n._id))
-      return lista.map((n) => ({ ...n, leida: true }))
-    })
+    setNotificaciones([])
     setNoLeidas(0)
     try {
       await notificacionesApi.marcarTodasLeidas()
     } catch {
       refrescarContador()
     }
-  }, [refrescarContador, programarOcultar])
+  }, [refrescarContador])
 
   useEffect(() => {
     refrescarContador()
@@ -108,12 +89,14 @@ export function useCentroNotificaciones() {
     }
     window.addEventListener('focus', alRecuperarFoco)
     document.addEventListener('visibilitychange', alRecuperarFoco)
+    window.addEventListener(EVENTO_NOTIFICACIONES_ACTUALIZADAS, refrescarContador)
 
     return () => {
       clearInterval(id)
       navigator.serviceWorker?.removeEventListener?.('message', alMensajeDelSW)
       window.removeEventListener('focus', alRecuperarFoco)
       document.removeEventListener('visibilitychange', alRecuperarFoco)
+      window.removeEventListener(EVENTO_NOTIFICACIONES_ACTUALIZADAS, refrescarContador)
     }
   }, [refrescarContador])
 

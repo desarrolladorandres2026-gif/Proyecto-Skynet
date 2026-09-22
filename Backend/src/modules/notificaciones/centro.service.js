@@ -15,7 +15,9 @@ export async function listarMisNotificaciones(usuarioId, { page, limit } = {}) {
   const limite = Math.min(LIMITE_MAX, Math.max(1, Number.parseInt(limit, 10) || LIMITE_DEFECTO))
   const skip = (paginaActual - 1) * limite
 
-  const filtro = { usuario: usuarioId }
+  // leida:true ya no debería existir (se borra al leer), pero se filtra
+  // igual por si quedan restos de antes de este cambio de comportamiento.
+  const filtro = { usuario: usuarioId, leida: false }
   const [notificaciones, total] = await Promise.all([
     Notificacion.find(filtro).sort({ createdAt: -1 }).skip(skip).limit(limite),
     Notificacion.countDocuments(filtro),
@@ -29,23 +31,21 @@ export function contarNoLeidas(usuarioId) {
 }
 
 // El filtro { _id, usuario: usuarioId } es la única línea de defensa real:
-// si el _id existe pero pertenece a otro usuario, findOneAndUpdate no
+// si el _id existe pero pertenece a otro usuario, findOneAndDelete no
 // encuentra nada y esto lanza 404 — no un 403 que confirmaría que el id
-// existe, ni una actualización silenciosa de un documento ajeno.
+// existe, ni un borrado silencioso de un documento ajeno.
+//
+// A propósito NO es un borrado lógico (leida:true): al usuario le molestaba
+// que la notificación "ya leída" siguiera contando como registro en algún
+// lado. Leer una notificación la elimina de Mongo sin dejar rastro — no hay
+// forma de recuperarla ni de auditar qué se leyó después de este punto.
 export async function marcarLeida(id, usuarioId) {
-  const resultado = await Notificacion.findOneAndUpdate(
-    { _id: id, usuario: usuarioId },
-    { $set: { leida: true, leidaEn: new Date() } },
-    { new: true }
-  )
+  const resultado = await Notificacion.findOneAndDelete({ _id: id, usuario: usuarioId })
   if (!resultado) throw new ErrorNoEncontrado('Notificación no encontrada')
   return resultado
 }
 
 export async function marcarTodasLeidas(usuarioId) {
-  const { modifiedCount } = await Notificacion.updateMany(
-    { usuario: usuarioId, leida: false },
-    { $set: { leida: true, leidaEn: new Date() } }
-  )
-  return { actualizadas: modifiedCount }
+  const { deletedCount } = await Notificacion.deleteMany({ usuario: usuarioId, leida: false })
+  return { actualizadas: deletedCount }
 }

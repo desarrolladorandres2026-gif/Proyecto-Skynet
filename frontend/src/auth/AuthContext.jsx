@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
 import { auth } from '../api/auth.js'
 import { ocultarSplashScreen } from '../utils/splash.js'
+import { limpiarCache } from '../hooks/useDatosConCache.js'
 
 const AuthContext = createContext(null)
 
@@ -38,6 +39,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     function onLogout() {
       setUsuario(null)
+      limpiarCache()
     }
     window.addEventListener('skynet:logout', onLogout)
     return () => window.removeEventListener('skynet:logout', onLogout)
@@ -77,6 +79,7 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     const u = await auth.login(email, password)
     loginManualRef.current = true
+    limpiarCache()
     setUsuario(u)
     return u
   }, [])
@@ -98,6 +101,7 @@ export function AuthProvider({ children }) {
     try {
       await auth.logout()
       setUsuario(null)
+      limpiarCache()
       return null
     } catch (err) {
       return err.message || 'No se pudo cerrar la sesión. Revisa tu conexión e inténtalo de nuevo.'

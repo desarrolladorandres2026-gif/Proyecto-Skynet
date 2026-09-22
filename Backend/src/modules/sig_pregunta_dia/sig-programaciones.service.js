@@ -243,12 +243,25 @@ async function avisarPublicaciones(docs) {
 // publica ni notifica dos veces.
 export async function publicarPendientes(lote = 200) {
   const ahora = new Date()
+  const inicioHoy = inicioDelDia(ahora)
   const candidatas = await ProgramacionSig.find({ estado: 'programada', fechaHoraPublicacion: { $lte: ahora } })
     .limit(lote)
-    .select('_id pregunta audiencia creadoPor campana')
+    .select('_id pregunta audiencia creadoPor campana fechaProgramada')
 
   const publicadas = []
   for (const candidata of candidatas) {
+    // Una programación cuyo día ya pasó (el worker no corrió a tiempo: el
+    // proceso estuvo caído, hubo un reinicio, etc.) no se publica tarde — eso
+    // inundaría de "cuestionario nuevo" algo que ya es de ayer. Se descarta
+    // en silencio, sin notificar; solo se publican las del día en curso.
+    if (candidata.fechaProgramada < inicioHoy) {
+      try {
+        await ProgramacionSig.deleteOne({ _id: candidata._id, estado: 'programada' })
+      } catch (err) {
+        console.error(`No se pudo descartar la programación vencida "${candidata._id}":`, err.message)
+      }
+      continue
+    }
     // Try/catch por candidata: sin él, una excepción a mitad del lote (un
     // blip transitorio de Mongo, p. ej.) escapaba del for ANTES de llegar a
     // avisarPublicaciones() de abajo — perdiendo el aviso de TODAS las

@@ -54,8 +54,8 @@ router.put('/mias/leidas', marcarTodasNotificacionesLeidas)
 router.put('/mias/:id/leida', marcarNotificacionLeida)
 
 // Elección y configuración de canales de notificación (Email/Push por categoría)
-router.get('/admin/canales', requierePermiso(['notificaciones:ver_historial', 'notificaciones:configurar_canales']), obtenerCanalesAdmin)
-router.put('/admin/canales', requierePermiso(['notificaciones:ver_historial', 'notificaciones:configurar_canales']), actualizarCanalesAdmin)
+router.get('/admin/canales', requierePermiso('notificaciones:ver_historial', 'notificaciones:configurar_canales'), obtenerCanalesAdmin)
+router.put('/admin/canales', requierePermiso('notificaciones:ver_historial', 'notificaciones:configurar_canales'), actualizarCanalesAdmin)
 
 export default router
 

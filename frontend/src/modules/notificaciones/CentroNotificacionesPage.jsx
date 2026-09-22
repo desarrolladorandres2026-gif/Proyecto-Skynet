@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Bell, CheckCheck } from 'lucide-react'
 import { notificaciones as notificacionesApi } from '../../api/notificaciones.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
+import { EVENTO_NOTIFICACIONES_ACTUALIZADAS } from '../../components/notificaciones/useCentroNotificaciones.js'
 import { Badge, Btn, ErrorMsg, fmtFechaHora } from '../../components/ui.jsx'
 import { DataTable } from '../../components/DataTable.jsx'
 
@@ -29,14 +30,16 @@ export default function CentroNotificacionesPage() {
   const notificaciones = data?.notificaciones || []
   const pages = data?.pages || 1
 
+  // Leer una notificación la borra de Mongo en el acto (ver
+  // centro.service.js#marcarLeida): no queda registro, así que esta lista
+  // solo contiene pendientes y el ítem desaparece apenas se marca.
   async function marcarUna(n) {
-    if (!n.leida) {
-      actualizarLocal((d) => ({ ...d, notificaciones: d.notificaciones.map((x) => (x._id === n._id ? { ...x, leida: true } : x)) }))
-      try {
-        await notificacionesApi.marcarLeida(n._id)
-      } catch (err) {
-        toast.error(err.message)
-      }
+    actualizarLocal((d) => ({ ...d, notificaciones: d.notificaciones.filter((x) => x._id !== n._id) }))
+    try {
+      await notificacionesApi.marcarLeida(n._id)
+      window.dispatchEvent(new Event(EVENTO_NOTIFICACIONES_ACTUALIZADAS))
+    } catch (err) {
+      toast.error(err.message)
     }
     if (n.url) navigate(n.url)
   }
@@ -44,14 +47,13 @@ export default function CentroNotificacionesPage() {
   async function marcarTodas() {
     try {
       const { actualizadas } = await notificacionesApi.marcarTodasLeidas()
-      actualizarLocal((d) => ({ ...d, notificaciones: d.notificaciones.map((x) => ({ ...x, leida: true })) }))
-      toast.success(actualizadas > 0 ? `${actualizadas} notificación(es) marcadas como leídas` : 'No había nada pendiente')
+      actualizarLocal((d) => ({ ...d, notificaciones: [] }))
+      window.dispatchEvent(new Event(EVENTO_NOTIFICACIONES_ACTUALIZADAS))
+      toast.success(actualizadas > 0 ? `${actualizadas} notificación(es) eliminadas` : 'No había nada pendiente')
     } catch (err) {
       toast.error(err.message)
     }
   }
-
-  const hayNoLeidas = notificaciones.some((n) => !n.leida)
 
   const columnas = useMemo(
     () => [
@@ -59,11 +61,8 @@ export default function CentroNotificacionesPage() {
         id: 'estado',
         header: '',
         enableSorting: false,
-        cell: ({ row }) => (
-          <span
-            className={`inline-block h-2 w-2 rounded-full ${row.original.leida ? 'bg-transparent' : 'bg-brand-500 shadow-[0_0_6px_rgba(6,182,212,0.8)]'}`}
-            aria-label={row.original.leida ? 'Leída' : 'No leída'}
-          />
+        cell: () => (
+          <span className="inline-block h-2 w-2 rounded-full bg-brand-500 shadow-[0_0_6px_rgba(6,182,212,0.8)]" aria-label="No leída" />
         ),
       },
       { accessorKey: 'createdAt', header: 'Fecha', cell: (info) => fmtFechaHora(info.getValue()) },
@@ -74,9 +73,7 @@ export default function CentroNotificacionesPage() {
         enableSorting: false,
         cell: ({ row }) => (
           <div>
-            <p className={row.original.leida ? 'text-slate-600 dark:text-slate-300' : 'font-semibold text-slate-900 dark:text-white'}>
-              {row.original.titulo}
-            </p>
+            <p className="font-semibold text-slate-900 dark:text-white">{row.original.titulo}</p>
             {row.original.cuerpo && <p className="text-xs text-slate-500 dark:text-slate-400">{row.original.cuerpo}</p>}
           </div>
         ),
@@ -87,7 +84,7 @@ export default function CentroNotificacionesPage() {
         enableSorting: false,
         cell: ({ row }) => (
           <Btn variante="fantasma" onClick={() => marcarUna(row.original)}>
-            {row.original.url ? 'Abrir' : row.original.leida ? 'Ver' : 'Marcar leída'}
+            {row.original.url ? 'Abrir' : 'Marcar leída'}
           </Btn>
         ),
       },
@@ -106,7 +103,7 @@ export default function CentroNotificacionesPage() {
           <Bell className="h-5 w-5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Notificaciones</h1>
         </div>
-        {hayNoLeidas && (
+        {notificaciones.length > 0 && (
           <Btn variante="secundario" onClick={marcarTodas} className="flex items-center gap-1.5">
             <CheckCheck className="h-3.5 w-3.5" aria-hidden="true" />
             Marcar todas como leídas
@@ -114,7 +111,7 @@ export default function CentroNotificacionesPage() {
         )}
       </div>
       <p className="mb-5 text-sm text-slate-500 dark:text-slate-400">
-        Todo lo que la plataforma te ha avisado, incluido lo que pasó mientras no estabas conectado.
+        Notificaciones pendientes. Al leerlas se eliminan: no queda registro.
       </p>
 
       <ErrorMsg>{error}</ErrorMsg>

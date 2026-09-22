@@ -22,6 +22,18 @@ export function invalidarCachePorPrefijo(prefijo) {
   }
 }
 
+// La caché vive en memoria del módulo, no por usuario: en equipos
+// compartidos por turnos, si una persona cierra sesión (o cambia de cuenta)
+// y otra entra en la misma pestaña antes de que venza el ttlMs, se quedaba
+// viendo los datos de la sesión anterior — incluida la sección de
+// Análisis y Recomendaciones, que el backend ya filtra por permisos pero
+// que la caché servía igual porque no sabía que el usuario había cambiado.
+// AuthContext la llama en login() y logout().
+export function limpiarCache() {
+  cache.clear()
+  enVuelo.clear()
+}
+
 // Stale-while-revalidate simple: si hay datos en caché más frescos que ttlMs,
 // se usan de inmediato (sin spinner, sin petición). Si están vencidos o no
 // existen, se pide al backend y se guarda el resultado con su hora.
