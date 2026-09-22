@@ -5,7 +5,7 @@ import { safeRouter } from '../../middleware/safeRouter.js'
 import {
   crear, misRequerimientos, bandejaFinanciero, bandejaBodega, listarTodos, detalle,
   editarFinanciero, aprobarFinanciero, rechazarFinanciero, marcarEstadoBodega, marcarControlRecibido,
-  exportar, eliminarPorRango,
+  exportar, eliminarPorRango, eliminarUno,
 } from './requerimientos.controller.js'
 
 // Crear un requerimiento y ver los propios son capacidad universal (igual
@@ -35,6 +35,9 @@ router.get(
 // plataforma, no de negocio). soloAdmin ya cubre el bypass de esSuperAdmin.
 router.delete('/', soloAdmin, eliminarPorRango)
 router.get('/:id', detalle)
+// Borrado puntual de un solo requerimiento: mismo blindaje de Super Admin
+// que la purga por rango (soloAdmin ya cubre el bypass de esSuperAdmin).
+router.delete('/:id', soloAdmin, eliminarUno)
 
 router.patch('/:id/financiero', requierePermiso('requerimientos:aprobar_financiero'), editarFinanciero)
 router.post('/:id/financiero/aprobar', requierePermiso('requerimientos:aprobar_financiero'), aprobarFinanciero)

@@ -193,20 +193,27 @@ export async function calcularResumen(usuario, { soloTarjetas = false } = {}) {
         })
       }
 
+      // Bodega gestiona un requerimiento sin cambiar el `estado` raíz (se
+      // queda en 'pendiente_bodega' por diseño, ver Requerimiento.js): la
+      // decisión vive en `bodega.estado`. Filtrar solo por `estado` cuenta
+      // también los ya despachados/rechazados por Bodega, así que el
+      // requerimiento nunca sale del contador ni de "listos para despacho".
       if (puedeBodegaReq) {
         tarjetas.requerimientosPorDespachar = await Requerimiento.countDocuments({
           estado: 'pendiente_bodega',
+          'bodega.estado': 'pendiente',
         })
       }
 
       // 2. Analítica, cola prioritaria y recomendaciones (solo en modo completo)
       if (!soloTarjetas) {
-        const estadosCola = []
+        const filtrosCola = []
         if (puedeVerTodosReq) {
-          estadosCola.push('pendiente_financiero', 'pendiente_bodega')
+          filtrosCola.push({ estado: 'pendiente_financiero' })
+          filtrosCola.push({ estado: 'pendiente_bodega', 'bodega.estado': 'pendiente' })
         } else {
-          if (puedeFinancieroReq) estadosCola.push('pendiente_financiero')
-          if (puedeBodegaReq) estadosCola.push('pendiente_bodega')
+          if (puedeFinancieroReq) filtrosCola.push({ estado: 'pendiente_financiero' })
+          if (puedeBodegaReq) filtrosCola.push({ estado: 'pendiente_bodega', 'bodega.estado': 'pendiente' })
         }
 
         const [flujo, reqUrgentes] = await Promise.all([
@@ -216,8 +223,8 @@ export async function calcularResumen(usuario, { soloTarjetas = false } = {}) {
                 { $group: { _id: '$estado', total: { $sum: 1 } } }
               ])
             : [],
-          estadosCola.length > 0
-            ? Requerimiento.find({ estado: { $in: estadosCola } })
+          filtrosCola.length > 0
+            ? Requerimiento.find({ $or: filtrosCola })
                 .sort({ createdAt: 1 })
                 .limit(3)
                 .select('_id codigo estado tipo fechaSolicitud items createdAt')

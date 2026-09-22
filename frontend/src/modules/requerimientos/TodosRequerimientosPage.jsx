@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthContext.jsx'
 import { Badge, Btn, Card, CardLink, ErrorMsg, OkMsg, Select, TablaWrap, Th, Td, EmptyState, fmtFechaHora } from '../../components/ui.jsx'
 import ExportarRequerimientosModal from './ExportarRequerimientosModal.jsx'
 import EliminarRequerimientosModal from './EliminarRequerimientosModal.jsx'
+import EliminarRequerimientoModal from './EliminarRequerimientoModal.jsx'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 
@@ -40,6 +41,7 @@ export default function TodosRequerimientosPage() {
   const [ok, setOk] = useState('')
   const [modalExportar, setModalExportar] = useState(false)
   const [modalEliminar, setModalEliminar] = useState(false)
+  const [aEliminar, setAEliminar] = useState(null)
 
   // Una entrada de caché por combinación de filtro: volver a "Todos" (sin
   // haber cambiado filtro) muestra la lista de inmediato en vez de "Cargando…".
@@ -94,25 +96,58 @@ export default function TodosRequerimientosPage() {
       ) : (
         <>
           <div className="grid gap-2.5 sm:hidden">
-            {lista.map((r) => (
-              <CardLink key={r._id} to={`/requerimientos/${r._id}`}>
-                <div className="mb-1 flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-slate-800 capitalize dark:text-slate-100">
-                    Requerimiento de {r.tipo}
-                  </span>
-                  <span className="panel-mono shrink-0 text-[11px] text-slate-500 dark:text-slate-400">
-                    {fmtFechaHora(r.fechaSolicitud || r.createdAt)}
-                  </span>
-                </div>
-                <p className="mb-1.5 truncate text-sm text-slate-600 dark:text-slate-300">{r.solicitante?.nombre}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  <Badge valor={r.estado} label={LABEL_ESTADO[r.estado] || r.estado} />
-                  {r.estado === 'pendiente_bodega' && (
-                    <Badge valor={r.bodega?.estado} label={LABEL_ESTADO_BODEGA[r.bodega?.estado] || r.bodega?.estado} />
-                  )}
-                </div>
-              </CardLink>
-            ))}
+            {lista.map((r) =>
+              // Super Admin tiene una segunda acción (Eliminar) además de
+              // navegar al detalle: un <button> no puede anidarse dentro del
+              // <a> que genera CardLink (HTML inválido), así que arma su
+              // propio Card con fila de acciones — mismo patrón que
+              // BandejaBodegaPage.jsx. El resto de roles sigue usando
+              // CardLink tal cual, sin cambios.
+              usuario?.esSuperAdmin ? (
+                <Card key={r._id} className="space-y-2">
+                  <Link to={`/requerimientos/${r._id}`} className="block">
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-slate-800 capitalize dark:text-slate-100">
+                        Requerimiento de {r.tipo}
+                      </span>
+                      <span className="panel-mono shrink-0 text-[11px] text-slate-500 dark:text-slate-400">
+                        {fmtFechaHora(r.fechaSolicitud || r.createdAt)}
+                      </span>
+                    </div>
+                    <p className="mb-1.5 truncate text-sm text-slate-600 dark:text-slate-300">{r.solicitante?.nombre}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge valor={r.estado} label={LABEL_ESTADO[r.estado] || r.estado} />
+                      {r.estado === 'pendiente_bodega' && (
+                        <Badge valor={r.bodega?.estado} label={LABEL_ESTADO_BODEGA[r.bodega?.estado] || r.bodega?.estado} />
+                      )}
+                    </div>
+                  </Link>
+                  <div className="flex justify-end pt-1">
+                    <Btn variante="peligro" onClick={() => setAEliminar(r)} className="flex items-center gap-1.5">
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Eliminar
+                    </Btn>
+                  </div>
+                </Card>
+              ) : (
+                <CardLink key={r._id} to={`/requerimientos/${r._id}`}>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-slate-800 capitalize dark:text-slate-100">
+                      Requerimiento de {r.tipo}
+                    </span>
+                    <span className="panel-mono shrink-0 text-[11px] text-slate-500 dark:text-slate-400">
+                      {fmtFechaHora(r.fechaSolicitud || r.createdAt)}
+                    </span>
+                  </div>
+                  <p className="mb-1.5 truncate text-sm text-slate-600 dark:text-slate-300">{r.solicitante?.nombre}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Badge valor={r.estado} label={LABEL_ESTADO[r.estado] || r.estado} />
+                    {r.estado === 'pendiente_bodega' && (
+                      <Badge valor={r.bodega?.estado} label={LABEL_ESTADO_BODEGA[r.bodega?.estado] || r.bodega?.estado} />
+                    )}
+                  </div>
+                </CardLink>
+              )
+            )}
           </div>
 
           <TablaWrap className="hidden sm:block">
@@ -140,9 +175,20 @@ export default function TodosRequerimientosPage() {
                     </div>
                   </Td>
                   <Td>
-                    <Link to={`/requerimientos/${r._id}`} className="text-sm font-medium text-brand-700 hover:underline dark:text-brand-400">
-                      Ver detalle
-                    </Link>
+                    <div className="flex items-center gap-3">
+                      <Link to={`/requerimientos/${r._id}`} className="text-sm font-medium text-brand-700 hover:underline dark:text-brand-400">
+                        Ver detalle
+                      </Link>
+                      {usuario?.esSuperAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => setAEliminar(r)}
+                          className="flex items-center gap-1 text-sm font-medium text-red-700 hover:underline dark:text-red-300"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Eliminar
+                        </button>
+                      )}
+                    </div>
                   </Td>
                 </tr>
               ))}
@@ -157,6 +203,15 @@ export default function TodosRequerimientosPage() {
         onCerrar={() => setModalEliminar(false)}
         onEliminado={(eliminados) => {
           setOk(`Se eliminaron ${eliminados} requerimiento(s)`)
+          recargar()
+        }}
+      />
+      <EliminarRequerimientoModal
+        abierto={!!aEliminar}
+        requerimiento={aEliminar}
+        onCerrar={() => setAEliminar(null)}
+        onEliminado={() => {
+          setOk('Requerimiento eliminado')
           recargar()
         }}
       />

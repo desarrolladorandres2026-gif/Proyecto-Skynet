@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import bcrypt from 'bcryptjs'
+import mongoose from 'mongoose'
 
 vi.mock('../src/utils/webpush.js', () => ({ default: { sendNotification: vi.fn() } }))
 vi.mock('../src/utils/email.js', () => ({ enviarEmailGenerico: vi.fn() }))
@@ -16,6 +17,7 @@ import {
   marcarEstadoBodega,
   exportarCsv,
   eliminarPorRangoFecha,
+  eliminarUno,
 } from '../src/modules/requerimientos/requerimientos.service.js'
 
 async function crearPermiso(codigo) {
@@ -349,5 +351,28 @@ describe('exportar y eliminar requerimientos por rango de fechas', () => {
     expect(eliminados).toBe(1)
     expect(await Requerimiento.findById(idDentro)).toBeNull()
     expect(await Requerimiento.findById(idFuera)).not.toBeNull()
+  })
+
+  it('eliminarUno exige contraseña de Super Admin y borra solo el requerimiento indicado', async () => {
+    const { actor: actorSolicitante } = await crearUsuarioConPermiso(null)
+    const { actor: actorSuperAdmin, password: passwordSuper } = await crearActorSuperAdmin()
+
+    const idOtro = await crearConFecha(actorSolicitante, '2026-06-01')
+    const idObjetivo = await crearConFecha(actorSolicitante, '2026-06-02')
+
+    await expect(eliminarUno(idObjetivo, 'clave-incorrecta', actorSuperAdmin)).rejects.toThrow(/contraseña/i)
+    expect(await Requerimiento.findById(idObjetivo)).not.toBeNull()
+
+    const resultado = await eliminarUno(idObjetivo, passwordSuper, actorSuperAdmin)
+    expect(resultado.eliminado).toBe(true)
+    expect(await Requerimiento.findById(idObjetivo)).toBeNull()
+    expect(await Requerimiento.findById(idOtro)).not.toBeNull()
+  })
+
+  it('eliminarUno lanza ErrorNoEncontrado si el requerimiento ya no existe', async () => {
+    const { actor: actorSuperAdmin, password: passwordSuper } = await crearActorSuperAdmin()
+    const idInexistente = new mongoose.Types.ObjectId()
+
+    await expect(eliminarUno(idInexistente, passwordSuper, actorSuperAdmin)).rejects.toThrow(/no encontrado/i)
   })
 })

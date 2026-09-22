@@ -541,6 +541,25 @@ export async function eliminarPorRangoFecha({ desde, hasta, password } = {}, usu
   return { eliminados: resultado.deletedCount }
 }
 
+// SuperAdmin únicamente (ver requerimientos.routes.js: soloAdmin). Mismo
+// blindaje de reautenticación que eliminarPorRangoFecha, pero sobre un solo
+// documento: borrado puntual desde el listado, no una purga por rango.
+// No cascadea hacia ReporteDano.requerimientos (mismo comportamiento que la
+// purga masiva de arriba — si un daño referenciaba este requerimiento,
+// queda con un id que ya no resuelve en populate; consistente con el
+// precedente ya establecido, no un vacío nuevo).
+export async function eliminarUno(id, password, usuarioActor) {
+  await reautenticar(usuarioActor.id_usuario, password)
+  const doc = await obtenerRequerimiento(id)
+  if (!doc) throw new ErrorNoEncontrado('Requerimiento no encontrado')
+
+  await Requerimiento.deleteOne({ _id: id })
+
+  await auditar(usuarioActor, 'eliminar', doc, `Eliminó el requerimiento de ${doc.tipo} de ${doc.solicitante?.nombre || doc.solicitante}`)
+
+  return { eliminado: true }
+}
+
 export async function obtenerDetalle(id, usuarioActor) {
   const doc = await obtenerRequerimiento(id)
   if (!doc) throw new ErrorNoEncontrado('Requerimiento no encontrado')

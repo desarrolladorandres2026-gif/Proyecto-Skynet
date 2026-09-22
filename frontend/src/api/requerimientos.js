@@ -72,4 +72,10 @@ export const requerimientos = {
       body: JSON.stringify({ desde, hasta, password }),
     })
   },
+  eliminar(id, password) {
+    return request(`/requerimientos/${id}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    })
+  },
 }

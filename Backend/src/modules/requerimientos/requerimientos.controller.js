@@ -73,3 +73,8 @@ export async function eliminarPorRango(req, res) {
   const resultado = await service.eliminarPorRangoFecha(req.body, req.usuario)
   res.json(resultado)
 }
+
+export async function eliminarUno(req, res) {
+  const resultado = await service.eliminarUno(req.params.id, req.body?.password, req.usuario)
+  res.json(resultado)
+}
