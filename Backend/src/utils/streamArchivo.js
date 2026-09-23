@@ -16,7 +16,9 @@ import { ErrorNoEncontrado } from './errores.js'
 //  - Si el archivo no existe (o el nombre es sospechoso), responde igual que
 //    "no encontrado": nunca se distingue "nombre inválido" de "no existe" de
 //    "existe pero no es tuyo" — las tres dan el mismo 404 sin más detalle.
-export function enviarArchivoSeguro(res, carpetaBase, nombreArchivo) {
+//
+// `opciones` se pasa tal cual a res.sendFile (cabeceras, caché, rangos).
+export function enviarArchivoSeguro(res, carpetaBase, nombreArchivo, opciones) {
   if (
     typeof nombreArchivo !== 'string' ||
     !nombreArchivo ||
@@ -37,5 +39,5 @@ export function enviarArchivoSeguro(res, carpetaBase, nombreArchivo) {
     throw new ErrorNoEncontrado('Archivo no encontrado')
   }
 
-  res.sendFile(destino)
+  res.sendFile(destino, opciones)
 }

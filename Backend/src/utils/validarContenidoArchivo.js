@@ -18,7 +18,9 @@ import { fileTypeFromFile } from 'file-type'
 // más precisión — mejor que no poder validarlo en absoluto.
 const FIRMA_OLE2 = Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])
 
-async function detectarTipoReal(ruta) {
+// Exportada para módulos que validan varios archivos por petición (ver
+// videos.almacenamiento.js) y no encajan en el middleware de un solo req.file.
+export async function detectarTipoReal(ruta) {
   const detectado = await fileTypeFromFile(ruta)
   if (detectado) return detectado
 

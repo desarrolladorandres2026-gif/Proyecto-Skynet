@@ -64,6 +64,8 @@ import EleccionNotificacionesPage from './modules/notificaciones/EleccionNotific
 import TransmitirAvisoPage from './modules/avisos_terminal/TransmitirAvisoPage.jsx'
 import MisAvisosTerminalPage from './modules/avisos_terminal/MisAvisosTerminalPage.jsx'
 import AvisoTerminalDetallePage from './modules/avisos_terminal/AvisoTerminalDetallePage.jsx'
+import VideosPage from './modules/videos/VideosPage.jsx'
+import VideosGestionPage from './modules/videos/VideosGestionPage.jsx'
 import AsistentePage from './escritorio/AsistentePage.jsx'
 import DiagnosticoPage from './escritorio/DiagnosticoPage.jsx'
 
@@ -202,6 +204,21 @@ export default function App() {
                 <ModuloActivoRoute modulo="avisos_terminal">
                   <PermissionRoute permiso={['avisos_terminal:transmitir', 'avisos_terminal:ver_historial']}>
                     <AvisoTerminalDetallePage />
+                  </PermissionRoute>
+                </ModuloActivoRoute>
+              }
+            />
+            {/* Videos informativos: ver el historial de publicados es universal
+                (igual que "Reportar daño"); gestionar exige videos:gestionar.
+                El backend vuelve a validar ambos — esto solo evita mostrar
+                una pantalla que después respondería 403. */}
+            <Route path="videos" element={<ModuloActivoRoute modulo="videos"><VideosPage /></ModuloActivoRoute>} />
+            <Route
+              path="videos/gestion"
+              element={
+                <ModuloActivoRoute modulo="videos">
+                  <PermissionRoute permiso="videos:gestionar">
+                    <VideosGestionPage />
                   </PermissionRoute>
                 </ModuloActivoRoute>
               }

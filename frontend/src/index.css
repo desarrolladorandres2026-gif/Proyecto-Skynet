@@ -5,8 +5,8 @@
    Fonts pelea contra el objetivo offline-first y agrega una petición de
    terceros en cada carga. Inter es la ÚNICA familia tipográfica de toda la
    app (títulos, cuerpo, formularios, tablas, stats, mono/labels incluidos):
-   la jerarquía se logra con peso (400/500/600/700), tamaño y espaciado, no
-   mezclando familias distintas. */
+   la jerarquía se logra con tamaño y espaciado (el peso es siempre normal,
+   400, ver tipografia.css), no mezclando familias distintas. */
 @import "@fontsource-variable/inter";
 
 /* Los dos temas de shell (panel denso admin y shell móvil no-admin, ver
@@ -18,6 +18,10 @@
    shell las envuelva. Los prefijos de clase no colisionan entre sí. */
 @import "./layout/panel.css";
 @import "./layout/mobileShell.css";
+
+/* Inter + peso normal + texto negro/blanco en toda la app. Va al final de los
+   imports para ganarle a las utilidades de Tailwind (ver tipografia.css). */
+@import "./tipografia.css";
 
 /* Tokens del sistema de diseño: Tailwind v4 lee este bloque @theme y genera
    las utilidades correspondientes (bg-brand-500, font-display, rounded-xl,
@@ -153,7 +157,7 @@ body {
 }
 
 /* Jerarquía de encabezados vía peso + espaciado (no vía una familia
-   distinta): Inter en semibold/bold con tracking negativo leve. */
+   distinta): Inter en peso normal con tracking negativo leve. */
 @layer base {
 
   h1,
@@ -161,7 +165,7 @@ body {
   h3,
   h4 {
     font-family: var(--font-sans);
-    font-weight: 600;
+    font-weight: 400;
     letter-spacing: -0.01em;
   }
 }

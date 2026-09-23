@@ -28,6 +28,7 @@ import PreguntaSig from '../../models/PreguntaSig.js'
 import CapacitacionTemaSig from '../../models/CapacitacionTemaSig.js'
 import PlanRefuerzoSig from '../../models/PlanRefuerzoSig.js'
 import RespuestaSig from '../../models/RespuestaSig.js'
+import Video from '../../models/Video.js'
 import EstadoPlataforma from '../../models/EstadoPlataforma.js'
 import EventoPlataforma from '../../models/EventoPlataforma.js'
 
@@ -99,6 +100,7 @@ const COLECCIONES_GRUPO_B = [
   { modelo: CapacitacionTemaSig, etiqueta: 'Capacitación SIG', campos: ['usuario', 'responsable'] },
   { modelo: PlanRefuerzoSig, etiqueta: 'Planes de refuerzo SIG', campos: ['usuario', 'responsable'] },
   { modelo: RespuestaSig, etiqueta: 'Respuestas SIG', campos: ['usuario'] },
+  { modelo: Video, etiqueta: 'Videos informativos', campos: ['creadoPor.usuario', 'actualizadoPor.usuario'] },
   { modelo: EstadoPlataforma, etiqueta: 'Historial de mantenimiento de plataforma', campos: ['createdBy'] },
   { modelo: EventoPlataforma, etiqueta: 'Eventos de plataforma', campos: ['usuario'] },
 ]

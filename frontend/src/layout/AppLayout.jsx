@@ -316,7 +316,12 @@ export function NavContent({ modulosVisibles, idPrefix, onNavigate, colapsado = 
 function useBreadcrumbItems(modulosVisibles, pathname) {
   return useMemo(() => {
     for (const grupo of modulosVisibles) {
-      const item = grupo.items.find((i) => pathname === i.to || pathname.startsWith(`${i.to}/`))
+      // El item de ruta MÁS LARGA que coincida: con `find` gana el primero, y
+      // en un grupo con '/videos' y '/videos/gestion' toda subruta de la
+      // segunda quedaba etiquetada con el nombre de la primera.
+      const item = grupo.items
+        .filter((i) => pathname === i.to || pathname.startsWith(`${i.to}/`))
+        .sort((a, b) => b.to.length - a.to.length)[0]
       if (item) {
         const items = [{ label: grupo.label }]
         if (item.label !== grupo.label) items.push({ label: item.label })
@@ -387,7 +392,6 @@ export default function AppLayout() {
           colapsado ? 'w-[4.5rem]' : 'w-60 4xl:w-72'
         )}
       >
-        <div className="panel-grid pointer-events-none absolute inset-0" aria-hidden="true" />
         <div
           className={cn(
             'relative flex items-center border-b border-slate-900/6 px-4 py-4 dark:border-white/8',
@@ -518,11 +522,6 @@ export default function AppLayout() {
         </header>
 
         <main className="relative flex-1 overflow-y-auto overscroll-contain p-[var(--ui-content-padding)]">
-          {/* Igual que en el sidebar: el grid decorativo va en una capa
-                aparte, no en el propio <main> — su mask-image difumina TODO
-                lo que pinta el elemento, y aquí eso incluye el contenido
-                real de cada módulo. */}
-          <div className="panel-grid pointer-events-none absolute inset-0" aria-hidden="true" />
           <motion.div
             key={pathname}
             initial={prefiereReducido ? false : { opacity: 0, y: 6 }}

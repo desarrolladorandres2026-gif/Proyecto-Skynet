@@ -117,4 +117,12 @@ export const MODULOS_SISTEMA = [
     esNucleo: false,
     orden: 18,
   },
+  {
+    key: 'videos',
+    nombre: 'Videos informativos',
+    descripcion:
+      'Videos institucionales para el personal: un administrador los publica y el más reciente se destaca en la pantalla de inicio; el resto queda en un historial consultable por categoría y fecha.',
+    esNucleo: false,
+    orden: 19,
+  },
 ]

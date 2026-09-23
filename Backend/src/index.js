@@ -58,7 +58,9 @@ app.use(
   compression({
     filter: (req, res) => {
       const contentType = String(res.getHeader('Content-Type') || '')
-      if (/spreadsheetml|zip|pdf|^image\//.test(contentType)) return false
+      // ^video\/: además de no ganar nada, gzip rompería las respuestas por
+      // rangos (206) con las que se reproducen los videos (ver modules/videos).
+      if (/spreadsheetml|zip|pdf|^image\/|^video\//.test(contentType)) return false
       // Server-Sent Events NUNCA se comprimen. `compressible('text/event-stream')`
       // devuelve true (cae en la regla genérica /^text\//), así que sin esta
       // línea el chat del copiloto se gzipeaba: zlib no emite nada hasta juntar
@@ -201,6 +203,13 @@ async function start() {
   // backup completo (el endpoint más lento del sistema) tarda segundos, no
   // minutos, así que 30s deja margen de sobra sin dejar la puerta abierta.
   server.timeout = 30_000
+  // Node además corta TODA petición que tarde más de 5 min en llegar completa
+  // (requestTimeout, por defecto 300 s) aunque esté transmitiendo datos sin
+  // pausa. Eso mataba la subida de un video grande desde una red lenta del
+  // Terminal (ver modules/videos). Se desactiva ese tope total; lo que sigue
+  // protegiendo contra conexiones colgadas es server.timeout (30 s SIN
+  // actividad, arriba) y headersTimeout (60 s para mandar las cabeceras).
+  server.requestTimeout = 0
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {

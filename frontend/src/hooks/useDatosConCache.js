@@ -93,7 +93,10 @@ export function useDatosConCache(clave, fetchFn, { ttlMs = 60_000 } = {}) {
   }, [clave, ttlMs])
 
   useEffect(() => {
-    cargar()
+    // El fallo ya quedó expuesto en `error` (ver el .catch de cargar()); sin
+    // este catch vacío el mismo rechazo escapaba además como "unhandled
+    // rejection" en consola por cada carga automática fallida.
+    cargar().catch(() => {})
   }, [cargar])
 
   // Para mutaciones (crear/editar/eliminar/asignar): actualiza el dato ya

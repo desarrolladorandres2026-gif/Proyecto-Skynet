@@ -44,7 +44,7 @@ export function DashboardHeader({
                 {usuario?.rol?.nombre || 'Panel Principal'}
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="subtitulo text-[11px] text-slate-500 dark:text-slate-400">
               Centro de Mando Operativo · <span className="capitalize">{hoyStr}</span>
             </p>
           </div>

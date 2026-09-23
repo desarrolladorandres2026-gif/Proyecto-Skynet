@@ -16,6 +16,7 @@ import sistemaRoutes from '../modules/sistema/sistema.routes.js'
 import plataformaRoutes from '../modules/plataforma/plataforma.routes.js'
 import notificacionesRoutes from '../modules/notificaciones/notificaciones.routes.js'
 import avisosTerminalRoutes from '../modules/avisos_terminal/avisos.routes.js'
+import videosRoutes from '../modules/videos/videos.routes.js'
 import perfilRoutes from '../modules/perfil/perfil.routes.js'
 import copilotoRoutes from '../modules/copiloto/copiloto.routes.js'
 import backupRoutes from '../modules/backup/backup.routes.js'
@@ -58,6 +59,9 @@ router.use('/sistema', sistemaRoutes)
 router.use('/plataforma', plataformaRoutes)
 router.use('/notificaciones', notificacionesRoutes)
 router.use('/avisos-terminal', avisosTerminalRoutes)
+// Videos informativos: ver los publicados es universal; la gestión exige
+// 'videos:gestionar' (ver videos.routes.js).
+router.use('/videos', videosRoutes)
 router.use('/perfil', perfilRoutes)
 router.use('/copiloto', copilotoRoutes)
 router.use('/backup', backupRoutes)

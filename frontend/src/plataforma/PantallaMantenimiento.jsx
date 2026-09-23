@@ -37,7 +37,7 @@ export default function PantallaMantenimiento({ modo = 'mantenimiento', onContin
   const progreso = porcentajeVentana(estado, ahoraServidor())
 
   return (
-    <div className="skynet-login relative flex min-h-svh items-center justify-center overflow-hidden px-4 py-8">
+    <div className="skynet-login sup-oscura relative flex min-h-svh items-center justify-center overflow-hidden px-4 py-8">
       {/* Mismo fondo táctico del login */}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <div className="skynet-grid absolute inset-0" />

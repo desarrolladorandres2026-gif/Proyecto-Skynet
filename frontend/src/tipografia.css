@@ -1,0 +1,380 @@
+/* Tipografía y color de texto unificados de TODA la app: Inter, peso normal
+   (400), sin cursiva, y texto negro en tema claro / blanco en tema oscuro.
+
+   Este archivo se importa al final de index.css, DESPUÉS de tailwindcss, a
+   propósito: las utilidades de Tailwind (font-bold, italic, text-slate-500,
+   dark:text-slate-400...) siguen escritas en los componentes, pero aquí se
+   neutralizan sin tocar ~1.500 clases repartidas en el proyecto.
+
+   Excepción de color: TÍTULOS en naranja y SUBTÍTULOS en verde (los dos
+   colores de la identidad del logo, ver --color-warn-* y --color-accent-* en
+   index.css). Ver el bloque "TÍTULOS Y SUBTÍTULOS" más abajo. */
+
+:root {
+  --texto: #000000;
+  /* 600 en claro / 400 en oscuro: mismo criterio de contraste que el resto de
+     la rampa (el 500 no llega a 4.5:1 sobre blanco). */
+  --titulo: var(--color-warn-600);
+  --subtitulo: var(--color-accent-600);
+}
+
+:root.dark {
+  --texto: #ffffff;
+  --titulo: var(--color-warn-400);
+  --subtitulo: var(--color-accent-400);
+}
+
+/* Superficies siempre oscuras: usan la versión clara aunque el tema sea claro. */
+.sup-oscura,
+.skynet-login-root {
+  --titulo: var(--color-warn-400);
+  --subtitulo: var(--color-accent-400);
+}
+
+/* Sin capa (@layer): una regla sin capa le gana a TODA utilidad de Tailwind,
+   sin importar especificidad ni el orden de importación. Es lo que fuerza el
+   peso normal y la cursiva apagada en cualquier componente. */
+*,
+*::before,
+*::after {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-style: normal;
+}
+
+body {
+  color: var(--texto);
+}
+
+/* TÍTULOS Y SUBTÍTULOS. Sin capa, por el mismo motivo que la regla de arriba:
+   le gana a cualquier text-* de Tailwind puesto en el propio encabezado.
+   - Títulos (naranja): h1, h2 (incluye el título de los modales, que Radix
+     renderiza como h2) y .skynet-title.
+   - Subtítulos (verde): h3-h6, el <p> que va justo debajo de un h1 y la
+     clase .subtitulo para los casos donde el subtítulo no es hermano directo
+     del título (p. ej. DashboardHeader). */
+h1,
+h2,
+.skynet-title {
+  color: var(--titulo);
+}
+
+h3,
+h4,
+h5,
+h6,
+h1 + p,
+.subtitulo,
+.numero,
+.tabular-nums {
+  color: var(--subtitulo);
+}
+
+/* NÚMEROS en verde (mismo verde que los subtítulos). Las cifras de métricas
+   (StatCard, KpiRibbon, totales de gráficas, contador de mantenimiento, estado
+   de la plataforma) ya llevan tabular-nums para que los dígitos no bailen; se
+   reutiliza ese marcador. Para pintar de verde una cifra nueva, ponle la clase
+   .numero (o tabular-nums). */
+
+/* COLOR DE TEXTO. Vive en la capa utilities, después de la de Tailwind, con
+   especificidad baja (:where): pisa la utilidad base (text-slate-500) pero
+   NO los estados hover:/focus:/group-hover:, que siguen funcionando.
+   - Tema claro: grises 400-950 y colores 500-950 pasan a negro. Se dejan
+     fuera 50-300 (grises claros y tintes) y text-white porque se usan sobre
+     superficies oscuras/rellenas (botones primarios, login, loader, video).
+   - Tema oscuro: toda variante dark:text-* clara (50-600) y dark:text-white
+     pasa a blanco. dark:text-*-700+ se respeta: es texto oscuro sobre relleno
+     claro a propósito.
+   - Superficies SIEMPRE oscuras (login, pantalla de mantenimiento, cookies,
+     miniatura de video) quedan fuera con la clase .sup-oscura: el negro
+     ahí sería ilegible. Marca con ella cualquier fondo oscuro fijo nuevo.
+   Para excluir un grupo (p. ej. dejar el color de estado rojo/verde/naranja),
+   borra sus selectores de la lista correspondiente. */
+@layer utilities {
+  :where(:root:not(.dark)) :is(
+    [class~="text-slate-400"],
+    [class^="text-slate-400/"],
+    [class*=" text-slate-400/"],
+    [class~="text-slate-500"],
+    [class^="text-slate-500/"],
+    [class*=" text-slate-500/"],
+    [class~="text-slate-600"],
+    [class^="text-slate-600/"],
+    [class*=" text-slate-600/"],
+    [class~="text-slate-700"],
+    [class^="text-slate-700/"],
+    [class*=" text-slate-700/"],
+    [class~="text-slate-800"],
+    [class^="text-slate-800/"],
+    [class*=" text-slate-800/"],
+    [class~="text-slate-900"],
+    [class^="text-slate-900/"],
+    [class*=" text-slate-900/"],
+    [class~="text-slate-950"],
+    [class^="text-slate-950/"],
+    [class*=" text-slate-950/"],
+    [class~="text-brand-500"],
+    [class^="text-brand-500/"],
+    [class*=" text-brand-500/"],
+    [class~="text-brand-600"],
+    [class^="text-brand-600/"],
+    [class*=" text-brand-600/"],
+    [class~="text-brand-700"],
+    [class^="text-brand-700/"],
+    [class*=" text-brand-700/"],
+    [class~="text-brand-800"],
+    [class^="text-brand-800/"],
+    [class*=" text-brand-800/"],
+    [class~="text-brand-900"],
+    [class^="text-brand-900/"],
+    [class*=" text-brand-900/"],
+    [class~="text-brand-950"],
+    [class^="text-brand-950/"],
+    [class*=" text-brand-950/"],
+    [class~="text-accent-500"],
+    [class~="text-accent-600"],
+    [class~="text-accent-700"],
+    [class~="text-accent-800"],
+    [class~="text-accent-900"],
+    [class~="text-accent-950"],
+    [class~="text-warn-500"],
+    [class^="text-warn-500/"],
+    [class*=" text-warn-500/"],
+    [class~="text-warn-600"],
+    [class^="text-warn-600/"],
+    [class*=" text-warn-600/"],
+    [class~="text-warn-700"],
+    [class^="text-warn-700/"],
+    [class*=" text-warn-700/"],
+    [class~="text-warn-800"],
+    [class^="text-warn-800/"],
+    [class*=" text-warn-800/"],
+    [class~="text-warn-900"],
+    [class^="text-warn-900/"],
+    [class*=" text-warn-900/"],
+    [class~="text-warn-950"],
+    [class^="text-warn-950/"],
+    [class*=" text-warn-950/"],
+    [class~="text-red-500"],
+    [class^="text-red-500/"],
+    [class*=" text-red-500/"],
+    [class~="text-red-600"],
+    [class^="text-red-600/"],
+    [class*=" text-red-600/"],
+    [class~="text-red-700"],
+    [class^="text-red-700/"],
+    [class*=" text-red-700/"],
+    [class~="text-red-800"],
+    [class^="text-red-800/"],
+    [class*=" text-red-800/"],
+    [class~="text-red-900"],
+    [class^="text-red-900/"],
+    [class*=" text-red-900/"],
+    [class~="text-red-950"],
+    [class^="text-red-950/"],
+    [class*=" text-red-950/"],
+    [class~="text-rose-500"],
+    [class~="text-rose-600"],
+    [class~="text-rose-700"],
+    [class~="text-rose-800"],
+    [class~="text-rose-900"],
+    [class~="text-rose-950"],
+    [class~="text-emerald-500"],
+    [class~="text-emerald-600"],
+    [class~="text-emerald-700"],
+    [class~="text-emerald-800"],
+    [class~="text-emerald-900"],
+    [class~="text-emerald-950"],
+    [class~="text-amber-500"],
+    [class~="text-amber-600"],
+    [class~="text-amber-700"],
+    [class~="text-amber-800"],
+    [class~="text-amber-900"],
+    [class~="text-amber-950"],
+    [class~="text-blue-500"],
+    [class~="text-blue-600"],
+    [class~="text-blue-700"],
+    [class~="text-blue-800"],
+    [class~="text-blue-900"],
+    [class~="text-blue-950"],
+    [class~="text-teal-500"],
+    [class~="text-teal-600"],
+    [class~="text-teal-700"],
+    [class~="text-teal-800"],
+    [class~="text-teal-900"],
+    [class~="text-teal-950"],
+    [class~="text-violet-500"],
+    [class~="text-violet-600"],
+    [class~="text-violet-700"],
+    [class~="text-violet-800"],
+    [class~="text-violet-900"],
+    [class~="text-violet-950"],
+    [class~="text-purple-500"],
+    [class~="text-purple-600"],
+    [class~="text-purple-700"],
+    [class~="text-purple-800"],
+    [class~="text-purple-900"],
+    [class~="text-purple-950"],
+    [class~="text-fuchsia-500"],
+    [class~="text-fuchsia-600"],
+    [class~="text-fuchsia-700"],
+    [class~="text-fuchsia-800"],
+    [class~="text-fuchsia-900"],
+    [class~="text-fuchsia-950"]
+  ):not(:where(.sup-oscura, .sup-oscura *, .skynet-login-root, .skynet-login-root *)) {
+    color: var(--texto);
+  }
+
+  :where(.dark) :is(
+    [class~="dark:text-slate-50"],
+    [class^="dark:text-slate-50/"],
+    [class*=" dark:text-slate-50/"],
+    [class~="dark:text-slate-100"],
+    [class^="dark:text-slate-100/"],
+    [class*=" dark:text-slate-100/"],
+    [class~="dark:text-slate-200"],
+    [class^="dark:text-slate-200/"],
+    [class*=" dark:text-slate-200/"],
+    [class~="dark:text-slate-300"],
+    [class^="dark:text-slate-300/"],
+    [class*=" dark:text-slate-300/"],
+    [class~="dark:text-slate-400"],
+    [class^="dark:text-slate-400/"],
+    [class*=" dark:text-slate-400/"],
+    [class~="dark:text-slate-500"],
+    [class^="dark:text-slate-500/"],
+    [class*=" dark:text-slate-500/"],
+    [class~="dark:text-slate-600"],
+    [class^="dark:text-slate-600/"],
+    [class*=" dark:text-slate-600/"],
+    [class~="dark:text-brand-50"],
+    [class^="dark:text-brand-50/"],
+    [class*=" dark:text-brand-50/"],
+    [class~="dark:text-brand-100"],
+    [class^="dark:text-brand-100/"],
+    [class*=" dark:text-brand-100/"],
+    [class~="dark:text-brand-200"],
+    [class^="dark:text-brand-200/"],
+    [class*=" dark:text-brand-200/"],
+    [class~="dark:text-brand-300"],
+    [class^="dark:text-brand-300/"],
+    [class*=" dark:text-brand-300/"],
+    [class~="dark:text-brand-400"],
+    [class^="dark:text-brand-400/"],
+    [class*=" dark:text-brand-400/"],
+    [class~="dark:text-brand-500"],
+    [class^="dark:text-brand-500/"],
+    [class*=" dark:text-brand-500/"],
+    [class~="dark:text-brand-600"],
+    [class^="dark:text-brand-600/"],
+    [class*=" dark:text-brand-600/"],
+    [class~="dark:text-accent-50"],
+    [class~="dark:text-accent-100"],
+    [class~="dark:text-accent-200"],
+    [class~="dark:text-accent-300"],
+    [class~="dark:text-accent-400"],
+    [class~="dark:text-accent-500"],
+    [class~="dark:text-accent-600"],
+    [class~="dark:text-warn-50"],
+    [class^="dark:text-warn-50/"],
+    [class*=" dark:text-warn-50/"],
+    [class~="dark:text-warn-100"],
+    [class^="dark:text-warn-100/"],
+    [class*=" dark:text-warn-100/"],
+    [class~="dark:text-warn-200"],
+    [class^="dark:text-warn-200/"],
+    [class*=" dark:text-warn-200/"],
+    [class~="dark:text-warn-300"],
+    [class^="dark:text-warn-300/"],
+    [class*=" dark:text-warn-300/"],
+    [class~="dark:text-warn-400"],
+    [class^="dark:text-warn-400/"],
+    [class*=" dark:text-warn-400/"],
+    [class~="dark:text-warn-500"],
+    [class^="dark:text-warn-500/"],
+    [class*=" dark:text-warn-500/"],
+    [class~="dark:text-warn-600"],
+    [class^="dark:text-warn-600/"],
+    [class*=" dark:text-warn-600/"],
+    [class~="dark:text-red-50"],
+    [class^="dark:text-red-50/"],
+    [class*=" dark:text-red-50/"],
+    [class~="dark:text-red-100"],
+    [class^="dark:text-red-100/"],
+    [class*=" dark:text-red-100/"],
+    [class~="dark:text-red-200"],
+    [class^="dark:text-red-200/"],
+    [class*=" dark:text-red-200/"],
+    [class~="dark:text-red-300"],
+    [class^="dark:text-red-300/"],
+    [class*=" dark:text-red-300/"],
+    [class~="dark:text-red-400"],
+    [class^="dark:text-red-400/"],
+    [class*=" dark:text-red-400/"],
+    [class~="dark:text-red-500"],
+    [class^="dark:text-red-500/"],
+    [class*=" dark:text-red-500/"],
+    [class~="dark:text-red-600"],
+    [class^="dark:text-red-600/"],
+    [class*=" dark:text-red-600/"],
+    [class~="dark:text-rose-50"],
+    [class~="dark:text-rose-100"],
+    [class~="dark:text-rose-200"],
+    [class~="dark:text-rose-300"],
+    [class~="dark:text-rose-400"],
+    [class~="dark:text-rose-500"],
+    [class~="dark:text-rose-600"],
+    [class~="dark:text-emerald-50"],
+    [class~="dark:text-emerald-100"],
+    [class~="dark:text-emerald-200"],
+    [class~="dark:text-emerald-300"],
+    [class~="dark:text-emerald-400"],
+    [class~="dark:text-emerald-500"],
+    [class~="dark:text-emerald-600"],
+    [class~="dark:text-amber-50"],
+    [class~="dark:text-amber-100"],
+    [class~="dark:text-amber-200"],
+    [class~="dark:text-amber-300"],
+    [class~="dark:text-amber-400"],
+    [class~="dark:text-amber-500"],
+    [class~="dark:text-amber-600"],
+    [class~="dark:text-blue-50"],
+    [class~="dark:text-blue-100"],
+    [class~="dark:text-blue-200"],
+    [class~="dark:text-blue-300"],
+    [class~="dark:text-blue-400"],
+    [class~="dark:text-blue-500"],
+    [class~="dark:text-blue-600"],
+    [class~="dark:text-teal-50"],
+    [class~="dark:text-teal-100"],
+    [class~="dark:text-teal-200"],
+    [class~="dark:text-teal-300"],
+    [class~="dark:text-teal-400"],
+    [class~="dark:text-teal-500"],
+    [class~="dark:text-teal-600"],
+    [class~="dark:text-violet-50"],
+    [class~="dark:text-violet-100"],
+    [class~="dark:text-violet-200"],
+    [class~="dark:text-violet-300"],
+    [class~="dark:text-violet-400"],
+    [class~="dark:text-violet-500"],
+    [class~="dark:text-violet-600"],
+    [class~="dark:text-purple-50"],
+    [class~="dark:text-purple-100"],
+    [class~="dark:text-purple-200"],
+    [class~="dark:text-purple-300"],
+    [class~="dark:text-purple-400"],
+    [class~="dark:text-purple-500"],
+    [class~="dark:text-purple-600"],
+    [class~="dark:text-fuchsia-50"],
+    [class~="dark:text-fuchsia-100"],
+    [class~="dark:text-fuchsia-200"],
+    [class~="dark:text-fuchsia-300"],
+    [class~="dark:text-fuchsia-400"],
+    [class~="dark:text-fuchsia-500"],
+    [class~="dark:text-fuchsia-600"],
+    [class~="dark:text-white"]
+  ) {
+    color: var(--texto);
+  }
+}

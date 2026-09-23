@@ -18,6 +18,7 @@ import { ColaAtencionPrioritaria } from '../../components/dashboard/ColaAtencion
 import { ModalPersonalizacionDashboard } from '../../components/dashboard/ModalPersonalizacionDashboard.jsx'
 import { usePersonalizacionDashboardCompleta } from '../../components/dashboard/usePersonalizacionDashboardCompleta.js'
 import { ACCESOS_RAPIDOS_PANEL_DENSO } from '../../config/accesosRapidosPorRol.js'
+import VideoDestacado from '../../components/videos/VideoDestacado.jsx'
 
 const TARJETAS = [
   { clave: 'notificaciones', label: 'Notificaciones sin leer', icon: Bell, to: '/notificaciones/centro', tono: 'brand' },
@@ -69,6 +70,9 @@ function HomeFeed({ usuario, visibles, data, onRefrescar, cargando }) {
           ))}
         </div>
       )}
+
+      {/* Video informativo destacado (no se muestra si no hay publicados) */}
+      <VideoDestacado />
 
       {/* Recomendaciones en móvil */}
       {recomendaciones && recomendaciones.length > 0 && (
@@ -141,6 +145,11 @@ function PanelDenso({ usuario, visibles, data, onRefrescar, cargando }) {
         onRefrescar={onRefrescar}
         cargando={cargando}
       />
+
+      {/* Video informativo destacado: fuera del grid personalizable porque es
+          un comunicado institucional para todo el personal, no una métrica
+          que cada persona pueda ocultar. No se pinta si no hay publicados. */}
+      <VideoDestacado />
 
       {/* 2. Grid Dinámico Personalizable */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--ui-gap)] items-start">

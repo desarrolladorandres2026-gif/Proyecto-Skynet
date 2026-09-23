@@ -44,23 +44,22 @@
 
   :root {
     --panel-bg: #f8fafc;
-    --panel-fg: #1e293b;
+    --panel-fg: #000000;
 
-    --panel-grid-line: rgba(31, 77, 143, 0.05);
     --panel-bracket-border: rgba(31, 77, 143, 0.5);
 
     --panel-sidebar-g1: rgba(255, 255, 255, 0.96);
     --panel-sidebar-g2: rgba(248, 250, 252, 0.98);
     --panel-sidebar-border: rgba(15, 23, 42, 0.06);
 
-    --panel-brand-color: #152c4f;
+    --panel-brand-color: #000000;
     --panel-brand-glow: rgba(31, 77, 143, 0.22);
 
-    --panel-navlink-color: rgba(30, 41, 59, 0.65);
+    --panel-navlink-color: #000000;
     --panel-navlink-hover-bg: rgba(31, 77, 143, 0.07);
-    --panel-navlink-hover-color: #0f2733;
+    --panel-navlink-hover-color: #000000;
     --panel-navlink-active-bg: rgba(31, 77, 143, 0.1);
-    --panel-navlink-active-color: var(--color-brand-700);
+    --panel-navlink-active-color: #000000;
     --panel-navlink-active-shadow: var(--color-accent-600);
 
     --panel-card-g1: #ffffff;
@@ -74,16 +73,16 @@
     --panel-btn-primario-glow-hover: rgba(31, 77, 143, 0.32);
 
     --panel-btn-sec-border: rgba(31, 77, 143, 0.3);
-    --panel-btn-sec-color: var(--color-brand-700);
+    --panel-btn-sec-color: #000000;
     --panel-btn-sec-hover-bg: rgba(31, 77, 143, 0.07);
     --panel-btn-sec-hover-border: rgba(31, 77, 143, 0.45);
 
-    --panel-btn-fantasma-color: var(--color-brand-700);
+    --panel-btn-fantasma-color: #000000;
     --panel-btn-fantasma-hover-bg: rgba(31, 77, 143, 0.07);
 
     --panel-input-bg: #ffffff;
     --panel-input-border: rgba(100, 116, 139, 0.28);
-    --panel-input-color: #0f172a;
+    --panel-input-color: #000000;
     --panel-input-placeholder: rgba(100, 116, 139, 0.5);
     --panel-input-focus-border: rgba(31, 77, 143, 0.6);
     --panel-input-focus-bg: rgba(31, 77, 143, 0.04);
@@ -96,9 +95,9 @@
 
     --panel-table-bg: #ffffff;
     --panel-table-border: rgba(15, 23, 42, 0.07);
-    --panel-th-color: var(--color-brand-700);
+    --panel-th-color: #000000;
     --panel-th-border: rgba(15, 23, 42, 0.07);
-    --panel-td-color: #334155;
+    --panel-td-color: #000000;
     --panel-td-border: rgba(100, 116, 139, 0.12);
     --panel-row-hover-bg: rgba(31, 77, 143, 0.04);
 
@@ -113,9 +112,8 @@
 
   :root.dark {
     --panel-bg: #05070a;
-    --panel-fg: #e2e8f0;
+    --panel-fg: #ffffff;
 
-    --panel-grid-line: rgba(127, 164, 213, 0.05);
     --panel-bracket-border: rgba(127, 164, 213, 0.5);
 
     --panel-sidebar-g1: rgba(13, 18, 26, 0.95);
@@ -129,7 +127,7 @@
     --panel-navlink-hover-bg: rgba(127, 164, 213, 0.06);
     --panel-navlink-hover-color: #ffffff;
     --panel-navlink-active-bg: rgba(127, 164, 213, 0.1);
-    --panel-navlink-active-color: var(--color-brand-300);
+    --panel-navlink-active-color: #ffffff;
     --panel-navlink-active-shadow: var(--color-accent-400);
 
     --panel-card-g1: rgba(13, 18, 26, 0.85);
@@ -146,16 +144,16 @@
     --panel-btn-primario-glow-hover: rgba(127, 164, 213, 0.7);
 
     --panel-btn-sec-border: rgba(127, 164, 213, 0.25);
-    --panel-btn-sec-color: var(--color-brand-200);
+    --panel-btn-sec-color: #ffffff;
     --panel-btn-sec-hover-bg: rgba(127, 164, 213, 0.08);
     --panel-btn-sec-hover-border: rgba(127, 164, 213, 0.4);
 
-    --panel-btn-fantasma-color: var(--color-brand-300);
+    --panel-btn-fantasma-color: #ffffff;
     --panel-btn-fantasma-hover-bg: rgba(127, 164, 213, 0.08);
 
     --panel-input-bg: rgba(255, 255, 255, 0.03);
     --panel-input-border: rgba(148, 163, 184, 0.2);
-    --panel-input-color: #f1f5f9;
+    --panel-input-color: #ffffff;
     --panel-input-placeholder: rgba(148, 163, 184, 0.4);
     --panel-input-focus-border: rgba(127, 164, 213, 0.6);
     --panel-input-focus-bg: rgba(127, 164, 213, 0.04);
@@ -165,9 +163,9 @@
 
     --panel-table-bg: rgba(13, 18, 26, 0.6);
     --panel-table-border: rgba(127, 164, 213, 0.12);
-    --panel-th-color: var(--color-brand-300);
+    --panel-th-color: #ffffff;
     --panel-th-border: rgba(127, 164, 213, 0.12);
-    --panel-td-color: #cbd5e1;
+    --panel-td-color: #ffffff;
     --panel-td-border: rgba(148, 163, 184, 0.08);
     --panel-row-hover-bg: rgba(127, 164, 213, 0.04);
 
@@ -188,16 +186,6 @@
 
   .panel-mono {
     font-family: var(--font-mono);
-  }
-
-  /* Grid táctico de fondo, igual que el login pero más tenue: aquí convive
-   con contenido denso (tablas), no puede competir por atención. */
-  .panel-grid {
-    background-image:
-      linear-gradient(var(--panel-grid-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--panel-grid-line) 1px, transparent 1px);
-    background-size: 42px 42px;
-    mask-image: radial-gradient(ellipse 120% 100% at 0% 0%, black 30%, transparent 85%);
   }
 
   /* Corner brackets: firma HUD original. Ya no se aplican por defecto en

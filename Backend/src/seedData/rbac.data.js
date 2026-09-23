@@ -61,6 +61,11 @@ export const PERMISOS = [
   // — solo quien tiene este permiso decide si se transmite.
   permiso('avisos_terminal', 'transmitir', 'Transmitir avisos institucionales por voz (Avisos Terminal de Neiva)'),
   permiso('avisos_terminal', 'ver_historial', 'Ver historial de avisos institucionales transmitidos'),
+  // Videos informativos: el administrador publica videos que aparecen en el
+  // inicio de todos los trabajadores (ver modules/videos). Ver los videos
+  // publicados es universal (no es un permiso); este gobierna crear, editar,
+  // publicar/desactivar y eliminar.
+  permiso('videos', 'gestionar', 'Gestionar videos informativos (crear, editar, publicar y eliminar)'),
   // Catálogos de Dependencia y Cargo (selects reutilizados en Usuarios,
   // Requerimientos y Equipos). Ver que existan o listarlos es universal para
   // todo autenticado (mismo principio que danos:gestionar); este permiso solo
@@ -202,6 +207,7 @@ const PERMISOS_ADMINISTRADOR_BASE = [
   'notificaciones:recibir_email',
   'avisos_terminal:transmitir',
   'avisos_terminal:ver_historial',
+  'videos:gestionar',
 ]
 
 // Administrador + las 2 capacidades de Requerimientos que NO comparte con
@@ -398,6 +404,8 @@ export const ROLES = [
       // resto de este rol (email, publicaciones, PQRS).
       'avisos_terminal:transmitir',
       'avisos_terminal:ver_historial',
+      // Mismo dueño natural: comunicaciones institucionales dirigidas al personal.
+      'videos:gestionar',
       'notificaciones:recibir_email',
     ],
   },

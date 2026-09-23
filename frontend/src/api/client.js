@@ -61,6 +61,29 @@ function combinarSignals(a, b) {
   return controlador.signal
 }
 
+// Compartidas por request() y requestConProgreso(): mismo efecto de un 401 y de
+// un 503 de mantenimiento, sin importar si la petición salió por fetch o XHR.
+function notificarSesionInvalida() {
+  // Si había un usuario logueado, este 401 casi siempre es tokenVersion
+  // desincronizado (un admin cambió su rol, permisos o contraseña) y no una
+  // sesión que simplemente expiró sola: se lo señalamos a LoginPage.
+  if (localStorage.getItem('skynet_usuario')) {
+    sessionStorage.setItem('skynet_sesion_invalidada', '1')
+  }
+  removeUsuarioLocal()
+  window.dispatchEvent(new Event('skynet:logout'))
+}
+
+function errorDeMantenimiento(data) {
+  window.dispatchEvent(new CustomEvent('skynet:mantenimiento', { detail: data.estado || null }))
+  const err = new Error(data?.error || 'La plataforma está en mantenimiento')
+  // Se adjunta para que quien llame (p. ej. LoginPage) pueda reaccionar sin
+  // tener que interpretar el texto del mensaje.
+  err.mantenimiento = true
+  err.estado = data.estado || null
+  return err
+}
+
 export async function request(path, options = {}) {
   const isFormData = options.body instanceof FormData
   if (isFormData) {
@@ -107,14 +130,7 @@ export async function request(path, options = {}) {
   // paralelo a un posible login manual) podría dispatchear skynet:logout y
   // borrar el usuario que el login manual acaba de establecer.
   if (res.status === 401 && !options.suppressAuthEvent) {
-    // Si había un usuario logueado, este 401 casi siempre es tokenVersion
-    // desincronizado (un admin cambió su rol, permisos o contraseña) y no una
-    // sesión que simplemente expiró sola: se lo señalamos a LoginPage.
-    if (localStorage.getItem('skynet_usuario')) {
-      sessionStorage.setItem('skynet_sesion_invalidada', '1')
-    }
-    removeUsuarioLocal()
-    window.dispatchEvent(new Event('skynet:logout'))
+    notificarSesionInvalida()
   }
 
   const data = await res.json().catch(() => null)
@@ -130,17 +146,64 @@ export async function request(path, options = {}) {
   // está reiniciando, y ese caso NO debe pintar una pantalla de mantenimiento
   // programado que nadie configuró.
   if (res.status === 503 && data?.mantenimiento === true) {
-    window.dispatchEvent(new CustomEvent('skynet:mantenimiento', { detail: data.estado || null }))
-    const err = new Error(data?.error || 'La plataforma está en mantenimiento')
-    // Se adjunta para que quien llame (p. ej. LoginPage) pueda reaccionar sin
-    // tener que interpretar el texto del mensaje.
-    err.mantenimiento = true
-    err.estado = data.estado || null
-    throw err
+    throw errorDeMantenimiento(data)
   }
 
   if (!res.ok) throw new Error(data?.error || `Error ${res.status}`)
   return data
+}
+
+// Variante de request() para subidas pesadas (hoy: archivos de video, ver
+// api/videos.js), con dos diferencias que fetch no permite:
+//  - Progreso: fetch no informa cuánto se ha enviado; XMLHttpRequest sí
+//    (xhr.upload.onprogress), y sin una barra de avance una subida de 2 GB
+//    parece colgada.
+//  - Sin timeout total: request() corta a los 60 s cualquier FormData, lo que
+//    haría imposible subir un video grande. Aquí solo se cancela si quien llama
+//    lo pide (signal) o si se pierde la conexión.
+// El resto (cookie de sesión, 401, mantenimiento, compresión de imágenes) se
+// comporta igual que request().
+export async function requestConProgreso(path, { method = 'POST', body, onProgreso, signal } = {}) {
+  const cuerpo = body instanceof FormData ? await comprimirFormData(body) : body
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open(method, `${BASE}${path}`)
+    xhr.withCredentials = true
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgreso?.({ enviados: e.loaded, total: e.total })
+    }
+
+    xhr.onload = () => {
+      let data = null
+      try {
+        data = xhr.responseText ? JSON.parse(xhr.responseText) : null
+      } catch {
+        data = null
+      }
+      if (xhr.status === 401) notificarSesionInvalida()
+      if (xhr.status === 503 && data?.mantenimiento === true) return reject(errorDeMantenimiento(data))
+      if (xhr.status >= 200 && xhr.status < 300) return resolve(data)
+      // 413 sin JSON = lo cortó el proxy (nginx), no el backend.
+      if (xhr.status === 413 && !data) {
+        return reject(new Error('El servidor rechazó el archivo por su tamaño. Revisa client_max_body_size en la configuración de nginx.'))
+      }
+      reject(new Error(data?.error || `Error ${xhr.status}`))
+    }
+    xhr.onerror = () => reject(new Error('Se perdió la conexión durante la subida. Verifica tu red e inténtalo de nuevo.'))
+    xhr.onabort = () => {
+      const err = new Error('Subida cancelada')
+      err.cancelada = true
+      reject(err)
+    }
+
+    if (signal) {
+      if (signal.aborted) return xhr.abort()
+      signal.addEventListener('abort', () => xhr.abort(), { once: true })
+    }
+    xhr.send(cuerpo)
+  })
 }
 
 // Variante de request() para respuestas binarias (hoy: el audio WAV de un

@@ -38,7 +38,7 @@ export default function CookieConsent() {
 
   if (rechazado) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 p-4">
+      <div className="sup-oscura fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 p-4">
         <div className="max-w-sm text-center">
           <p className="text-lg font-semibold text-white">Acceso cancelado</p>
           <p className="mt-2 text-sm text-slate-400">

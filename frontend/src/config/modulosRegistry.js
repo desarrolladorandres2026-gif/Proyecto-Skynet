@@ -1,6 +1,6 @@
 import {
   Wrench, Users, ShieldCheck, ScrollText, TriangleAlert,
-  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays, Mail, Bot, LayoutList, Brain, Megaphone,
+  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays, Mail, Bot, LayoutList, Brain, Megaphone, Clapperboard,
 } from 'lucide-react'
 
 // Registro único de módulos para el sidebar (AppLayout.jsx) y para decidir
@@ -144,6 +144,20 @@ export const MODULOS_REGISTRO = [
     items: [
       { to: '/avisos-terminal/mios', label: 'Mis avisos' },
       { to: '/avisos-terminal/transmitir', label: 'Transmitir aviso', permiso: 'avisos_terminal:transmitir' },
+    ],
+  },
+  {
+    // Módulo propio activable desde Sistema → Módulos. Ver los videos
+    // publicados es universal (publico); "Gestionar videos" exige
+    // videos:gestionar (Administrador, Dir. Administrativo y Gestión,
+    // Comunicador y Super Admin).
+    key: 'videos',
+    label: 'Videos informativos',
+    icon: Clapperboard,
+    publico: true,
+    items: [
+      { to: '/videos', label: 'Ver videos', end: true },
+      { to: '/videos/gestion', label: 'Gestionar videos', permiso: 'videos:gestionar' },
     ],
   },
   {

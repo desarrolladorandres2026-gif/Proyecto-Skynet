@@ -107,7 +107,6 @@ export default function LoginPage() {
         <div className="skynet-blob skynet-blob-1" />
         <div className="skynet-blob skynet-blob-2" />
         <div className="skynet-blob skynet-blob-3" />
-        <div className={`skynet-grid-overlay ${enSecuencia ? 'skynet-grid-warp' : ''}`} />
       </div>
 
       {/* Onda expansiva al autorizar */}

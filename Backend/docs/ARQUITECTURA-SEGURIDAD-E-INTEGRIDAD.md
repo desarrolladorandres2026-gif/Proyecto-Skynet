@@ -77,7 +77,8 @@ completa y actualizada):
   `Requerimiento`, `ReporteDano`, `Ausencia`, `Mantenimiento` (y sus
   sub-documentos: evidencias, materiales, horas, mensajes...),
   `Hallazgo`, `BitacoraEntrada`, `ArticuloConocimiento`, todo el módulo
-  SIG, `EstadoPlataforma`, `EventoPlataforma`. El ERP es del Terminal, no
+  SIG, `EstadoPlataforma`, `EventoPlataforma`, `Video` (videos informativos:
+  autoría en `creadoPor`/`actualizadoPor`). El ERP es del Terminal, no
   del empleado — este historial debe sobrevivir a la persona.
 
 **Regla**: un usuario con CUALQUIER documento en Grupo B no puede
