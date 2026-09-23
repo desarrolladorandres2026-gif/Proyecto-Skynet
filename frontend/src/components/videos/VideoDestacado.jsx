@@ -1,11 +1,63 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
-import { videosApi } from '../../api/videos.js'
+import { urlArchivoVideo, videosApi } from '../../api/videos.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { fmtFecha } from '../ui.jsx'
 import { VideoMiniatura } from './VideoMiniatura.jsx'
 import { VideoReproductor } from './VideoReproductor.jsx'
+
+// Reproducción automática en el propio inicio. Los navegadores solo permiten
+// autoplay SIN sonido (no hay gesto del usuario todavía), así que arranca en
+// silencio y la persona activa el audio con los controles. Los enlaces
+// externos no se pueden incrustar y los archivos que el navegador no decodifica
+// caen a la miniatura de siempre.
+function conAutoplayMudo(embedUrl, proveedor) {
+  try {
+    const url = new URL(embedUrl)
+    url.searchParams.set('autoplay', '1')
+    // iOS abriría YouTube a pantalla completa en vez de reproducir en línea.
+    url.searchParams.set('playsinline', '1')
+    url.searchParams.set(proveedor === 'vimeo' ? 'muted' : 'mute', '1')
+    return url.toString()
+  } catch {
+    return embedUrl
+  }
+}
+
+function ReproduccionAutomatica({ video, fallback }) {
+  const [fallo, setFallo] = useState(false)
+  const nativo = video.proveedor === 'local' || video.proveedor === 'archivo'
+  const embebido = video.proveedor === 'youtube' || video.proveedor === 'vimeo'
+  if (fallo || (!nativo && !embebido)) return fallback
+
+  return (
+    <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
+      {nativo ? (
+        <video
+          src={video.proveedor === 'local' ? urlArchivoVideo(video) : video.embedUrl}
+          controls
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          onError={() => setFallo(true)}
+          className="h-full w-full"
+        />
+      ) : (
+        <iframe
+          src={conAutoplayMudo(video.embedUrl, video.proveedor)}
+          title={video.titulo}
+          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+          className="h-full w-full"
+        />
+      )}
+    </div>
+  )
+}
 
 // Sección del inicio con el video informativo más recientemente publicado.
 //
@@ -29,7 +81,10 @@ export default function VideoDestacado({ className = '' }) {
   return (
     <section aria-labelledby="video-destacado-titulo" className={`@container ${className}`}>
       <div className="grid items-center gap-4 border-b border-slate-200/80 pb-5 dark:border-slate-800/80 @2xl:grid-cols-[minmax(0,5fr)_minmax(0,4fr)] @2xl:gap-8">
-        <VideoMiniatura video={video} onClick={() => setReproduciendo(video)} botonGrande />
+        <ReproduccionAutomatica
+          video={video}
+          fallback={<VideoMiniatura video={video} onClick={() => setReproduciendo(video)} botonGrande />}
+        />
 
         <div className="min-w-0">
           <div className="flex items-center gap-2">

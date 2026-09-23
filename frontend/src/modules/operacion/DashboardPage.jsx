@@ -8,13 +8,11 @@ import { useModulosVisibles } from '../../layout/AppLayout.jsx'
 import { dashboard } from '../../api/operacion.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { ErrorMsg } from '../../components/ui.jsx'
-import { ListRow, QuickAction, SectionHeader } from '../../components/mobileUi.jsx'
+import { QuickAction } from '../../components/mobileUi.jsx'
 import { MOBILE_NAV_POR_ROL } from '../../config/mobileNavPorRol.js'
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader.jsx'
 import { KpiRibbon } from '../../components/dashboard/KpiRibbon.jsx'
 import { StatCard } from '../../components/dashboard/StatCard.jsx'
-import { AnalisisRecomendaciones } from '../../components/dashboard/AnalisisRecomendaciones.jsx'
-import { ColaAtencionPrioritaria } from '../../components/dashboard/ColaAtencionPrioritaria.jsx'
 import { ModalPersonalizacionDashboard } from '../../components/dashboard/ModalPersonalizacionDashboard.jsx'
 import { usePersonalizacionDashboardCompleta } from '../../components/dashboard/usePersonalizacionDashboardCompleta.js'
 import { ACCESOS_RAPIDOS_PANEL_DENSO } from '../../config/accesosRapidosPorRol.js'
@@ -41,16 +39,10 @@ const ANCHO_CLASES = {
   completo: 'lg:col-span-12',
 }
 
-const TONOS_MOVIL = {
-  brand: 'text-[var(--mobile-accent)]',
-}
-
-function HomeFeed({ usuario, visibles, data, onRefrescar, cargando }) {
+function HomeFeed({ usuario, onRefrescar, cargando }) {
   const modulosVisibles = useModulosVisibles()
   const rutasPermitidas = new Set(modulosVisibles.flatMap((m) => m.items.map((i) => i.to)))
   const accesos = (MOBILE_NAV_POR_ROL[usuario?.rol?.slug] || []).filter((a) => rutasPermitidas.has(a.to))
-
-  const { tarjetas, recomendaciones, colaPrioritaria } = data
 
   return (
     <div className="mx-auto max-w-md space-y-6 pb-6">
@@ -73,40 +65,6 @@ function HomeFeed({ usuario, visibles, data, onRefrescar, cargando }) {
 
       {/* Video informativo destacado (no se muestra si no hay publicados) */}
       <VideoDestacado />
-
-      {/* Recomendaciones en móvil */}
-      {recomendaciones && recomendaciones.length > 0 && (
-        <AnalisisRecomendaciones recomendaciones={recomendaciones} />
-      )}
-
-      {/* Cola de atención prioritaria */}
-      {colaPrioritaria && colaPrioritaria.length > 0 && (
-        <ColaAtencionPrioritaria cola={colaPrioritaria} />
-      )}
-
-      {/* Resumen numérico */}
-      <div>
-        <SectionHeader>Resumen Operativo</SectionHeader>
-        {!tarjetas ? (
-          <p className="text-sm text-[var(--mobile-text-dim)]">Cargando…</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {visibles.map((t) => (
-              <Link key={t.clave} to={t.to}>
-                <ListRow
-                  icon={t.icon}
-                  title={t.label}
-                  trailing={
-                    <span className={`text-2xl font-bold ${TONOS_MOVIL[t.tono] || 'text-[var(--mobile-text)]'}`}>
-                      {tarjetas[t.clave]}
-                    </span>
-                  }
-                />
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   )
 }
@@ -116,7 +74,7 @@ function PanelDenso({ usuario, visibles, data, onRefrescar, cargando }) {
   const rutasPermitidas = new Set(modulosVisibles.flatMap((m) => m.items.map((i) => i.to)))
   const accesos = (ACCESOS_RAPIDOS_PANEL_DENSO[usuario?.rol?.slug] || []).filter((a) => rutasPermitidas.has(a.to))
 
-  const { tarjetas, recomendaciones, colaPrioritaria } = data
+  const { tarjetas } = data
 
   const {
     modalAbierto,
@@ -184,23 +142,6 @@ function PanelDenso({ usuario, visibles, data, onRefrescar, cargando }) {
               )
             }
 
-            if (sec.id === 'recomendaciones') {
-              return (
-                <div key={sec.id} className={colClass}>
-                  <AnalisisRecomendaciones recomendaciones={recomendaciones || []} />
-                </div>
-              )
-            }
-
-            if (sec.id === 'cola') {
-              if (!colaPrioritaria || colaPrioritaria.length === 0) return null
-              return (
-                <div key={sec.id} className={colClass}>
-                  <ColaAtencionPrioritaria cola={colaPrioritaria} />
-                </div>
-              )
-            }
-
             return null
           })}
       </div>
@@ -230,8 +171,8 @@ export default function DashboardPage() {
   const esMovil = useEsMovil()
 
   // Datos frescos por 2 minutos: entrar/salir de otras páginas y volver al
-  // dashboard ya no repite la petición completa (tarjetas + analítica +
-  // recomendaciones + cola) cada vez, solo cuando la caché venció o la
+  // dashboard ya no repite la petición completa (tarjetas + flujo semanal)
+  // cada vez, solo cuando la caché venció o la
   // persona pide "Refrescar" explícitamente.
   const { data: resumen, cargando, error, recargar } = useDatosConCache(
     'dashboard:resumen',
@@ -242,10 +183,7 @@ export default function DashboardPage() {
   const data = {
     tarjetas: resumen?.tarjetas || null,
     tendencias: resumen?.tendencias || {},
-    analitica: resumen?.analitica || {},
     flujoSemanal: resumen?.flujoSemanal || [],
-    recomendaciones: resumen?.recomendaciones || [],
-    colaPrioritaria: resumen?.colaPrioritaria || [],
   }
 
   const visibles = data.tarjetas ? TARJETAS.filter((t) => data.tarjetas[t.clave] !== undefined) : []
@@ -264,8 +202,6 @@ export default function DashboardPage() {
       ) : (
         <HomeFeed
           usuario={usuario}
-          visibles={visibles}
-          data={data}
           onRefrescar={recargar}
           cargando={cargando}
         />

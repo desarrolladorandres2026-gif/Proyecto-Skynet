@@ -4,8 +4,6 @@ const STORAGE_KEY = 'skynet_dashboard_custom_v3'
 
 export const SECCIONES_DEFECTO = [
   { id: 'kpis', label: 'Indicadores Clave (KPIs)', visible: true, ancho: 'completo' },
-  { id: 'recomendaciones', label: 'Análisis & Recomendaciones', visible: true, ancho: 'medio' },
-  { id: 'cola', label: 'Cola de Atención Prioritaria', visible: true, ancho: 'medio' },
 ]
 
 function leerConfiguracion() {
@@ -14,7 +12,7 @@ function leerConfiguracion() {
     if (!data) return null
     const parsed = JSON.parse(data)
     if (parsed?.secciones) {
-      parsed.secciones = parsed.secciones.filter((s) => s.id !== 'graficas')
+      parsed.secciones = parsed.secciones.filter((s) => !['graficas', 'recomendaciones', 'cola'].includes(s.id))
     }
     return parsed
   } catch {

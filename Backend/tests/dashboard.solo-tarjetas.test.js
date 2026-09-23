@@ -76,11 +76,6 @@ describe('calcularResumen en modo soloTarjetas', () => {
 
     // La serie de 7 días son dos agregaciones sobre ReporteDano.
     expect(ligero.flujoSemanal).toEqual([])
-    // La cola prioritaria son dos `find` con sort+limit.
-    expect(ligero.colaPrioritaria).toEqual([])
-    // Las agregaciones de distribución/criticidad quedan en su valor inicial.
-    expect(ligero.analitica.distribucionDanos.pendiente).toBe(0)
-    expect(ligero.analitica.criticidadDanos.alta).toBe(0)
   })
 
   it('el dashboard real (sin la opción) sigue trayendo el análisis completo', async () => {
@@ -92,9 +87,8 @@ describe('calcularResumen en modo soloTarjetas', () => {
     // Lo que el copiloto no necesita pero la pantalla sí: la forma del objeto
     // que consume el frontend no puede haber cambiado.
     expect(completo.flujoSemanal).toHaveLength(7)
-    expect(completo.analitica.distribucionDanos.pendiente).toBe(1)
-    expect(completo.analitica.criticidadDanos.alta).toBe(1)
-    expect(completo.colaPrioritaria.length).toBeGreaterThan(0)
-    expect(completo.recomendaciones.length).toBeGreaterThan(0)
+    expect(completo.analitica).toBeUndefined()
+    expect(completo.colaPrioritaria).toBeUndefined()
+    expect(completo.recomendaciones).toBeUndefined()
   })
 })

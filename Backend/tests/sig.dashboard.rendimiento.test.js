@@ -148,6 +148,5 @@ describe('Smoke — optimizaciones de rendimiento SIG/operación', () => {
     }
     const resumen = await calcularResumen(usuarioFalso)
     expect(resumen.tarjetas.danosPendientes).toBe(1)
-    expect(resumen.analitica.distribucionDanos.pendiente).toBe(1)
   })
 })

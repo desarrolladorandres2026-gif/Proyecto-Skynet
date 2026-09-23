@@ -38,7 +38,7 @@ describe('calcularResumen — RBAC y Cola Prioritaria de Requerimientos', () => 
     ])
   })
 
-  it('un administrador SIN permisos de requerimientos NO debe ver tarjetas ni cola de requerimientos', async () => {
+  it('un administrador SIN permisos de requerimientos NO debe ver tarjetas de requerimientos', async () => {
     const usuarioAdminSinReq = {
       id_usuario: userId,
       esSuperAdmin: false,
@@ -50,13 +50,9 @@ describe('calcularResumen — RBAC y Cola Prioritaria de Requerimientos', () => 
 
     expect(resumen.tarjetas.requerimientosPendientes).toBeUndefined()
     expect(resumen.tarjetas.requerimientosPorDespachar).toBeUndefined()
-    const reqEnCola = resumen.colaPrioritaria.filter((item) => item.modulo === 'Requerimientos')
-    expect(reqEnCola).toHaveLength(0)
-    const recomReq = resumen.recomendaciones.filter((r) => r.id.startsWith('req-'))
-    expect(recomReq).toHaveLength(0)
   })
 
-  it('un usuario con solo requerimientos:aprobar_financiero solo ve pendiente_financiero con ruta a /requerimientos/financiero', async () => {
+  it('un usuario con solo requerimientos:aprobar_financiero solo ve la tarjeta de pendiente_financiero', async () => {
     const usuarioFinanciero = {
       id_usuario: userId,
       esSuperAdmin: false,
@@ -68,13 +64,9 @@ describe('calcularResumen — RBAC y Cola Prioritaria de Requerimientos', () => 
 
     expect(resumen.tarjetas.requerimientosPendientes).toBe(1)
     expect(resumen.tarjetas.requerimientosPorDespachar).toBeUndefined()
-    const reqEnCola = resumen.colaPrioritaria.filter((item) => item.modulo === 'Requerimientos')
-    expect(reqEnCola).toHaveLength(1)
-    expect(reqEnCola[0].estado).toBe('pendiente_financiero')
-    expect(reqEnCola[0].to).toBe('/requerimientos/financiero')
   })
 
-  it('un usuario con solo requerimientos:gestionar_bodega solo ve pendiente_bodega con ruta a /requerimientos/bodega', async () => {
+  it('un usuario con solo requerimientos:gestionar_bodega solo ve la tarjeta de pendiente_bodega', async () => {
     const usuarioBodega = {
       id_usuario: userId,
       esSuperAdmin: false,
@@ -86,13 +78,9 @@ describe('calcularResumen — RBAC y Cola Prioritaria de Requerimientos', () => 
 
     expect(resumen.tarjetas.requerimientosPendientes).toBeUndefined()
     expect(resumen.tarjetas.requerimientosPorDespachar).toBe(1)
-    const reqEnCola = resumen.colaPrioritaria.filter((item) => item.modulo === 'Requerimientos')
-    expect(reqEnCola).toHaveLength(1)
-    expect(reqEnCola[0].estado).toBe('pendiente_bodega')
-    expect(reqEnCola[0].to).toBe('/requerimientos/bodega')
   })
 
-  it('un Super Admin ve ambos estados y con sus respectivas rutas de atención', async () => {
+  it('un Super Admin ve ambos estados', async () => {
     const usuarioSuperAdmin = {
       id_usuario: userId,
       esSuperAdmin: true,
@@ -104,7 +92,5 @@ describe('calcularResumen — RBAC y Cola Prioritaria de Requerimientos', () => 
 
     expect(resumen.tarjetas.requerimientosPendientes).toBe(2)
     expect(resumen.tarjetas.requerimientosPorDespachar).toBe(1)
-    const reqEnCola = resumen.colaPrioritaria.filter((item) => item.modulo === 'Requerimientos')
-    expect(reqEnCola).toHaveLength(2)
   })
 })
