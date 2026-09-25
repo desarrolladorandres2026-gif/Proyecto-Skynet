@@ -17,6 +17,7 @@ import {
   Brain,
   Server,
   BellOff,
+  BellRing,
 } from 'lucide-react'
 import { notificaciones as notificacionesApi } from '../../api/notificaciones.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
@@ -63,6 +64,46 @@ function calcularModo(catConfig) {
   if (catConfig.push && !catConfig.email) return 'solo_dispositivo'
   if (catConfig.email && !catConfig.push) return 'solo_email'
   return 'desactivado'
+}
+
+// Cobertura real del push: cuántos usuarios tienen al menos un dispositivo
+// suscrito y quiénes NO — para hacerles seguimiento uno a uno.
+function CoberturaPushCard() {
+  const { data } = useDatosConCache('notificaciones:coberturaPush', () => notificacionesApi.coberturaPush(), {
+    ttlMs: 60_000,
+  })
+  if (!data) return null
+  const pct = data.total ? Math.round((data.conPush / data.total) * 100) : 0
+  return (
+    <Card className="p-5">
+      <div className="flex items-center gap-2.5">
+        <BellRing className="h-5 w-5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
+        <h2 className="text-base font-semibold text-slate-900 dark:text-white">Cobertura de notificaciones push</h2>
+      </div>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        {data.conPush} de {data.total} usuarios ({pct}%) ya recibirían avisos en su teléfono. Los demás deben abrir la
+        app, ir a Notificaciones y pulsar Activar (en iPhone, primero instalarla en la pantalla de inicio).
+      </p>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+        <div className="h-full rounded-full bg-brand-600" style={{ width: `${pct}%` }} />
+      </div>
+      {data.sinPush.length > 0 && (
+        <details className="mt-4">
+          <summary className="cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-200">
+            Ver los {data.sinPush.length} usuarios sin push
+          </summary>
+          <ul className="mt-2 max-h-80 divide-y divide-slate-100 overflow-y-auto text-sm dark:divide-slate-800">
+            {data.sinPush.map((u) => (
+              <li key={u.id} className="flex flex-col py-1.5 sm:flex-row sm:justify-between">
+                <span className="font-medium text-slate-800 dark:text-slate-100">{u.nombre}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">{u.cargo || u.email}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </Card>
+  )
 }
 
 export default function EleccionNotificacionesPage() {
@@ -223,6 +264,7 @@ export default function EleccionNotificacionesPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <NotificacionesAdminTabs />
+      <CoberturaPushCard />
 
       {/* Cabecera Principal */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

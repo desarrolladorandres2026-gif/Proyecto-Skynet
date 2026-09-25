@@ -47,6 +47,9 @@ export const notificaciones = {
   configuracionCanales() {
     return request('/notificaciones/admin/canales')
   },
+  coberturaPush() {
+    return request('/notificaciones/admin/cobertura-push')
+  },
   actualizarConfiguracionCanales(cambios) {
     return request('/notificaciones/admin/canales', { method: 'PUT', body: JSON.stringify(cambios) })
   },

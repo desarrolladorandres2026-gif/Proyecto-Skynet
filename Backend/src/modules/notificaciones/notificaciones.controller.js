@@ -1,6 +1,7 @@
 import { env } from '../../config/env.js'
 import PushSubscription from '../../models/PushSubscription.js'
 import PreferenciaNotificacion from '../../models/PreferenciaNotificacion.js'
+import Usuario from '../../models/Usuario.js'
 import { CATEGORIAS_NOTIFICACION, esCategoriaValida } from './notificaciones.catalogo.js'
 import { verificarTokenBaja } from './notificaciones.token.js'
 import { paginaConfirmacionBaja } from './notificaciones.plantillas.js'
@@ -201,3 +202,21 @@ export async function actualizarCanalesAdmin(req, res) {
   res.json(config)
 }
 
+
+// Quién SÍ y quién NO puede recibir push hoy. Una suscripción cuenta si no
+// está 'expirada' (las migradas no traen `estado`, ver notificar()). Solo
+// usuarios reales y activos: las cuentas de prueba no son "gente por avisar".
+export async function coberturaPushAdmin(_req, res) {
+  const [usuarios, suscritos] = await Promise.all([
+    Usuario.find({ esPrueba: { $ne: true }, estado: { $ne: 'inactivo' } })
+      .select('nombre cargo email')
+      .sort({ nombre: 1 })
+      .lean(),
+    PushSubscription.distinct('usuario', { estado: { $ne: 'expirada' } }),
+  ])
+  const conPush = new Set(suscritos.map(String))
+  const sinPush = usuarios
+    .filter((u) => !conPush.has(String(u._id)))
+    .map((u) => ({ id: u._id, nombre: u.nombre, cargo: u.cargo || '', email: u.email || '' }))
+  res.json({ total: usuarios.length, conPush: usuarios.length - sinPush.length, sinPush })
+}
