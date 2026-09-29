@@ -2,39 +2,55 @@ import { useState } from 'react'
 import { usePushNotifications } from './usePushNotifications.js'
 
 const CLAVE_DESCARTE = 'push-onboarding-descartado'
-const DIAS_REAPARICION = 7
 
-// Mismo criterio de "descarte con reaparición" que usePwaInstall.js: si el
-// usuario cierra el aviso, no se le vuelve a mostrar en cada página — solo
-// pasados unos días, no en cada sesión.
-function descartadoRecientemente() {
-  const valor = localStorage.getItem(CLAVE_DESCARTE)
-  if (!valor) return false
-  const descartadoEn = Number(valor)
-  return Number.isFinite(descartadoEn) && Date.now() - descartadoEn < DIAS_REAPARICION * 24 * 60 * 60 * 1000
+// El descarte dura solo la sesión del navegador (sessionStorage): con el
+// descarte de 7 días anterior, un solo toque en "Más tarde" dejaba al usuario
+// sin avisos y sin recordatorio — 75 de 90 usuarios terminaron sin ningún
+// dispositivo suscrito. Ahora el aviso vuelve cada vez que abre la app.
+function descartadoEnEstaSesion() {
+  try {
+    return sessionStorage.getItem(CLAVE_DESCARTE) === '1'
+  } catch {
+    return false
+  }
 }
 
-// Decide si mostrar el banner "Activa las notificaciones" después de
-// iniciar sesión. En iOS, usePushNotifications ya reporta `soportado:false`
-// en Safari normal (Push API solo existe una vez instalada como PWA) — así
-// que este banner aparece solo tras instalar, sin necesitar lógica aparte
-// para detectarlo. En Android/escritorio no hace falta estar instalado: el
-// push funciona igual en una pestaña normal.
+function esIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+}
+
+function esPwaInstalada() {
+  return window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true
+}
+
+// Qué necesita hacer esta persona para recibir avisos:
+//  - 'activar'  : puede activar ya con un toque.
+//  - 'instalar' : iPhone/iPad en Safari — Apple solo da Push a la app
+//                 instalada en la pantalla de inicio.
+//  - 'bloqueado': negó el permiso; el navegador no vuelve a preguntar, hay
+//                 que reactivarlo a mano en los ajustes del sitio.
+//  - null       : ya está suscrito o el dispositivo no lo soporta.
 export function usePushOnboarding() {
   const push = usePushNotifications()
-  const [descartado, setDescartado] = useState(descartadoRecientemente)
+  const [descartado, setDescartado] = useState(descartadoEnEstaSesion)
 
   function descartar() {
-    localStorage.setItem(CLAVE_DESCARTE, String(Date.now()))
+    try {
+      sessionStorage.setItem(CLAVE_DESCARTE, '1')
+    } catch {
+      /* sin storage: solo se oculta hasta recargar */
+    }
     setDescartado(true)
   }
 
-  return {
-    // push.suscrito arranca en null mientras se consulta
-    // navigator.serviceWorker.ready — no mostrar el banner hasta saber de
-    // verdad si ya está suscrito, o parpadearía en cada carga.
-    visible: push.soportado && push.suscrito === false && push.permiso !== 'denied' && !descartado,
-    push,
-    descartar,
+  let modo = null
+  if (!push.soportado) {
+    if (esIOS() && !esPwaInstalada()) modo = 'instalar'
+  } else if (push.suscrito === false) {
+    modo = push.permiso === 'denied' ? 'bloqueado' : 'activar'
   }
+  // push.suscrito arranca en null mientras se consulta el SW — no mostrar
+  // nada hasta saberlo, o parpadearía en cada carga.
+
+  return { visible: modo !== null && !descartado, modo, push, descartar }
 }

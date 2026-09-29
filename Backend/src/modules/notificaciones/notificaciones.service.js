@@ -82,7 +82,11 @@ export async function notificar({
     // `rol` se trae para decidir el canal correo (ver rolesQuePuedenRecibirEmail).
     Usuario.find({ _id: { $in: idsUnicos } }).select('email estado rol'),
     PreferenciaNotificacion.find({ usuario: { $in: idsUnicos } }),
-    PushSubscription.find({ usuario: { $in: idsUnicos }, estado: 'activa' }),
+    // `$ne: 'expirada'` y no `'activa'`: las suscripciones migradas del
+    // sigittn viejo no traen el campo `estado` (el default del schema solo se
+    // aplica al crear), y `estado: 'activa'` las dejaba fuera para siempre —
+    // usuarios con push registrado que jamás recibían nada.
+    PushSubscription.find({ usuario: { $in: idsUnicos }, estado: { $ne: 'expirada' } }),
     transaccional ? null : ConfiguracionCanalesNotificacion.findOne({}),
     // Los transaccionales (alertas de seguridad) se saltan el filtro por
     // completo, igual que se saltan preferencias y configuración de canales:
@@ -202,7 +206,7 @@ function calcularProximoIntento(intentos) {
 
 async function enviarPush(envio) {
   const sub = await PushSubscription.findById(envio.pushSubscription)
-  if (!sub || sub.estado !== 'activa') {
+  if (!sub || sub.estado === 'expirada') {
     throw Object.assign(new Error('La suscripción push ya no existe'), { descartar: true })
   }
   await webpush.sendNotification(

@@ -13,6 +13,7 @@ import {
   darDeBajaEmail,
   obtenerCanalesAdmin,
   actualizarCanalesAdmin,
+  coberturaPushAdmin,
 } from './notificaciones.controller.js'
 import {
   misNotificaciones,
@@ -56,6 +57,7 @@ router.put('/mias/:id/leida', marcarNotificacionLeida)
 // Elección y configuración de canales de notificación (Email/Push por categoría)
 router.get('/admin/canales', requierePermiso('notificaciones:ver_historial', 'notificaciones:configurar_canales'), obtenerCanalesAdmin)
 router.put('/admin/canales', requierePermiso('notificaciones:ver_historial', 'notificaciones:configurar_canales'), actualizarCanalesAdmin)
+router.get('/admin/cobertura-push', requierePermiso('notificaciones:ver_historial', 'notificaciones:configurar_canales'), coberturaPushAdmin)
 
 export default router
 

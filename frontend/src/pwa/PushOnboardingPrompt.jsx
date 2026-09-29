@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { Bell, X } from 'lucide-react'
 import { usePushOnboarding } from './usePushOnboarding.js'
 
@@ -10,13 +9,13 @@ import { usePushOnboarding } from './usePushOnboarding.js'
 // explicación previa (por qué se pide) es justo lo que reemplaza al patrón
 // de pedirlo apenas carga la página.
 export default function PushOnboardingPrompt() {
-  const { visible, push, descartar } = usePushOnboarding()
+  const { visible, modo, push, descartar } = usePushOnboarding()
 
   if (!visible) return null
 
   async function activar() {
     await push.activar()
-    if (push.permiso === 'granted' || !push.error) descartar()
+    if (!push.error) descartar()
   }
 
   return (
@@ -27,26 +26,34 @@ export default function PushOnboardingPrompt() {
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">Activa las notificaciones</p>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">
+            {modo === 'activar' ? 'Activa las notificaciones' : 'No estás recibiendo avisos en este teléfono'}
+          </p>
           <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-            Entérate al instante de tickets, órdenes y requerimientos asignados, aunque tengas la app cerrada.
+            {modo === 'activar' &&
+              'Entérate al instante de tickets, órdenes, requerimientos y avisos asignados, aunque tengas la app cerrada.'}
+            {modo === 'instalar' &&
+              'En iPhone toca Compartir → "Añadir a pantalla de inicio", abre Skynet desde ese ícono y activa las notificaciones.'}
+            {modo === 'bloqueado' &&
+              'Bloqueaste las notificaciones. Toca el candado junto a la dirección → Permisos → Notificaciones → Permitir, y recarga la app.'}
           </p>
 
           <div className="mt-2 flex items-center gap-2">
+            {modo === 'activar' && (
+              <button
+                onClick={activar}
+                disabled={push.cargando}
+                className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
+              >
+                {push.cargando ? 'Activando…' : 'Activar'}
+              </button>
+            )}
             <button
-              onClick={activar}
-              disabled={push.cargando}
-              className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
-            >
-              {push.cargando ? 'Activando…' : 'Activar'}
-            </button>
-            <Link
-              to="/notificaciones"
               onClick={descartar}
               className="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
             >
-              Más tarde
-            </Link>
+              Ahora no
+            </button>
           </div>
           {push.error && <p className="mt-1.5 text-[11px] text-red-600 dark:text-red-400">{push.error}</p>}
         </div>

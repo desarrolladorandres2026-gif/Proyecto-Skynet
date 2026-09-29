@@ -7,6 +7,7 @@ import { notificaciones as notificacionesApi } from '../src/api/notificaciones.j
 vi.mock('../src/api/notificaciones.js', () => ({
   notificaciones: {
     configuracionCanales: vi.fn(),
+    coberturaPush: vi.fn().mockResolvedValue({ total: 10, conPush: 4, sinPush: [{ id: "u1", nombre: "Ana Pérez", cargo: "Operaria", email: "" }] }),
     actualizarConfiguracionCanales: vi.fn(),
     categorias: vi.fn(),
   },
