@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Users, Wrench, FileText, CalendarDays, ShieldCheck, ScrollText, Bell,
@@ -11,8 +12,6 @@ import { ErrorMsg } from '../../components/ui.jsx'
 import { QuickAction } from '../../components/mobileUi.jsx'
 import { MOBILE_NAV_POR_ROL } from '../../config/mobileNavPorRol.js'
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader.jsx'
-import { KpiRibbon } from '../../components/dashboard/KpiRibbon.jsx'
-import { StatCard } from '../../components/dashboard/StatCard.jsx'
 import { ModalPersonalizacionDashboard } from '../../components/dashboard/ModalPersonalizacionDashboard.jsx'
 import { usePersonalizacionDashboardCompleta } from '../../components/dashboard/usePersonalizacionDashboardCompleta.js'
 import { ACCESOS_RAPIDOS_PANEL_DENSO } from '../../config/accesosRapidosPorRol.js'
@@ -93,13 +92,50 @@ function PanelDenso({ usuario, visibles, data, onRefrescar, cargando }) {
     restablecerTodo,
   } = usePersonalizacionDashboardCompleta(visibles)
 
+  // Las métricas viven en el hueco bajo el texto del video (columna derecha).
+  const kpisVisibles = secciones.some((s) => s.id === 'kpis' && s.visible)
+  const listaKpis = kpisVisibles ? (
+    <dl className="grid grid-cols-1 gap-x-8 @md:grid-cols-2">
+      {tarjetasFiltradas.map((t) => (
+        <Link
+          key={t.clave}
+          to={t.to}
+          className="flex items-baseline justify-between gap-4 border-b border-slate-200/80 py-2 hover:text-brand-700 dark:border-slate-800/80 dark:hover:text-brand-300"
+        >
+          <dt className="text-sm text-slate-600 dark:text-slate-300">{t.label}</dt>
+          <dd className="text-base font-bold tabular-nums text-slate-900 dark:text-white">
+            {tarjetas?.[t.clave] ?? '—'}
+          </dd>
+        </Link>
+      ))}
+    </dl>
+  ) : null
+
+  // El panel debe llenar exactamente el área útil del <main> (su caja de
+  // contenido, sin padding) para que el video llegue al borde inferior sin
+  // hueco ni scroll. Se mide en vez de estimar con calc(): así no depende del
+  // alto de la barra superior ni del padding responsive del layout.
+  const raiz = useRef(null)
+  const [altoMin, setAltoMin] = useState(0)
+  useLayoutEffect(() => {
+    const main = raiz.current?.closest('main')
+    if (!main) return undefined
+    const medir = () => {
+      const cs = getComputedStyle(main)
+      setAltoMin(main.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom))
+    }
+    medir()
+    const ro = new ResizeObserver(medir)
+    ro.observe(main)
+    return () => ro.disconnect()
+  }, [])
+
   return (
-    <div className="w-full space-y-3.5 pb-2">
+    <div ref={raiz} style={{ minHeight: altoMin || undefined }} className="flex w-full flex-col gap-3.5">
       {/* 1. Header Ejecutivo Compacto con botón de Personalizar */}
       <DashboardHeader
         usuario={usuario}
-        accesos={accesos}
-        setPersonalizando={() => setModalAbierto(true)}
+        accesos={[]}
         onRefrescar={onRefrescar}
         cargando={cargando}
       />
@@ -107,45 +143,7 @@ function PanelDenso({ usuario, visibles, data, onRefrescar, cargando }) {
       {/* Video informativo destacado: fuera del grid personalizable porque es
           un comunicado institucional para todo el personal, no una métrica
           que cada persona pueda ocultar. No se pinta si no hay publicados. */}
-      <VideoDestacado />
-
-      {/* 2. Grid Dinámico Personalizable */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-[var(--ui-gap)] items-start">
-        {secciones
-          .filter((s) => s.visible)
-          .map((sec) => {
-            const colClass = ANCHO_CLASES[sec.ancho] || 'lg:col-span-6'
-
-            if (sec.id === 'kpis') {
-              return (
-                <div key={sec.id} className={colClass}>
-                  {estiloKpi === 'grid' ? (
-                    <div className="grid grid-cols-2 gap-[var(--ui-gap)] sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 3xl:grid-cols-6 4xl:grid-cols-7">
-                      {tarjetasFiltradas.map((t) => (
-                        <Link key={t.clave} to={t.to}>
-                          <StatCard
-                            icon={t.icon}
-                            label={t.label}
-                            valor={tarjetas?.[t.clave]}
-                            tono={t.tono}
-                          />
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <KpiRibbon
-                      visibles={tarjetasFiltradas}
-                      tarjetas={tarjetas || {}}
-                    />
-                  )}
-                </div>
-              )
-            }
-
-            return null
-          })}
-      </div>
-
+      <VideoDestacado llenar>{listaKpis}</VideoDestacado>
       {/* Modal de Personalización */}
       <ModalPersonalizacionDashboard
         abierto={modalAbierto}

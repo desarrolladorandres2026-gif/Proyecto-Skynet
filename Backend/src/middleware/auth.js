@@ -4,7 +4,8 @@ import { env } from '../config/env.js'
 import Usuario from '../models/Usuario.js'
 import Rol from '../models/Rol.js'
 import Permiso from '../models/Permiso.js'
-import { COOKIE_NAME, clearAuthCookie } from '../utils/cookies.js'
+import { COOKIE_NAME, clearAuthCookie, setAuthCookie } from '../utils/cookies.js'
+import { duracionAMs } from '../utils/duration.js'
 
 // Los nombres reales de colección se leen de los modelos y NO se escriben a
 // mano ('rols', 'permisos'): un $lookup con el nombre equivocado no falla, solo
@@ -129,6 +130,21 @@ export async function verificarToken(req, res, next) {
       if (!sesionVigente) {
         clearAuthCookie(res)
         return res.status(401).json({ error: 'Sesión inválida' })
+      }
+
+      // Sesión deslizante: mientras la persona use la app, el token se
+      // renueva (mismo jti) cuando ya consumió más de un día de su vida. Así
+      // solo se cierra la sesión por logout propio o por cambio de rol/usuario
+      // (tokenVersion), nunca por un vencimiento fijo con la app en uso.
+      const vidaMs = duracionAMs(env.JWT_EXPIRES_IN)
+      if (payload.exp && payload.exp * 1000 - Date.now() < vidaMs - 24 * 60 * 60 * 1000) {
+        const { exp: _exp, iat: _iat, ...datosToken } = payload
+        const nuevoToken = jwt.sign(datosToken, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN, algorithm: 'HS256' })
+        await Usuario.updateOne(
+          { _id: usuario._id, 'sesionesActivas.jti': payload.jti },
+          { $set: { 'sesionesActivas.$.expiraEn': new Date(Date.now() + vidaMs) } }
+        )
+        setAuthCookie(res, nuevoToken)
       }
     }
 

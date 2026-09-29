@@ -1,6 +1,9 @@
+import { createPortal } from 'react-dom'
+import { useSlotsBarraSuperior } from '../../layout/slotsBarraSuperior.js'
 import { ShieldCheck, RotateCcw, SlidersHorizontal, RefreshCw } from 'lucide-react'
 import { AccesoRapidoDenso } from './AccesoRapidoDenso.jsx'
 import { cn } from '../../lib/cn.js'
+import bannerTerminal from '../../assets/banner-terminal.png'
 import { AvatarUsuario } from '../AvatarUsuario.jsx'
 
 function saludo() {
@@ -19,49 +22,38 @@ export function DashboardHeader({
   onRefrescar,
   cargando = false,
 }) {
+  const { acciones: destinoAcciones, saludo: destinoSaludo } = useSlotsBarraSuperior()
+
   const hoyStr = new Intl.DateTimeFormat('es-CO', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
   }).format(new Date())
 
-  return (
-    <div className="border-b border-slate-200/80 pb-3 dark:border-slate-800/80 sm:pb-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Lado izquierdo: Saludo e identidad */}
-        <div className="flex flex-wrap items-center gap-3">
-          <AvatarUsuario usuario={usuario} className="h-11 w-11 shadow-sm border-2 border-brand-500/30 shrink-0" />
-          <div>
-            <div className="flex items-center gap-2">
-              <h1
-                className="font-bold tracking-tight text-slate-900 dark:text-white"
-                style={{ fontSize: 'var(--ui-title-size)' }}
-              >
-                {saludo()}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 via-brand-600 to-slate-900 dark:from-brand-300 dark:via-brand-200 dark:to-white">{usuario?.nombre?.trim().split(/\s+/)[0] || usuario?.nombre}</span>
-              </h1>
-              <span className="panel-mono inline-flex items-center gap-1 text-[11px] font-semibold text-brand-700 dark:text-brand-300">
-                <ShieldCheck className="h-3 w-3" />
-                {usuario?.rol?.nombre || 'Panel Principal'}
-              </span>
-            </div>
-            <p className="subtitulo text-[11px] text-slate-500 dark:text-slate-400">
-              Centro de Mando Operativo · <span className="capitalize">{hoyStr}</span>
-            </p>
-          </div>
+  const saludoNodo = (
+    <div className="flex flex-wrap items-center gap-3 self-start px-1 py-1.5">
+      <AvatarUsuario usuario={usuario} className="h-11 w-11 shadow-sm border-2 border-brand-500/30 shrink-0" />
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <h1
+            className="whitespace-nowrap font-bold tracking-tight text-slate-900"
+            style={{ fontSize: 'var(--ui-title-size)' }}
+          >
+            {saludo()}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 via-brand-600 to-slate-900">{usuario?.nombre?.trim().split(/\s+/)[0] || usuario?.nombre}</span>
+          </h1>
+          <span className="panel-mono inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-semibold text-brand-700">
+            <ShieldCheck className="h-3 w-3" />
+            {usuario?.rol?.nombre || 'Panel Principal'}
+          </span>
         </div>
+        <p className="subtitulo whitespace-nowrap text-[11px] text-slate-500">
+          Centro de Mando Operativo · <span className="capitalize">{hoyStr}</span>
+        </p>
+      </div>
+    </div>
+  )
 
-        {/* Lado derecho: Controles */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Atajos rápidos en línea si existen */}
-          {accesos.length > 0 && (
-            <div className="hidden md:flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-800 pl-2">
-              {accesos.slice(0, 3).map((a) => (
-                <AccesoRapidoDenso key={a.to} icon={a.icon} label={a.label} to={a.to} />
-              ))}
-            </div>
-          )}
-
-          {/* Botones de acción */}
+  const botones = (
           <div className="flex items-center gap-1.5">
             {onRefrescar && (
               <button
@@ -70,9 +62,9 @@ export function DashboardHeader({
                 disabled={cargando}
                 title="Actualizar datos"
                 aria-label="Actualizar datos del panel"
-                className="panel-btn-secundario inline-flex h-8 w-8 items-center justify-center rounded-lg p-0 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-all disabled:opacity-50"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-linea)] bg-white p-0 text-[#333] transition hover:border-[var(--color-primario)] disabled:opacity-50"
               >
-                <RefreshCw className={cn('h-3.5 w-3.5', cargando && 'animate-spin')} />
+                <RefreshCw className={cn('h-4 w-4', cargando && 'animate-spin')} />
               </button>
             )}
 
@@ -80,7 +72,7 @@ export function DashboardHeader({
               <button
                 type="button"
                 onClick={onRestablecer}
-                className="panel-btn-fantasma inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                className="inline-flex h-10 items-center gap-1.5 rounded-full border border-[var(--color-linea)] bg-white px-4 text-sm font-medium text-[#333] transition hover:border-[var(--color-primario)]"
               >
                 <RotateCcw className="h-3 w-3" />
                 Restablecer
@@ -92,8 +84,10 @@ export function DashboardHeader({
                 type="button"
                 onClick={() => setPersonalizando((p) => !p)}
                 className={cn(
-                  'inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
-                  personalizando ? 'panel-btn-primario' : 'panel-btn-secundario'
+                  'inline-flex h-10 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition',
+                  personalizando
+                    ? 'border-[var(--color-primario)] bg-[var(--color-primario)] text-white'
+                    : 'border-[var(--color-linea)] bg-white text-[#333] hover:border-[var(--color-primario)]'
                 )}
               >
                 <SlidersHorizontal className="h-3 w-3" />
@@ -101,8 +95,12 @@ export function DashboardHeader({
               </button>
             )}
           </div>
-        </div>
-      </div>
-    </div>
+  )
+
+  return (
+    <>
+      {destinoSaludo ? createPortal(saludoNodo, destinoSaludo) : <div className="pb-3">{saludoNodo}</div>}
+      {destinoAcciones && createPortal(botones, destinoAcciones)}
+    </>
   )
 }

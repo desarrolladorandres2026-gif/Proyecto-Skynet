@@ -57,7 +57,7 @@ export const env = {
   // si la red hacia Atlas se cae a mitad de una operación.
   MONGO_SOCKET_TIMEOUT_MS: Number(process.env.MONGO_SOCKET_TIMEOUT_MS) || 45_000,
   JWT_SECRET: process.env.JWT_SECRET,
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '8h',
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '30d',
   CORS_ORIGIN: process.env.CORS_ORIGIN,
   EMAIL_HOST: process.env.EMAIL_HOST,
   EMAIL_PORT: process.env.EMAIL_PORT,

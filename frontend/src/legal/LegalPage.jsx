@@ -6,8 +6,8 @@ const ACTUALIZADO = '25 de julio de 2026'
 function Seccion({ id, titulo, children }) {
   return (
     <section id={id} className="scroll-mt-20 border-t border-slate-200 pt-6 first:border-t-0 first:pt-0 dark:border-slate-800">
-      <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{titulo}</h2>
-      <div className="mt-2 space-y-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+      <h2 className="text-center text-[12pt] font-bold text-slate-900 dark:text-white">{titulo}</h2>
+      <div className="mt-2 space-y-0 text-[12pt] leading-[2] text-slate-900 dark:text-slate-100 [&_p]:indent-[0.5in] [&_p]:text-left [&_ul]:pl-[0.5in]">
         {children}
       </div>
     </section>
@@ -16,8 +16,8 @@ function Seccion({ id, titulo, children }) {
 
 export default function LegalPage() {
   return (
-    <div className="min-h-svh bg-slate-50 px-4 py-10 dark:bg-slate-950">
-      <div className="mx-auto max-w-3xl">
+    <div className="min-h-svh bg-white px-[1in] py-[1in] dark:bg-slate-950">
+      <div className="w-full font-['Times_New_Roman',Times,serif] text-[12pt]">
         <Link
           to="/"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
@@ -26,14 +26,14 @@ export default function LegalPage() {
           Volver
         </Link>
 
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-400">
+        <div className="mt-6 text-slate-900 dark:text-slate-100">
+          <p className="text-center text-[12pt] text-slate-900 dark:text-slate-100">
             Terminal de Transportes de Neiva
           </p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">
+          <h1 className="mt-1 text-center text-[12pt] font-bold text-slate-900 dark:text-white">
             Políticas del Sistema de Gestión Integral
           </h1>
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-2 text-center text-[12pt] text-slate-900 dark:text-slate-100">
             Revisadas y aprobadas: {ACTUALIZADO}
           </p>
 
@@ -47,24 +47,6 @@ export default function LegalPage() {
               Descargar PDF
             </a>
           </div>
-
-          <nav className="mt-6 flex flex-wrap gap-2 text-xs font-medium">
-            <a href="#alcance" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-brand-500 dark:hover:text-brand-400">
-              Alcance del SGI
-            </a>
-            <a href="#politica-sgi" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-brand-500 dark:hover:text-brand-400">
-              Política del SGI
-            </a>
-            <a href="#prevencion-spa" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-brand-500 dark:hover:text-brand-400">
-              Prevención alcohol, tabaco y SPA
-            </a>
-            <a href="#no-discriminacion" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-brand-500 dark:hover:text-brand-400">
-              No discriminación
-            </a>
-            <a href="#privacidad" className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-brand-500 dark:hover:text-brand-400">
-              Política de privacidad
-            </a>
-          </nav>
 
           <div className="mt-8 space-y-8">
             <Seccion id="alcance" titulo="Alcance del Sistema de Gestión Integral">

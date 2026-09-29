@@ -59,10 +59,32 @@ function firmarToken(usuario, jti) {
 async function registrarSesion(usuario, jti) {
   const ahora = new Date()
   const expiraEn = new Date(ahora.getTime() + duracionAMs(env.JWT_EXPIRES_IN))
-  const vigentes = (usuario.sesionesActivas || []).filter((s) => s.expiraEn > ahora)
-  vigentes.push({ jti, creadoEn: ahora, expiraEn })
-  const sesionesActivas = vigentes.slice(-MAX_SESIONES_ACTIVAS)
-  await Usuario.updateOne({ _id: usuario._id }, { $set: { sesionesActivas } })
+  // Actualización atómica en el servidor (pipeline): antes se leía el array,
+  // se modificaba y se escribía completo, y dos logins simultáneos (p. ej. móvil
+  // y computador) se pisaban — la sesión perdedora quedaba sin registrar y su
+  // siguiente petición devolvía 401 "Sesión inválida" (cierre de sesión fantasma).
+  await Usuario.updateOne({ _id: usuario._id }, [
+    {
+      $set: {
+        sesionesActivas: {
+          $slice: [
+            {
+              $concatArrays: [
+                {
+                  $filter: {
+                    input: { $ifNull: ['$sesionesActivas', []] },
+                    cond: { $gt: ['$$this.expiraEn', ahora] },
+                  },
+                },
+                [{ jti, creadoEn: ahora, expiraEn }],
+              ],
+            },
+            -MAX_SESIONES_ACTIVAS,
+          ],
+        },
+      },
+    },
+  ])
 }
 
 // Registra un intento fallido y, al alcanzar el umbral, bloquea la cuenta

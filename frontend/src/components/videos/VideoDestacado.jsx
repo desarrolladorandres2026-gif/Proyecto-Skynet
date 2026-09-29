@@ -25,14 +25,14 @@ function conAutoplayMudo(embedUrl, proveedor) {
   }
 }
 
-function ReproduccionAutomatica({ video, fallback }) {
+function ReproduccionAutomatica({ video, fallback, llenar = false }) {
   const [fallo, setFallo] = useState(false)
   const nativo = video.proveedor === 'local' || video.proveedor === 'archivo'
   const embebido = video.proveedor === 'youtube' || video.proveedor === 'vimeo'
   if (fallo || (!nativo && !embebido)) return fallback
 
   return (
-    <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
+    <div className={`relative aspect-video w-full overflow-hidden rounded-xl bg-black ${llenar ? '@2xl:aspect-auto @2xl:h-full @2xl:min-h-[20rem]' : ''}`}>
       {nativo ? (
         <video
           src={video.proveedor === 'local' ? urlArchivoVideo(video) : video.embedUrl}
@@ -43,7 +43,7 @@ function ReproduccionAutomatica({ video, fallback }) {
           playsInline
           preload="metadata"
           onError={() => setFallo(true)}
-          className="h-full w-full"
+          className="absolute inset-0 h-full w-full"
         />
       ) : (
         <iframe
@@ -52,7 +52,7 @@ function ReproduccionAutomatica({ video, fallback }) {
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           allowFullScreen
           referrerPolicy="strict-origin-when-cross-origin"
-          className="h-full w-full"
+          className="absolute inset-0 h-full w-full"
         />
       )}
     </div>
@@ -71,17 +71,20 @@ function ReproduccionAutomatica({ video, fallback }) {
 // `video: null`), el módulo está apagado (403) o la red falla, la sección
 // simplemente no existe — un problema con los videos nunca debe romper ni
 // ensuciar el inicio.
-export default function VideoDestacado({ className = '' }) {
+// `llenar`: la sección ocupa todo el alto disponible del padre (que debe ser
+// un flex-col con alto definido) y el video crece hasta el borde inferior.
+export default function VideoDestacado({ className = '', children = null, llenar = false }) {
   const { data } = useDatosConCache('videos:destacado', () => videosApi.destacado(), { ttlMs: 60_000 })
   const [reproduciendo, setReproduciendo] = useState(null)
 
   const video = data?.video
-  if (!video) return null
+  if (!video) return children
 
   return (
-    <section aria-labelledby="video-destacado-titulo" className={`@container ${className}`}>
-      <div className="grid items-center gap-4 border-b border-slate-200/80 pb-5 dark:border-slate-800/80 @2xl:grid-cols-[minmax(0,5fr)_minmax(0,4fr)] @2xl:gap-8">
+    <section aria-labelledby="video-destacado-titulo" className={`@container ${llenar ? 'flex flex-1 flex-col' : ''} ${className}`}>
+      <div className={`grid items-start ${llenar ? '@2xl:items-stretch' : ''} gap-4 border-b border-slate-200/80 pb-5 dark:border-slate-800/80 @2xl:grid-cols-[minmax(0,5fr)_minmax(0,4fr)] @2xl:gap-8 ${llenar ? 'flex-1' : ''}`}>
         <ReproduccionAutomatica
+          llenar={llenar}
           video={video}
           fallback={<VideoMiniatura video={video} onClick={() => setReproduciendo(video)} botonGrande />}
         />
@@ -127,6 +130,8 @@ export default function VideoDestacado({ className = '' }) {
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
           </div>
+
+          {children && <div className="mt-6">{children}</div>}
         </div>
       </div>
 

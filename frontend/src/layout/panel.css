@@ -431,3 +431,16 @@
 }
 
 /* @layer components */
+/* Paleta de las barras del panel de escritorio (BarraLateral / BarraSuperior). */
+:root {
+  --color-primario: #d69e26;
+  --color-fondo: #ffffff;
+  --color-texto: #0b0f19;
+  --color-barra: #ffffff;
+  --color-linea: #d7d7d7;
+}
+
+.barra-scroll::-webkit-scrollbar { width: 10px; }
+.barra-scroll::-webkit-scrollbar-thumb { background: #c5c5c5; border-radius: 9999px; }
+.barra-scroll::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+.barra-scroll { scrollbar-width: thin; scrollbar-color: #c5c5c5 transparent; }

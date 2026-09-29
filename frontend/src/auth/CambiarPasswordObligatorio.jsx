@@ -10,7 +10,7 @@ export default function CambiarPasswordObligatorio() {
   const { cambiarPassword } = useAuth()
   const [passwordNueva, setPasswordNueva] = useState('')
   const [confirmacion, setConfirmacion] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState('')  
   const [enviando, setEnviando] = useState(false)
 
   async function onSubmit(e) {
