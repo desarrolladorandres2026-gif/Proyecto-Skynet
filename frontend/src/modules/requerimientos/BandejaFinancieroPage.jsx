@@ -20,9 +20,9 @@ export default function BandejaFinancieroPage() {
   useAutoRefresh(recargarSilencioso)
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="w-full">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
+        <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide !text-black dark:!text-white">
           <Landmark className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
           Bandeja Financiero — pendientes de aprobación
         </h1>
@@ -59,14 +59,14 @@ export default function BandejaFinancieroPage() {
             ))}
           </div>
 
-          <TablaWrap className="hidden sm:block">
+          <TablaWrap cuadricula className="hidden sm:block">
             <thead>
               <tr>
                 <Th>Fecha</Th>
                 <Th>Tipo</Th>
                 <Th>Solicitante</Th>
                 <Th>Área/proceso</Th>
-                <Th></Th>
+                <Th>Acción</Th>
               </tr>
             </thead>
             <tbody>

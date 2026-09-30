@@ -1,7 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, FileText, Home, Menu, Search, Settings } from 'lucide-react'
 import { registrarSlot } from './slotsBarraSuperior.js'
-import bannerTerminal from '../assets/banner-terminal.png'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { AvatarUsuario } from '../components/AvatarUsuario.jsx'
 import { NotificacionesBell } from '../components/notificaciones/NotificacionesBell.jsx'
@@ -22,13 +21,7 @@ export default function BarraSuperior({ onAbrirMenu, onBuscar }) {
   const inicial = (usuario?.nombre || '?').trim().charAt(0).toUpperCase()
 
   return (
-    <header style={{
-      backgroundImage: `linear-gradient(rgba(255,255,255,.72), rgba(255,255,255,.72)), url(${bannerTerminal})`,
-      backgroundSize: '100% 100%, 100vw auto',
-      backgroundAttachment: 'fixed',
-      backgroundPosition: 'left -125px',
-    }}
-      className="sticky top-0 z-30 flex h-20 shrink-0 items-center gap-3 px-4 sm:gap-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-20 shrink-0 items-center gap-3 bg-white px-4 sm:gap-4 sm:px-6">
       <div className="flex items-center gap-2 sm:gap-3">
         <button
           type="button"

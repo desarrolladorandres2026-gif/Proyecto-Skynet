@@ -10,8 +10,8 @@ export const requerimientos = {
   bandejaFinanciero() {
     return request('/requerimientos/financiero')
   },
-  bandejaBodega() {
-    return request('/requerimientos/bodega')
+  bandejaBodega({ despachados = false } = {}) {
+    return request(`/requerimientos/bodega${despachados ? '?despachados=true' : ''}`)
   },
   listarTodos({ estado, tipo } = {}) {
     const params = new URLSearchParams()

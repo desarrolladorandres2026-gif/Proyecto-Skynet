@@ -237,9 +237,9 @@ export default function RequerimientoDetallePage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
+    <div className="w-full space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
+        <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide !text-black dark:!text-white">
           <FileText className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
           Requerimiento de {req.tipo}
         </h1>
@@ -327,7 +327,7 @@ export default function RequerimientoDetallePage() {
                 ))}
               </div>
 
-              <TablaWrap className="hidden sm:block">
+              <TablaWrap cuadricula className="hidden sm:block">
                 <thead>
                   <tr>
                     <Th>Fecha</Th>

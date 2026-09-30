@@ -400,8 +400,12 @@ export function listarBandejaFinanciero() {
     .sort({ createdAt: -1 })
 }
 
-export function listarBandejaBodega() {
-  return Requerimiento.find({ estado: 'pendiente_bodega' })
+// Los despachados (bodega.estado 'aprobada') salen de la bandeja y se ven
+// solo con despachados=true.
+export function listarBandejaBodega({ despachados = false } = {}) {
+  const filtro = { estado: 'pendiente_bodega' }
+  filtro['bodega.estado'] = despachados ? 'aprobada' : { $ne: 'aprobada' }
+  return Requerimiento.find(filtro)
     .populate('solicitante', 'nombre nombre_usuario dependencia')
     .populate('financiero.aprobadoPor', 'nombre nombre_usuario')
     .sort({ createdAt: -1 })

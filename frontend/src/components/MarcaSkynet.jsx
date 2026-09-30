@@ -1,5 +1,3 @@
-import claroLogo from '../assets/claro.png'
-
 /**
  * Lockup de marca institucional: wordmark SKYNET + sello del Terminal de
  * Transportes de Neiva. Un solo componente para las tres cabeceras de shell
@@ -32,12 +30,6 @@ export function MarcaSkynet({ variante = 'completa', className = '' }) {
 
   return (
     <div className={`flex items-center gap-2.5 min-w-0 ${className}`}>
-      <img
-        src={claroLogo}
-        alt="Terminal de Transportes de Neiva"
-        className="h-7 w-7 shrink-0 rounded-md object-contain"
-      />
-      <span className="h-6 w-px shrink-0 bg-slate-900/10 dark:bg-white/15" aria-hidden="true" />
       <span className="flex min-w-0 flex-col leading-none">
         <span className="font-display text-sm font-bold tracking-[0.22em] text-brand-800 dark:text-white">
           TTN

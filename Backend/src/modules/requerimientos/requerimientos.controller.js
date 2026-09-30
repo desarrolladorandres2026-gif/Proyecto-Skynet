@@ -15,8 +15,8 @@ export async function bandejaFinanciero(_req, res) {
   res.json({ requerimientos })
 }
 
-export async function bandejaBodega(_req, res) {
-  const requerimientos = await service.listarBandejaBodega()
+export async function bandejaBodega(req, res) {
+  const requerimientos = await service.listarBandejaBodega({ despachados: req.query.despachados === 'true' })
   res.json({ requerimientos })
 }
 

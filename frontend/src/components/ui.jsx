@@ -308,9 +308,9 @@ export function Td({ children, className = '' }) {
   return <td className={cn('panel-td px-3 py-2 text-sm', className)}>{children}</td>
 }
 
-export function TablaWrap({ children, className = '' }) {
+export function TablaWrap({ children, className = '', cuadricula = false }) {
   return (
-    <div className={cn('panel-table-wrap overflow-x-auto rounded-xl', className)}>
+    <div className={cn('panel-table-wrap overflow-x-auto rounded-xl', cuadricula && 'tabla-cuadricula', className)}>
       <table className="min-w-full">{children}</table>
     </div>
   )

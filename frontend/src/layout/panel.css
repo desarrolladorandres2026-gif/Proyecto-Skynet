@@ -444,3 +444,38 @@
 .barra-scroll::-webkit-scrollbar-thumb { background: #c5c5c5; border-radius: 9999px; }
 .barra-scroll::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
 .barra-scroll { scrollbar-width: thin; scrollbar-color: #c5c5c5 transparent; }
+
+/* Tabla tipo hoja de cálculo (opt-in con <TablaWrap cuadricula>). Fuera de
+   @layer a propósito: gana sobre px-3/py-2 de Th/Td sin necesitar "!". */
+.tabla-cuadricula {
+  --cuad-linea: #b4bcc8;
+  --cuad-th-bg: linear-gradient(#f3f4f6, #dfe3e8);
+  --cuad-th-color: #111827;
+  border: 1px solid var(--cuad-linea);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+:root.dark .tabla-cuadricula {
+  --cuad-linea: #4b5563;
+  --cuad-th-bg: linear-gradient(#374151, #1f2937);
+  --cuad-th-color: #f3f4f6;
+}
+.tabla-cuadricula table { border-collapse: collapse; width: 100%; }
+.tabla-cuadricula th,
+.tabla-cuadricula td {
+  padding: 3px 8px;
+  font-size: 12px;
+  line-height: 1.25;
+  border: 1px solid var(--cuad-linea);
+  white-space: nowrap;
+}
+.tabla-cuadricula th {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cuad-th-color);
+  background: var(--cuad-th-bg);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  position: sticky;
+  top: 0;
+}

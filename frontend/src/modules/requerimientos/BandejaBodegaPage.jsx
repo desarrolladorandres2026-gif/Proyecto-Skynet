@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Warehouse, Printer, Download } from 'lucide-react'
+import { Warehouse, Printer, Download, PackageCheck, ArrowLeft } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
 import { Badge, Btn, Card, ErrorMsg, TablaWrap, Th, Td, EmptyState, fmtFechaHora } from '../../components/ui.jsx'
 import ExportarRequerimientosModal from './ExportarRequerimientosModal.jsx'
@@ -19,10 +19,11 @@ import { generarPdfRequerimiento } from '../../pdf/requerimientoPdf.js'
 
 export default function BandejaBodegaPage() {
   const [modalExportar, setModalExportar] = useState(false)
+  const [verDespachados, setVerDespachados] = useState(false)
 
   const { data, cargando, error, recargarSilencioso } = useDatosConCache(
-    'requerimientos:bandejaBodega',
-    () => requerimientosApi.bandejaBodega().then((data) => data.requerimientos),
+    `requerimientos:bandejaBodega:${verDespachados ? 'despachados' : 'pendientes'}`,
+    () => requerimientosApi.bandejaBodega({ despachados: verDespachados }).then((data) => data.requerimientos),
     { ttlMs: 30_000 },
   )
   const lista = data || []
@@ -30,15 +31,24 @@ export default function BandejaBodegaPage() {
   useAutoRefresh(recargarSilencioso)
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="w-full">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
+        <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide !text-black dark:!text-white">
           <Warehouse className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
-          Bandeja Bodega — aprobados por Financiero
+          {verDespachados ? 'Requerimientos despachados' : 'Bandeja Bodega — aprobados por Financiero'}
         </h1>
-        <Btn variante="secundario" onClick={() => setModalExportar(true)} className="flex items-center gap-1.5">
-          <Download className="h-4 w-4" aria-hidden="true" /> Exportar
-        </Btn>
+        <div className="flex items-center gap-2">
+          <Btn variante="secundario" onClick={() => setVerDespachados((v) => !v)} className="flex items-center gap-1.5">
+            {verDespachados ? (
+              <><ArrowLeft className="h-4 w-4" aria-hidden="true" /> Volver a la bandeja</>
+            ) : (
+              <><PackageCheck className="h-4 w-4" aria-hidden="true" /> Requerimientos despachados</>
+            )}
+          </Btn>
+          <Btn variante="secundario" onClick={() => setModalExportar(true)} className="flex items-center gap-1.5">
+            <Download className="h-4 w-4" aria-hidden="true" /> Exportar
+          </Btn>
+        </div>
       </div>
 
       <ErrorMsg>{error}</ErrorMsg>
@@ -46,7 +56,7 @@ export default function BandejaBodegaPage() {
       {cargando ? (
         <Card>Cargando…</Card>
       ) : lista.length === 0 ? (
-        <EmptyState mensaje="No hay requerimientos aprobados por Financiero" />
+        <EmptyState mensaje={verDespachados ? 'No hay requerimientos despachados' : 'No hay requerimientos pendientes por despachar'} />
       ) : (
         <>
           <div className="grid gap-2.5 sm:hidden">
@@ -74,14 +84,14 @@ export default function BandejaBodegaPage() {
             ))}
           </div>
 
-          <TablaWrap className="hidden sm:block">
+          <TablaWrap cuadricula className="hidden sm:block">
             <thead>
               <tr>
                 <Th>Fecha</Th>
                 <Th>Tipo</Th>
                 <Th>Solicitante</Th>
                 <Th>Estado</Th>
-                <Th></Th>
+                <Th>Acción</Th>
               </tr>
             </thead>
             <tbody>
