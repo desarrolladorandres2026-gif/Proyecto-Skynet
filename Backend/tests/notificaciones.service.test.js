@@ -68,6 +68,36 @@ describe('notificaciones.service', () => {
     expect(envios.every((e) => e.estado === 'pendiente')).toBe(true)
   })
 
+  it('los detalles del asunto se guardan normalizados y solo en la fila de correo', async () => {
+    const usuario = await crearUsuario()
+    await PushSubscription.create({ usuario: usuario._id, endpoint: 'https://push.test/detalles', p256dh: 'p', auth: 'a' })
+
+    await notificar({
+      usuarios: [usuario._id], categoria: 'requerimientos', tipo: 'test', titulo: 'Título', cuerpo: 'Cuerpo',
+      detalles: [{ etiqueta: 'Tipo', valor: 'Compra' }, { etiqueta: 'Vacío', valor: '   ' }, { etiqueta: '', valor: 'Sin etiqueta' }],
+    })
+
+    const email = await EnvioNotificacion.findOne({ usuario: usuario._id, canal: 'email' })
+    const push = await EnvioNotificacion.findOne({ usuario: usuario._id, canal: 'push' })
+    expect(email.detalles.map(({ etiqueta, valor }) => ({ etiqueta, valor }))).toEqual([{ etiqueta: 'Tipo', valor: 'Compra' }])
+    expect(push.detalles).toBeUndefined()
+  })
+
+  it('el correo que sale de la cola lleva los detalles en HTML y en texto', async () => {
+    const usuario = await crearUsuario()
+    await EnvioNotificacion.create({
+      usuario: usuario._id, canal: 'email', categoria: 'requerimientos', tipo: 'test',
+      titulo: 'T', cuerpo: 'C', emailDestino: usuario.email, estado: 'pendiente', proximoIntentoEn: new Date(),
+      detalles: [{ etiqueta: 'Tipo', valor: 'Compra' }],
+    })
+
+    await procesarPendientes(10)
+
+    const { html, text } = enviarEmailGenerico.mock.calls[0][0]
+    expect(html).toContain('>Compra</td>')
+    expect(text).toContain('Tipo: Compra')
+  })
+
   it('un rol sin notificaciones:recibir_email no recibe correo, pero sí push y campana interna', async () => {
     const usuario = await crearUsuario({ recibeEmail: false })
     await PushSubscription.create({ usuario: usuario._id, endpoint: 'https://push.test/sin-email', p256dh: 'p', auth: 'a' })
@@ -174,6 +204,22 @@ describe('notificaciones.service', () => {
     expect(envioActualizado.estado).toBe('pendiente')
     expect(envioActualizado.intentos).toBe(1)
     expect(envioActualizado.proximoIntentoEn.getTime()).toBeGreaterThan(Date.now())
+  })
+
+  it('un correo marcado descartar (dominio reservado) se marca fallido sin reintentar', async () => {
+    const usuario = await crearUsuario()
+    enviarEmailGenerico.mockRejectedValueOnce(Object.assign(new Error('dominio reservado'), { descartar: true }))
+
+    const envio = await EnvioNotificacion.create({
+      usuario: usuario._id, canal: 'email', categoria: 'requerimientos', tipo: 'test',
+      titulo: 'T', cuerpo: 'C', emailDestino: usuario.email, estado: 'pendiente', proximoIntentoEn: new Date(),
+    })
+
+    await procesarPendientes(10)
+
+    const envioActualizado = await EnvioNotificacion.findById(envio._id)
+    expect(envioActualizado.estado).toBe('fallido')
+    expect(envioActualizado.intentos).toBe(1)
   })
 
   it('los correos del lote arrancan espaciados (límite de peticiones/segundo del SMTP) y el push no espera por ellos', async () => {

@@ -1,78 +1,41 @@
-// Plantillas HTML para correos transaccionales enviados por utils/email.js.
-// Basado en tablas (no flexbox/grid): es lo único que renderiza de forma
-// predecible en clientes de correo (Outlook de escritorio usa el motor de
-// Word para el HTML). Mismo lenguaje visual que
-// notificaciones/notificaciones.plantillas.js (corner brackets tipo HUD,
-// mono/sans de sistema, acento cian) para que cualquier correo que Skynet
-// manda se sienta de la misma familia.
-const MONO = "ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace"
-const SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+// Correos que no son notificaciones de un módulo: seguridad de la cuenta
+// (conexión de Gmail, restablecer contraseña) y el protocolo de despliegue del
+// copiloto. Usan el mismo sistema visual que las notificaciones
+// (utils/emailDiseno.js), así que cualquier correo de Skynet se reconoce como
+// de la misma familia. Todo dato que puede venir de fuera (nombre, IP,
+// user-agent) se escapa en emailDiseno.js: sin eso, un User-Agent fabricado a
+// mano podría inyectar marcado — o reescribir el propio botón "Aprobar" —
+// dentro de un correo que existe justamente para ser una fuente confiable
+// fuera de banda.
+import { documentoCorreo, documentoTexto, parrafo, nota, notaHtml, enlace, esc } from './emailDiseno.js'
 
-// Todo dato que puede venir de fuera (nombre, IP, user-agent) se interpola en
-// HTML: sin escapar, un User-Agent o nombre con `<`/`"` fabricado a mano
-// podría inyectar marcado (o reescribir el propio botón "Aprobar"/"Denegar")
-// dentro de un correo que existe justamente para ser una fuente confiable de
-// verdad fuera de banda.
-function esc(valor) {
-  return String(valor ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
+const CATEGORIA_SEGURIDAD = 'Seguridad de la cuenta'
+const PIE_SEGURIDAD = 'Es un aviso de seguridad: te llega aunque hayas desactivado los correos.'
+
+function saludo(nombre) {
+  return nombre ? `Hola ${nombre},` : 'Hola,'
 }
 
-function esquina(color, lados) {
-  const bordes = {
-    tl: `border-top:1.5px solid ${color};border-left:1.5px solid ${color};`,
-    tr: `border-top:1.5px solid ${color};border-right:1.5px solid ${color};`,
-    bl: `border-bottom:1.5px solid ${color};border-left:1.5px solid ${color};`,
-    br: `border-bottom:1.5px solid ${color};border-right:1.5px solid ${color};`,
-  }[lados]
-  return `<td width="12" height="12" style="${bordes}line-height:1px;font-size:1px;">&nbsp;</td>`
+function vigencia(minutos) {
+  if (minutos % 60 === 0) return minutos === 60 ? '1 hora' : `${minutos / 60} horas`
+  return `${minutos} minutos`
 }
 
-function fmtFecha(fecha) {
-  return new Date(fecha)
-    .toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    .toUpperCase()
-    .replace('.', '')
+// ── Conexión de una cuenta de correo (Gmail hoy, cualquier proveedor futuro)
+function contenidoConexion({ nombreUsuario, proveedor, ip, userAgent, ttlMinutos, scopeDescripcion }) {
+  return {
+    titulo: `Intento de conexión de ${proveedor}`,
+    cuerpo: `${saludo(nombreUsuario)} alguien con acceso a tu cuenta intentó conectar una cuenta de ${proveedor} al módulo Email. Todavía no se ha conectado nada: hace falta tu aprobación desde este correo.`,
+    detalles: [
+      { etiqueta: 'Dirección IP', valor: ip || 'Desconocida' },
+      { etiqueta: 'Dispositivo', valor: userAgent || 'Desconocido' },
+      { etiqueta: 'Permitiría', valor: scopeDescripcion },
+      { etiqueta: 'Vence en', valor: vigencia(ttlMinutos) },
+    ],
+    advertencia: 'Si no fuiste tú, deniega la conexión y cambia tu contraseña cuanto antes: alguien más tiene sesión iniciada en tu cuenta.',
+  }
 }
 
-// Botón de ancho completo (100%), no inline-table de ancho fijo: en pantallas
-// angostas (~320-375px, iPhone SE/Mail app) dos botones lado a lado con
-// padding fijo desbordaban el contenedor y forzaban scroll horizontal /
-// zoom para poder tocarlos. Full-width + apilados en filas separadas es la
-// única forma que no depende de que el cliente de correo soporte
-// @media (Outlook de escritorio lo ignora, pero esto no necesita media
-// queries para verse bien en cualquier ancho).
-function boton(href, etiqueta, { color, colorTexto = '#04141a' }) {
-  return `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:10px;">
-      <tr>
-        <td align="center" style="border-radius:6px;background:${color};">
-          <a href="${esc(href)}" style="display:block;width:100%;box-sizing:border-box;padding:13px 22px;font-family:${SANS};font-size:14px;font-weight:700;letter-spacing:0.02em;color:${colorTexto};text-decoration:none;border-radius:6px;text-align:center;">
-            ${etiqueta}
-          </a>
-        </td>
-      </tr>
-    </table>`
-}
-
-// dato = [{ etiqueta, valor }]
-function filaDato({ etiqueta, valor }) {
-  return `
-    <tr>
-      <td style="padding:6px 0;font-family:${MONO};font-size:11px;letter-spacing:0.08em;color:#64748b;white-space:nowrap;vertical-align:top;">${esc(etiqueta)}</td>
-      <td style="padding:6px 0 6px 16px;font-family:${SANS};font-size:13px;color:#cbd5e1;word-break:break-word;">${esc(valor)}</td>
-    </tr>`
-}
-
-// Alerta de seguridad para el intento de conexión de una cuenta de correo
-// (Gmail hoy, cualquier proveedor futuro): brackets en rojo/ámbar en vez del
-// cian habitual de Skynet — mismo código de color que CATEGORIA_INFO.sistema
-// en notificaciones.plantillas.js ("SEGURIDAD" = #f87171) — para que el ojo
-// distinga de inmediato un correo sensible de una notificación normal.
 export function correoConexionCuenta({
   nombreUsuario,
   proveedor,
@@ -84,214 +47,144 @@ export function correoConexionCuenta({
   ttlMinutos = 15,
   scopeDescripcion,
 }) {
-  const color = '#f87171'
-  return `<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark light" />
-    <style>
-      /* Encoge el margen exterior y el padding de la tarjeta en pantallas
-         angostas (iPhone SE ≈320px, la mayoría de apps de correo móviles):
-         sin esto, 32px+22px de padding fijo por lado le comían ~100px de
-         los ~320-375px disponibles, dejando el contenido apretado. Los
-         botones ya son 100% de ancho (ver boton()) y no necesitan regla
-         propia acá — Outlook de escritorio ignora este bloque sin romper
-         nada, cae al padding de escritorio de las reglas inline. */
-      @media only screen and (max-width: 480px) {
-        .sk-wrap { padding: 20px 10px !important; }
-        .sk-card { padding: 20px 16px !important; }
-      }
-    </style>
-  </head>
-  <body style="margin:0;padding:0;background-color:#05070a;font-family:${SANS};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#05070a;">
-      <tr>
-        <td class="sk-wrap" align="center" style="padding:32px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;">
-            <tr>
-              <td style="padding-bottom:20px;">
-                <span style="font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:4px;color:#00e5ff;">TTN</span>
-              </td>
-            </tr>
-
-            <tr>
-              ${esquina(color, 'tl')}
-              <td style="border-top:1.5px solid ${color};"></td>
-              ${esquina(color, 'tr')}
-            </tr>
-            <tr>
-              <td style="border-left:1.5px solid ${color};padding:0;" width="12"></td>
-              <td class="sk-card" style="padding:24px 22px;">
-                <span style="display:inline-block;font-family:${MONO};font-size:10px;font-weight:700;letter-spacing:0.14em;color:${color};border:1px solid ${color}55;border-radius:3px;padding:3px 8px;">⚠ SEGURIDAD</span>
-                <h1 style="margin:14px 0 4px;font-family:${SANS};font-size:18px;font-weight:700;color:#f1f5f9;">Intento de conexión de correo</h1>
-                <p style="margin:0 0 18px;font-family:${SANS};font-size:14px;line-height:1.6;color:#94a3b8;">
-                  Hola ${esc(nombreUsuario)}, alguien con acceso a tu cuenta intentó conectar una cuenta de
-                  <strong style="color:#e2e8f0;">${esc(proveedor)}</strong> al módulo Email. No se conectó nada todavía:
-                  hace falta tu aprobación, desde este correo.
-                </p>
-
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b0f14;border:1px solid #1e293b;border-radius:8px;padding:14px 16px;margin-bottom:18px;">
-                  ${filaDato({ etiqueta: 'CUÁNDO', valor: fmtFecha(fecha) })}
-                  ${filaDato({ etiqueta: 'IP', valor: ip || 'desconocida' })}
-                  ${filaDato({ etiqueta: 'DISPOSITIVO', valor: userAgent || 'desconocido' })}
-                  ${filaDato({ etiqueta: 'PERMITIRÍA', valor: scopeDescripcion })}
-                </table>
-
-                ${boton(aprobarLink, 'Aprobar y continuar', { color: '#00e5ff' })}
-                ${boton(denegarLink, 'Denegar', { color: '#1e293b', colorTexto: '#cbd5e1' })}
-
-                <p style="margin:20px 0 0;font-family:${SANS};font-size:12px;line-height:1.6;color:#64748b;">
-                  Este enlace vence en ${ttlMinutos} minutos. Si no fuiste tú, denégalo y cambia tu contraseña
-                  cuanto antes — alguien más tiene sesión iniciada en tu cuenta.
-                </p>
-              </td>
-              <td style="border-right:1.5px solid ${color};padding:0;" width="12"></td>
-            </tr>
-            <tr>
-              ${esquina(color, 'bl')}
-              <td style="border-bottom:1.5px solid ${color};"></td>
-              ${esquina(color, 'br')}
-            </tr>
-
-            <tr>
-              <td style="padding-top:20px;font-family:${MONO};font-size:10px;letter-spacing:0.08em;color:#334155;">
-                TERMINAL DE TRANSPORTES DE NEIVA — correo automático, no respondas a este mensaje.
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`
+  const c = contenidoConexion({ nombreUsuario, proveedor, ip, userAgent, ttlMinutos, scopeDescripcion })
+  return documentoCorreo({
+    titulo: c.titulo,
+    preheader: `No se conectará nada sin tu aprobación. El enlace vence en ${vigencia(ttlMinutos)}.`,
+    categoria: CATEGORIA_SEGURIDAD,
+    fecha,
+    cuerpoHtml: parrafo(c.cuerpo),
+    detalles: c.detalles,
+    accion: { etiqueta: 'Aprobar y continuar', url: aprobarLink },
+    accionSecundaria: { etiqueta: 'Denegar', url: denegarLink },
+    despuesHtml: nota(c.advertencia),
+    pieHtml: esc(PIE_SEGURIDAD),
+  })
 }
 
-// ── Protocolo de despliegue (ver copiloto.despliegue.js) ────────────────────
-// Acento cian (no el rojo ⚠ SEGURIDAD de correoConexionCuenta arriba): ninguno
-// de los dos correos de abajo es una alerta — uno es una verificación
-// rutinaria pedida por el propio Super Admin, el otro es el anuncio de
-// lanzamiento. Mismo shell de tarjeta con esquinas tipo HUD para que se
-// sientan de la misma familia visual que el resto de correos de Skynet.
-const COLOR_DESPLIEGUE = '#00e5ff'
-
-function shellDespliegue({ badge, titulo, cuerpoHtml }) {
-  return `<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark light" />
-    <style>
-      @media only screen and (max-width: 480px) {
-        .sk-wrap { padding: 20px 10px !important; }
-        .sk-card { padding: 20px 16px !important; }
-      }
-    </style>
-  </head>
-  <body style="margin:0;padding:0;background-color:#05070a;font-family:${SANS};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#05070a;">
-      <tr>
-        <td class="sk-wrap" align="center" style="padding:32px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;">
-            <tr>
-              <td style="padding-bottom:20px;">
-                <span style="font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:4px;color:${COLOR_DESPLIEGUE};">TTN</span>
-              </td>
-            </tr>
-            <tr>
-              ${esquina(COLOR_DESPLIEGUE, 'tl')}
-              <td style="border-top:1.5px solid ${COLOR_DESPLIEGUE};"></td>
-              ${esquina(COLOR_DESPLIEGUE, 'tr')}
-            </tr>
-            <tr>
-              <td style="border-left:1.5px solid ${COLOR_DESPLIEGUE};padding:0;" width="12"></td>
-              <td class="sk-card" style="padding:24px 22px;">
-                <span style="display:inline-block;font-family:${MONO};font-size:10px;font-weight:700;letter-spacing:0.14em;color:${COLOR_DESPLIEGUE};border:1px solid ${COLOR_DESPLIEGUE}55;border-radius:3px;padding:3px 8px;">${badge}</span>
-                <h1 style="margin:14px 0 4px;font-family:${SANS};font-size:18px;font-weight:700;color:#f1f5f9;">${titulo}</h1>
-                ${cuerpoHtml}
-              </td>
-              <td style="border-right:1.5px solid ${COLOR_DESPLIEGUE};padding:0;" width="12"></td>
-            </tr>
-            <tr>
-              ${esquina(COLOR_DESPLIEGUE, 'bl')}
-              <td style="border-bottom:1.5px solid ${COLOR_DESPLIEGUE};"></td>
-              ${esquina(COLOR_DESPLIEGUE, 'br')}
-            </tr>
-            <tr>
-              <td style="padding-top:20px;font-family:${MONO};font-size:10px;letter-spacing:0.08em;color:#334155;">
-                TERMINAL DE TRANSPORTES DE NEIVA — correo automático, no respondas a este mensaje.
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`
+export function correoConexionCuentaTexto({ nombreUsuario, proveedor, aprobarLink, denegarLink, ip, userAgent, fecha = new Date(), ttlMinutos = 15, scopeDescripcion }) {
+  const c = contenidoConexion({ nombreUsuario, proveedor, ip, userAgent, ttlMinutos, scopeDescripcion })
+  return documentoTexto({
+    titulo: c.titulo,
+    categoria: CATEGORIA_SEGURIDAD,
+    fecha,
+    parrafos: [c.cuerpo],
+    detalles: c.detalles,
+    accion: { etiqueta: 'Aprobar y continuar', url: aprobarLink },
+    nota: `Denegar: ${denegarLink}\n\n${c.advertencia}`,
+    pie: PIE_SEGURIDAD,
+  })
 }
 
-function parrafo(texto, { destacado = false } = {}) {
-  const color = destacado ? '#e2e8f0' : '#94a3b8'
-  const peso = destacado ? '600' : '400'
-  return `<p style="margin:0 0 10px;font-family:${SANS};font-size:14px;line-height:1.6;color:${color};font-weight:${peso};">${esc(texto)}</p>`
+// ── Restablecer contraseña
+function contenidoReset({ nombreUsuario, ttlMinutos }) {
+  return {
+    titulo: 'Restablece tu contraseña',
+    cuerpo: `${saludo(nombreUsuario)} recibimos una solicitud para restablecer la contraseña de tu cuenta en la plataforma.`,
+    detalles: [{ etiqueta: 'Vence en', valor: vigencia(ttlMinutos) }],
+    advertencia: 'Si no pediste este cambio, ignora este correo: tu contraseña sigue siendo la misma.',
+  }
 }
 
+export function correoRestablecerPassword({ nombreUsuario, enlace: url, ttlMinutos = 60, fecha = new Date() }) {
+  const c = contenidoReset({ nombreUsuario, ttlMinutos })
+  return documentoCorreo({
+    titulo: c.titulo,
+    preheader: `Crea una contraseña nueva desde este correo. El enlace vence en ${vigencia(ttlMinutos)}.`,
+    categoria: CATEGORIA_SEGURIDAD,
+    fecha,
+    cuerpoHtml: parrafo(c.cuerpo),
+    detalles: c.detalles,
+    accion: { etiqueta: 'Crear contraseña nueva', url },
+    despuesHtml:
+      nota(c.advertencia) + nota('Si el botón no funciona, copia este enlace en tu navegador:') + notaHtml(enlace(url)),
+    pieHtml: esc(PIE_SEGURIDAD),
+  })
+}
+
+export function correoRestablecerPasswordTexto({ nombreUsuario, enlace: url, ttlMinutos = 60, fecha = new Date() }) {
+  const c = contenidoReset({ nombreUsuario, ttlMinutos })
+  return documentoTexto({
+    titulo: c.titulo,
+    categoria: CATEGORIA_SEGURIDAD,
+    fecha,
+    parrafos: [c.cuerpo],
+    detalles: c.detalles,
+    accion: { etiqueta: 'Crea una contraseña nueva aquí', url },
+    nota: c.advertencia,
+    pie: PIE_SEGURIDAD,
+  })
+}
+
+// ── Protocolo de despliegue (ver copiloto.despliegue.js)
 // Contenido 100% estático (sin datos que vengan de fuera), a propósito: es un
 // envío de verificación, no debe depender de nada que pueda fallar al
 // interpolarse.
-export function correoPruebaComunicaciones() {
-  const cuerpoHtml = [
-    parrafo('Esta es únicamente una prueba de funcionamiento del sistema de comunicaciones de la plataforma.'),
-    parrafo('Estamos verificando que el sistema pueda enviar correctamente los mensajes a los usuarios registrados antes del lanzamiento oficial.'),
-    parrafo('No es necesario realizar ninguna acción.'),
-    parrafo('Si recibiste este mensaje, la prueba de comunicaciones funcionó correctamente.', { destacado: true }),
-  ].join('\n')
-  return shellDespliegue({ badge: '🧪 PRUEBA', titulo: 'Verificación de comunicaciones', cuerpoHtml })
-}
-
-export function correoPruebaComunicacionesTexto() {
-  return [
+const PRUEBA = {
+  titulo: 'Verificación de comunicaciones',
+  categoria: 'Prueba de comunicaciones',
+  parrafos: [
     'Esta es únicamente una prueba de funcionamiento del sistema de comunicaciones de la plataforma.',
     'Estamos verificando que el sistema pueda enviar correctamente los mensajes a los usuarios registrados antes del lanzamiento oficial.',
     'No es necesario realizar ninguna acción.',
-    'Si recibiste este mensaje, la prueba de comunicaciones funcionó correctamente.',
-    '',
-    '— Equipo Terminal de Transportes de Neiva',
-  ].join('\n')
+  ],
+  cierre: 'Si recibiste este mensaje, la prueba de comunicaciones funcionó correctamente.',
+  pie: 'Mensaje de verificación enviado a todo el personal registrado en la plataforma.',
+}
+
+export function correoPruebaComunicaciones() {
+  return documentoCorreo({
+    titulo: PRUEBA.titulo,
+    preheader: 'Prueba del sistema de correo de la plataforma. No necesitas hacer nada.',
+    categoria: PRUEBA.categoria,
+    cuerpoHtml: PRUEBA.parrafos.map((p) => parrafo(p)).join('') + parrafo(PRUEBA.cierre, { destacado: true }),
+    pieHtml: esc(PRUEBA.pie),
+  })
+}
+
+export function correoPruebaComunicacionesTexto() {
+  return documentoTexto({
+    titulo: PRUEBA.titulo,
+    categoria: PRUEBA.categoria,
+    parrafos: [...PRUEBA.parrafos, PRUEBA.cierre],
+    pie: PRUEBA.pie,
+  })
 }
 
 // `loginUrl` sí es dinámico (env.FRONTEND_URL + '/login', armado por quien
-// llama — ver copiloto.despliegue.js), pero boton() ya escapa el href con
-// esc() internamente, así que no hace falta repetirlo aquí.
+// llama — ver copiloto.despliegue.js); emailDiseno.js lo escapa al armar el
+// botón.
+const LANZAMIENTO = {
+  titulo: 'El sistema está listo',
+  categoria: 'Lanzamiento de la plataforma',
+  antes: [
+    'Hoy damos un nuevo paso en la forma en que gestionamos nuestra operación.',
+    'La plataforma ya está disponible. Tu acceso está habilitado.',
+  ],
+  despues: [
+    'Te recomendamos ingresar con tus credenciales y realizar tu primer acceso.',
+    'Si es tu primer ingreso, durante la capacitación te acompañaremos paso a paso para que conozcas las principales funciones de la plataforma.',
+  ],
+  cierre: 'Bienvenido al Terminal de Transportes de Neiva. Un solo sistema. Una operación más conectada.',
+}
+
 export function correoDespliegueOficial({ loginUrl }) {
-  const cuerpoHtml = [
-    parrafo('Hoy damos un nuevo paso en la forma en que gestionamos nuestra operación.'),
-    parrafo('La plataforma ya está disponible. Tu acceso está habilitado.'),
-    boton(loginUrl, 'ACCEDER A LA PLATAFORMA', { color: COLOR_DESPLIEGUE }),
-    parrafo('Te recomendamos ingresar con tus credenciales y realizar tu primer acceso.'),
-    parrafo('Si es tu primer ingreso, durante la capacitación te acompañaremos paso a paso para que conozcas las principales funciones de la plataforma.'),
-    parrafo('Bienvenido al Terminal de Transportes de Neiva. Un solo sistema. Una operación más conectada.', { destacado: true }),
-  ].join('\n')
-  return shellDespliegue({ badge: '🚀 LANZAMIENTO', titulo: 'El sistema está listo.', cuerpoHtml })
+  return documentoCorreo({
+    titulo: LANZAMIENTO.titulo,
+    preheader: 'La plataforma ya está disponible y tu acceso está habilitado.',
+    categoria: LANZAMIENTO.categoria,
+    cuerpoHtml: LANZAMIENTO.antes.map((p) => parrafo(p)).join(''),
+    accion: { etiqueta: 'Acceder a la plataforma', url: loginUrl },
+    despuesHtml: LANZAMIENTO.despues.map((p) => parrafo(p)).join('') + parrafo(LANZAMIENTO.cierre, { destacado: true }),
+  })
 }
 
 export function correoDespliegueOficialTexto({ loginUrl }) {
-  return [
-    'TERMINAL DE TRANSPORTES DE NEIVA',
-    '',
-    'El sistema está listo.',
-    'Hoy damos un nuevo paso en la forma en que gestionamos nuestra operación.',
-    'La plataforma ya está disponible. Tu acceso está habilitado.',
-    '',
-    `Accede aquí: ${loginUrl}`,
-    '',
-    'Te recomendamos ingresar con tus credenciales y realizar tu primer acceso.',
-    'Si es tu primer ingreso, durante la capacitación te acompañaremos paso a paso para que conozcas las principales funciones de la plataforma.',
-    '',
-    'Bienvenido al Terminal de Transportes de Neiva. Un solo sistema. Una operación más conectada.',
-    '',
-    '— Equipo Terminal de Transportes de Neiva',
-  ].join('\n')
+  return documentoTexto({
+    titulo: LANZAMIENTO.titulo,
+    categoria: LANZAMIENTO.categoria,
+    parrafos: LANZAMIENTO.antes,
+    accion: { etiqueta: 'Accede aquí', url: loginUrl },
+    nota: [...LANZAMIENTO.despues, LANZAMIENTO.cierre].join('\n\n'),
+  })
 }

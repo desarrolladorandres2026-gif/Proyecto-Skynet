@@ -54,8 +54,15 @@ export function detenerWorkerDespliegue() {
  *
  * El .catch() no es decorativo: sin él, un fallo aquí sería una promesa
  * rechazada sin dueño dentro de una petición HTTP que ya respondió.
+ *
+ * Solo despierta al worker si ESTE proceso lo arrancó. Si index.js no lo
+ * hizo (backend de desarrollo contra la base de producción, ver
+ * config/workers.js), el trabajo queda en Mongo para el proceso que sí corre
+ * los workers: sin esta guardia, el lote entero saldría desde el SMTP de
+ * desarrollo.
  */
 export function despertarWorkerDespliegue() {
+  if (!temporizador) return
   ciclo().catch((err) => {
     console.error('Error en el ciclo inmediato de pruebas de comunicaciones:', err.message)
   })

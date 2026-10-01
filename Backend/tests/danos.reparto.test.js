@@ -15,7 +15,7 @@ import ReporteDano from '../src/models/ReporteDano.js'
 // importar el modelo aquí, mongoose no tiene el schema registrado en este
 // archivo de test aislado.
 import '../src/models/Requerimiento.js'
-import { cambiarEstadoReporte, redistribuirPendientes, MAX_ACTIVAS_TECNICO } from '../src/modules/danos/danos.service.js'
+import { redistribuirPendientes, MAX_ACTIVAS_TECNICO } from '../src/modules/danos/danos.service.js'
 
 async function crearPermiso(codigo) {
   const [modulo, accion] = codigo.split(':')
@@ -64,20 +64,15 @@ async function crearReporteActivo({ asignadoA, reportadoPor }) {
   })
 }
 
-describe('reparto automático de daños — redistribución al liberar cupo', () => {
-  it('un reporte pendiente por falta de cupo se asigna solo cuando el técnico resuelve una tarea y libera espacio', async () => {
-    const { actor: actorTecnico, usuario: tecnico } = await crearUsuarioConPermiso('mantenimiento:ejecutar')
+describe('reparto automático de daños — encargado único', () => {
+  it('un reporte pendiente se asigna a DIEGO ARMANDO OSSA ANAYA aunque tenga el tope de tareas activas', async () => {
+    const { usuario: diego } = await crearUsuarioConPermiso('mantenimiento:ejecutar')
+    await Usuario.updateOne({ _id: diego._id }, { nombre: 'DIEGO ARMANDO OSSA ANAYA' })
     const { usuario: reportante } = await crearUsuarioConPermiso(null)
 
-    // Satura al único técnico exactamente al tope (MAX_ACTIVAS_TECNICO).
-    const activos = []
     for (let i = 0; i < MAX_ACTIVAS_TECNICO; i += 1) {
-      activos.push(await crearReporteActivo({ asignadoA: tecnico._id, reportadoPor: reportante._id }))
+      await crearReporteActivo({ asignadoA: diego._id, reportadoPor: reportante._id })
     }
-
-    // Un daño nuevo queda pendiente: nadie tiene cupo (simula lo que ya hace
-    // asignarAutomaticamente al crear, pero se prueba redistribuirPendientes
-    // directamente para no depender de Cloudinary en este test).
     const pendiente = await ReporteDano.create({
       tipo: 'dano',
       fecha: new Date(),
@@ -87,38 +82,16 @@ describe('reparto automático de daños — redistribución al liberar cupo', ()
     })
 
     await redistribuirPendientes()
-    expect((await ReporteDano.findById(pendiente._id)).estado).toBe('pendiente')
 
-    // El técnico resuelve una de sus tareas activas: libera un cupo. Esto
-    // debe disparar la redistribución automáticamente (no hace falta llamar
-    // redistribuirPendientes a mano) y el pendiente debe encontrar hogar.
-    await cambiarEstadoReporte(
-      activos[0]._id,
-      {
-        estado: 'resuelto',
-        nota: 'Reparado el bache',
-        reparacion: {
-          fecha: new Date().toISOString(),
-          modulo: 'regional',
-          evidenciasNuevas: [{ url: 'https://res.cloudinary.com/demo/image/upload/v1/skynet/danos_reparacion/foto.jpg' }],
-        },
-      },
-      actorTecnico
-    )
-
-    const pendienteActualizado = await ReporteDano.findById(pendiente._id)
-    expect(pendienteActualizado.estado).toBe('asignado')
-    expect(String(pendienteActualizado.asignadoA)).toBe(String(tecnico._id))
-    expect(pendienteActualizado.asignacionAutomatica).toBe(true)
+    const actualizado = await ReporteDano.findById(pendiente._id)
+    expect(actualizado.estado).toBe('asignado')
+    expect(String(actualizado.asignadoA)).toBe(String(diego._id))
+    expect(actualizado.asignacionAutomatica).toBe(true)
   })
 
-  it('si nadie tiene cupo libre, el pendiente se queda pendiente (no se fuerza a nadie por encima del tope)', async () => {
-    const { usuario: tecnico } = await crearUsuarioConPermiso('mantenimiento:ejecutar')
+  it('si el encargado no existe, el pendiente se queda pendiente', async () => {
+    await Usuario.updateMany({ nombre: 'DIEGO ARMANDO OSSA ANAYA' }, { estado: 'inactivo' })
     const { usuario: reportante } = await crearUsuarioConPermiso(null)
-
-    for (let i = 0; i < MAX_ACTIVAS_TECNICO; i += 1) {
-      await crearReporteActivo({ asignadoA: tecnico._id, reportadoPor: reportante._id })
-    }
     const pendiente = await ReporteDano.create({
       tipo: 'dano',
       fecha: new Date(),

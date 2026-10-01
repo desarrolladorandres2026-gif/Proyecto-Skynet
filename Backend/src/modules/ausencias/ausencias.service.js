@@ -5,6 +5,7 @@ import { registrarAuditoria } from '../../utils/auditoria.js'
 import { inicioDelDia, contarDias, restarMeses, hoy as hoyEnElTerminal } from '../../utils/fechas.js'
 import { usuariosConPermiso } from '../mantenimiento/comun.js'
 import { notificarUsuarios as _notificarUsuarios } from '../../utils/sendPush.js'
+import { rangoFechas } from '../../utils/emailDiseno.js'
 
 const POPULATE_AUSENCIA = [
   { path: 'solicitante', select: 'nombre nombre_usuario email cargo dependencia' },
@@ -12,6 +13,31 @@ const POPULATE_AUSENCIA = [
 ]
 
 const notificarUsuarios = (userIds, payload) => _notificarUsuarios(userIds, payload, 'ausencias')
+
+const TIPO_AUSENCIA_TEXTO = {
+  vacaciones: 'Vacaciones',
+  permiso_remunerado: 'Permiso remunerado',
+  permiso_no_remunerado: 'Permiso no remunerado',
+  incapacidad: 'Incapacidad',
+}
+
+function tipoTexto(tipo) {
+  return TIPO_AUSENCIA_TEXTO[tipo] || tipo
+}
+
+// Datos que acompañan cada aviso por correo (ver notificar#detalles). El
+// `motivo` de la solicitud queda fuera a propósito: en una incapacidad puede
+// ser información de salud, y el correo sale de la plataforma — quien aprueba
+// lo lee dentro de Skynet.
+function detallesDeAusencia(doc, extra = []) {
+  const horario = doc.horaInicio ? `, de ${doc.horaInicio} a ${doc.horaFin}` : ''
+  return [
+    { etiqueta: 'Tipo', valor: tipoTexto(doc.tipo) },
+    { etiqueta: 'Fechas', valor: `${rangoFechas(doc.fechaInicio, doc.fechaFin)}${horario}` },
+    { etiqueta: 'Días', valor: String(doc.diasHabiles) },
+    ...extra,
+  ]
+}
 
 function auditar(usuarioActor, accion, doc, descripcion, cambios) {
   return registrarAuditoria({
@@ -152,8 +178,13 @@ export async function crearAusencia(datos, usuarioActor) {
   const aprobadores = await usuariosConPermiso('ausencias:aprobar')
   notificarUsuarios(aprobadores, {
     title: 'Nueva solicitud de ausencia',
-    body: `${solicitante?.nombre || usuarioActor.nombre_usuario} solicitó ${tipo} (${diasHabiles} día(s)${horarioTexto})`,
+    body: `${solicitante?.nombre || usuarioActor.nombre_usuario} solicitó ${tipoTexto(tipo).toLowerCase()} (${diasHabiles} día(s)${horarioTexto})`,
     url: `/ausencias/bandeja`,
+    detalles: [
+      { etiqueta: 'Solicitante', valor: solicitante?.nombre || usuarioActor.nombre_usuario },
+      { etiqueta: 'Cargo', valor: doc.cargoSolicitante },
+      ...detallesDeAusencia(doc),
+    ],
   }).catch((err) => console.error('Error notificando nueva ausencia:', err.message))
 
   return obtener(doc._id)
@@ -205,8 +236,9 @@ export async function aprobarAusencia(id, { observacion } = {}, usuarioActor) {
 
   notificarUsuarios([doc.solicitante], {
     title: 'Tu solicitud de ausencia fue aprobada',
-    body: doc.decision.observacion || `${doc.tipo} aprobada por ${doc.decision.nombreRevisor}`,
+    body: doc.decision.observacion || `${doc.decision.nombreRevisor} aprobó tu solicitud.`,
     url: `/ausencias/mias`,
+    detalles: detallesDeAusencia(doc, [{ etiqueta: 'Aprobada por', valor: doc.decision.nombreRevisor }]),
   }).catch((err) => console.error('Error notificando aprobación de ausencia:', err.message))
 
   return obtener(doc._id)
@@ -232,6 +264,7 @@ export async function rechazarAusencia(id, { motivoRechazo } = {}, usuarioActor)
     title: 'Tu solicitud de ausencia fue rechazada',
     body: doc.decision.motivoRechazo,
     url: `/ausencias/mias`,
+    detalles: detallesDeAusencia(doc, [{ etiqueta: 'Rechazada por', valor: doc.decision.nombreRevisor }]),
   }).catch((err) => console.error('Error notificando rechazo de ausencia:', err.message))
 
   return obtener(doc._id)

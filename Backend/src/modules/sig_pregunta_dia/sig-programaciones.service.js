@@ -223,6 +223,10 @@ async function avisarPublicaciones(docs) {
               ? `Ya está disponible tu pregunta de capacitación de hoy. Componente: ${componentes}`
               : `Ya tienes ${grupo.total} preguntas de capacitación para hoy. Componentes: ${componentes}`,
           url: '/sig/pregunta-del-dia',
+          detalles: [
+            { etiqueta: 'Preguntas de hoy', valor: String(grupo.total) },
+            { etiqueta: grupo.componentes.size === 1 ? 'Componente' : 'Componentes', valor: componentes },
+          ],
         },
         'sig_pregunta_dia'
       )

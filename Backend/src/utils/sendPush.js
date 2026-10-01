@@ -42,6 +42,7 @@ export async function notificarUsuarios(userIds, payload, categoria = null) {
       titulo: payload.title || payload.titulo,
       cuerpo: payload.body || payload.cuerpo,
       url: payload.url,
+      detalles: payload.detalles,
       incluirEmail: Boolean(categoria),
       incluirPush: true,
       // Sin categoría (llamador legado): no hay preferencia que consultar

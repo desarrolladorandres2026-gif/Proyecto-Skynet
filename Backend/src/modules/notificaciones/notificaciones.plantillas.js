@@ -1,62 +1,38 @@
 import { env } from '../../config/env.js'
+import { esUrlPublica } from '../../utils/urlPublica.js'
+import { documentoCorreo, documentoTexto, paginaSimple, parrafo, nota, enlace, esc, sinEmoji } from '../../utils/emailDiseno.js'
+import { CATEGORIAS_NOTIFICACION } from './notificaciones.catalogo.js'
 import { firmarTokenBaja } from './notificaciones.token.js'
 
-// HTML basado en tablas (no flexbox/grid): es lo único que renderiza de
-// forma predecible en clientes de correo (Outlook de escritorio usa el motor
-// de Word para el HTML, no un navegador real). Nada de backdrop-filter,
-// position:absolute ni fuente custom vía @font-face (los clientes de correo
-// la descartan casi siempre) — mono/sans son pilas de fuentes de sistema,
-// igual que 'JetBrains Mono' cae a ui-monospace en panel.css.
-//
-// Segunda vuelta de este diseño: la primera versión (badge-pill + tarjeta +
-// botón redondeado) era el mismo patrón genérico de cualquier notificación
-// SaaS con los colores de Skynet encima. Esta traduce literalmente la seña
-// visual del panel — las corner brackets de .panel-bracket en panel.css —
-// usando una tabla 3×3 con bordes reales en las 4 esquinas (position:absolute
-// no es fiable en email, pero bordes de celda sí), y trata el cuerpo como una
-// línea de bitácora/terminal en vez de una tarjeta de SaaS.
-const MONO = "ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace"
-const SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+// Correo de TODAS las notificaciones (lo arma notificaciones.service.js#
+// enviarEmail). El diseño vive en utils/emailDiseno.js; aquí solo se decide
+// qué decir según la categoría del aviso: el nombre del módulo, qué hace el
+// botón y por qué le llega el correo a esta persona. Los datos propios de cada
+// asunto llegan ya armados en `detalles` desde el módulo que notifica.
 
-// Un acento de color por categoría (ver notificaciones.catalogo.js): el
-// mismo principio que Badge en components/ui.jsx, adaptado a los 5 valores
-// de este sistema — aquí gobierna el color de las brackets y de la etiqueta
-// de módulo, no un pill.
-const CATEGORIA_INFO = {
-  mantenimiento: { etiqueta: 'MANTENIMIENTO', color: '#a78bfa' },
-  danos: { etiqueta: 'REPORTES DE DAÑOS', color: '#fb7185' },
-  requerimientos: { etiqueta: 'REQUERIMIENTOS', color: '#fbbf24' },
-  sistema: { etiqueta: 'SEGURIDAD', color: '#f87171' },
+const NOMBRE_CATEGORIA = new Map(CATEGORIAS_NOTIFICACION.map((c) => [c.key, c.nombre]))
+
+// Solo aplica cuando el aviso trae la ruta de una pantalla concreta: sin ella
+// el botón lleva al inicio, y "Ver el requerimiento" prometería algo que no
+// hace.
+const ACCION_POR_CATEGORIA = {
+  mantenimiento: 'Abrir en Mantenimiento',
+  danos: 'Ver el reporte',
+  requerimientos: 'Ver el requerimiento',
+  ausencias: 'Ver la solicitud',
+  sig_pregunta_dia: 'Responder la pregunta',
+  plataforma: 'Abrir la plataforma',
 }
 
-function fmtFechaCorta(fecha) {
-  const d = fecha ? new Date(fecha) : new Date()
-  return d
-    .toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-    .toUpperCase()
-    .replace('.', '')
-}
-
-// Celda de 12×12 con borde en dos lados: una esquina de .panel-bracket
-// resuelta con una celda de tabla real (nunca renderiza mal en un cliente de
-// correo, a diferencia de position:absolute).
-function esquina(color, lados) {
-  const bordes = {
-    tl: `border-top:1.5px solid ${color};border-left:1.5px solid ${color};`,
-    tr: `border-top:1.5px solid ${color};border-right:1.5px solid ${color};`,
-    bl: `border-bottom:1.5px solid ${color};border-left:1.5px solid ${color};`,
-    br: `border-bottom:1.5px solid ${color};border-right:1.5px solid ${color};`,
-  }[lados]
-  return `<td width="12" height="12" style="${bordes}line-height:1px;font-size:1px;">&nbsp;</td>`
+function nombreCategoria(categoria) {
+  return NOMBRE_CATEGORIA.get(categoria) || 'Aviso del sistema'
 }
 
 // `url` la fija cada módulo llamador (hoy siempre `/modulo/${ObjectId}`, ver
 // requerimientos.service.js), pero notificar() es un servicio genérico —
-// nada obliga a que siga siendo así en el futuro. Se valida la forma
-// (ruta relativa, sin "//" que reinterprete el host) y se escapa para
-// contexto de atributo HTML antes de interpolarla en href="...": sin esto,
-// un valor con una comilla doble rompería el atributo e inyectaría HTML en
-// el correo (XSS por inyección de atributo).
+// nada obliga a que siga siendo así en el futuro. Se valida la forma (ruta
+// relativa, sin "//" que reinterprete el host); el escape para el atributo
+// href lo hace utils/emailDiseno.js.
 function sanitizarUrlRelativa(url) {
   if (typeof url !== 'string' || !url.startsWith('/') || url.startsWith('//')) return null
   return url
@@ -71,218 +47,69 @@ function sanitizarUrlRelativa(url) {
 // cabeceras estén bien.
 //
 // En ese caso el correo se envía igual —el sistema debe poder probarse en
-// local— pero sin <a href> hacia una URL inservible: la ruta se muestra como
+// local— pero sin botón hacia una URL inservible: la ruta se menciona como
 // texto. Con FRONTEND_URL/API_PUBLIC_URL apuntando a un dominio público real
 // (producción), esto no se activa y el correo lleva sus enlaces normales.
-function esUrlPublica(base) {
-  if (typeof base !== 'string') return false
-  try {
-    const { protocol, hostname } = new URL(base)
-    if (protocol !== 'https:' && protocol !== 'http:') return false
-    if (['localhost', '127.0.0.1', '::1', '0.0.0.0'].includes(hostname)) return false
-    // IPs privadas (10.x, 192.168.x, 172.16-31.x): tampoco resuelven fuera
-    // de la red local de quien envía.
-    if (/^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) return false
-    return hostname.includes('.')
-  } catch {
-    return false
-  }
+function accionDe({ url, categoria }) {
+  const ruta = sanitizarUrlRelativa(url)
+  const etiqueta = ruta && ruta !== '/' ? ACCION_POR_CATEGORIA[categoria] || 'Abrir en la plataforma' : 'Abrir la plataforma'
+  if (!esUrlPublica(env.FRONTEND_URL)) return { etiqueta, url: null, ruta }
+  return { etiqueta, url: `${env.FRONTEND_URL}${ruta || ''}` }
 }
 
-export function plantillaNotificacion({ titulo, cuerpo, url, usuarioId, transaccional, categoria, fecha }) {
-  const urlSegura = sanitizarUrlRelativa(url)
-  const frontendPublico = esUrlPublica(env.FRONTEND_URL)
-  const apiPublica = esUrlPublica(env.API_PUBLIC_URL)
-
-  const enlaceAccion = escaparHtml(urlSegura ? `${env.FRONTEND_URL}${urlSegura}` : env.FRONTEND_URL)
-  const enlaceBaja =
-    transaccional || !apiPublica
-      ? null
-      : escaparHtml(`${env.API_PUBLIC_URL}/notificaciones/baja?token=${encodeURIComponent(firmarTokenBaja(usuarioId))}`)
-  const info = CATEGORIA_INFO[categoria] || { etiqueta: escaparHtml((categoria || 'SISTEMA').toUpperCase()), color: '#00e5ff' }
-
-  // Con URL pública: botón real. Sin ella (entorno local): la misma caja
-  // visual pero como texto, sin href hacia una dirección que no existiría
-  // para quien recibe el correo.
-  const bloqueAccion = frontendPublico
-    ? `<a href="${enlaceAccion}" style="display:inline-block;font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:1px;color:${info.color};text-decoration:none;padding:10px 18px;">
-         VER EN LA PLATAFORMA →
-       </a>`
-    : `<span style="display:inline-block;font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:1px;color:${info.color};padding:10px 18px;">
-         VER EN LA PLATAFORMA${urlSegura ? ` · ${escaparHtml(urlSegura)}` : ''}
-       </span>`
-
-  return `<!doctype html>
-<html lang="es">
-  <body style="margin:0;padding:0;background-color:#05070a;font-family:${SANS};">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#05070a;padding:36px 16px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:480px;max-width:100%;">
-
-            <!-- Marca -->
-            <tr>
-              <td style="padding:0 2px 18px;">
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td style="padding-right:8px;" valign="middle">
-                      <div style="width:6px;height:6px;background-color:#00e5ff;font-size:0;line-height:0;">&nbsp;</div>
-                    </td>
-                    <td valign="middle">
-                      <span style="font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:5px;color:#e2e8f0;">TTN</span>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-
-            <!-- Marco con corner brackets (tabla 3×3) -->
-            <tr>
-              <td>
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-
-                  <tr>
-                    ${esquina(info.color, 'tl')}
-                    <td style="border-top:1px solid rgba(0,229,255,0.14);"></td>
-                    ${esquina(info.color, 'tr')}
-                  </tr>
-
-                  <tr>
-                    <td style="border-left:1px solid rgba(0,229,255,0.14);background-color:#080b10;width:12px;">&nbsp;</td>
-                    <td style="background-color:#080b10;">
-
-                      <!-- Línea de cabecera: módulo · fecha, como un log -->
-                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:20px 22px 0;">
-                        <tr>
-                          <td style="padding:0 0 0 22px;">
-                            <span style="font-family:${MONO};font-size:11px;font-weight:700;letter-spacing:2px;color:${info.color};">[${info.etiqueta}]</span>
-                          </td>
-                          <td align="right" style="padding:0 22px 0 0;">
-                            <span style="font-family:${MONO};font-size:11px;letter-spacing:0.5px;color:#4b5d70;">${fmtFechaCorta(fecha)}</span>
-                          </td>
-                        </tr>
-                      </table>
-
-                      <!-- Separador -->
-                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:12px 22px 0;">
-                        <tr><td style="border-top:1px solid rgba(0,229,255,0.12);font-size:0;line-height:0;">&nbsp;</td></tr>
-                      </table>
-
-                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                        <tr>
-                          <td style="padding:18px 22px 0;">
-                            <h1 style="margin:0;font-size:19px;line-height:1.4;color:#f8fafc;font-weight:600;">${escaparHtml(titulo)}</h1>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style="padding:12px 22px 0;">
-                            <table role="presentation" cellpadding="0" cellspacing="0">
-                              <tr>
-                                <td valign="top" style="padding-right:8px;">
-                                  <span style="font-family:${MONO};font-size:13px;color:${info.color};">›</span>
-                                </td>
-                                <td>
-                                  <p style="margin:0;font-family:${MONO};font-size:13px;line-height:1.75;color:#b8c4d1;">${escaparHtml(cuerpo)}</p>
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style="padding:24px 22px 20px;">
-                            <table role="presentation" cellpadding="0" cellspacing="0">
-                              <tr>
-                                <td style="border:1px solid ${info.color};">
-                                  ${bloqueAccion}
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-                      </table>
-
-                    </td>
-                    <td style="border-right:1px solid rgba(0,229,255,0.14);background-color:#080b10;width:12px;">&nbsp;</td>
-                  </tr>
-
-                  <tr>
-                    ${esquina(info.color, 'bl')}
-                    <td style="border-bottom:1px solid rgba(0,229,255,0.14);"></td>
-                    ${esquina(info.color, 'br')}
-                  </tr>
-
-                </table>
-              </td>
-            </tr>
-
-            <!-- Pie -->
-            <tr>
-              <td style="padding:18px 4px 0;">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td>
-                      ${
-                        enlaceBaja
-                          ? `<a href="${enlaceBaja}" style="font-family:${MONO};font-size:10px;letter-spacing:0.5px;color:#4b5d70;text-decoration:underline;">DARSE DE BAJA DE CORREOS NO CRÍTICOS</a>`
-                          : transaccional
-                            ? `<span style="font-family:${MONO};font-size:10px;letter-spacing:0.5px;color:#3d4c5c;">CORREO DE SEGURIDAD — NO SE PUEDE DESACTIVAR</span>`
-                            : `<span style="font-family:${MONO};font-size:10px;letter-spacing:0.5px;color:#3d4c5c;">GESTIONA TUS AVISOS EN PREFERENCIAS DE NOTIFICACIONES</span>`
-                      }
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`
-}
-
-function escaparHtml(texto) {
-  return String(texto ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+function avisoSinEnlace(ruta) {
+  return `Ingresa a la plataforma para ver el detalle${ruta && ruta !== '/' ? ` (${ruta})` : ''}.`
 }
 
 function enlaceBajaDe(usuarioId) {
   return `${env.API_PUBLIC_URL}/notificaciones/baja?token=${encodeURIComponent(firmarTokenBaja(usuarioId))}`
 }
 
+// Por qué le llega este correo a esta persona y cómo dejar de recibirlo: sin
+// esa explicación, un aviso automático se confunde con correo masivo.
+function motivoRecepcion({ transaccional, categoria, usuarioId }) {
+  if (transaccional) {
+    return { texto: 'Es un aviso de servicio o de seguridad: te llega aunque hayas desactivado los correos.' }
+  }
+  const texto = `Recibes este correo porque tienes activos los avisos de ${nombreCategoria(categoria)}.`
+  if (!esUrlPublica(env.API_PUBLIC_URL)) {
+    return { texto: `${texto} Puedes cambiarlo en Preferencias de notificaciones.` }
+  }
+  return { texto, baja: { etiqueta: 'Dejar de recibir correos no críticos', url: enlaceBajaDe(usuarioId) } }
+}
+
+export function plantillaNotificacion({ titulo, cuerpo, url, usuarioId, transaccional, categoria, fecha, detalles }) {
+  const accion = accionDe({ url, categoria })
+  const motivo = motivoRecepcion({ transaccional, categoria, usuarioId })
+  return documentoCorreo({
+    titulo: sinEmoji(titulo),
+    preheader: cuerpo,
+    categoria: nombreCategoria(categoria),
+    fecha,
+    cuerpoHtml: parrafo(cuerpo),
+    detalles,
+    accion: accion.url ? accion : null,
+    despuesHtml: accion.url ? null : nota(avisoSinEnlace(accion.ruta)),
+    pieHtml: esc(motivo.texto) + (motivo.baja ? `<br>${enlace(motivo.baja.url, motivo.baja.etiqueta)}` : ''),
+  })
+}
+
 // Un correo que es SOLO HTML (sin parte text/plain) es en sí mismo una señal
 // que los filtros antispam pesan en contra — la mayoría de clientes
-// legítimos generan ambas partes. No es una traducción automática del HTML:
-// se arma aparte para que quede legible como texto plano de verdad, no como
-// una tabla de HTML despojada de sus tags.
-export function plantillaNotificacionTexto({ titulo, cuerpo, url, usuarioId, transaccional, categoria, fecha }) {
-  const urlSegura = sanitizarUrlRelativa(url)
-  const etiqueta = CATEGORIA_INFO[categoria]?.etiqueta || (categoria || 'SISTEMA').toUpperCase()
-
-  const lineas = [
-    `TTN · ${etiqueta} · ${fmtFechaCorta(fecha)}`,
-    '',
-    titulo,
-    cuerpo,
-    '',
-  ]
-
-  // Mismo criterio que la versión HTML: sin URL pública no se imprime una
-  // dirección que el destinatario no podría abrir.
-  if (esUrlPublica(env.FRONTEND_URL)) {
-    lineas.push(`Ver en la plataforma: ${urlSegura ? `${env.FRONTEND_URL}${urlSegura}` : env.FRONTEND_URL}`)
-  } else {
-    lineas.push(`Ver en la plataforma${urlSegura ? ` · ${urlSegura}` : ''}`)
-  }
-
-  if (transaccional) {
-    lineas.push('', 'Correo de seguridad — no se puede desactivar desde preferencias.')
-  } else if (esUrlPublica(env.API_PUBLIC_URL)) {
-    lineas.push('', `Darte de baja de correos no críticos: ${enlaceBajaDe(usuarioId)}`)
-  } else {
-    lineas.push('', 'Gestiona tus avisos en Preferencias de notificaciones.')
-  }
-  return lineas.join('\n')
+// legítimos generan ambas partes. Misma información y orden que la versión
+// HTML, escrita para leerse como texto de verdad.
+export function plantillaNotificacionTexto({ titulo, cuerpo, url, usuarioId, transaccional, categoria, fecha, detalles }) {
+  const accion = accionDe({ url, categoria })
+  const motivo = motivoRecepcion({ transaccional, categoria, usuarioId })
+  return documentoTexto({
+    titulo: sinEmoji(titulo),
+    categoria: nombreCategoria(categoria),
+    fecha,
+    parrafos: [cuerpo],
+    detalles,
+    accion: accion.url ? accion : { etiqueta: avisoSinEnlace(accion.ruta) },
+    pie: motivo.baja ? `${motivo.texto}\n${motivo.baja.etiqueta}: ${motivo.baja.url}` : motivo.texto,
+  })
 }
 
 // Cabeceras List-Unsubscribe / List-Unsubscribe-Post (RFC 8058): sin ellas,
@@ -305,14 +132,10 @@ export function headersListaBaja({ transaccional, usuarioId }) {
 }
 
 export function paginaConfirmacionBaja() {
-  return `<!doctype html>
-<html lang="es">
-  <body style="margin:0;padding:0;background-color:#05070a;font-family:${SANS};display:flex;align-items:center;justify-content:center;min-height:100vh;">
-    <div style="max-width:420px;padding:32px;text-align:center;color:#e2e8f0;">
-      <span style="font-family:${MONO};font-size:12px;font-weight:700;letter-spacing:4px;color:#00e5ff;">TTN</span>
-      <h1 style="font-size:18px;color:#f1f5f9;margin:16px 0 12px;font-weight:600;">Preferencia actualizada</h1>
-      <p style="font-size:14px;line-height:1.6;color:#94a3b8;">Ya no recibirás correos no críticos. Puedes reactivarlos cuando quieras desde tu perfil, en «Preferencias de notificaciones».</p>
-    </div>
-  </body>
-</html>`
+  return paginaSimple({
+    titulo: 'Preferencia actualizada',
+    mensajeHtml: esc(
+      'Ya no recibirás correos no críticos. Puedes volver a activarlos cuando quieras desde tu perfil, en Preferencias de notificaciones.'
+    ),
+  })
 }

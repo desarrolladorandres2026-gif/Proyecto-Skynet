@@ -9,7 +9,7 @@ import { danos as danosApi } from '../../api/danos.js'
 import { useDatosConCache, invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import {
-  Btn, Badge, Card, ErrorMsg, OkMsg, Select, Field, Textarea, Modal,
+  Btn, Badge, ErrorMsg, OkMsg, Select, Field, Textarea, Modal,
   TablaWrap, Th, Td, EmptyState, fmtFechaHora,
 } from '../../components/ui.jsx'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
@@ -77,12 +77,34 @@ function textoDisponibilidad(t) {
   return `Disponible · ${t.activos} de baja prioridad`
 }
 
-function Contador({ etiqueta, valor, resaltado = false }) {
+// ── Resumen por estado (una fila de tabla, no contadores sueltos) ────────
+
+function TablaResumen({ resumen }) {
+  const columnas = [
+    ['Sin asignar', resumen.sinAsignar, true],
+    ['Asignados', resumen.asignado],
+    ['En proceso', resumen.en_proceso],
+    ['En espera', resumen.en_espera],
+    ['Resueltos', resumen.resuelto],
+  ]
   return (
-    <div className="text-center">
-      <p className={`text-2xl font-bold ${resaltado ? 'text-warn-700 dark:text-warn-300' : 'text-slate-900 dark:text-white'}`}>{valor}</p>
-      <p className="panel-mono text-[11px] uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">{etiqueta}</p>
-    </div>
+    <TablaWrap cuadricula className="mb-6">
+      <thead>
+        <tr>{columnas.map(([etiqueta]) => <Th key={etiqueta}>{etiqueta}</Th>)}</tr>
+      </thead>
+      <tbody>
+        <tr>
+          {columnas.map(([etiqueta, valor, resaltado]) => (
+            <Td
+              key={etiqueta}
+              className={`panel-mono font-semibold ${resaltado && valor ? 'text-warn-700 dark:text-warn-300' : 'text-slate-900 dark:text-white'}`}
+            >
+              {valor || 0}
+            </Td>
+          ))}
+        </tr>
+      </tbody>
+    </TablaWrap>
   )
 }
 
@@ -93,7 +115,7 @@ function PanelEquipo({ tecnicos, cargando }) {
   const libres = tecnicos.filter((t) => t.libre).length
 
   return (
-    <Card className="mb-6">
+    <section className="mb-6">
       <button
         type="button"
         onClick={() => setAbierto((v) => !v)}
@@ -128,35 +150,44 @@ function PanelEquipo({ tecnicos, cargando }) {
             Asígnalo a un rol desde Roles y permisos para que aparezcan aquí.
           </p>
         ) : (
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {tecnicos.map((t) => (
-              <div key={t._id}>
-                <div className="flex items-center gap-2">
-                  {t.libre ? (
-                    <CircleCheck className="h-4 w-4 shrink-0 text-accent-600 dark:text-accent-400" aria-hidden="true" />
-                  ) : (
-                    <CircleDot className="h-4 w-4 shrink-0 text-warn-600 dark:text-warn-400" aria-hidden="true" />
-                  )}
-                  <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">{t.nombre}</p>
-                </div>
-                <p className="panel-mono mt-1 text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  {textoDisponibilidad(t)}
-                </p>
-                <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-                  {t.asignados} asignada(s) · {t.enProceso} en proceso · {t.enEspera} en espera
-                </p>
-                {t.activosBaja > 0 && (
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
-                    {t.activosBaja} de baja prioridad (no cuenta como carga)
-                  </p>
-                )}
-                <p className="text-xs text-slate-400 dark:text-slate-500">{t.resueltos} resuelta(s) en total</p>
-              </div>
-            ))}
-          </div>
+          <TablaWrap cuadricula className="mt-3">
+            <thead>
+              <tr>
+                <Th>Técnico</Th>
+                <Th>Disponibilidad</Th>
+                <Th>Asignadas</Th>
+                <Th>En proceso</Th>
+                <Th>En espera</Th>
+                <Th>Baja prioridad</Th>
+                <Th>Resueltas</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {tecnicos.map((t) => (
+                <tr key={t._id}>
+                  <Td>
+                    <span className="flex items-center gap-2 font-medium text-slate-800 dark:text-slate-100">
+                      {t.libre ? (
+                        <CircleCheck className="h-4 w-4 shrink-0 text-accent-600 dark:text-accent-400" aria-hidden="true" />
+                      ) : (
+                        <CircleDot className="h-4 w-4 shrink-0 text-warn-600 dark:text-warn-400" aria-hidden="true" />
+                      )}
+                      {t.nombre}
+                    </span>
+                  </Td>
+                  <Td className="whitespace-nowrap text-xs">{textoDisponibilidad(t)}</Td>
+                  <Td className="panel-mono">{t.asignados}</Td>
+                  <Td className="panel-mono">{t.enProceso}</Td>
+                  <Td className="panel-mono">{t.enEspera}</Td>
+                  <Td className="panel-mono" title="No cuenta como carga">{t.activosBaja || 0}</Td>
+                  <Td className="panel-mono">{t.resueltos}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </TablaWrap>
         )
       )}
-    </Card>
+    </section>
   )
 }
 
@@ -625,13 +656,7 @@ export default function TareasDanosPage() {
       <ErrorMsg>{error}</ErrorMsg>
       <OkMsg>{ok}</OkMsg>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <Contador etiqueta="Sin asignar" valor={resumen.sinAsignar || 0} resaltado />
-        <Contador etiqueta="Asignados" valor={resumen.asignado || 0} />
-        <Contador etiqueta="En proceso" valor={resumen.en_proceso || 0} />
-        <Contador etiqueta="En espera" valor={resumen.en_espera || 0} />
-        <Contador etiqueta="Resueltos" valor={resumen.resuelto || 0} />
-      </div>
+      <TablaResumen resumen={resumen} />
 
       <PanelEquipo tecnicos={tecnicos} cargando={cargandoTecnicos} />
 

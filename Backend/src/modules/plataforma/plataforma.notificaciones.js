@@ -37,6 +37,16 @@ function formatearFechaHora(fecha) {
 // trabaja — el mismo criterio con el que las alertas de seguridad ignoran
 // preferencias en notificaciones.service.js.
 
+// La ventana de mantenimiento, para el correo (ver notificar#detalles): quien
+// lo abre ve de un vistazo cuándo empieza, cuándo termina y por qué.
+function detallesVentana(estado, { inicio = estado.scheduledStart } = {}) {
+  return [
+    { etiqueta: 'Inicio', valor: formatearFechaHora(inicio) },
+    { etiqueta: 'Fin estimado', valor: formatearFechaHora(estado.scheduledEnd) },
+    { etiqueta: 'Motivo', valor: estado.reason },
+  ]
+}
+
 export async function avisarProgramado(estado) {
   const usuarios = await audiencia()
   const fin = estado.scheduledEnd ? ` a ${formatearFechaHora(estado.scheduledEnd)}` : ''
@@ -50,6 +60,7 @@ export async function avisarProgramado(estado) {
       `El Terminal de Transportes de Neiva realizará mantenimiento programado el ${formatearFechaHora(estado.scheduledStart)}${fin}.` +
         (estado.reason ? ` Motivo: ${estado.reason}.` : ''),
     url: '/',
+    detalles: detallesVentana(estado),
   })
 }
 
@@ -64,6 +75,7 @@ export async function avisarInicioProximo(estado, minutos) {
       `El mantenimiento comienza a las ${formatearFechaHora(estado.scheduledStart)}. ` +
       'Guarda tu trabajo: la plataforma dejará de estar disponible durante la ventana.',
     url: '/',
+    detalles: detallesVentana(estado),
   })
 }
 
@@ -79,6 +91,8 @@ export async function avisarInicio(estado) {
     titulo: 'El Terminal de Transportes de Neiva está en mantenimiento',
     cuerpo: `${estado.message || 'La plataforma no está disponible temporalmente.'} ${fin}`,
     url: '/',
+    // Un mantenimiento iniciado a mano no trae scheduledStart: empezó ahora.
+    detalles: detallesVentana(estado, { inicio: estado.scheduledStart || new Date() }),
     transaccional: true,
   })
 }

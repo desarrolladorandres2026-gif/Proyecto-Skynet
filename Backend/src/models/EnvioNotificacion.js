@@ -7,6 +7,17 @@ import mongoose from 'mongoose'
 // colección para ambos propósitos a propósito: evita mantener sincronizadas
 // una colección de jobs y una de logs que en la práctica son la misma
 // información en dos momentos distintos de su ciclo de vida.
+// Datos concretos del asunto ("Solicitante: …", "Fin estimado: …") que el
+// correo muestra bajo el cuerpo. Ya formateados como texto por el módulo que
+// notifica: la plantilla no sabe de requerimientos ni de ausencias.
+const detalleSchema = new mongoose.Schema(
+  {
+    etiqueta: { type: String, trim: true, required: true },
+    valor: { type: String, trim: true, required: true },
+  },
+  { _id: false }
+)
+
 const envioNotificacionSchema = new mongoose.Schema(
   {
     usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
@@ -20,6 +31,8 @@ const envioNotificacionSchema = new mongoose.Schema(
     titulo: { type: String, required: true, trim: true },
     cuerpo: { type: String, required: true, trim: true },
     url: { type: String, trim: true },
+    // Solo aplica a canal 'email' (el push no tiene dónde mostrarlos).
+    detalles: { type: [detalleSchema], default: undefined },
     // Solo aplica a canal 'push': a qué suscripción concreta (dispositivo)
     // se le está intentando esta fila. Si la suscripción se borra antes de
     // procesarse (el usuario "olvidó" el dispositivo), el worker la salta.

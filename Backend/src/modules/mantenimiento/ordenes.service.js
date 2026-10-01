@@ -18,6 +18,7 @@ import {
   ESTADOS_ACTIVOS, obtenerOT, idDe, esParticipante, requiereSerTecnicoAsignado,
   usuariosConPermiso, validarTecnico, auditar,
 } from './comun.js'
+import { detallesDeOrden } from './mantenimiento.notificacion.js'
 
 // Único punto de verdad de la máquina de estados de la Orden de Trabajo
 // (Fase 1, ya aprobada): cada función exportada valida su propia transición,
@@ -233,6 +234,7 @@ export async function asignarTecnico(id, { tecnicoId }, usuarioActor) {
   await notificarUsuarios([tecnicoIdValido], {
     titulo: 'Nueva orden de trabajo asignada',
     cuerpo: `Prioridad ${ot.prioridad}: ${ot.descripcion.slice(0, 120)}`,
+    detalles: detallesDeOrden(ot),
   })
 
   return { ot, advertencias }
@@ -260,6 +262,7 @@ export async function aceptarOrden(id, usuarioActor) {
   await notificarUsuarios(supervisores, {
     titulo: 'Orden aceptada',
     cuerpo: `${usuarioActor.nombre_usuario} aceptó una orden de trabajo.`,
+    detalles: detallesDeOrden(ot),
   })
 
   return ot
@@ -284,7 +287,7 @@ export async function rechazarAsignacion(id, { motivo }, usuarioActor) {
   })
 
   const supervisores = await usuariosConPermiso('mantenimiento:asignar')
-  await notificarUsuarios(supervisores, { titulo: 'Asignación rechazada', cuerpo: motivo.trim() })
+  await notificarUsuarios(supervisores, { titulo: 'Asignación rechazada', cuerpo: motivo.trim(), detalles: detallesDeOrden(ot) })
 
   return ot
 }
@@ -379,6 +382,7 @@ export async function resolverOrden(id, { descripcion_solucion }, usuarioActor, 
     await notificarUsuarios(aprobadores, {
       titulo: 'Orden pendiente de aprobación',
       cuerpo: `Prioridad ${ot.prioridad}, requiere tu aprobación para cerrar.`,
+      detalles: detallesDeOrden(ot),
     })
   }
 
@@ -406,7 +410,11 @@ export async function aprobarCierre(id, { comentario }, usuarioActor) {
   })
 
   if (ot.tecnico_asignado) {
-    await notificarUsuarios([idDe(ot.tecnico_asignado)], { titulo: 'Orden aprobada y cerrada', cuerpo: 'Tu orden fue aprobada y cerrada.' })
+    await notificarUsuarios([idDe(ot.tecnico_asignado)], {
+      titulo: 'Orden aprobada y cerrada',
+      cuerpo: 'Tu orden fue aprobada y cerrada.',
+      detalles: detallesDeOrden(ot),
+    })
   }
 
   return ot
@@ -428,7 +436,7 @@ export async function rechazarCierre(id, { comentario }, usuarioActor) {
   })
 
   if (ot.tecnico_asignado) {
-    await notificarUsuarios([idDe(ot.tecnico_asignado)], { titulo: 'Cierre rechazado', cuerpo: comentario.trim() })
+    await notificarUsuarios([idDe(ot.tecnico_asignado)], { titulo: 'Cierre rechazado', cuerpo: comentario.trim(), detalles: detallesDeOrden(ot) })
   }
 
   return ot
@@ -458,6 +466,7 @@ export async function reabrirOrden(id, { motivo }, usuarioActor) {
   await notificarUsuarios(destinatarios, {
     titulo: `Orden reabierta (reapertura ${ot.reaperturas})`,
     cuerpo: motivo.trim(),
+    detalles: detallesDeOrden(ot),
   })
 
   return ot
@@ -479,7 +488,7 @@ export async function cancelarOrden(id, { motivo }, usuarioActor) {
   })
 
   if (ot.tecnico_asignado) {
-    await notificarUsuarios([idDe(ot.tecnico_asignado)], { titulo: 'Orden cancelada', cuerpo: motivo.trim() })
+    await notificarUsuarios([idDe(ot.tecnico_asignado)], { titulo: 'Orden cancelada', cuerpo: motivo.trim(), detalles: detallesDeOrden(ot) })
   }
 
   return ot

@@ -9,6 +9,7 @@ import Notificacion from '../../models/Notificacion.js'
 import webpush from '../../utils/webpush.js'
 import { env } from '../../config/env.js'
 import { enviarEmailGenerico } from '../../utils/email.js'
+import { sinEmoji } from '../../utils/emailDiseno.js'
 import { plantillaNotificacion, plantillaNotificacionTexto, headersListaBaja } from './notificaciones.plantillas.js'
 import { CATEGORIAS_NOTIFICACION, esCategoriaValida } from './notificaciones.catalogo.js'
 import { ErrorValidacion } from '../../utils/errores.js'
@@ -43,6 +44,22 @@ async function rolesQuePuedenRecibirEmail() {
   return new Set(roles.map((r) => String(r._id)))
 }
 
+// Los módulos arman `detalles` con datos de sus documentos (nombres, fechas,
+// observaciones): se normalizan aquí, al encolar, para que la cola nunca
+// guarde filas vacías ni textos sin tope. El tope de filas es de lectura: un
+// correo con más de ocho datos ya no se lee de un vistazo.
+function normalizarDetalles(detalles) {
+  if (!Array.isArray(detalles)) return undefined
+  const limpios = detalles
+    .map((d) => ({
+      etiqueta: String(d?.etiqueta ?? '').trim().slice(0, 40),
+      valor: String(d?.valor ?? '').trim().slice(0, 240),
+    }))
+    .filter((d) => d.etiqueta && d.valor)
+    .slice(0, 8)
+  return limpios.length ? limpios : undefined
+}
+
 // Punto de entrada único del sistema de notificaciones. Encola filas en
 // EnvioNotificacion (canal por destinatario que corresponda según sus
 // preferencias) y retorna de inmediato: el envío real lo hace
@@ -68,8 +85,11 @@ async function rolesQuePuedenRecibirEmail() {
 // esSuperAdmin) — ver rolesQuePuedenRecibirEmail() arriba. Para todos los
 // demás el evento sigue saliendo por push y queda en la campana interna; lo
 // único que no se genera es la fila de canal 'email'.
+//
+// `detalles` ([{ etiqueta, valor }], opcional) son los datos concretos del
+// asunto que el correo muestra bajo el cuerpo — ver normalizarDetalles().
 export async function notificar({
-  usuarios, categoria, tipo, titulo, cuerpo, url,
+  usuarios, categoria, tipo, titulo, cuerpo, url, detalles,
   transaccional = false, incluirEmail = true, incluirPush = true,
 }) {
   const idsUnicos = [...new Set((usuarios || []).map(String))].filter(Boolean)
@@ -77,6 +97,7 @@ export async function notificar({
   if (!transaccional && !esCategoriaValida(categoria)) {
     throw new Error(`Categoría de notificación desconocida: "${categoria}" (ver notificaciones.catalogo.js)`)
   }
+  const detallesEmail = normalizarDetalles(detalles)
 
   const [usuariosDocs, preferencias, suscripciones, configCanales, rolesConEmail] = await Promise.all([
     // `rol` se trae para decidir el canal correo (ver rolesQuePuedenRecibirEmail).
@@ -154,7 +175,10 @@ export async function notificar({
       }
     }
     if (emailActivo && u.email) {
-      filas.push({ usuario: u._id, canal: 'email', categoria, tipo, transaccional, titulo, cuerpo, url, emailDestino: u.email })
+      filas.push({
+        usuario: u._id, canal: 'email', categoria, tipo, transaccional, titulo, cuerpo, url, emailDestino: u.email,
+        detalles: detallesEmail,
+      })
     }
     filasInternas.push({ usuario: u._id, categoria, tipo, titulo, cuerpo, url })
   }
@@ -233,7 +257,7 @@ async function enviarPush(envio) {
 // consistente. No se repite el nombre del módulo (ya va en el cuerpo) para
 // no comerse el ancho útil del asunto en móvil.
 function asuntoDe(envio) {
-  return `TTN · ${envio.titulo}`
+  return `TTN · ${sinEmoji(envio.titulo)}`
 }
 
 async function enviarEmail(envio) {
@@ -245,6 +269,7 @@ async function enviarEmail(envio) {
     transaccional: envio.transaccional,
     categoria: envio.categoria,
     fecha: envio.createdAt,
+    detalles: envio.detalles?.map(({ etiqueta, valor }) => ({ etiqueta, valor })),
   }
   await enviarEmailGenerico({
     to: envio.emailDestino,
@@ -266,7 +291,10 @@ async function registrarFallo(envio, err) {
   envio.intentos += 1
   envio.error = String(err.message || 'Error desconocido').slice(0, 500)
 
-  if (esSuscripcionMuerta || envio.intentos >= envio.maxIntentos) {
+  // `descartar` marca un fallo que reintentar no arregla, en cualquier canal:
+  // además de la suscripción push muerta, un correo a un dominio reservado
+  // (@skynet.local, @example.com — ver utils/email.js).
+  if (esSuscripcionMuerta || err.descartar || envio.intentos >= envio.maxIntentos) {
     envio.estado = 'fallido'
   } else {
     envio.proximoIntentoEn = calcularProximoIntento(envio.intentos)

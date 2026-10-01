@@ -1,6 +1,13 @@
+import { fileURLToPath } from 'node:url'
 import nodemailer from 'nodemailer'
 import { env } from '../config/env.js'
-import { correoConexionCuenta } from './emailPlantillasTransaccionales.js'
+import { CID_LOGO } from './emailDiseno.js'
+import {
+  correoConexionCuenta,
+  correoConexionCuentaTexto,
+  correoRestablecerPassword,
+  correoRestablecerPasswordTexto,
+} from './emailPlantillasTransaccionales.js'
 
 const transporter = nodemailer.createTransport({
   host: env.EMAIL_HOST,
@@ -21,6 +28,31 @@ const transporter = nodemailer.createTransport({
 
 const dormir = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
+// Dominios reservados que no existen en Internet (RFC 2606/6761): en Mongo hay
+// usuarios con direcciones así — los del seed (@skynet.local) y los de los
+// tests (@example.com). Mandarles igual no le llega a nadie y sale caro: cada
+// uno vuelve como rebote DURO, y la tasa de rebotes es de lo primero que miran
+// Gmail/Outlook para decidir si TODO lo demás del mismo remitente va a spam
+// (Resend además suspende la cuenta si pasa de ~4 %). El aviso de fin de
+// mantenimiento del 2026-09-10 rebotó en cada una de las direcciones @skynet.local.
+const TLDS_NO_ENTREGABLES = new Set(['local', 'localhost', 'test', 'invalid', 'example', 'internal'])
+const DOMINIOS_NO_ENTREGABLES = new Set(['example.com', 'example.net', 'example.org'])
+
+export function esDestinoNoEntregable(direccion) {
+  const dominio = String(direccion ?? '').trim().toLowerCase().split('@').pop().replace(/\.$/, '')
+  const etiquetas = dominio.split('.')
+  return TLDS_NO_ENTREGABLES.has(etiquetas.at(-1)) || DOMINIOS_NO_ENTREGABLES.has(etiquetas.slice(-2).join('.'))
+}
+
+// `descartar: true` le dice a quien llama que reintentar no sirve (mismo
+// contrato que una suscripción push muerta en notificaciones.service.js).
+function exigirDestinoEntregable(direccion) {
+  if (!esDestinoNoEntregable(direccion)) return
+  throw Object.assign(new Error(`${direccion} no puede recibir correo: su dominio está reservado y no existe en Internet`), {
+    descartar: true,
+  })
+}
+
 // Reintenta un envío SMTP con backoff exponencial (1s, 2s, 4s). Solo para
 // correos que se mandan inmediatamente fuera de la cola de notificaciones
 // (ver comentario de enviarEmailGenerico): esos ya tienen su propio
@@ -29,10 +61,11 @@ const dormir = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 // aprobación de conexión no puede esperar minutos a ese tick — o se
 // reintenta ya mismo, en la misma petición, o el enlace pierde sentido.
 async function enviarConReintentos(datosCorreo, intentos = 3) {
+  exigirDestinoEntregable(datosCorreo.to)
   let ultimoError
   for (let intento = 1; intento <= intentos; intento++) {
     try {
-      return await transporter.sendMail(datosCorreo)
+      return await transporter.sendMail(conLogo(datosCorreo))
     } catch (err) {
       ultimoError = err
       console.error(`Fallo al enviar correo (intento ${intento}/${intentos}):`, err.message)
@@ -57,6 +90,22 @@ async function enviarConReintentos(datosCorreo, intentos = 3) {
 // apuntar EMAIL_FROM allí — no es algo que se resuelva en el código.
 const REMITENTE = `"El Terminal de Neiva" <${env.EMAIL_FROM}>`
 
+// El logo de las plantillas (utils/emailDiseno.js) viaja adjunto e
+// incrustado por CID en vez de enlazado a una URL: se ve igual en local que en
+// producción y Outlook no lo bloquea como bloquea las imágenes remotas. Se
+// adjunta solo si el HTML lo referencia, así que un correo que no use el
+// diseño común no carga con él.
+const LOGO = {
+  filename: 'el-terminal-neiva.png',
+  path: fileURLToPath(new URL('../assets/email/logo-el-terminal.png', import.meta.url)),
+  cid: CID_LOGO,
+}
+
+function conLogo(datosCorreo) {
+  if (!datosCorreo.html?.includes(`cid:${CID_LOGO}`)) return datosCorreo
+  return { ...datosCorreo, attachments: [...(datosCorreo.attachments || []), LOGO] }
+}
+
 // Punto de entrada genérico usado por notificaciones.service.js (y por
 // cualquier flujo transaccional futuro que necesite mandar un correo con
 // HTML propio). enviarEmailReset(), abajo, se deja tal cual porque su envío
@@ -69,7 +118,8 @@ const REMITENTE = `"El Terminal de Neiva" <${env.EMAIL_FROM}>`
 // remitente sin nombre, es exactamente el patrón que los filtros de spam
 // penalizan — no hay forma de arreglar esto solo con el diseño visual.
 export async function enviarEmailGenerico({ to, subject, html, text, headers }) {
-  await transporter.sendMail({ from: REMITENTE, to, subject, html, text, headers })
+  exigirDestinoEntregable(to)
+  await transporter.sendMail(conLogo({ from: REMITENTE, to, subject, html, text, headers }))
 }
 
 // Comprueba que el SMTP configurado acepta conexión y credenciales SIN
@@ -92,35 +142,24 @@ export async function verificarConfiguracionEmail() {
 const SCOPE_GMAIL = 'Leer, buscar, enviar y archivar/mover a papelera correos en tu nombre'
 
 export async function enviarEmailConexionGmail(destinatario, nombreUsuario, { aprobarLink, denegarLink, ip, userAgent }) {
+  const datos = { nombreUsuario, proveedor: 'Gmail', aprobarLink, denegarLink, ip, userAgent, scopeDescripcion: SCOPE_GMAIL }
   await enviarConReintentos({
     from: REMITENTE,
     to: destinatario,
     subject: '⚠ Intento de conexión de Gmail',
-    html: correoConexionCuenta({
-      nombreUsuario,
-      proveedor: 'Gmail',
-      aprobarLink,
-      denegarLink,
-      ip,
-      userAgent,
-      scopeDescripcion: SCOPE_GMAIL,
-    }),
-    text: `Alguien intentó conectar una cuenta de Gmail (IP: ${ip || 'desconocida'}, dispositivo: ${userAgent || 'desconocido'}).\nAprobar: ${aprobarLink}\nDenegar: ${denegarLink}\nSi no fuiste tú, deniega y cambia tu contraseña.`,
+    html: correoConexionCuenta(datos),
+    text: correoConexionCuentaTexto(datos),
   })
 }
 
+// El token vence en 1 hora (ver auth.controller.js#solicitarReset).
 export async function enviarEmailReset(destinatario, nombreUsuario, token) {
-  const link = `${env.FRONTEND_URL}/reset-password?token=${token}`
-
+  const datos = { nombreUsuario, enlace: `${env.FRONTEND_URL}/reset-password?token=${token}`, ttlMinutos: 60 }
   await enviarConReintentos({
     from: REMITENTE,
     to: destinatario,
     subject: 'Restablecimiento de contraseña',
-    html: `
-      <p>Hola ${nombreUsuario},</p>
-      <p>Solicitaste restablecer tu contraseña. Haz clic en el siguiente enlace (válido por 1 hora):</p>
-      <p><a href="${link}">${link}</a></p>
-      <p>Si no solicitaste esto, ignora este correo.</p>
-    `,
+    html: correoRestablecerPassword(datos),
+    text: correoRestablecerPasswordTexto(datos),
   })
 }

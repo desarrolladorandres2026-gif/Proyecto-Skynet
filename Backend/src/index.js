@@ -1,4 +1,5 @@
 import express from 'express'
+import mongoose from 'mongoose'
 import cors from 'cors'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
@@ -9,6 +10,7 @@ import { env } from './config/env.js'
 import { swaggerSpec } from './config/swagger.js'
 import { logger } from './config/logger.js'
 import { connectDB } from './config/db.js'
+import { motivoParaNoCorrerWorkers } from './config/workers.js'
 import routes from './routes/index.js'
 import { sincronizarCatalogoSistema, precalentarCacheModulos } from './modules/sistema/sistema.service.js'
 import { sincronizarConfiguracionSLA } from './modules/mantenimiento/ordenes.service.js'
@@ -135,23 +137,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date()
 app.use(notFoundHandler)
 app.use(errorHandler)
 
-async function start() {
-  await connectDB()
-
-  // Upserta el catálogo de módulos (modulos.data.js) y los permisos nuevos de
-  // rbac.data.js sin pisar estados ni asignaciones existentes: un módulo o
-  // permiso agregado en código queda disponible al primer arranque.
-  await sincronizarCatalogoSistema()
-  // Deja el estado de módulos en caché ANTES de abrir el puerto: es la única
-  // lectura que keysModulosDesactivados() no puede servir en caliente, y sin
-  // esto la pagaba (140-350 ms contra Atlas) el primer usuario que entrara.
-  // Va después de sincronizarCatalogoSistema(), que invalida la caché al
-  // terminar — al revés, este precalentamiento se perdería.
-  await precalentarCacheModulos()
-  // Crea las filas de SLA por defecto que falten (CMMS Fase 1); nunca pisa un
-  // umbral ya ajustado a mano por un administrador.
-  await sincronizarConfiguracionSLA()
-
+async function iniciarWorkers() {
   // Cola de notificaciones (email/push): ver notificaciones.worker.js. Corre
   // dentro de este mismo proceso — un solo temporizador, sin infraestructura
   // adicional (ver docs/notificaciones/README.md para la decisión de no usar
@@ -192,6 +178,34 @@ async function start() {
     logger.error('No se pudieron evaluar las transiciones de mantenimiento al arrancar', { error: err.message })
   }
   iniciarWorkerPlataforma()
+}
+
+async function start() {
+  await connectDB()
+
+  // Upserta el catálogo de módulos (modulos.data.js) y los permisos nuevos de
+  // rbac.data.js sin pisar estados ni asignaciones existentes: un módulo o
+  // permiso agregado en código queda disponible al primer arranque.
+  await sincronizarCatalogoSistema()
+  // Deja el estado de módulos en caché ANTES de abrir el puerto: es la única
+  // lectura que keysModulosDesactivados() no puede servir en caliente, y sin
+  // esto la pagaba (140-350 ms contra Atlas) el primer usuario que entrara.
+  // Va después de sincronizarCatalogoSistema(), que invalida la caché al
+  // terminar — al revés, este precalentamiento se perdería.
+  await precalentarCacheModulos()
+  // Crea las filas de SLA por defecto que falten (CMMS Fase 1); nunca pisa un
+  // umbral ya ajustado a mano por un administrador.
+  await sincronizarConfiguracionSLA()
+
+  // Un backend de desarrollo conectado a la base de producción NO corre los
+  // workers: ver config/workers.js.
+  const motivoSinWorkers = motivoParaNoCorrerWorkers({
+    nodeEnv: env.NODE_ENV,
+    nombreBd: mongoose.connection.name,
+    frontendUrl: env.FRONTEND_URL,
+  })
+  if (motivoSinWorkers) logger.warn(motivoSinWorkers)
+  else await iniciarWorkers()
 
   const server = app.listen(env.PORT, () => {
     logger.info(`Backend Skynet corriendo en http://localhost:${env.PORT}`)

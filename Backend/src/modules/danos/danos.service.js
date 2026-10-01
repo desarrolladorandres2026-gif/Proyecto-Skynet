@@ -239,6 +239,18 @@ export function elegirTecnicoDisponible(candidatos, reporte) {
 // redistribuirPendientes (uno que ya estaba pendiente y ahora encontró cupo):
 // deja el reporte 'asignado' al elegido y avisa. No hace `save()` de más ni
 // duplica el registro de evento entre los dos casos.
+// Por ahora hay un único encargado de mantenimiento: todo daño nuevo se le
+// asigna a él, sin tope de carga ni reparto. Para volver al reparto entre
+// varios técnicos basta con dejar de llamar a este helper y usar
+// listarTecnicosConCarga + elegirTecnicoDisponible.
+const ENCARGADO_DANOS = 'DIEGO ARMANDO OSSA ANAYA'
+
+async function encargadoDeDanos() {
+  const todos = await Usuario.find({ estado: 'activo' }).select('nombre')
+  const norm = (s) => String(s || '').trim().replace(/\s+/g, ' ').toUpperCase()
+  return todos.find((u) => norm(u.nombre) === ENCARGADO_DANOS) || null
+}
+
 async function aplicarAsignacionAutomatica(reporte, elegido, nota) {
   reporte.asignadoA = elegido._id
   reporte.asignadoPor = null
@@ -261,8 +273,7 @@ export async function asignarAutomaticamente(reporte) {
   if (!TIPOS_AUTOASIGNABLES.includes(reporte.tipo)) return reporte
 
   try {
-    const candidatos = await listarTecnicosConCarga()
-    const elegido = candidatos.length ? elegirTecnicoDisponible(candidatos, reporte) : null
+    const elegido = await encargadoDeDanos()
 
     if (!elegido) {
       const supervisores = await usuariosConPermiso(PERMISO_SUPERVISOR)
@@ -296,17 +307,11 @@ export async function redistribuirPendientes() {
     if (!pendientes.length) return
     ordenarPorUrgencia(pendientes)
 
-    const candidatos = await listarTecnicosConCarga()
-    if (!candidatos.length) return
+    const elegido = await encargadoDeDanos()
+    if (!elegido) return
 
     for (const reporte of pendientes) {
-      const elegido = elegirTecnicoDisponible(candidatos, reporte)
-      if (!elegido) continue // nadie con cupo todavía; sigue pendiente
-
-      await aplicarAsignacionAutomatica(reporte, elegido, `Asignación automática a ${elegido.nombre} (se liberó cupo).`)
-      // Refleja de inmediato la nueva carga del elegido para que el siguiente
-      // pendiente en la lista no se le vuelva a ofrecer si ya llegó al tope.
-      elegido.activos += 1
+      await aplicarAsignacionAutomatica(reporte, elegido, `Asignación automática a ${elegido.nombre} (encargado único).`)
     }
   } catch (err) {
     console.error('Falló la redistribución automática de pendientes', err.message)
