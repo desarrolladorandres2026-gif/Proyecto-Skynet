@@ -46,6 +46,66 @@ function cargarImagen(src) {
   })
 }
 
+// Umbral que mejor separa las dos poblaciones del histograma (papel y tinta):
+// el que maximiza la varianza entre clases (método de Otsu).
+function umbralOtsu(histograma, total) {
+  let sumaTotal = 0
+  for (let v = 0; v < 256; v++) sumaTotal += v * histograma[v]
+  let sumaFondo = 0
+  let pesoFondo = 0
+  let mejorVarianza = -1
+  let umbral = 128
+  for (let v = 0; v < 256; v++) {
+    pesoFondo += histograma[v]
+    if (!pesoFondo) continue
+    const pesoFrente = total - pesoFondo
+    if (!pesoFrente) break
+    sumaFondo += v * histograma[v]
+    const mediaFondo = sumaFondo / pesoFondo
+    const mediaFrente = (sumaTotal - sumaFondo) / pesoFrente
+    const varianza = pesoFondo * pesoFrente * (mediaFondo - mediaFrente) ** 2
+    if (varianza > mejorVarianza) {
+      mejorVarianza = varianza
+      umbral = v + 1
+    }
+  }
+  return umbral
+}
+
+// Borra grupos de tinta aislados más pequeños que `minimo` píxeles (polvo,
+// ruido de la cámara): no son trazo y estirarían el recorte de la firma.
+function quitarMotas(esTinta, width, height, minimo) {
+  const visitado = new Uint8Array(esTinta.length)
+  const pila = new Int32Array(esTinta.length)
+  const grupo = []
+  for (let inicio = 0; inicio < esTinta.length; inicio++) {
+    if (!esTinta[inicio] || visitado[inicio]) continue
+    let tope = 0
+    pila[tope++] = inicio
+    visitado[inicio] = 1
+    grupo.length = 0
+    while (tope) {
+      const p = pila[--tope]
+      grupo.push(p)
+      const x = p % width
+      const y = (p - x) / width
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = x + dx
+          const ny = y + dy
+          if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue
+          const q = ny * width + nx
+          if (esTinta[q] && !visitado[q]) {
+            visitado[q] = 1
+            pila[tope++] = q
+          }
+        }
+      }
+    }
+    if (grupo.length < minimo) for (const p of grupo) esTinta[p] = 0
+  }
+}
+
 function oscurecerFirma(dataUrl, width, height) {
   const canvas = document.createElement('canvas')
   canvas.width = width
@@ -59,18 +119,30 @@ function oscurecerFirma(dataUrl, width, height) {
       const dstData = ctx.createImageData(width, height)
       const src = srcData.data
       const dst = dstData.data
+      const total = width * height
 
-      // Paso 1: Detectar píxeles que pertenecen al trazo de tinta (no fondo blanco o transparente)
-      const esTinta = new Uint8Array(width * height)
+      // Paso 1: Luminancia de cada píxel "sobre papel blanco". Un gris que
+      // Cloudinary dejó casi transparente cuenta como claro, no como tinta.
+      const lum = new Uint8Array(total)
+      const histograma = new Uint32Array(256)
       for (let i = 0, p = 0; i < src.length; i += 4, p++) {
-        const r = src[i]
-        const g = src[i + 1]
-        const b = src[i + 2]
-        const a = src[i + 3]
-        if (a > 15 && (r < 210 || g < 210 || b < 210)) {
-          esTinta[p] = 1
-        }
+        const alfa = src[i + 3] / 255
+        const l = 0.299 * src[i] + 0.587 * src[i + 1] + 0.114 * src[i + 2]
+        const v = Math.round(255 - alfa * (255 - l))
+        lum[p] = v
+        histograma[v]++
       }
+
+      // Paso 2: Tinta = más oscuro que el umbral de Otsu de ESTA foto. Un umbral
+      // fijo (antes "< 210") convertía en negro el papel gris o con sombra y la
+      // firma salía sobre un recuadro oscuro en vez de fondo transparente.
+      // El tope de 150 evita que una sombra suave del papel cuente como trazo.
+      const umbral = Math.min(umbralOtsu(histograma, total), 150)
+      const esTinta = new Uint8Array(total)
+      for (let p = 0; p < total; p++) {
+        if (lum[p] < umbral) esTinta[p] = 1
+      }
+      quitarMotas(esTinta, width, height, Math.max(6, Math.round(total * 0.00003)))
 
       // Paso 2: Dilatación morfológica (engrosamiento de trazo hacia los 8 vecinos para efecto negrilla/reteñido)
       const radio = 1
@@ -112,6 +184,51 @@ function oscurecerFirma(dataUrl, width, height) {
   })
 }
 
+// Recorta la firma (ya oscurecida: tinta opaca sobre fondo transparente) al
+// rectángulo que ocupa el trazo. Sin esto, el margen vacío que trae la imagen
+// deja la rúbrica flotando por encima de la raya del Vo.Bo.
+function recortarFirma(dataUrl) {
+  const img = new Image()
+  return new Promise((resolve) => {
+    img.onload = () => {
+      const { naturalWidth: w, naturalHeight: h } = img
+      const sinRecorte = { dataUrl, width: w, height: h }
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      ctx.drawImage(img, 0, 0)
+      const px = ctx.getImageData(0, 0, w, h).data
+
+      let minX = w
+      let minY = h
+      let maxX = -1
+      let maxY = -1
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          if (px[(y * w + x) * 4 + 3] > 0) {
+            if (x < minX) minX = x
+            if (x > maxX) maxX = x
+            if (y < minY) minY = y
+            if (y > maxY) maxY = y
+          }
+        }
+      }
+      if (maxX < 0) return resolve(sinRecorte)
+
+      const ancho = maxX - minX + 1
+      const alto = maxY - minY + 1
+      const recorte = document.createElement('canvas')
+      recorte.width = ancho
+      recorte.height = alto
+      recorte.getContext('2d').drawImage(canvas, minX, minY, ancho, alto, 0, 0, ancho, alto)
+      resolve({ dataUrl: recorte.toDataURL('image/png'), width: ancho, height: alto })
+    }
+    img.onerror = () => resolve(null)
+    img.src = dataUrl
+  })
+}
+
 function fmtFechaPdf(valor) {
   if (!valor) return '—'
   const d = new Date(valor)
@@ -139,10 +256,36 @@ const MARGIN = 20
 const ANCHO_PAGINA = 215.9
 const ALTO_PAGINA = 279.4
 const ANCHO_UTIL = ANCHO_PAGINA - MARGIN * 2
+// Borde inferior del contenido: debajo solo va el pie (VERSIÓN / PAG).
+const LIMITE_Y = ALTO_PAGINA - MARGIN
+const ALTO_ENCABEZADO = 25
+// Primera Y libre debajo del encabezado institucional (igual en toda hoja).
+const Y_TRAS_ENCABEZADO = MARGIN + ALTO_ENCABEZADO + 10
+// Caja máxima de la rúbrica del Vo.Bo (compra), ya recortada al trazo. Si
+// sale más ancha que la raya de firma, la raya se alarga hasta cubrirla.
+const ANCHO_FIRMA_COMPRA = 100
+const ALTO_MAX_FIRMA_COMPRA = 34
 
-async function dibujarEncabezado(pdf, tipo) {
+// Interlineado real (mm) de la fuente activa: el mismo que usa
+// pdf.text(arrayDeLineas), así cajas y texto miden lo mismo.
+function altoLinea(pdf) {
+  return pdf.getLineHeight() / pdf.internal.scaleFactor
+}
+
+// Se carga una sola vez por PDF: el encabezado se repite en cada hoja de
+// continuación cuando la descripción de los ítems no cabe en una sola.
+async function cargarLogo() {
+  try {
+    return await cargarImagen(LOGO_TERMINAL)
+  } catch (err) {
+    console.error('No se pudo cargar el logo en el PDF de requerimiento:', err)
+    return null
+  }
+}
+
+function dibujarEncabezado(pdf, tipo, logo) {
   const formato = FORMATOS[tipo]
-  const altoCaja = 25
+  const altoCaja = ALTO_ENCABEZADO
   const anchoLogo = 28
   const anchoDatos = 39
   const anchoTitulo = ANCHO_UTIL - anchoLogo - anchoDatos
@@ -154,16 +297,14 @@ async function dibujarEncabezado(pdf, tipo) {
   pdf.line(MARGIN + anchoLogo + anchoTitulo, MARGIN, MARGIN + anchoLogo + anchoTitulo, MARGIN + altoCaja)
   pdf.line(MARGIN + anchoLogo + anchoTitulo, MARGIN + altoCaja / 2, ANCHO_PAGINA - MARGIN, MARGIN + altoCaja / 2)
 
-  try {
-    const { dataUrl, width, height } = await cargarImagen(LOGO_TERMINAL)
+  if (logo) {
+    const { dataUrl, width, height } = logo
     const anchoDisponible = anchoLogo - 8
     const altoDisponible = altoCaja - 4
     const escala = Math.min(anchoDisponible / width, altoDisponible / height)
     const logoW = width * escala
     const logoH = height * escala
     pdf.addImage(dataUrl, 'PNG', MARGIN + (anchoLogo - logoW) / 2, MARGIN + (altoCaja - logoH) / 2, logoW, logoH)
-  } catch (err) {
-    console.error('No se pudo cargar el logo en el PDF de requerimiento:', err)
   }
 
   const xTitulo = MARGIN + anchoLogo + anchoTitulo / 2
@@ -183,7 +324,7 @@ async function dibujarEncabezado(pdf, tipo) {
   pdf.setFont('helvetica', 'normal')
   pdf.text(formato.vigencia, xDatos, MARGIN + 21, { align: 'center' })
 
-  return MARGIN + altoCaja + 10
+  return Y_TRAS_ENCABEZADO
 }
 
 function encabezadoSolicitante(pdf, req, yInicial) {
@@ -212,9 +353,10 @@ const COLS_COMPRA = [
   { label: 'CONTROL DE RECIBIDO', w: 34 },
 ]
 
-function dibujarTablaCompra(pdf, req, yInicial) {
+function dibujarTablaCompra(pdf, req, yInicial, nuevaPagina) {
   let y = yInicial
-  const alturaFila = 7.4
+  // Alto de una fila de 1 línea; cada línea extra suma un interlineado.
+  const ALTO_FILA_MIN = 7.4
   const alturaEncabezado = 14.5
 
   function dibujarEncabezadoTabla() {
@@ -238,46 +380,84 @@ function dibujarTablaCompra(pdf, req, yInicial) {
     y += alturaEncabezado
   }
 
+  function saltarPagina() {
+    y = nuevaPagina()
+    dibujarEncabezadoTabla()
+  }
+
   dibujarEncabezadoTabla()
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(8)
-  const items = req.itemsCompra || []
+  const L = altoLinea(pdf)
+  const lineasQueCaben = (espacio) => Math.floor((espacio - ALTO_FILA_MIN) / L) + 1
+  const cabenEnPaginaNueva = lineasQueCaben(LIMITE_Y - Y_TRAS_ENCABEZADO - alturaEncabezado)
 
   // Se agregan únicamente las filas de los productos reales por seguridad
-  for (let fila = 0; fila < items.length; fila += 1) {
-    const item = items[fila]
+  for (const item of req.itemsCompra || []) {
     const valores = [
-      item ? fmtFechaPdf(item.fechaSolicitud) : '',
-      item?.descripcionProducto || '',
-      item ? String(item.cantidad ?? '') : '',
-      item?.destino || '',
+      fmtFechaPdf(item.fechaSolicitud),
+      item.descripcionProducto || '',
+      String(item.cantidad ?? ''),
+      item.destino || '',
       '',
     ]
+    // Todas las líneas de cada celda (antes se tomaba solo la [0] y una
+    // descripción larga salía cortada en el PDF impreso).
+    let pendientes = valores.map((v, i) => (v ? pdf.splitTextToSize(v, COLS_COMPRA[i].w - 2.4) : []))
 
-    let x = MARGIN
-    for (let i = 0; i < COLS_COMPRA.length; i++) {
-      const col = COLS_COMPRA[i]
-      pdf.rect(x, y, col.w, alturaFila)
-      if (valores[i]) {
-        const linea = pdf.splitTextToSize(valores[i], col.w - 2)[0]
-        pdf.text(linea, x + 1.2, y + 4.8)
+    for (;;) {
+      const lineasFila = Math.max(1, ...pendientes.map((l) => l.length))
+      const caben = lineasQueCaben(LIMITE_Y - y)
+      // Una fila que cabe entera en una hoja nueva no se parte: pasa completa
+      // a la siguiente. Solo se parte la que no cabría en ninguna hoja.
+      if (caben < lineasFila && (caben < 1 || lineasFila <= cabenEnPaginaNueva)) {
+        saltarPagina()
+        continue
       }
-      x += col.w
+
+      const n = Math.min(lineasFila, caben)
+      const altoFila = ALTO_FILA_MIN + (n - 1) * L
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(8)
+      let x = MARGIN
+      COLS_COMPRA.forEach((col, i) => {
+        pdf.rect(x, y, col.w, altoFila)
+        const trozo = pendientes[i].slice(0, n)
+        if (trozo.length) pdf.text(trozo, x + 1.2, y + 4.8)
+        x += col.w
+      })
+      y += altoFila
+
+      pendientes = pendientes.map((l) => l.slice(n))
+      if (pendientes.every((l) => l.length === 0)) break
+      saltarPagina()
     }
-    y += alturaFila
   }
 
   return y + 6
 }
 
-function dibujarAnalisisTecnico(pdf, req, yInicial) {
+function dibujarAnalisisTecnico(pdf, req, yInicial, nuevaPagina) {
   let y = yInicial
   const ALTO_CABECERA = 9
+  // Aire + rúbrica más alta posible + raya y rótulo del Vo.Bo, para que en
+  // una hoja con texto corto la firma quepa debajo sin saltar de página.
+  const RESERVA_VOBO = 6 + ALTO_MAX_FIRMA_COMPRA + 1 + 6
+  const PADDING = 4
 
-  // Auto-ajuste dinámico: calcula el espacio vertical libre antes de la firma Vo.Bo
-  // para que el recuadro nunca invada ni se monte sobre la rúbrica del aprobador.
-  const espacioRestante = (ALTO_PAGINA - MARGIN - 34) - yInicial
-  const ALTO_CUERPO = Math.max(22, Math.min(38, espacioRestante - ALTO_CABECERA))
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(10)
+  const L = altoLinea(pdf)
+  const lineasQueCaben = (espacio) => Math.floor((espacio - PADDING) / L)
+  const lineas = pdf.splitTextToSize(req.financiero?.analisisTecnico || 'N/A', ANCHO_UTIL - 5)
+
+  // Cabecera y primeras líneas van juntas: si el texto cabría entero en una
+  // hoja nueva (o aquí no caben ni 3 líneas), todo el bloque pasa a la siguiente.
+  const cabenAqui = lineasQueCaben(LIMITE_Y - y - ALTO_CABECERA)
+  const cabenEnPaginaNueva = lineasQueCaben(LIMITE_Y - Y_TRAS_ENCABEZADO - ALTO_CABECERA)
+  if (lineas.length > cabenAqui && (lineas.length <= cabenEnPaginaNueva || cabenAqui < 3)) {
+    y = nuevaPagina()
+  }
 
   pdf.setDrawColor(15, 23, 42)
   pdf.setLineWidth(0.4)
@@ -293,53 +473,86 @@ function dibujarAnalisisTecnico(pdf, req, yInicial) {
   pdf.text(lineasLabel, MARGIN + 2, y + 4.8)
   y += ALTO_CABECERA
 
-  // Celda de cuerpo
-  pdf.rect(MARGIN, y, ANCHO_UTIL, ALTO_CUERPO)
-  pdf.setFont('helvetica', 'normal')
-  pdf.setFontSize(10)
-  const valorAnalisis = req.financiero?.analisisTecnico || 'N/A'
-  const lineasValor = pdf.splitTextToSize(valorAnalisis, ANCHO_UTIL - 4)
-  pdf.text(lineasValor, MARGIN + 2.5, y + 5.5)
-  y += ALTO_CUERPO
-
-  return y + 6
-}
-
-async function dibujarVoboCompra(pdf, req, yInicial) {
-  // Posición de la línea de firma con espacio seguro debajo del recuadro de análisis
-  const yLinea = Math.min(yInicial + 22, ALTO_PAGINA - MARGIN - 14)
-  pdf.setDrawColor(15, 23, 42)
-  pdf.setLineWidth(0.4)
-  pdf.line(MARGIN, yLinea, MARGIN + 80, yLinea)
-
-  const firmaUrl = req.financiero?.firma?.url || (typeof req.financiero?.firma === 'string' ? req.financiero?.firma : null)
-  if (firmaUrl && req.estado !== 'rechazado') {
-    try {
-      const { dataUrl, width, height } = await cargarImagen(firmaUrl)
-      const ALTO_MAX = 32
-      const ANCHO_MAX = 95
-      const escala = Math.min(ANCHO_MAX / width, ALTO_MAX / height)
-      const anchoFirma = width * escala
-      const altoFirma = height * escala
-      const dataUrlOscura = await oscurecerFirma(dataUrl, width, height)
-      pdf.addImage(
-        dataUrlOscura,
-        'PNG',
-        MARGIN + (80 - anchoFirma) / 2,
-        yLinea - altoFirma - 1,
-        anchoFirma,
-        altoFirma,
-      )
-    } catch (err) {
-      console.error('No se pudo cargar la firma en el PDF de compra:', err)
+  // Celda de cuerpo: crece con el texto y, si no cabe ni en una hoja, sigue
+  // en la siguiente.
+  let pendientes = lineas
+  for (;;) {
+    const trozo = pendientes.slice(0, lineasQueCaben(LIMITE_Y - y))
+    pendientes = pendientes.slice(trozo.length)
+    let alto = trozo.length * L + PADDING
+    if (!pendientes.length) {
+      // Texto corto: se conserva el alto del formato (22–38 mm, lo que quepa
+      // antes del Vo.Bo) para que el recuadro se pueda diligenciar a mano.
+      const altoFormato = Math.max(22, Math.min(38, LIMITE_Y - RESERVA_VOBO - y))
+      alto = Math.max(alto, Math.min(altoFormato, LIMITE_Y - y))
     }
+
+    pdf.setDrawColor(15, 23, 42)
+    pdf.setLineWidth(0.4)
+    pdf.rect(MARGIN, y, ANCHO_UTIL, alto)
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(10)
+    pdf.text(trozo, MARGIN + 2.5, y + 5.5)
+    y += alto
+
+    if (!pendientes.length) break
+    y = nuevaPagina()
   }
 
+  // Borde inferior del recuadro: el aire hasta el Vo.Bo lo decide dibujarVoboCompra.
+  return y
+}
+
+async function cargarFirmaCompra(req) {
+  const firmaUrl = req.financiero?.firma?.url || (typeof req.financiero?.firma === 'string' ? req.financiero?.firma : null)
+  if (!firmaUrl || req.estado === 'rechazado') return null
+  try {
+    const { dataUrl, width, height } = await cargarImagen(firmaUrl)
+    const oscura = await oscurecerFirma(dataUrl, width, height)
+    const firma = (await recortarFirma(oscura)) || { dataUrl: oscura, width, height }
+    const escala = Math.min(ANCHO_FIRMA_COMPRA / firma.width, ALTO_MAX_FIRMA_COMPRA / firma.height)
+    return { dataUrl: firma.dataUrl, ancho: firma.width * escala, alto: firma.height * escala }
+  } catch (err) {
+    console.error('No se pudo cargar la firma en el PDF de compra:', err)
+    return null
+  }
+}
+
+async function dibujarVoboCompra(pdf, req, yInicial, nuevaPagina) {
+  const firma = await cargarFirmaCompra(req)
+  const ANCHO_LINEA = Math.max(80, firma ? firma.ancho : 0)
+
+  // yInicial es el borde inferior del recuadro de Análisis técnico. La rúbrica
+  // se apoya sobre la raya y crece hacia arriba: la raya baja justo lo
+  // necesario para dejar AIRE_FIRMA entre el recuadro y el punto más alto del
+  // trazo. Sin firma (aún sin aprobar) se deja el espacio de siempre para
+  // firmar a mano.
+  const AIRE_FIRMA = 2
+  // Cuánto baja el trazo por debajo de la raya, como una firma hecha a mano
+  // que la cruza. Más de ~1.5 mm empezaría a pisar el rótulo "Vo.Bo".
+  const SOLAPE_FIRMA = 1.5
+  const separacion = firma ? AIRE_FIRMA + firma.alto - SOLAPE_FIRMA : 28
+  let yLinea = yInicial + separacion
+  // Raya + rótulo "Vo.Bo" no caben sin pisar el pie: todo pasa a la hoja siguiente.
+  if (yLinea + 6 + SOLAPE_FIRMA > LIMITE_Y) yLinea = nuevaPagina() + separacion
+
+  pdf.setDrawColor(15, 23, 42)
+  pdf.setLineWidth(0.4)
+  pdf.line(MARGIN, yLinea, MARGIN + ANCHO_LINEA, yLinea)
+
+  if (firma) {
+    // La imagen viene recortada a la tinta: su borde inferior es el punto más
+    // bajo del trazo, que queda SOLAPE_FIRMA por debajo de la raya.
+    pdf.addImage(firma.dataUrl, 'PNG', MARGIN + (ANCHO_LINEA - firma.ancho) / 2, yLinea - firma.alto + SOLAPE_FIRMA, firma.ancho, firma.alto)
+  }
+
+  // El rótulo baja lo mismo que el trazo cruza la raya, para no pisarlo.
+  const yRotulo = yLinea + 4.5 + (firma ? SOLAPE_FIRMA : 0)
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(11)
-  pdf.text('Vo.Bo: ', MARGIN, yLinea + 4.5)
+  pdf.text('Vo.Bo: ', MARGIN, yRotulo)
   pdf.setFont('helvetica', 'normal')
-  pdf.text('Director Administrativo', MARGIN + pdf.getTextWidth('Vo.Bo: '), yLinea + 4.5)
+  pdf.text('Director Administrativo', MARGIN + pdf.getTextWidth('Vo.Bo: '), yRotulo)
 }
 
 // Replica exacta del formato institucional FO-GBS-36 (Requerimiento de Servicios) en 1 sola página.
@@ -588,13 +801,19 @@ function dibujarFooterCompra(pdf, formato) {
 
 export async function construirPdfRequerimiento(req) {
   const pdf = new jsPDF({ unit: 'mm', format: 'letter' })
-  let y = await dibujarEncabezado(pdf, req.tipo)
+  const logo = await cargarLogo()
+  // Hoja de continuación: repite el encabezado institucional y devuelve la Y libre.
+  const nuevaPagina = () => {
+    pdf.addPage()
+    return dibujarEncabezado(pdf, req.tipo, logo)
+  }
+  let y = dibujarEncabezado(pdf, req.tipo, logo)
 
   if (req.tipo === 'compra') {
     y = encabezadoSolicitante(pdf, req, y)
-    y = dibujarTablaCompra(pdf, req, y)
-    y = dibujarAnalisisTecnico(pdf, req, y)
-    await dibujarVoboCompra(pdf, req, y)
+    y = dibujarTablaCompra(pdf, req, y, nuevaPagina)
+    y = dibujarAnalisisTecnico(pdf, req, y, nuevaPagina)
+    await dibujarVoboCompra(pdf, req, y, nuevaPagina)
     dibujarFooterCompra(pdf, FORMATOS.compra)
   } else {
     await dibujarCuerpoServicio(pdf, req, y)

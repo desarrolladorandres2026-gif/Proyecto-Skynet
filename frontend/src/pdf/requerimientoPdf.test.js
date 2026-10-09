@@ -99,3 +99,60 @@ describe('construirPdfRequerimiento — logo en el encabezado', () => {
     expect(pdf.output('arraybuffer').byteLength).toBeGreaterThan(0)
   })
 })
+
+describe('construirPdfRequerimiento — descripciones largas (compra)', () => {
+  // Margen inferior de 20 mm, en puntos PDF (origen abajo-izquierda).
+  const MARGEN_INFERIOR_PT = (20 * 72) / 25.4
+  let ImageOriginal
+
+  beforeEach(() => {
+    ImageOriginal = global.Image
+    global.Image = ImagenFalsa
+    global.fetch = vi.fn(async () => ({ ok: true, status: 200, blob: async () => new Blob([logoBuffer], { type: 'image/png' }) }))
+  })
+
+  afterEach(() => {
+    global.Image = ImageOriginal
+    vi.restoreAllMocks()
+  })
+
+  const textoPdf = (pdf) => Buffer.from(pdf.output('arraybuffer')).toString('latin1')
+  const descripcionLarga = (fin) =>
+    `${'Suministro e instalacion de cableado estructurado categoria seis para la oficina de taquillas '.repeat(4)}${fin}`
+
+  it('imprime la descripción completa, no solo su primera línea', async () => {
+    const pdf = await construirPdfRequerimiento(reqMinimo({
+      itemsCompra: [{ fechaSolicitud: new Date(), descripcionProducto: descripcionLarga('FINALDELTEXTO'), cantidad: 3, destino: 'Taquillas' }],
+    }))
+
+    expect(textoPdf(pdf)).toContain('FINALDELTEXTO')
+    expect(pdf.internal.getNumberOfPages()).toBe(1)
+  })
+
+  it('con muchos ítems largos pasa a otra hoja sin salirse del borde inferior', async () => {
+    const itemsCompra = Array.from({ length: 12 }, (_, i) => ({
+      fechaSolicitud: new Date(),
+      descripcionProducto: descripcionLarga(`ITEMFIN${i}`),
+      cantidad: i + 1,
+      destino: 'Bodega',
+    }))
+    const pdf = await construirPdfRequerimiento(reqMinimo({
+      itemsCompra,
+      financiero: { analisisTecnico: `${'Analisis del ingeniero de sistemas. '.repeat(40)}ANALISISFIN` },
+    }))
+
+    const texto = textoPdf(pdf)
+    const paginas = pdf.internal.getNumberOfPages()
+    expect(paginas).toBeGreaterThan(1)
+    for (let i = 0; i < 12; i++) expect(texto).toContain(`ITEMFIN${i}`)
+    expect(texto).toContain('ANALISISFIN')
+    expect(texto).toContain(`PAG: ${paginas} DE ${paginas}`)
+    // jsPDF escribe cada rect como "x y w h re" con y desde abajo y h negativo:
+    // y + h es el borde inferior de la caja, que no debe invadir el margen.
+    const cajas = [...texto.matchAll(/(-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) re/g)]
+    expect(cajas.length).toBeGreaterThan(0)
+    for (const [, , y, , h] of cajas) {
+      expect(Number(y) + Number(h)).toBeGreaterThanOrEqual(MARGEN_INFERIOR_PT - 0.01)
+    }
+  })
+})
