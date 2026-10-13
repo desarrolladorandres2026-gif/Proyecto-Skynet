@@ -3,7 +3,7 @@ import { requierePermiso } from '../../middleware/permisos.js'
 import { requiereModuloActivo } from '../../middleware/moduloActivo.js'
 import { safeRouter } from '../../middleware/safeRouter.js'
 import {
-  listarCategorias, listarAvisosPendientes, marcarAvisosLeidos,
+  listarCategorias, listarAvisosPendientes, marcarAvisosLeidos, obtenerRecordatorioPendientes,
   obtenerPreferencias, actualizarPreferencias,
   obtenerConfiguracionGlobal, actualizarConfiguracionGlobal,
 } from './ia.controller.js'
@@ -17,6 +17,9 @@ router.use(verificarToken, requiereModuloActivo('ia'))
 router.get('/categorias', listarCategorias)
 router.get('/avisos', listarAvisosPendientes)
 router.post('/avisos/marcar-leidos', marcarAvisosLeidos)
+// Recordatorio proactivo de lo pendiente. GET pero NO idempotente: devolver un
+// recordatorio gasta el turno del usuario (ver ia.recordatorios.js).
+router.get('/recordatorio', obtenerRecordatorioPendientes)
 router.get('/preferencias', obtenerPreferencias)
 router.put('/preferencias', actualizarPreferencias)
 

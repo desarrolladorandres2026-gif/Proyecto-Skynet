@@ -48,15 +48,17 @@ export async function obtenerPreferencias(usuarioId) {
   const pref = await PreferenciaIA.findOne({ usuario: usuarioId })
   return {
     voz: { activo: pref ? pref.voz.activo : true },
+    recordatorios: { activo: pref ? pref.recordatorios?.activo !== false : true },
     categorias: Object.fromEntries(
       CATEGORIAS_NOTIFICACION.map((c) => [c.key, pref ? pref.categorias.get(c.key) !== false : true])
     ),
   }
 }
 
-export async function actualizarPreferencias(usuarioId, { voz, categorias }) {
+export async function actualizarPreferencias(usuarioId, { voz, recordatorios, categorias }) {
   const set = {}
   if (typeof voz?.activo === 'boolean') set['voz.activo'] = voz.activo
+  if (typeof recordatorios?.activo === 'boolean') set['recordatorios.activo'] = recordatorios.activo
   if (categorias && typeof categorias === 'object') {
     for (const [clave, valor] of Object.entries(categorias)) {
       if (!esCategoriaValida(clave)) throw new ErrorValidacion(`Categoría desconocida: ${clave}`)
@@ -73,6 +75,7 @@ export async function actualizarPreferencias(usuarioId, { voz, categorias }) {
 
   return {
     voz: { activo: pref.voz.activo },
+    recordatorios: { activo: pref.recordatorios?.activo !== false },
     categorias: Object.fromEntries(CATEGORIAS_NOTIFICACION.map((c) => [c.key, pref.categorias.get(c.key) !== false])),
   }
 }

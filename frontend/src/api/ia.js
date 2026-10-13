@@ -10,6 +10,10 @@ export const ia = {
   marcarAvisosLeidos(ids) {
     return request('/ia/avisos/marcar-leidos', { method: 'POST', body: JSON.stringify({ ids }) })
   },
+  // Ojo: gasta el turno del usuario si devuelve algo (ver ia.recordatorios.js).
+  recordatorio() {
+    return request('/ia/recordatorio')
+  },
   preferencias() {
     return request('/ia/preferencias')
   },

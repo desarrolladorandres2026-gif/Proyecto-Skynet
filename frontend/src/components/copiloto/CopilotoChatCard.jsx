@@ -46,6 +46,7 @@ export function CopilotoChatCard({
   isOpen,
   onClose,
   mensajes = [],
+  onAbrirAccion,
   entrada = '',
   setEntrada,
   onEnviar,
@@ -446,6 +447,21 @@ export function CopilotoChatCard({
                     )}
                   >
                     {m.texto}
+                    {m.acciones?.length > 0 && onAbrirAccion && (
+                      <div className="mt-3 flex flex-wrap gap-2 whitespace-normal">
+                        {m.acciones.map((a) => (
+                          <button
+                            key={a.ruta}
+                            type="button"
+                            onClick={() => onAbrirAccion(a.ruta)}
+                            className="neumorphic-button flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-brand-600 dark:text-brand-300"
+                          >
+                            <CornerDownLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                            {a.etiqueta}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {m.rol === 'user' && (

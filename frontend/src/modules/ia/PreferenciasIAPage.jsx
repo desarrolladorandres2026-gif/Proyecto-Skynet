@@ -72,6 +72,26 @@ export default function PreferenciasIAPage() {
       </Card>
 
       <Card>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-slate-800 dark:text-slate-100">Recordarme lo que tengo pendiente</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Skynet te avisa por su cuenta, como máximo cada 2 horas, cuando tienes trabajo esperando
+              (requerimientos por aprobar, solicitudes por revisar, tareas asignadas). Si no hay nada
+              pendiente, no dice nada.
+            </p>
+          </div>
+          <Switch
+            checked={preferencias.recordatorios?.activo !== false}
+            onChange={(v) =>
+              guardar({ recordatorios: { activo: v } }, (p) => ({ ...p, recordatorios: { activo: v } }))
+            }
+            label="Activar recordatorios de pendientes"
+          />
+        </div>
+      </Card>
+
+      <Card>
         <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">Qué te avisa Skynet</h2>
         <div className="space-y-3">
           {categorias.map((cat) => (

@@ -35,7 +35,14 @@ async function usuariosAdminYFinanciero() {
 // Requerimientos es el primer flujo conectado end-to-end al motor nuevo de
 // notificaciones (antes no avisaba a nadie en ningún paso) — sirve como caso
 // real para las pruebas de integración del sistema.
-const notificarUsuarios = (userIds, payload) => _notificarUsuarios(userIds, payload, 'requerimientos')
+//
+// `actorId` = quien ejecuta la acción: nunca se le avisa de lo que él mismo
+// acaba de hacer (p. ej. un usuario de Bodega que despacha un requerimiento
+// que él mismo había solicitado recibía "Requerimiento despachado").
+const notificarUsuarios = (userIds, payload, actorId) => {
+  const destinatarios = (userIds || []).filter((id) => String(id) !== String(actorId))
+  return _notificarUsuarios(destinatarios, payload, 'requerimientos')
+}
 
 // Datos que acompañan cada aviso por correo (ver notificar#detalles): lo
 // justo para reconocer de qué requerimiento se trata sin abrir la plataforma.
@@ -161,7 +168,7 @@ export async function crearRequerimiento(datos, usuarioActor) {
       { etiqueta: 'Solicitante', valor: usuarioActor.nombre_usuario },
       { etiqueta: 'Cargo', valor: doc.cargoSolicitante },
     ]),
-  }).catch((err) => console.error('Error notificando nuevo requerimiento:', err.message))
+  }, usuarioActor.id_usuario).catch((err) => console.error('Error notificando nuevo requerimiento:', err.message))
 
   return obtenerRequerimiento(doc._id)
 }
@@ -285,7 +292,7 @@ export async function aprobarComoFinanciero(id, body, usuarioActor) {
     body: doc.financiero.observacion || `Pendiente de gestionar en Bodega (${doc.tipo})`,
     url: `/requerimientos/${doc._id}`,
     detalles: detallesDeRequerimiento(doc, [{ etiqueta: 'Aprobado por', valor: doc.financiero.nombreAprobador }]),
-  }).catch((err) => console.error('Error notificando aprobación financiera:', err.message))
+  }, usuarioActor.id_usuario).catch((err) => console.error('Error notificando aprobación financiera:', err.message))
 
   return obtenerRequerimiento(doc._id)
 }
@@ -321,7 +328,7 @@ export async function rechazarComoFinanciero(id, { motivoRechazo } = {}, usuario
     body: doc.financiero.motivoRechazo,
     url: `/requerimientos/${doc._id}`,
     detalles: detallesDeRequerimiento(doc, [{ etiqueta: 'Rechazado por', valor: doc.financiero.nombreAprobador }]),
-  }).catch((err) => console.error('Error notificando rechazo financiero:', err.message))
+  }, usuarioActor.id_usuario).catch((err) => console.error('Error notificando rechazo financiero:', err.message))
 
   return obtenerRequerimiento(doc._id)
 }
@@ -369,7 +376,7 @@ export async function marcarEstadoBodega(id, { estado, observacion, password } =
       body: doc.bodega.observacion || 'Tu requerimiento fue despachado por Bodega',
       url: `/requerimientos/${doc._id}`,
       detalles: detallesDeRequerimiento(doc, [{ etiqueta: 'Despachado por', valor: doc.bodega.nombreRevisor }]),
-    }).catch((err) => console.error('Error notificando despacho de bodega:', err.message))
+    }, usuarioActor.id_usuario).catch((err) => console.error('Error notificando despacho de bodega:', err.message))
   } else if (estado === 'no_aprobada') {
     // No se puede despachar: además del solicitante, se avisa a quien puede
     // actuar sobre el bloqueo (Financiero y Admin/Super Admin).
@@ -379,7 +386,7 @@ export async function marcarEstadoBodega(id, { estado, observacion, password } =
       body: doc.bodega.observacion,
       url: `/requerimientos/${doc._id}`,
       detalles: detallesDeRequerimiento(doc, [{ etiqueta: 'Revisado por', valor: doc.bodega.nombreRevisor }]),
-    }).catch((err) => console.error('Error notificando bloqueo de despacho:', err.message))
+    }, usuarioActor.id_usuario).catch((err) => console.error('Error notificando bloqueo de despacho:', err.message))
   }
 
   return obtenerRequerimiento(doc._id)

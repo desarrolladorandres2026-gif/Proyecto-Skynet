@@ -61,6 +61,7 @@ const ETIQUETA_TARJETA = {
   ausenciasPendientes: ['solicitud de ausencia por revisar', 'solicitudes de ausencia por revisar'],
   misAusencias: ['solicitud de ausencia tuya', 'solicitudes de ausencia tuyas'],
   mantenimientoAbiertas: ['orden de mantenimiento abierta', 'órdenes de mantenimiento abiertas'],
+  misTareasMantenimiento: ['tarea de mantenimiento asignada', 'tareas de mantenimiento asignadas'],
 }
 
 export function resumenTablero(tarjetas) {
@@ -75,6 +76,14 @@ export function resumenTablero(tarjetas) {
   if (partes.length === 1) return `Tienes ${partes[0]}.`
   const ultima = partes.pop()
   return `Tienes ${partes.join(', ')} y ${ultima}.`
+}
+
+// Recordatorio proactivo (ver ia/ia.recordatorios.js): lo dice Skynet sin que
+// nadie pregunte, así que arranca con una marca que avisa de qué es antes de
+// soltar la cifra. `tarjetas` ya viene filtrado a trabajo accionable.
+export function recordatorioPendientes(nombre, tarjetas) {
+  const corto = String(nombre || '').split(' ')[0]
+  return `Recordatorio${corto ? `, ${corto}` : ''}. ${resumenTablero(tarjetas)}`
 }
 
 // ── Requerimientos ──────────────────────────────────────────────────────────

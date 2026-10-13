@@ -11,6 +11,12 @@ const preferenciaIASchema = new mongoose.Schema(
     // chat (burbuja) pero nunca se leen en voz alta, sin importar lo que
     // digan las categorías de abajo.
     voz: { activo: { type: Boolean, default: true } },
+    // Recordatorios proactivos de lo pendiente (ver ia.recordatorios.js).
+    // `ultimoEn` es el reloj compartido entre todas las pestañas y
+    // dispositivos del usuario: lo reclama el servidor de forma atómica, así
+    // dos pestañas abiertas no le hablan dos veces.
+    recordatorios: { activo: { type: Boolean, default: true } },
+    ultimoRecordatorioEn: { type: Date, default: null },
     // Mapa categoria -> activo. Las categorías válidas viven en
     // notificaciones.catalogo.js (se reutiliza el mismo catálogo, no se
     // duplica); una categoría ausente del mapa se trata como activa.

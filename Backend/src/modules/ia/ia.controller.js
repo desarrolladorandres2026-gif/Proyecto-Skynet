@@ -1,5 +1,6 @@
 import { CATEGORIAS_NOTIFICACION } from '../notificaciones/notificaciones.catalogo.js'
 import * as service from './ia.service.js'
+import { obtenerRecordatorio } from './ia.recordatorios.js'
 
 export function listarCategorias(_req, res) {
   res.json({ categorias: CATEGORIAS_NOTIFICACION })
@@ -13,6 +14,11 @@ export async function listarAvisosPendientes(req, res) {
 export async function marcarAvisosLeidos(req, res) {
   await service.marcarLeidos(req.usuario.id_usuario, req.body.ids)
   res.json({ ok: true })
+}
+
+export async function obtenerRecordatorioPendientes(req, res) {
+  const recordatorio = await obtenerRecordatorio(req.usuario)
+  res.json({ recordatorio })
 }
 
 export async function obtenerPreferencias(req, res) {

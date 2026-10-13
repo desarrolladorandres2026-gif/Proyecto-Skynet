@@ -9,6 +9,7 @@ import { CopilotoButton } from './CopilotoButton.jsx'
 import { CopilotoChatCard } from './CopilotoChatCard.jsx'
 import { useVoiceAssistant } from './useVoiceAssistant.js'
 import { useAvisosIA } from './useAvisosIA.js'
+import { useRecordatoriosIA } from './useRecordatoriosIA.js'
 import { useTecladoVirtual } from './useTecladoVirtual.js'
 import { useEsMovil } from '../../layout/useEsMovil.js'
 
@@ -305,6 +306,32 @@ export default function CopilotoWidget() {
   )
   useAvisosIA({ activo: moduloActivo('ia') && moduloActivo('copiloto'), onAvisos: onAvisosIA })
 
+  // Recordatorio proactivo de lo pendiente (ver useRecordatoriosIA.js). A
+  // diferencia de un aviso, no reacciona a un evento: es Skynet tomando la
+  // iniciativa, así que es más estricto con cuándo habla. Además de la
+  // preferencia de "leer avisos en voz", respeta que el usuario haya puesto el
+  // chat en modo solo texto, y nunca habla encima de una respuesta en curso,
+  // de Skynet ya hablando o de una pregunta que el usuario está dictando.
+  const capturandoPreguntaRef = useRef(false)
+  capturandoPreguntaRef.current = microfono.capturandoPregunta
+  const onRecordatorioIA = useCallback(
+    (recordatorio) => {
+      aplicarMensajes((prev) => [
+        ...prev,
+        { rol: 'model', texto: recordatorio.texto, acciones: recordatorio.acciones },
+      ])
+      const v = vozRef.current
+      const ocupado = peticionRef.current || v.hablando || capturandoPreguntaRef.current
+      if (vozAvisosIARef.current && v.vozActiva && v.soportado && !ocupado) {
+        v.reiniciar()
+        v.encolarTexto(recordatorio.texto)
+        v.finalizar()
+      }
+    },
+    [aplicarMensajes]
+  )
+  useRecordatoriosIA({ activo: moduloActivo('ia') && moduloActivo('copiloto'), onRecordatorio: onRecordatorioIA })
+
   if (!moduloActivo('copiloto')) return null
 
   function enviar(e) {
@@ -401,6 +428,15 @@ export default function CopilotoWidget() {
     asistenteVoz.cancelarVoz()
   }
 
+  // Botón de un recordatorio: lleva a la pantalla donde se atiende lo
+  // pendiente. Cierra el chat porque en móvil lo ocupa todo y taparía justo
+  // la pantalla a la que se acaba de navegar. La ruta viene de un catálogo del
+  // servidor ya filtrado por permiso; los guardas de ruta siguen mandando.
+  const abrirAccion = (ruta) => {
+    cerrar()
+    navigate(ruta)
+  }
+
   return (
     <>
       <motion.div
@@ -416,6 +452,7 @@ export default function CopilotoWidget() {
           alturaTeclado={esMovil ? alturaTeclado : 0}
           onClose={cerrar}
           mensajes={mensajes}
+          onAbrirAccion={abrirAccion}
           entrada={entrada}
           setEntrada={setEntrada}
           onEnviar={enviar}
