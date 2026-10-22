@@ -153,7 +153,7 @@ export default function NuevoRequerimientoPage() {
               ¿Este requerimiento va dirigido a almacén?
             </CheckboxLabel>
             <p className="mt-1 text-xs">
-              Si lo marcas, una vez aprobado lo gestiona Bodega. Si no, queda solo en Todos los requerimientos.
+              Si lo marcas, una vez aprobado lo gestiona Bodega.
             </p>
           </div>
 
