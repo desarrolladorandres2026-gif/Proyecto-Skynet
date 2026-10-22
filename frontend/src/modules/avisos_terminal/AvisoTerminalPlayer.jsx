@@ -205,7 +205,7 @@ export default function AvisoTerminalPlayer() {
                 ? 'Aviso institucional'
                 : 'Terminal de Transportes de Neiva informa que:'}
           </p>
-          <p className="truncate text-sm font-medium text-white sm:whitespace-normal">{entregaActual.aviso.texto}</p>
+          <p className="line-clamp-3 text-sm font-medium break-words text-white">{entregaActual.aviso.texto}</p>
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
@@ -226,7 +226,7 @@ export default function AvisoTerminalPlayer() {
                   onClick={repetir}
                   aria-label="Repetir aviso"
                   title="Repetir aviso"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white transition-colors hover:bg-white/20"
+                  className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs whitespace-nowrap bg-white/10 text-white transition-colors hover:bg-white/20"
                 >
                   <RotateCcw className="h-4 w-4" aria-hidden="true" />
                 </button>
@@ -236,7 +236,7 @@ export default function AvisoTerminalPlayer() {
                 onClick={detenerTodo}
                 aria-label="Detener aviso"
                 title="Detener"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white transition-colors hover:bg-white/20"
+                className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs whitespace-nowrap bg-white/10 text-white transition-colors hover:bg-white/20"
               >
                 <Square className="h-3.5 w-3.5" aria-hidden="true" />
               </button>

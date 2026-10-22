@@ -97,6 +97,7 @@ export async function calcularResumen(usuario, { soloTarjetas = false } = {}) {
       if (puedeBodegaReq) {
         tarjetas.requerimientosPorDespachar = await Requerimiento.countDocuments({
           estado: 'pendiente_bodega',
+          dirigidoAlmacen: true,
           'bodega.estado': 'pendiente',
         })
       }

@@ -83,7 +83,8 @@ export async function chat(req, res) {
 export async function confirmarRequerimientoCompra(req, res) {
   const { areaOProceso, items } = req.body
   const requerimiento = await requerimientosService.crearRequerimiento(
-    { tipo: 'compra', areaOProceso, itemsCompra: items },
+    // Las compras por chat conservan su destino de siempre: Bodega.
+    { tipo: 'compra', areaOProceso, itemsCompra: items, dirigidoAlmacen: true },
     req.usuario
   )
   res.status(201).json({ requerimiento })

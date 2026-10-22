@@ -219,7 +219,7 @@ export default function ReporteIndividualPage() {
                     <Td>{t.dependencia || '—'}</Td>
                     <Td className="whitespace-nowrap">
                       {t.total}
-                      <span className="text-xs text-slate-400"> ({t.correctas}✓ / {t.incorrectas}✗)</span>
+                      <span className="text-xs text-slate-400"> ({t.correctas} correctas / {t.incorrectas} incorrectas)</span>
                     </Td>
                     <Td className="font-semibold whitespace-nowrap">{t.porcentaje}%</Td>
                     <Td className="whitespace-nowrap">

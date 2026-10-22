@@ -55,6 +55,7 @@
     "mongoose": "^8.5.0",
     "multer": "^2.0.1",
     "nodemailer": "^9.0.3",
+    "sanitize-html": "^2.18.1",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
     "web-push": "^3.6.7",

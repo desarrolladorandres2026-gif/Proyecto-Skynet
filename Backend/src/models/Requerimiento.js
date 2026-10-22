@@ -68,11 +68,20 @@ const requerimientoSchema = new mongoose.Schema(
     // de una sub-decisión no se mezcla con el enum de flujo raíz.
     estado: {
       type: String,
-      enum: ['pendiente_financiero', 'pendiente_bodega', 'rechazado'],
+      enum: ['pendiente_financiero', 'pendiente_bodega', 'aprobado', 'rechazado'],
       default: 'pendiente_financiero',
     },
 
     solicitante: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
+    // "¿Este requerimiento va dirigido a almacén?", lo marca quien lo crea. Solo
+    // con true, al aprobarse pasa a Bodega ('pendiente_bodega'); con false queda
+    // 'aprobado' y se ve solo en supervisión (Todos). Bodega ve únicamente los
+    // documentos con true: los anteriores a este campo no lo tienen (undefined),
+    // por eso dejaron de verse en Bodega pero siguen existiendo en Todos.
+    dirigidoAlmacen: { type: Boolean, default: false },
+    // Usuarios de Bodega que ya abrieron el detalle (estilo "leído" de Gmail en
+    // la bandeja). Por usuario, no global: cada quien ve sus propios pendientes.
+    leidoPorBodega: { type: [mongoose.Schema.Types.ObjectId], ref: 'Usuario', default: [] },
     // Trazabilidad hacia atrás: si el requerimiento nació desde un reporte de
     // daño ("necesito este repuesto para poder repararlo"), aquí queda cuál.
     // La contraparte es ReporteDano.requerimientos — se guardan los dos lados

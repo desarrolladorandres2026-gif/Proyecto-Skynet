@@ -66,6 +66,11 @@ export const PERMISOS = [
   // publicados es universal (no es un permiso); este gobierna crear, editar,
   // publicar/desactivar y eliminar.
   permiso('videos', 'gestionar', 'Gestionar videos informativos (crear, editar, publicar y eliminar)'),
+  // Sitio web público (ver modules/sitio_web): un solo permiso que abre TODAS
+  // las secciones (noticias, eventos, avisos, imágenes). Las rutas aceptan
+  // además los permisos sueltos noticias/eventos/publicaciones:gestionar, para
+  // delegar solo una sección.
+  permiso('sitio_web', 'gestionar', 'Gestionar el sitio web público (noticias, eventos, avisos e imágenes)'),
   // Catálogos de Dependencia y Cargo (selects reutilizados en Usuarios,
   // Requerimientos y Equipos). Ver que existan o listarlos es universal para
   // todo autenticado (mismo principio que danos:gestionar); este permiso solo
@@ -208,6 +213,7 @@ const PERMISOS_ADMINISTRADOR_BASE = [
   'avisos_terminal:transmitir',
   'avisos_terminal:ver_historial',
   'videos:gestionar',
+  'sitio_web:gestionar',
 ]
 
 // Administrador + las 2 capacidades de Requerimientos que NO comparte con
@@ -406,6 +412,7 @@ export const ROLES = [
       'avisos_terminal:ver_historial',
       // Mismo dueño natural: comunicaciones institucionales dirigidas al personal.
       'videos:gestionar',
+      'sitio_web:gestionar',
       'notificaciones:recibir_email',
     ],
   },

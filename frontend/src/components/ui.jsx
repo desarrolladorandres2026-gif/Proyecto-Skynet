@@ -147,6 +147,7 @@ const BADGE_COLORES = {
   // requerimientos (estado raíz + bodega.estado, ver Backend/src/models/Requerimiento.js)
   pendiente_financiero: 'bg-warn-400/10 text-warn-700 dark:text-warn-300 ring-1 ring-inset ring-warn-400/30',
   pendiente_bodega: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
+  aprobado: 'bg-accent-400/10 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-400/30',
   rechazado: 'bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-400/30',
   aprobada: 'bg-accent-400/10 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-400/30',
   no_aprobada: 'bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-400/30',
@@ -179,8 +180,11 @@ export function Badge({ valor, label }) {
     .split(/\s+/)
     .filter((c) => c.startsWith('text-') || c.startsWith('dark:text-'))
     .join(' ')
+  // Tono semántico para el panel admin (styles/admin.css): el estado se lee
+  // como palabra coloreada, sin píldora. Se deduce de la misma paleta.
+  const tono = /(red|rose)-/.test(color) ? 'error' : /warn-/.test(color) ? 'alerta' : /accent-/.test(color) ? 'exito' : 'neutro'
   return (
-    <span className={cn('panel-mono inline-block text-[11px] font-medium tracking-wide', textoColor)}>
+    <span data-tono={tono} className={cn('panel-mono inline-block text-[11px] font-medium tracking-wide', textoColor)}>
       {label ?? valor}
     </span>
   )
@@ -189,7 +193,7 @@ export function Badge({ valor, label }) {
 export function ErrorMsg({ children }) {
   if (!children) return null
   return (
-    <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+    <p data-tono="error" className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
       {children}
     </p>
   )
@@ -198,7 +202,7 @@ export function ErrorMsg({ children }) {
 export function OkMsg({ children }) {
   if (!children) return null
   return (
-    <p className="mb-4 rounded-lg border border-accent-500/30 bg-accent-500/10 px-3 py-2 text-sm text-accent-700 dark:text-accent-300">
+    <p data-tono="exito" className="mb-4 rounded-lg border border-accent-500/30 bg-accent-500/10 px-3 py-2 text-sm text-accent-700 dark:text-accent-300">
       {children}
     </p>
   )
@@ -247,13 +251,13 @@ export function Pager({ page, pages, onPage }) {
   return (
     <div className="mt-4 flex items-center justify-center gap-3">
       <Btn variante="secundario" disabled={page <= 1} onClick={() => onPage(page - 1)}>
-        ← Anterior
+        Anterior
       </Btn>
       <span className="panel-mono text-xs text-slate-500 dark:text-slate-400">
         Página {page} de {pages}
       </span>
       <Btn variante="secundario" disabled={page >= pages} onClick={() => onPage(page + 1)}>
-        Siguiente →
+        Siguiente
       </Btn>
     </div>
   )

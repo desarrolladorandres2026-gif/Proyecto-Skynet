@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { Btn, Field, Input, TablaWrap, Th, Td } from '../../components/ui.jsx'
+import { Btn, Field, Input, Modal, TablaWrap, Th, Td } from '../../components/ui.jsx'
 
 export function filaVaciaCompra() {
   return {
@@ -20,12 +21,37 @@ export default function FormularioCompra({ items, onChange }) {
     onChange([...items, filaVaciaCompra()])
   }
 
+  // Índice del producto pendiente de confirmar; null = modal cerrado.
+  const [filaAQuitar, setFilaAQuitar] = useState(null)
+
   function quitarFila(i) {
     onChange(items.filter((_, idx) => idx !== i))
   }
 
+  function confirmarQuitar() {
+    quitarFila(filaAQuitar)
+    setFilaAQuitar(null)
+  }
+
+  const productoAQuitar = filaAQuitar !== null ? items[filaAQuitar] : null
+
   return (
     <div>
+      <Modal abierto={filaAQuitar !== null} titulo="Quitar producto" onCerrar={() => setFilaAQuitar(null)}>
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            ¿Seguro que quieres quitar el producto {filaAQuitar !== null ? filaAQuitar + 1 : ''}
+            {productoAQuitar?.descripcionProducto ? ` («${productoAQuitar.descripcionProducto}»)` : ''} de este
+            requerimiento?
+          </p>
+          <div className="flex justify-end gap-2">
+            <Btn variante="secundario" onClick={() => setFilaAQuitar(null)}>Cancelar</Btn>
+            <Btn variante="peligro" onClick={confirmarQuitar} className="flex items-center gap-1.5">
+              <Trash2 className="h-4 w-4" aria-hidden="true" /> Quitar
+            </Btn>
+          </div>
+        </div>
+      </Modal>
       <div className="mb-2 flex items-center justify-between">
         <span className="panel-mono text-[11px] uppercase tracking-[0.1em] text-brand-700/80 dark:text-brand-400/80">
           Productos solicitados
@@ -46,8 +72,8 @@ export default function FormularioCompra({ items, onChange }) {
                 Producto {i + 1}
               </span>
               {items.length > 1 && (
-                <Btn variante="peligro" onClick={() => quitarFila(i)} className="!px-2" title="Quitar producto">
-                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                <Btn variante="peligro" onClick={() => setFilaAQuitar(i)} className="!px-2" title="Quitar producto" aria-label="Quitar producto">
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </Btn>
               )}
             </div>
@@ -127,8 +153,8 @@ export default function FormularioCompra({ items, onChange }) {
               </Td>
               <Td>
                 {items.length > 1 && (
-                  <Btn variante="peligro" onClick={() => quitarFila(i)} className="!px-2" title="Quitar producto">
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  <Btn variante="peligro" onClick={() => setFilaAQuitar(i)} className="!px-2" title="Quitar producto" aria-label="Quitar producto">
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </Btn>
                 )}
               </Td>

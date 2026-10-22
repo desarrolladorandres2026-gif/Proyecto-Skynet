@@ -66,7 +66,7 @@ export default function MisAvisosTerminalPage() {
                   type="button"
                   onClick={() => alternar(e)}
                   aria-label={activo ? 'Detener' : 'Reproducir de nuevo'}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500/10 text-brand-700 transition-colors hover:bg-brand-500/20 dark:text-brand-300"
+                  className="flex h-10 min-w-10 shrink-0 items-center justify-center rounded-full px-2.5 text-xs whitespace-nowrap bg-brand-500/10 text-brand-700 transition-colors hover:bg-brand-500/20 dark:text-brand-300"
                 >
                   {activo ? <Square className="h-4 w-4" aria-hidden="true" /> : <Volume2 className="h-4 w-4" aria-hidden="true" />}
                 </button>

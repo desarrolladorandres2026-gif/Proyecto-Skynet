@@ -32,6 +32,7 @@ describe('calcularResumen — RBAC y Cola Prioritaria de Requerimientos', () => 
         cargoSolicitante: 'Operador',
         dependencia: 'Operaciones',
         estado: 'pendiente_bodega',
+        dirigidoAlmacen: true,
         versionOriginal: {},
         items: [{ descripcionProducto: 'Mantenimiento AC', fechaSolicitud: new Date(), cantidad: 1 }],
       },

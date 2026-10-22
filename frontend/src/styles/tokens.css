@@ -1,0 +1,96 @@
+/* Tokens del panel admin, tema claro (por defecto) y oscuro (estilo Premiere
+   Pro 25, valores medidos sobre capturas oficiales). Texto y estados con
+   contraste AA (>= 4,5:1 sobre --zp-surface).
+   Solo se aplican cuando <html> lleva .zp-admin (lo pone AppLayout): el
+   shell móvil y las pantallas públicas no los consumen. */
+/* Tema claro (por defecto). Texto y acento verificados >= 4,5:1 sobre blanco;
+   --zp-field-border 4,5:1 (WCAG 1.4.11). */
+:root {
+  --zp-bg: #e4e4e4;
+  --zp-surface: #ffffff;
+  --zp-surface-hover: #f0f0f0;
+  --zp-surface-active: #e8e8e8;
+  --zp-selected: #dce9fa;
+  --zp-field: #ffffff;
+  --zp-field-border: #767676;
+  --zp-divider: #d4d4d4;
+  --zp-dialog-border: #bdbdbd;
+
+  --zp-text: #1a1a1a;
+  --zp-text-secondary: #3d3d3d;
+  --zp-text-on-accent: #ffffff;
+
+  --zp-accent: #0857ba;
+  --zp-accent-hover: #064a9f;
+  --zp-accent-pressed: #053e85;
+  --zp-accent-text: #0857ba;
+  --zp-focus: #0857ba;
+
+  --zp-success: #1e7d4f;
+  --zp-warning: #9a5b00;
+  --zp-danger: #c62828;
+  --zp-danger-fill: #c62828;
+}
+
+:root {
+  /* Tipografía */
+  --zp-font: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --zp-fs-12: 12px;
+  --zp-fs-13: 13px;
+  --zp-fs-14: 14px;
+  --zp-fs-16: 16px;
+  --zp-fs-18: 18px;
+  --zp-lh: 20px;
+  --zp-fw-regular: 400;
+  --zp-fw-semibold: 600;
+
+  /* Medidas */
+  --zp-radius: 4px;
+  --zp-gap: 2px;
+  --zp-space-1: 4px;
+  --zp-space-2: 8px;
+  --zp-space-3: 12px;
+  --zp-space-4: 16px;
+  --zp-space-6: 24px;
+  --zp-topbar-h: 40px;
+  --zp-statusbar-h: 24px;
+  --zp-sidebar-w: 200px;
+  --zp-inspector-w: 360px;
+  --zp-panel-header-h: 32px;
+  --zp-row-h: 32px;
+  --zp-control-h: 28px;
+  --zp-control-h-lg: 32px;
+}
+
+/* Tema oscuro (estilo Premiere Pro 25) */
+:root.dark {
+  /* Superficies */
+  --zp-bg: #0a0a0a;
+  --zp-surface: #1d1d1d;
+  --zp-surface-hover: #262626;
+  --zp-surface-active: #2e2e2e;
+  --zp-selected: #1a2f4a;
+  --zp-field: #0e0e0e;
+  --zp-field-border: #6b6b6b;
+  --zp-divider: #2b2b2b;
+  --zp-dialog-border: #3a3a3a;
+
+  /* Texto: no existe un gris más tenue que --zp-text-secondary */
+  --zp-text: #ededed;
+  --zp-text-secondary: #c8c8c8;
+  --zp-text-on-accent: #ffffff;
+
+  /* Acento único */
+  --zp-accent: #0a6ce8;
+  --zp-accent-hover: #0b63d6;
+  --zp-accent-pressed: #0a5bc4;
+  --zp-accent-text: #5a9ae1;
+  --zp-focus: #5a9ae1;
+
+  /* Estados: siempre acompañados de la palabra */
+  --zp-success: #3db57a;
+  --zp-warning: #e8a33d;
+  --zp-danger: #ff6b6e;
+  --zp-danger-fill: #d7373f;
+}
+

@@ -14,6 +14,7 @@ const ESTADOS = [
   { valor: '', label: 'Todos los estados' },
   { valor: 'pendiente_financiero', label: 'Pendiente Financiero' },
   { valor: 'pendiente_bodega', label: 'Aprobado (en Bodega)' },
+  { valor: 'aprobado', label: 'Aprobado (sin Bodega)' },
   { valor: 'rechazado', label: 'Rechazado' },
 ]
 // Mismos valores que Backend/src/models/Requerimiento.js (estado raíz +
@@ -21,6 +22,7 @@ const ESTADOS = [
 const LABEL_ESTADO = {
   pendiente_financiero: 'Pendiente Financiero',
   pendiente_bodega: 'Aprobado',
+  aprobado: 'Aprobado',
   rechazado: 'Rechazado',
 }
 const LABEL_ESTADO_BODEGA = {
@@ -117,7 +119,7 @@ export default function TodosRequerimientosPage() {
                     <p className="mb-1.5 truncate text-sm text-slate-600 dark:text-slate-300">{r.solicitante?.nombre}</p>
                     <div className="flex flex-wrap gap-1.5">
                       <Badge valor={r.estado} label={LABEL_ESTADO[r.estado] || r.estado} />
-                      {r.estado === 'pendiente_bodega' && (
+                      {r.estado === 'pendiente_bodega' && r.dirigidoAlmacen === true && (
                         <Badge valor={r.bodega?.estado} label={LABEL_ESTADO_BODEGA[r.bodega?.estado] || r.bodega?.estado} />
                       )}
                     </div>
@@ -141,7 +143,7 @@ export default function TodosRequerimientosPage() {
                   <p className="mb-1.5 truncate text-sm text-slate-600 dark:text-slate-300">{r.solicitante?.nombre}</p>
                   <div className="flex flex-wrap gap-1.5">
                     <Badge valor={r.estado} label={LABEL_ESTADO[r.estado] || r.estado} />
-                    {r.estado === 'pendiente_bodega' && (
+                    {r.estado === 'pendiente_bodega' && r.dirigidoAlmacen === true && (
                       <Badge valor={r.bodega?.estado} label={LABEL_ESTADO_BODEGA[r.bodega?.estado] || r.bodega?.estado} />
                     )}
                   </div>
@@ -169,7 +171,7 @@ export default function TodosRequerimientosPage() {
                   <Td>
                     <div className="flex gap-1.5">
                       <Badge valor={r.estado} label={LABEL_ESTADO[r.estado] || r.estado} />
-                      {r.estado === 'pendiente_bodega' && (
+                      {r.estado === 'pendiente_bodega' && r.dirigidoAlmacen === true && (
                         <Badge valor={r.bodega?.estado} label={LABEL_ESTADO_BODEGA[r.bodega?.estado] || r.bodega?.estado} />
                       )}
                     </div>

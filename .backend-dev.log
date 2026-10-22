@@ -1,0 +1,193 @@
+
+> skynet-backend@1.0.0 dev
+> node scripts/free-port.js && node --watch src/index.js
+
+🧹  Puerto 3001: proceso 15952 liberado
+⚠️  Fallo la resolución DNS del cluster (querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net), reintentando con DNS público (8.8.8.8, 1.1.1.1)...
+❌  Error de conexión a MongoDB: querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net
+✅  Conectado a MongoDB
+⚠️  2 permiso(s) en la base ya no existen en rbac.data.js: empleados:gestionar, empleados:ver.
+    No se borran automáticamente (ver el comentario en sistema.service.js).
+    Para revisarlos y limpiarlos: node scripts/limpiar-permisos-obsoletos.js
+[33mwarn[39m: Workers en segundo plano DESACTIVADOS: este backend de desarrollo está conectado a la base de producción ("Skynet"). Si corrieran, enviarían notificaciones reales desde el SMTP de este .env y competirían con el servidor por la misma cola. Para probarlos en local, apunta MONGO_URI a "Skynet_dev" (ver .env.development.example). {"timestamp":"2026-10-22T15:12:37.304Z"}
+[32minfo[39m: Backend Skynet corriendo en http://localhost:3001 {"timestamp":"2026-10-22T15:12:37.311Z"}
+[32minfo[39m: API disponible en http://localhost:3001/api {"timestamp":"2026-10-22T15:12:37.312Z"}
+🐢  Request lento: GET /bodega -> 200 en 695ms (requestId=b3cc120d-c368-47f5-adf4-c903dc6fbbb7)
+🐢  Request lento: GET / -> 200 en 781ms (requestId=8a37797c-29a0-4b99-b56f-51c58efb4c01)
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"aad610d6-794c-4db7-be27-0c90efd98efe","timestamp":"2026-10-22T15:13:02.252Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"80530bb2-7b24-42aa-8bdb-db5d3bc03366","timestamp":"2026-10-22T15:13:02.449Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"aeb569e3-ebde-4ec2-b424-511e9dc697a6","timestamp":"2026-10-22T15:13:07.119Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"aa5788fe-6e34-4021-b2b8-2ae11fa9d52f","timestamp":"2026-10-22T15:13:07.317Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"ec6e7a77-b8ba-437c-8bb0-24b8563f24e1","timestamp":"2026-10-22T15:14:49.161Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"8ca23612-5c34-4d3d-bdcf-2073b69bc10c","timestamp":"2026-10-22T15:14:49.355Z"}
+🐢  Request lento: GET /dashboard -> 200 en 843ms (requestId=8e04b649-3bde-4a68-bc39-eec282f91f59)
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"9d34b5d2-1337-48d1-a2da-42db590933a8","timestamp":"2026-10-22T15:15:23.139Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"687e6790-4139-4f10-9e43-1251613da73d","timestamp":"2026-10-22T15:15:23.381Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"b8796952-6139-4300-81ab-f8995cec1f10","timestamp":"2026-10-22T15:16:00.637Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"b4de0e54-a696-4b47-b36d-cadbe5d39740","timestamp":"2026-10-22T15:16:00.833Z"}
+🐢  Request lento: GET / -> 200 en 559ms (requestId=d49c59c0-c396-43c9-ab39-fa3929774544)
+🐢  Request lento: GET / -> 304 en 677ms (requestId=77450ab5-e196-41c9-a49f-287af3ca8b90)
+🐢  Request lento: GET / -> 304 en 557ms (requestId=1dacf79b-7a4b-45df-b065-5d7eeb71ac4f)
+🐢  Request lento: GET /noticias/categorias -> 304 en 2460ms (requestId=6f203e8c-ef65-471a-9df3-9362c9123d14)
+🐢  Request lento: GET /noticias -> 304 en 2677ms (requestId=b360a13a-3a57-40de-91ed-093af15f200e)
+🐢  Request lento: GET /resumen -> 200 en 3719ms (requestId=1b571e2e-2939-4e4c-b74f-3c48b721ce34)
+🐢  Request lento: GET /eventos/sedes -> 304 en 1039ms (requestId=bedbbed2-c2f9-4ee6-95b0-f517743f8a09)
+🐢  Request lento: GET /eventos -> 304 en 2001ms (requestId=a56a2407-298e-4c09-ad57-32f3b03a0254)
+🐢  Request lento: GET /avisos -> 304 en 1090ms (requestId=b3f6b955-1546-4f88-b3b3-5a6b09aae126)
+🐢  Request lento: GET /medios -> 304 en 1074ms (requestId=593c6604-88b6-40c6-b4f6-32224ede2a3a)
+🐢  Request lento: GET / -> 304 en 565ms (requestId=d3683f53-6a59-4854-a283-f578efc04378)
+🐢  Request lento: GET / -> 304 en 510ms (requestId=e0e69719-0339-4752-a0eb-418e772df9a8)
+🐢  Request lento: GET / -> 304 en 672ms (requestId=4f458c74-0a50-4b44-b4ea-20a8ab2a0059)
+🐢  Request lento: GET / -> 304 en 666ms (requestId=dc99c746-c798-4582-9465-94ce4e41e55c)
+🐢  Request lento: GET / -> 304 en 769ms (requestId=5942621a-c5e7-465e-a26f-547bb8a41f25)
+🐢  Request lento: GET / -> 304 en 668ms (requestId=41347aa3-cfa8-4958-bdc9-56db490d5a90)
+🐢  Request lento: GET / -> 304 en 673ms (requestId=b783666d-5fca-4ea7-8aa4-7846e8d7c1b2)
+🐢  Request lento: GET / -> 304 en 668ms (requestId=3aea5d27-9b94-438f-8fa5-f8d2858e9b05)
+🐢  Request lento: GET / -> 304 en 1022ms (requestId=4b1763cd-258b-4b93-9534-e8e9d6d078b1)
+🐢  Request lento: GET / -> 304 en 882ms (requestId=20be3bef-4ddf-40db-a326-80baaf7a6c18)
+🐢  Request lento: GET / -> 304 en 673ms (requestId=2cc9a9e0-7056-434d-83a5-8b8a99f2c4d3)
+🐢  Request lento: GET / -> 304 en 674ms (requestId=093a4a54-7b5b-4e61-8959-dd71adc3627f)
+🐢  Request lento: GET / -> 304 en 680ms (requestId=10d9f74f-7c07-4e00-a6e8-ed746dd02b70)
+🐢  Request lento: GET / -> 304 en 679ms (requestId=03a05de5-cd8f-4649-9f38-e5d85821b9ae)
+🐢  Request lento: GET / -> 304 en 664ms (requestId=53db27df-7fce-4633-a57d-189456f2f3a9)
+🐢  Request lento: GET / -> 304 en 665ms (requestId=1ebd150a-0700-43b7-96f1-f7de4fbc47ef)
+🐢  Request lento: GET /resumen -> 304 en 2856ms (requestId=d66570dc-85db-440c-9c7e-364e7871c04a)
+🐢  Request lento: GET /noticias -> 304 en 2817ms (requestId=9809f56e-88e7-464d-b67e-e0d3ff7dce70)
+🐢  Request lento: GET /avisos -> 304 en 1015ms (requestId=b3a60779-80d1-4dd7-8f78-2c467d437e66)
+🐢  Request lento: GET /eventos -> 304 en 2668ms (requestId=e36a53a4-dc30-4b27-b670-3ef3b3e20bb6)
+🐢  Request lento: GET /noticias/categorias -> 304 en 1053ms (requestId=f1d51459-e0e3-49cd-88d9-e97177a5c4e6)
+🐢  Request lento: GET /avisos -> 304 en 1203ms (requestId=851dd533-8ba7-4ec4-bb68-516dcab2fd90)
+🐢  Request lento: GET /resumen -> 304 en 2207ms (requestId=efb876cb-9b8f-4b9b-b85d-0786a7a152f7)
+🐢  Request lento: GET /noticias -> 304 en 1373ms (requestId=0edd199f-c051-4049-b67a-756406892247)
+🐢  Request lento: GET /noticias -> 304 en 1317ms (requestId=20599fea-ad2b-4bde-8227-5f6566d4ee1b)
+🐢  Request lento: GET /noticias -> 304 en 3284ms (requestId=e054ec33-5079-4e4e-9664-e6463201f1b7)
+🐢  Request lento: GET /noticias -> 200 en 1337ms (requestId=a973aa63-8023-4179-8ec0-5a562b09f9f8)
+🐢  Request lento: DELETE /noticias/47942 -> 204 en 1318ms (requestId=e2c6381b-e816-4d95-8ab1-55fc872b1f9c)
+🐢  Request lento: GET /noticias -> 200 en 941ms (requestId=18e61494-19e5-4de5-bb20-c458385971f8)
+🐢  Request lento: GET /noticias/categorias -> 304 en 1094ms (requestId=ae1ca102-a442-407f-adbb-9f4af6c62c4f)
+🐢  Request lento: GET /noticias -> 304 en 1370ms (requestId=e9cd35db-e646-448d-9132-52f94247d636)
+Restarting 'src/index.js'
+⚠️  Fallo la resolución DNS del cluster (querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net), reintentando con DNS público (8.8.8.8, 1.1.1.1)...
+❌  Error de conexión a MongoDB: querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net
+Restarting 'src/index.js'
+⚠️  Fallo la resolución DNS del cluster (querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net), reintentando con DNS público (8.8.8.8, 1.1.1.1)...
+❌  Error de conexión a MongoDB: querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net
+✅  Conectado a MongoDB
+⚠️  2 permiso(s) en la base ya no existen en rbac.data.js: empleados:gestionar, empleados:ver.
+    No se borran automáticamente (ver el comentario en sistema.service.js).
+    Para revisarlos y limpiarlos: node scripts/limpiar-permisos-obsoletos.js
+[33mwarn[39m: Workers en segundo plano DESACTIVADOS: este backend de desarrollo está conectado a la base de producción ("Skynet"). Si corrieran, enviarían notificaciones reales desde el SMTP de este .env y competirían con el servidor por la misma cola. Para probarlos en local, apunta MONGO_URI a "Skynet_dev" (ver .env.development.example). {"timestamp":"2026-10-22T15:29:57.101Z"}
+[31merror[39m: El puerto 3001 ya está en uso por otro proceso. Cierra ese proceso (en Windows: netstat -ano | findstr :3001, luego taskkill /PID <pid> /F) y vuelve a intentarlo. {"timestamp":"2026-10-22T15:29:57.104Z"}
+Restarting 'src/index.js'
+⚠️  Fallo la resolución DNS del cluster (querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net), reintentando con DNS público (8.8.8.8, 1.1.1.1)...
+❌  Error de conexión a MongoDB: querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net
+✅  Conectado a MongoDB
+⚠️  2 permiso(s) en la base ya no existen en rbac.data.js: empleados:gestionar, empleados:ver.
+    No se borran automáticamente (ver el comentario en sistema.service.js).
+    Para revisarlos y limpiarlos: node scripts/limpiar-permisos-obsoletos.js
+[33mwarn[39m: Workers en segundo plano DESACTIVADOS: este backend de desarrollo está conectado a la base de producción ("Skynet"). Si corrieran, enviarían notificaciones reales desde el SMTP de este .env y competirían con el servidor por la misma cola. Para probarlos en local, apunta MONGO_URI a "Skynet_dev" (ver .env.development.example). {"timestamp":"2026-10-22T15:38:47.599Z"}
+[32minfo[39m: Backend Skynet corriendo en http://localhost:3001 {"timestamp":"2026-10-22T15:38:47.603Z"}
+[32minfo[39m: API disponible en http://localhost:3001/api {"timestamp":"2026-10-22T15:38:47.603Z"}
+Restarting 'src/index.js'
+⚠️  Fallo la resolución DNS del cluster (querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net), reintentando con DNS público (8.8.8.8, 1.1.1.1)...
+❌  Error de conexión a MongoDB: querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net
+✅  Conectado a MongoDB
+Restarting 'src/index.js'
+⚠️  Fallo la resolución DNS del cluster (querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net), reintentando con DNS público (8.8.8.8, 1.1.1.1)...
+❌  Error de conexión a MongoDB: querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net
+✅  Conectado a MongoDB
+⚠️  2 permiso(s) en la base ya no existen en rbac.data.js: empleados:gestionar, empleados:ver.
+    No se borran automáticamente (ver el comentario en sistema.service.js).
+    Para revisarlos y limpiarlos: node scripts/limpiar-permisos-obsoletos.js
+[33mwarn[39m: Workers en segundo plano DESACTIVADOS: este backend de desarrollo está conectado a la base de producción ("Skynet"). Si corrieran, enviarían notificaciones reales desde el SMTP de este .env y competirían con el servidor por la misma cola. Para probarlos en local, apunta MONGO_URI a "Skynet_dev" (ver .env.development.example). {"timestamp":"2026-10-22T15:40:35.363Z"}
+[32minfo[39m: Backend Skynet corriendo en http://localhost:3001 {"timestamp":"2026-10-22T15:40:35.366Z"}
+[32minfo[39m: API disponible en http://localhost:3001/api {"timestamp":"2026-10-22T15:40:35.366Z"}
+🐢  Request lento: GET / -> 200 en 669ms (requestId=fd79a320-5b1e-4897-a2af-78ef2e238e1e)
+🐢  Request lento: GET /financiero -> 200 en 502ms (requestId=0b7c8aee-90ae-4f6d-a525-ba7b157b960b)
+🐢  Request lento: GET / -> 304 en 642ms (requestId=d59e9405-c50d-4544-97c4-4feafc319bd5)
+🐢  Request lento: GET / -> 304 en 660ms (requestId=606ac5ad-7dc3-4c7d-a3d4-d7ecd6353642)
+🐢  Request lento: GET / -> 304 en 1517ms (requestId=21fd09ca-fe5a-4360-aed3-65ac55d0faed)
+🐢  Request lento: GET / -> 304 en 639ms (requestId=2ed517e0-df0a-48e4-9017-dc3c2ebdc009)
+🐢  Request lento: GET / -> 304 en 641ms (requestId=33cbc933-625c-4eb9-8d09-89ec773cfd9a)
+🐢  Request lento: GET /resumen -> 200 en 6925ms (requestId=9bed938e-079a-4892-b92f-80b7b72770a6)
+🐢  Request lento: GET /noticias/categorias -> 304 en 1000ms (requestId=593752fa-1bfb-4964-a547-475c1d94546c)
+🐢  Request lento: GET /noticias -> 304 en 1179ms (requestId=368d197f-aaa8-40cf-b4a3-aecfa027cb28)
+🐢  Request lento: GET /eventos/sedes -> 304 en 1145ms (requestId=5af96670-26bd-4ea5-9d26-429907463133)
+🐢  Request lento: GET /avisos -> 304 en 1104ms (requestId=019b679c-5f54-4528-b13d-b5f4c5671bbc)
+🐢  Request lento: GET /medios -> 304 en 1128ms (requestId=dd674621-2629-4c40-8f1f-593b5aa46662)
+🐢  Request lento: GET /eventos -> 304 en 3040ms (requestId=4aec04c4-ffcc-4fce-87b0-fc36180655cc)
+🐢  Request lento: GET /supervisor/centro-control -> 304 en 933ms (requestId=77032b4f-dff5-49fb-8162-85ddfd4172eb)
+🐢  Request lento: GET /seguimiento -> 200 en 1154ms (requestId=e728b7f9-d0ba-46aa-a7f6-3cd5704f9b31)
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"9d46c139-7674-49de-a59d-977b8760544b","timestamp":"2026-10-22T16:00:35.343Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"524f1560-5f7d-4a70-92e0-3efccfd168a1","timestamp":"2026-10-22T16:00:35.345Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"08cb2a4b-4fa3-4d99-8cd4-f392da4c0b23","timestamp":"2026-10-22T16:00:37.601Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"de3b7b2f-f7bc-4016-920d-71313dc1b182","timestamp":"2026-10-22T16:00:37.604Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"633124c5-7f49-4646-a802-7c8282140990","timestamp":"2026-10-22T16:36:25.272Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"99a11714-e61c-4376-b5e1-390eb84ec6dc","timestamp":"2026-10-22T16:36:25.274Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"fbddcb26-29e1-4247-9e51-cfae1363f7fa","timestamp":"2026-10-22T16:36:27.508Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"b2483756-da1a-448e-9778-b25ebc000e69","timestamp":"2026-10-22T16:36:27.510Z"}
+🐢  Request lento: GET /noticias/categorias -> 304 en 1721ms (requestId=22d269cd-4a49-4995-b1de-4f52480320e1)
+🐢  Request lento: GET /noticias -> 304 en 1915ms (requestId=7c182b64-ad1d-4ae4-a312-f85b1d1b18d8)
+🐢  Request lento: GET /resumen -> 304 en 3146ms (requestId=09685fd0-d517-4999-a55c-897a227c122a)
+🐢  Request lento: GET /eventos/sedes -> 304 en 726ms (requestId=58137576-a660-4389-ad1c-0ed9d2c7d31a)
+🐢  Request lento: GET /eventos -> 304 en 1423ms (requestId=2d579e94-717f-4d77-aeab-0cf962e43e6b)
+🐢  Request lento: GET /medios -> 304 en 835ms (requestId=bb6517ba-92d7-4685-8c5a-cc3245ef0bba)
+🐢  Request lento: GET /seguimiento -> 304 en 1219ms (requestId=93dcb690-a2f0-4b4a-aabf-e5d9bdd86688)
+🐢  Request lento: GET /supervisor/centro-control -> 304 en 1033ms (requestId=52a18ae8-705c-4168-ac3b-d68d1291b126)
+🐢  Request lento: GET /reportes/plan-refuerzo -> 200 en 801ms (requestId=88fa9244-88ec-4ff8-bc5c-93fd350c3ea3)
+🐢  Request lento: GET /pendientes -> 304 en 689ms (requestId=8993a529-83bb-4ea2-b03f-be5efa25cd5f)
+🐢  Request lento: GET /supervisor/centro-control -> 304 en 1015ms (requestId=537e22d7-5feb-440a-a1b9-894fa0742a5e)
+🐢  Request lento: GET /seguimiento -> 304 en 1111ms (requestId=b53c7508-b650-4998-a3d8-314077fa9741)
+🐢  Request lento: GET /medios -> 304 en 1446ms (requestId=637d8f3f-5dc3-4f6f-bf7f-dfa0fb67754a)
+🐢  Request lento: GET /avisos -> 304 en 985ms (requestId=4dad9cda-3dda-4f06-a6e5-23f3fceb324b)
+🐢  Request lento: GET /resumen -> 304 en 2040ms (requestId=ad0c08e7-ccc9-466a-bf72-0763671f9c2d)
+🐢  Request lento: GET /noticias/categorias -> 304 en 685ms (requestId=974e5945-e5bf-4649-a216-03b0753ac828)
+🐢  Request lento: GET /noticias -> 304 en 887ms (requestId=1e3676b5-b73c-47f8-aac4-45f85fd88f14)
+🐢  Request lento: GET /eventos/sedes -> 304 en 751ms (requestId=7c705ecc-f4d9-4375-8756-d72a4e3a4951)
+🐢  Request lento: GET /eventos -> 304 en 1646ms (requestId=d00691b3-8290-4485-90b5-1c7d73f078c4)
+🐢  Request lento: GET /avisos -> 304 en 1333ms (requestId=affe529c-aecd-47e5-b2e1-3c21e649763e)
+🐢  Request lento: GET /medios -> 304 en 713ms (requestId=a341d9ea-37ee-4b74-ae66-2d4cc25f447b)
+🐢  Request lento: POST /medios -> 201 en 1595ms (requestId=8ac754ee-52e4-4c7a-b118-3f38f5afe69a)
+🐢  Request lento: GET /medios -> 200 en 731ms (requestId=9c74f471-6813-4fb1-8fac-f9a1783629d1)
+🐢  Request lento: GET /avisos -> 304 en 1117ms (requestId=d21a4ed4-fb95-4d7e-ad44-4abdcc53ba0a)
+🐢  Request lento: GET /eventos/sedes -> 304 en 1078ms (requestId=b2afae91-f55f-4dec-b394-db46dd6be6f4)
+🐢  Request lento: GET /eventos -> 304 en 2149ms (requestId=d7491fbb-e8e3-43dd-812a-60e823c2cd8b)
+🐢  Request lento: GET /noticias/categorias -> 304 en 959ms (requestId=ed7cfc85-9144-4ebd-9e38-f67e513d5a71)
+🐢  Request lento: GET /noticias -> 304 en 1186ms (requestId=afde5710-baf4-46ca-8a4a-4608be76558f)
+🐢  Request lento: GET /medios -> 304 en 1011ms (requestId=ffa8ef87-2d44-4182-a851-e138f9d2fcff)
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"f8457634-11b3-491c-83c4-50455dd69e88","timestamp":"2026-10-22T16:49:59.140Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"25730cc7-4a3b-4301-8b20-0e95a5e71f29","timestamp":"2026-10-22T16:49:59.141Z"}
+🐢  Request lento: GET /resumen -> 200 en 7716ms (requestId=bf406ed4-f428-481a-8e1f-4047b7524545)
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"80832b6a-04dc-40c7-bb9b-632b1bb9f3b0","timestamp":"2026-10-22T16:50:01.634Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"4224d8bd-bb93-4fca-865a-88965fd14b13","timestamp":"2026-10-22T16:50:09.142Z"}
+[31merror[39m: Error no controlado {"error":{"status":404},"requestId":"1a718d41-508d-4627-a645-80af007afa7f","timestamp":"2026-10-22T16:50:09.144Z"}
+🐢  Request lento: GET /reportes/plan-refuerzo -> 200 en 776ms (requestId=73138405-076c-4472-b5b1-eb3334f0a84d)
+🐢  Request lento: GET /dashboard -> 200 en 557ms (requestId=67224745-214a-4e92-8e22-d376571b6d0e)
+🐢  Request lento: GET /calendario -> 200 en 666ms (requestId=a4f4bb98-19d3-4c58-a170-5c01d6a0197d)
+🐢  Request lento: GET /individual -> 200 en 541ms (requestId=95386e94-0354-4890-aa2d-28cd445e8c3c)
+🐢  Request lento: GET / -> 200 en 683ms (requestId=d0768ad0-fd11-4b01-be1c-b19784737d98)
+🐢  Request lento: GET / -> 200 en 762ms (requestId=df7d9c04-d449-4ec6-8017-d031322ceed4)
+🐢  Request lento: GET / -> 304 en 782ms (requestId=f412a063-83c3-480f-a623-6c0801e5c70d)
+🐢  Request lento: GET / -> 304 en 566ms (requestId=1a5c4ec3-e5fa-46f4-aa04-d17a339612f8)
+🐢  Request lento: GET /reportes/plan-refuerzo -> 200 en 969ms (requestId=e935b8cd-2489-4e8d-8703-4e933a45c482)
+🐢  Request lento: GET / -> 304 en 569ms (requestId=d74c1ebf-fed6-4995-901a-e7b1e18f6e21)
+🐢  Request lento: GET / -> 304 en 559ms (requestId=4cc22c0b-3970-467e-aadd-ff3408729152)
+🐢  Request lento: GET /dashboard -> 304 en 555ms (requestId=f50451bc-30f6-4155-9516-bbb4a2ceff70)
+🐢  Request lento: GET /calendario -> 304 en 736ms (requestId=0aeaaae6-0f18-45f2-98b5-8c59e7f51e50)
+🐢  Request lento: GET /seguimiento -> 304 en 1215ms (requestId=52a58d66-5863-4d2f-b352-cb2781f4982f)
+🐢  Request lento: GET /supervisor/centro-control -> 304 en 939ms (requestId=1435c29e-01a7-474f-b1aa-b8b05e8d2e4b)
+Restarting 'src/index.js'
+Restarting 'src/index.js'
+Restarting 'src/index.js'
+Restarting 'src/index.js'
+⚠️  Fallo la resolución DNS del cluster (querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net), reintentando con DNS público (8.8.8.8, 1.1.1.1)...
+❌  Error de conexión a MongoDB: querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net
+Restarting 'src/index.js'
+⚠️  Fallo la resolución DNS del cluster (querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net), reintentando con DNS público (8.8.8.8, 1.1.1.1)...
+❌  Error de conexión a MongoDB: querySrv ECONNREFUSED _mongodb._tcp.ttn.oufx0bv.mongodb.net
+✅  Conectado a MongoDB
+⚠️  2 permiso(s) en la base ya no existen en rbac.data.js: empleados:gestionar, empleados:ver.
+    No se borran automáticamente (ver el comentario en sistema.service.js).
+    Para revisarlos y limpiarlos: node scripts/limpiar-permisos-obsoletos.js
+[33mwarn[39m: Workers en segundo plano DESACTIVADOS: este backend de desarrollo está conectado a la base de producción ("Skynet"). Si corrieran, enviarían notificaciones reales desde el SMTP de este .env y competirían con el servidor por la misma cola. Para probarlos en local, apunta MONGO_URI a "Skynet_dev" (ver .env.development.example). {"timestamp":"2026-10-22T16:58:09.495Z"}
+[31merror[39m: El puerto 3001 ya está en uso por otro proceso. Cierra ese proceso (en Windows: netstat -ano | findstr :3001, luego taskkill /PID <pid> /F) y vuelve a intentarlo. {"timestamp":"2026-10-22T16:58:09.497Z"}

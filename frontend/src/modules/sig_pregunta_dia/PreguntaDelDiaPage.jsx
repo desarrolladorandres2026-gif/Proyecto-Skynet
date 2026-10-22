@@ -85,7 +85,7 @@ function TarjetaPregunta({ pregunta, indice, total, seleccion, onSeleccionar, on
               : 'border-red-500/30 bg-red-500/10 text-red-800 dark:text-red-300'
           )}
         >
-          <p className="font-semibold">{miRespuesta?.esCorrecta ? '✅ Respuesta correcta' : '❌ Respuesta incorrecta'}</p>
+          <p className="font-semibold">{miRespuesta?.esCorrecta ? 'Respuesta correcta' : 'Respuesta incorrecta'}</p>
           {miRespuesta?.retroalimentacion && <p className="mt-1 text-sm opacity-90">{miRespuesta.retroalimentacion}</p>}
         </div>
       )}

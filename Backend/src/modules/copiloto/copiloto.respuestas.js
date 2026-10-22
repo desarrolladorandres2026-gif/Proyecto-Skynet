@@ -90,6 +90,7 @@ export function recordatorioPendientes(nombre, tarjetas) {
 const ESTADO_REQUERIMIENTO_HUMANO = {
   pendiente_financiero: 'esperando aprobación de Financiero',
   pendiente_bodega: 'en Bodega',
+  aprobado: 'aprobado',
   rechazado: 'rechazado',
 }
 

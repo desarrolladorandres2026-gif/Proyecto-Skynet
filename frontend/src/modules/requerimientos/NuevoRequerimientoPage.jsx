@@ -8,6 +8,7 @@ import { useDatosConCache, invalidarCachePorPrefijo } from '../../hooks/useDatos
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { Btn, Card, ErrorMsg, Field, Input } from '../../components/ui.jsx'
 import { CatalogoSelect } from '../../components/CatalogoSelect.jsx'
+import { CheckboxLabel } from '../../components/Checkbox.jsx'
 import FormularioCompra, { filaVaciaCompra } from './FormularioCompra.jsx'
 import FormularioServicio, { detalleServicioVacio } from './FormularioServicio.jsx'
 
@@ -34,6 +35,8 @@ export default function NuevoRequerimientoPage() {
   const [items, setItems] = useState([filaVaciaCompra()])
   const [detalleServicio, setDetalleServicio] = useState(detalleServicioVacio())
   const [areaOProceso, setAreaOProceso] = useState('')
+  // Sin marcar por defecto: solo lo dirigido a almacén pasa a Bodega al aprobarse.
+  const [dirigidoAlmacen, setDirigidoAlmacen] = useState(false)
   const [dano, setDano] = useState(null)
   const [error, setError] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -53,7 +56,7 @@ export default function NuevoRequerimientoPage() {
     setError('')
     setEnviando(true)
     try {
-      const payload = { tipo, cargo }
+      const payload = { tipo, cargo, dirigidoAlmacen }
       if (tipo === 'compra') payload.itemsCompra = items
       else {
         payload.detalleServicio = detalleServicio
@@ -144,6 +147,15 @@ export default function NuevoRequerimientoPage() {
               <FormularioServicio detalle={detalleServicio} onChange={setDetalleServicio} />
             </>
           )}
+
+          <div>
+            <CheckboxLabel checked={dirigidoAlmacen} onCheckedChange={(v) => setDirigidoAlmacen(v === true)}>
+              ¿Este requerimiento va dirigido a almacén?
+            </CheckboxLabel>
+            <p className="mt-1 text-xs">
+              Si lo marcas, una vez aprobado lo gestiona Bodega. Si no, queda solo en Todos los requerimientos.
+            </p>
+          </div>
 
           <div className="flex justify-end pt-2">
             <button

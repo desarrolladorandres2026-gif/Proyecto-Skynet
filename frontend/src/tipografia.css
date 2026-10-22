@@ -1,5 +1,5 @@
-/* Tipografía y color de texto unificados de TODA la app: Inter, peso normal
-   (400), sin cursiva, y texto negro en tema claro / blanco en tema oscuro.
+/* Tipografía y color de texto unificados de TODA la app: Source Sans 3, pesos
+   400 y 600, sin cursiva, y texto negro en tema claro / blanco en tema oscuro.
 
    Este archivo se importa al final de index.css, DESPUÉS de tailwindcss, a
    propósito: las utilidades de Tailwind (font-bold, italic, text-slate-500,
@@ -40,6 +40,19 @@
   font-family: var(--font-sans);
   font-weight: 400;
   font-style: normal;
+}
+
+/* Peso 600: único énfasis permitido (títulos, encabezados de tabla, botones
+   y las utilidades font-medium/semibold/bold que ya usan los componentes). */
+h1, h2, h3, h4, h5, h6, th, strong, b,
+.font-medium, .font-semibold, .font-bold, .font-extrabold, .font-black,
+.skynet-title {
+  font-weight: 600;
+}
+
+/* Cifras tabulares en toda la app */
+body {
+  font-variant-numeric: tabular-nums;
 }
 
 body {

@@ -15,6 +15,7 @@ function estadoVisible(r) {
 const LABEL_ESTADO = {
   pendiente_financiero: 'Pendiente Financiero',
   pendiente_bodega: 'Aprobado',
+  aprobado: 'Aprobado',
   rechazado: 'Rechazado',
   aprobada: 'Despachado',
   no_aprobada: 'No se puede despachar',

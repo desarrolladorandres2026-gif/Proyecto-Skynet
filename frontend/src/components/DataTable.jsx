@@ -13,7 +13,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react'
 import { cn } from '../lib/cn.js'
 import { EmptyState, Pager } from './ui.jsx'
 import { SkeletonTable } from './Skeleton.jsx'
@@ -59,6 +58,7 @@ export function DataTable({
                   return (
                     <th
                       key={header.id}
+                      aria-sort={direccion === 'asc' ? 'ascending' : direccion === 'desc' ? 'descending' : undefined}
                       className={cn(
                         'panel-th panel-mono px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide',
                         puedeOrdenar && 'cursor-pointer select-none'
@@ -67,14 +67,7 @@ export function DataTable({
                     >
                       <span className="inline-flex items-center gap-1">
                         {flexRender(header.column.columnDef.header, header.getContext())}
-                        {puedeOrdenar &&
-                          (direccion === 'asc' ? (
-                            <ArrowUp className="h-3 w-3" aria-hidden="true" />
-                          ) : direccion === 'desc' ? (
-                            <ArrowDown className="h-3 w-3" aria-hidden="true" />
-                          ) : (
-                            <ChevronsUpDown className="h-3 w-3 opacity-40" aria-hidden="true" />
-                          ))}
+                        {direccion === 'asc' ? ' (asc.)' : direccion === 'desc' ? ' (desc.)' : null}
                       </span>
                     </th>
                   )

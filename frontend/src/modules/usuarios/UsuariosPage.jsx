@@ -31,7 +31,7 @@ export default function UsuariosPage() {
   const { usuario: usuarioActual } = useAuth()
   const esSuperAdmin = Boolean(usuarioActual?.esSuperAdmin)
 
-  // 'reales' = 👥 Usuarios (personal del Terminal), 'prueba' = 🧪 Usuarios de
+  // 'reales' = Usuarios (personal del Terminal), 'prueba' = Usuarios de
   // prueba. Son vistas completamente separadas en el backend (cada una pide
   // ?esPrueba=…): un usuario de prueba nunca aparece mezclado en la vista real.
   const [vista, setVista] = useState('reales')

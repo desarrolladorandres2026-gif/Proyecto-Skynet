@@ -18,6 +18,9 @@ import {
   exportarCsv,
   eliminarPorRangoFecha,
   eliminarUno,
+  listarBandejaBodega,
+  listarTodos,
+  obtenerDetalle,
 } from '../src/modules/requerimientos/requerimientos.service.js'
 
 async function crearPermiso(codigo) {
@@ -103,7 +106,7 @@ describe('flujo de Requerimientos con notificaciones', () => {
       await crearUsuarioConPermiso('requerimientos:gestionar_bodega')
 
     const req = await crearRequerimiento(
-      { tipo: 'compra', itemsCompra: [{ descripcionProducto: 'Resma papel', cantidad: 2, fechaSolicitud: new Date() }] },
+      { tipo: 'compra', dirigidoAlmacen: true, itemsCompra: [{ descripcionProducto: 'Resma papel', cantidad: 2, fechaSolicitud: new Date() }] },
       actorSolicitante
     )
 
@@ -130,7 +133,7 @@ describe('flujo de Requerimientos con notificaciones', () => {
     const { actor: actorBodega } = await crearUsuarioConPermiso('requerimientos:gestionar_bodega')
 
     const req = await crearRequerimiento(
-      { tipo: 'servicio', detalleServicio: { descripcionTipoServicio: 'Aseo de oficinas' } },
+      { tipo: 'servicio', dirigidoAlmacen: true, detalleServicio: { descripcionTipoServicio: 'Aseo de oficinas' } },
       actorSolicitante
     )
     await aprobarComoFinanciero(req._id, { password: passFinanciero }, actorFinanciero)
@@ -162,7 +165,7 @@ describe('flujo de Requerimientos con notificaciones', () => {
     })
 
     const req = await crearRequerimiento(
-      { tipo: 'servicio', detalleServicio: { descripcionTipoServicio: 'Fumigación' } },
+      { tipo: 'servicio', dirigidoAlmacen: true, detalleServicio: { descripcionTipoServicio: 'Fumigación' } },
       actorSolicitante
     )
     await aprobarComoFinanciero(req._id, { password: passFinanciero }, actorFinanciero)
@@ -224,7 +227,7 @@ describe('firma digital en la aprobación de Financiero', () => {
     )
 
     const req = await crearRequerimiento(
-      { tipo: 'servicio', detalleServicio: { descripcionTipoServicio: 'Fumigación' } },
+      { tipo: 'servicio', dirigidoAlmacen: true, detalleServicio: { descripcionTipoServicio: 'Fumigación' } },
       actorSolicitante
     )
 
@@ -295,7 +298,7 @@ describe('exportar y eliminar requerimientos por rango de fechas', () => {
     // Uno se queda pendiente_financiero, el otro se aprueba y pasa a
     // pendiente_bodega — mismo rango de fecha para los dos.
     await crearConFecha(actorSolicitante, '2026-04-10')
-    const idAprobado = await crearConFecha(actorSolicitante, '2026-04-11')
+    const idAprobado = await crearConFecha(actorSolicitante, '2026-04-11', { dirigidoAlmacen: true })
     await aprobarComoFinanciero(idAprobado, { password: passwordPlano }, actorFinanciero)
     await Requerimiento.updateOne({ _id: idAprobado }, { $set: { fechaSolicitud: new Date('2026-04-11T10:00:00.000Z') } })
 
@@ -374,5 +377,57 @@ describe('exportar y eliminar requerimientos por rango de fechas', () => {
     const idInexistente = new mongoose.Types.ObjectId()
 
     await expect(eliminarUno(idInexistente, passwordSuper, actorSuperAdmin)).rejects.toThrow(/no encontrado/i)
+  })
+})
+
+describe('requerimientos dirigidos (o no) a almacén', () => {
+  async function flujo() {
+    const { actor: actorSolicitante } = await crearUsuarioConPermiso(null)
+    const { actor: actorFinanciero, passwordPlano } = await crearUsuarioConPermiso('requerimientos:aprobar_financiero', { conFirma: true })
+    const { actor: actorBodega } = await crearUsuarioConPermiso('requerimientos:gestionar_bodega')
+    const { actor: actorSupervision } = await crearUsuarioConPermiso('requerimientos:ver_todos')
+    return { actorSolicitante, actorFinanciero, passwordPlano, actorBodega, actorSupervision }
+  }
+  const servicio = (extra) => ({ tipo: 'servicio', detalleServicio: { descripcionTipoServicio: 'Servicio de prueba' }, ...extra })
+
+  it('con la casilla marcada, al aprobar pasa a Bodega y Bodega lo ve', async () => {
+    const { actorSolicitante, actorFinanciero, passwordPlano, actorBodega } = await flujo()
+    const req = await crearRequerimiento(servicio({ dirigidoAlmacen: true }), actorSolicitante)
+    const aprobado = await aprobarComoFinanciero(req._id, { password: passwordPlano }, actorFinanciero)
+
+    expect(aprobado.estado).toBe('pendiente_bodega')
+    expect(aprobado.bodega.estado).toBe('pendiente')
+    const bandeja = await listarBandejaBodega()
+    expect(bandeja.map((r) => String(r._id))).toContain(String(req._id))
+    await expect(obtenerDetalle(req._id, actorBodega)).resolves.toBeTruthy()
+  })
+
+  it('sin la casilla, al aprobar queda "aprobado": fuera de Bodega y visible en Todos', async () => {
+    const { actorSolicitante, actorFinanciero, passwordPlano, actorBodega, actorSupervision } = await flujo()
+    const req = await crearRequerimiento(servicio(), actorSolicitante)
+    const aprobado = await aprobarComoFinanciero(req._id, { password: passwordPlano }, actorFinanciero)
+
+    expect(aprobado.estado).toBe('aprobado')
+    expect(aprobado.dirigidoAlmacen).toBe(false)
+    expect((await listarBandejaBodega()).map((r) => String(r._id))).not.toContain(String(req._id))
+    expect((await listarTodos()).map((r) => String(r._id))).toContain(String(req._id))
+    await expect(obtenerDetalle(req._id, actorBodega)).rejects.toThrow(/acceso/i)
+    await expect(obtenerDetalle(req._id, actorSupervision)).resolves.toBeTruthy()
+    await expect(marcarEstadoBodega(req._id, { estado: 'aprobada' }, actorBodega)).rejects.toThrow()
+  })
+
+  it('un requerimiento anterior al campo (en pendiente_bodega, sin dirigidoAlmacen) sale de Bodega pero sigue en Todos', async () => {
+    const { actorSolicitante, actorBodega } = await flujo()
+    const req = await crearRequerimiento(servicio({ dirigidoAlmacen: true }), actorSolicitante)
+    // Simula el documento viejo: en Bodega y sin el campo.
+    await Requerimiento.collection.updateOne(
+      { _id: req._id },
+      { $set: { estado: 'pendiente_bodega' }, $unset: { dirigidoAlmacen: '' } }
+    )
+
+    expect((await listarBandejaBodega()).map((r) => String(r._id))).not.toContain(String(req._id))
+    expect((await listarBandejaBodega({ despachados: true })).map((r) => String(r._id))).not.toContain(String(req._id))
+    expect((await listarTodos()).map((r) => String(r._id))).toContain(String(req._id))
+    await expect(obtenerDetalle(req._id, actorBodega)).rejects.toThrow(/acceso/i)
   })
 })

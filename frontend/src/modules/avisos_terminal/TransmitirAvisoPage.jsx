@@ -254,10 +254,10 @@ export default function TransmitirAvisoPage() {
                       key={u._id}
                       type="button"
                       onClick={() => agregarUsuario(u)}
-                      className="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-brand-500/10"
+                      className="flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-brand-500/10"
                     >
-                      <span>{u.nombre}</span>
-                      <span className="text-xs text-slate-400">{u.dependencia || u.cargo || ''}</span>
+                      <span className="min-w-0 truncate">{u.nombre}</span>
+                      <span className="max-w-[45%] shrink-0 truncate text-xs text-slate-400">{u.dependencia || u.cargo || ''}</span>
                     </button>
                   ))}
                 </div>

@@ -178,4 +178,12 @@ export const env = {
   // Cifra el refresh token de Gmail en Mongo (utils/cifrado.js). Genera con:
   // openssl rand -hex 32
   TOKEN_ENCRYPTION_KEY: process.env.TOKEN_ENCRYPTION_KEY,
+  // Sitio web público (WordPress). Opcional a propósito, igual que
+  // GEMINI_API_KEY: sin esto el módulo "sitio_web" sigue activable pero
+  // publicar responde un error claro en vez de tumbar el arranque.
+  // WP_APP_PASSWORD es una "contraseña de aplicación" de WordPress (revocable,
+  // distinta a la clave de login), no la contraseña del usuario.
+  WP_URL: process.env.WP_URL || 'https://elterminalneiva.com',
+  WP_USER: process.env.WP_USER,
+  WP_APP_PASSWORD: process.env.WP_APP_PASSWORD,
 }

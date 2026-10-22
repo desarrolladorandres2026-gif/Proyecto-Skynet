@@ -105,7 +105,7 @@ function catalogoHerramientas(usuario, contexto = {}) {
             estado: {
               type: Type.STRING,
               description:
-                'Filtra por estado exacto: pendiente_financiero, pendiente_bodega, rechazado. Opcional, si no se indica devuelve todos.',
+                'Filtra por estado exacto: pendiente_financiero, pendiente_bodega, aprobado, rechazado. Opcional, si no se indica devuelve todos.',
             },
           },
         },

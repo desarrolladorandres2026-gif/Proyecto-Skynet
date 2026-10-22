@@ -33,6 +33,7 @@ function labelEstadoBodega(valor) {
 const LABEL_ESTADO = {
   pendiente_financiero: 'Pendiente Financiero',
   pendiente_bodega: 'Aprobado',
+  aprobado: 'Aprobado',
   rechazado: 'Rechazado',
 }
 
@@ -120,7 +121,7 @@ export default function RequerimientoDetallePage() {
 
   const esBodega = tienePermiso('requerimientos:gestionar_bodega')
   const puedeEditarFinanciero = esFinanciero && req.estado === 'pendiente_financiero'
-  const puedeGestionarBodega = esBodega && req.estado === 'pendiente_bodega'
+  const puedeGestionarBodega = esBodega && req.estado === 'pendiente_bodega' && req.dirigidoAlmacen === true
   const mostrarColumnaRecibido = req.tipo === 'compra' && req.bodega?.estado === 'aprobada'
   const puedeControlRecibido = esBodega && mostrarColumnaRecibido
 
@@ -245,7 +246,7 @@ export default function RequerimientoDetallePage() {
         </h1>
         <div className="flex items-center gap-2">
           <Badge valor={req.estado} label={LABEL_ESTADO[req.estado] || req.estado} />
-          {req.estado === 'pendiente_bodega' && (
+          {req.estado === 'pendiente_bodega' && req.dirigidoAlmacen === true && (
             <Badge valor={req.bodega?.estado} label={labelEstadoBodega(req.bodega?.estado)} />
           )}
         </div>
@@ -255,7 +256,7 @@ export default function RequerimientoDetallePage() {
       <OkMsg>{ok}</OkMsg>
 
       <Card className="space-y-3">
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-4">
           <div>
             <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-brand-700/80 dark:text-brand-400/80">Solicitante</p>
             <p className="text-sm text-slate-800 dark:text-slate-100">{req.solicitante?.nombre}</p>
@@ -267,6 +268,10 @@ export default function RequerimientoDetallePage() {
           <div>
             <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-brand-700/80 dark:text-brand-400/80">Fecha</p>
             <p className="text-sm text-slate-800 dark:text-slate-100">{fmtFechaHora(req.fechaSolicitud)}</p>
+          </div>
+          <div>
+            <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-brand-700/80 dark:text-brand-400/80">Dirigido a almacén</p>
+            <p className="text-sm text-slate-800 dark:text-slate-100">{req.dirigidoAlmacen === true ? 'Sí' : 'No'}</p>
           </div>
         </div>
 
@@ -474,7 +479,7 @@ export default function RequerimientoDetallePage() {
         )}
       </Card>
 
-      {(req.estado === 'pendiente_bodega' || req.bodega?.fecha) && (
+      {((req.estado === 'pendiente_bodega' && req.dirigidoAlmacen === true) || req.bodega?.fecha) && (
         <Card className="space-y-3">
           <p className="panel-mono text-[11px] uppercase tracking-[0.1em] text-brand-700/80 dark:text-brand-400/80">Bodega</p>
           {puedeGestionarBodega ? (

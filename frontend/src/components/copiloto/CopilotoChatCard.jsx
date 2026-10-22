@@ -119,7 +119,7 @@ export function CopilotoChatCard({
     // y deja aire arriba y abajo.
     : { height: 'min(35rem, calc(100dvh - 6rem))' }
 
-  // ★ Insight: antes había 3 preguntas fijas que salían siempre iguales.
+  // Nota: antes había 3 preguntas fijas que salían siempre iguales.
   // Ahora hay un banco más grande y cada vez que se ABRE el chat (isOpen
   // pasa a true) se sortean 3 distintas, así el usuario ve variedad sin que
   // cambien en medio de una conversación ya abierta.

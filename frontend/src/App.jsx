@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext.jsx'
 import { PlataformaProvider } from './plataforma/PlataformaContext.jsx'
@@ -7,67 +8,74 @@ import LoginPage from './auth/LoginPage.jsx'
 import AppShell from './layout/AppShell.jsx'
 import HomeRedirect from './layout/HomeRedirect.jsx'
 import NoEncontrado from './layout/NoEncontrado.jsx'
-import MantenimientoHome from './modules/mantenimiento/MantenimientoHome.jsx'
-import EquiposPage from './modules/mantenimiento/EquiposPage.jsx'
-import EquipoFichaPage from './modules/mantenimiento/EquipoFichaPage.jsx'
-import MantenimientosPage from './modules/mantenimiento/MantenimientosPage.jsx'
-import CatalogosPage from './modules/mantenimiento/CatalogosPage.jsx'
-import OrdenesTrabajoPage from './modules/mantenimiento/OrdenesTrabajoPage.jsx'
-import OrdenDetallePage from './modules/mantenimiento/OrdenDetallePage.jsx'
-import SeguimientoPage from './modules/mantenimiento/SeguimientoPage.jsx'
-import SupervisorPage from './modules/mantenimiento/SupervisorPage.jsx'
-import UsuariosPage from './modules/usuarios/UsuariosPage.jsx'
-import ReportarDanoPage from './modules/danos/ReportarDanoPage.jsx'
-import TareasDanosPage from './modules/danos/TareasDanosPage.jsx'
-import MisTareasPage from './modules/danos/MisTareasPage.jsx'
-import EmailPage from './modules/email/EmailPage.jsx'
-import EmailConfiguracionPage from './modules/email/EmailConfiguracionPage.jsx'
-import PreferenciasIAPage from './modules/ia/PreferenciasIAPage.jsx'
-import ConfiguracionIAPage from './modules/ia/ConfiguracionIAPage.jsx'
-import NuevoRequerimientoPage from './modules/requerimientos/NuevoRequerimientoPage.jsx'
-import MisRequerimientosPage from './modules/requerimientos/MisRequerimientosPage.jsx'
-import MiFirmaPage from './modules/requerimientos/MiFirmaPage.jsx'
-import RequerimientoDetallePage from './modules/requerimientos/RequerimientoDetallePage.jsx'
-import BandejaFinancieroPage from './modules/requerimientos/BandejaFinancieroPage.jsx'
-import BandejaBodegaPage from './modules/requerimientos/BandejaBodegaPage.jsx'
-import TodosRequerimientosPage from './modules/requerimientos/TodosRequerimientosPage.jsx'
-import BancoPreguntasPage from './modules/sig_pregunta_dia/BancoPreguntasPage.jsx'
-import PreguntaDelDiaPage from './modules/sig_pregunta_dia/PreguntaDelDiaPage.jsx'
-import MiHistorialSigPage from './modules/sig_pregunta_dia/MiHistorialSigPage.jsx'
-import ProgramacionesPage from './modules/sig_pregunta_dia/ProgramacionesPage.jsx'
-import CampanasListaPage from './modules/sig_pregunta_dia/CampanasListaPage.jsx'
-import NuevaCampanaWizard from './modules/sig_pregunta_dia/NuevaCampanaWizard.jsx'
-import DashboardSigPage from './modules/sig_pregunta_dia/DashboardSigPage.jsx'
-import ReporteIndividualPage from './modules/sig_pregunta_dia/ReporteIndividualPage.jsx'
-import PlanRefuerzoPage from './modules/sig_pregunta_dia/PlanRefuerzoPage.jsx'
-import CapacitacionesTemaPage from './modules/sig_pregunta_dia/CapacitacionesTemaPage.jsx'
-import ConfiguracionSigPage from './modules/sig_pregunta_dia/ConfiguracionSigPage.jsx'
-import CalendarioSigPage from './modules/sig_pregunta_dia/CalendarioSigPage.jsx'
-import MisAusenciasPage from './modules/ausencias/MisAusenciasPage.jsx'
-import BandejaAusenciasPage from './modules/ausencias/BandejaAusenciasPage.jsx'
-import CalendarioAusenciasPage from './modules/ausencias/CalendarioAusenciasPage.jsx'
-import DashboardPage from './modules/operacion/DashboardPage.jsx'
-import RolesPage from './modules/roles/RolesPage.jsx'
-import DependenciasCargosPage from './modules/catalogos/CatalogosPage.jsx'
-import AuditoriaPage from './modules/auditoria/AuditoriaPage.jsx'
-import ModulosSistemaPage from './modules/sistema/ModulosSistemaPage.jsx'
-import EstadoPlataformaPage from './modules/sistema/EstadoPlataformaPage.jsx'
-import BackupPage from './modules/backup/BackupPage.jsx'
-import InduccionHome from './modules/induccion/InduccionHome.jsx'
-import CertificadoPage from './modules/induccion/CertificadoPage.jsx'
+const MantenimientoHome = lazy(() => import('./modules/mantenimiento/MantenimientoHome.jsx'))
+const EquiposPage = lazy(() => import('./modules/mantenimiento/EquiposPage.jsx'))
+const EquipoFichaPage = lazy(() => import('./modules/mantenimiento/EquipoFichaPage.jsx'))
+const MantenimientosPage = lazy(() => import('./modules/mantenimiento/MantenimientosPage.jsx'))
+const CatalogosPage = lazy(() => import('./modules/mantenimiento/CatalogosPage.jsx'))
+const OrdenesTrabajoPage = lazy(() => import('./modules/mantenimiento/OrdenesTrabajoPage.jsx'))
+const OrdenDetallePage = lazy(() => import('./modules/mantenimiento/OrdenDetallePage.jsx'))
+const SeguimientoPage = lazy(() => import('./modules/mantenimiento/SeguimientoPage.jsx'))
+const SupervisorPage = lazy(() => import('./modules/mantenimiento/SupervisorPage.jsx'))
+const UsuariosPage = lazy(() => import('./modules/usuarios/UsuariosPage.jsx'))
+const ReportarDanoPage = lazy(() => import('./modules/danos/ReportarDanoPage.jsx'))
+const TareasDanosPage = lazy(() => import('./modules/danos/TareasDanosPage.jsx'))
+const MisTareasPage = lazy(() => import('./modules/danos/MisTareasPage.jsx'))
+const EmailPage = lazy(() => import('./modules/email/EmailPage.jsx'))
+const EmailConfiguracionPage = lazy(() => import('./modules/email/EmailConfiguracionPage.jsx'))
+const PreferenciasIAPage = lazy(() => import('./modules/ia/PreferenciasIAPage.jsx'))
+const ConfiguracionIAPage = lazy(() => import('./modules/ia/ConfiguracionIAPage.jsx'))
+const NuevoRequerimientoPage = lazy(() => import('./modules/requerimientos/NuevoRequerimientoPage.jsx'))
+const MisRequerimientosPage = lazy(() => import('./modules/requerimientos/MisRequerimientosPage.jsx'))
+const MiFirmaPage = lazy(() => import('./modules/requerimientos/MiFirmaPage.jsx'))
+const RequerimientoDetallePage = lazy(() => import('./modules/requerimientos/RequerimientoDetallePage.jsx'))
+const BandejaFinancieroPage = lazy(() => import('./modules/requerimientos/BandejaFinancieroPage.jsx'))
+const BandejaBodegaPage = lazy(() => import('./modules/requerimientos/BandejaBodegaPage.jsx'))
+const TodosRequerimientosPage = lazy(() => import('./modules/requerimientos/TodosRequerimientosPage.jsx'))
+const BancoPreguntasPage = lazy(() => import('./modules/sig_pregunta_dia/BancoPreguntasPage.jsx'))
+const PreguntaDelDiaPage = lazy(() => import('./modules/sig_pregunta_dia/PreguntaDelDiaPage.jsx'))
+const MiHistorialSigPage = lazy(() => import('./modules/sig_pregunta_dia/MiHistorialSigPage.jsx'))
+const ProgramacionesPage = lazy(() => import('./modules/sig_pregunta_dia/ProgramacionesPage.jsx'))
+const CampanasListaPage = lazy(() => import('./modules/sig_pregunta_dia/CampanasListaPage.jsx'))
+const NuevaCampanaWizard = lazy(() => import('./modules/sig_pregunta_dia/NuevaCampanaWizard.jsx'))
+const DashboardSigPage = lazy(() => import('./modules/sig_pregunta_dia/DashboardSigPage.jsx'))
+const ReporteIndividualPage = lazy(() => import('./modules/sig_pregunta_dia/ReporteIndividualPage.jsx'))
+const PlanRefuerzoPage = lazy(() => import('./modules/sig_pregunta_dia/PlanRefuerzoPage.jsx'))
+const CapacitacionesTemaPage = lazy(() => import('./modules/sig_pregunta_dia/CapacitacionesTemaPage.jsx'))
+const ConfiguracionSigPage = lazy(() => import('./modules/sig_pregunta_dia/ConfiguracionSigPage.jsx'))
+const CalendarioSigPage = lazy(() => import('./modules/sig_pregunta_dia/CalendarioSigPage.jsx'))
+const MisAusenciasPage = lazy(() => import('./modules/ausencias/MisAusenciasPage.jsx'))
+const BandejaAusenciasPage = lazy(() => import('./modules/ausencias/BandejaAusenciasPage.jsx'))
+const CalendarioAusenciasPage = lazy(() => import('./modules/ausencias/CalendarioAusenciasPage.jsx'))
+const DashboardPage = lazy(() => import('./modules/operacion/DashboardPage.jsx'))
+const RolesPage = lazy(() => import('./modules/roles/RolesPage.jsx'))
+const DependenciasCargosPage = lazy(() => import('./modules/catalogos/CatalogosPage.jsx'))
+const AuditoriaPage = lazy(() => import('./modules/auditoria/AuditoriaPage.jsx'))
+const ModulosSistemaPage = lazy(() => import('./modules/sistema/ModulosSistemaPage.jsx'))
+const EstadoPlataformaPage = lazy(() => import('./modules/sistema/EstadoPlataformaPage.jsx'))
+const BackupPage = lazy(() => import('./modules/backup/BackupPage.jsx'))
+const InduccionHome = lazy(() => import('./modules/induccion/InduccionHome.jsx'))
+const CertificadoPage = lazy(() => import('./modules/induccion/CertificadoPage.jsx'))
 import InstallBanner from './pwa/InstallBanner.jsx'
 import CookieConsent from './legal/CookieConsent.jsx'
-import LegalPage from './legal/LegalPage.jsx'
-import PreferenciasNotificacionesPage from './modules/notificaciones/PreferenciasNotificacionesPage.jsx'
-import CentroNotificacionesPage from './modules/notificaciones/CentroNotificacionesPage.jsx'
-import EleccionNotificacionesPage from './modules/notificaciones/EleccionNotificacionesPage.jsx'
-import TransmitirAvisoPage from './modules/avisos_terminal/TransmitirAvisoPage.jsx'
-import MisAvisosTerminalPage from './modules/avisos_terminal/MisAvisosTerminalPage.jsx'
-import AvisoTerminalDetallePage from './modules/avisos_terminal/AvisoTerminalDetallePage.jsx'
-import VideosPage from './modules/videos/VideosPage.jsx'
-import VideosGestionPage from './modules/videos/VideosGestionPage.jsx'
-import AsistentePage from './escritorio/AsistentePage.jsx'
-import DiagnosticoPage from './escritorio/DiagnosticoPage.jsx'
+const LegalPage = lazy(() => import('./legal/LegalPage.jsx'))
+const PreferenciasNotificacionesPage = lazy(() => import('./modules/notificaciones/PreferenciasNotificacionesPage.jsx'))
+const CentroNotificacionesPage = lazy(() => import('./modules/notificaciones/CentroNotificacionesPage.jsx'))
+const EleccionNotificacionesPage = lazy(() => import('./modules/notificaciones/EleccionNotificacionesPage.jsx'))
+const TransmitirAvisoPage = lazy(() => import('./modules/avisos_terminal/TransmitirAvisoPage.jsx'))
+const MisAvisosTerminalPage = lazy(() => import('./modules/avisos_terminal/MisAvisosTerminalPage.jsx'))
+const AvisoTerminalDetallePage = lazy(() => import('./modules/avisos_terminal/AvisoTerminalDetallePage.jsx'))
+const VideosPage = lazy(() => import('./modules/videos/VideosPage.jsx'))
+const VideosGestionPage = lazy(() => import('./modules/videos/VideosGestionPage.jsx'))
+const NoticiasPage = lazy(() => import('./modules/sitio_web/NoticiasPage.jsx'))
+const EventosPage = lazy(() => import('./modules/sitio_web/EventosPage.jsx'))
+const AvisosPage = lazy(() => import('./modules/sitio_web/AvisosPage.jsx'))
+const MediosPage = lazy(() => import('./modules/sitio_web/MediosPage.jsx'))
+const SitioWebResumenPage = lazy(() => import('./modules/sitio_web/ResumenPage.jsx'))
+
+const PERMISOS_SITIO_WEB = ['sitio_web:gestionar', 'noticias:gestionar', 'eventos:gestionar', 'publicaciones:gestionar']
+const AsistentePage = lazy(() => import('./escritorio/AsistentePage.jsx'))
+const DiagnosticoPage = lazy(() => import('./escritorio/DiagnosticoPage.jsx'))
 
 export default function App() {
   return (
@@ -86,6 +94,7 @@ export default function App() {
       <BrowserRouter>
         <CookieConsent />
         <InstallBanner />
+        <Suspense fallback={<p className="p-4 text-sm">Cargando…</p>}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
 
@@ -223,6 +232,13 @@ export default function App() {
                 </ModuloActivoRoute>
               }
             />
+            {/* Sitio web público: sin vista universal, todo exige permiso. El
+                resumen y las imágenes sirven a las tres secciones. */}
+            <Route path="sitio-web" element={<ModuloActivoRoute modulo="sitio_web"><PermissionRoute permiso={PERMISOS_SITIO_WEB}><SitioWebResumenPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="sitio-web/noticias" element={<ModuloActivoRoute modulo="sitio_web"><PermissionRoute permiso={['sitio_web:gestionar', 'noticias:gestionar']}><NoticiasPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="sitio-web/eventos" element={<ModuloActivoRoute modulo="sitio_web"><PermissionRoute permiso={['sitio_web:gestionar', 'eventos:gestionar']}><EventosPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="sitio-web/avisos" element={<ModuloActivoRoute modulo="sitio_web"><PermissionRoute permiso={['sitio_web:gestionar', 'publicaciones:gestionar']}><AvisosPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="sitio-web/medios" element={<ModuloActivoRoute modulo="sitio_web"><PermissionRoute permiso={PERMISOS_SITIO_WEB}><MediosPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="danos/reportar" element={<ModuloActivoRoute modulo="danos"><ReportarDanoPage /></ModuloActivoRoute>} />
             <Route path="danos/tareas" element={<ModuloActivoRoute modulo="danos"><PermissionRoute permiso="danos:gestionar"><TareasDanosPage /></PermissionRoute></ModuloActivoRoute>} />
             {/* Mantenimiento (mantenimiento:ejecutar sin danos:gestionar): solo ve y
@@ -284,6 +300,7 @@ export default function App() {
             <Route path="*" element={<NoEncontrado />} />
           </Route>
         </Routes>
+        </Suspense>
       </BrowserRouter>
         </GateMantenimiento>
       </PlataformaProvider>

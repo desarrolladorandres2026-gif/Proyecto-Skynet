@@ -22,7 +22,9 @@ export function puedeVer(doc, usuarioActor) {
   if (usuarioActor.esSuperAdmin) return true
   if (usuarioActor.permisos?.has('requerimientos:ver_todos')) return true
   if (usuarioActor.permisos?.has('requerimientos:aprobar_financiero')) return true
-  if (usuarioActor.permisos?.has('requerimientos:gestionar_bodega')) return true
+  // Bodega solo ve lo dirigido a almacén (dirigidoAlmacen === true); los
+  // anteriores a ese campo siguen existiendo, pero solo en supervisión.
+  if (usuarioActor.permisos?.has('requerimientos:gestionar_bodega') && doc.dirigidoAlmacen === true) return true
   const solicitanteId = doc.solicitante?._id || doc.solicitante
   return String(solicitanteId) === String(usuarioActor.id_usuario)
 }

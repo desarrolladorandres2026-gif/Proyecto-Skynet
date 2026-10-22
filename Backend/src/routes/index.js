@@ -17,6 +17,7 @@ import plataformaRoutes from '../modules/plataforma/plataforma.routes.js'
 import notificacionesRoutes from '../modules/notificaciones/notificaciones.routes.js'
 import avisosTerminalRoutes from '../modules/avisos_terminal/avisos.routes.js'
 import videosRoutes from '../modules/videos/videos.routes.js'
+import sitioWebRoutes from '../modules/sitio_web/sitio_web.routes.js'
 import perfilRoutes from '../modules/perfil/perfil.routes.js'
 import copilotoRoutes from '../modules/copiloto/copiloto.routes.js'
 import backupRoutes from '../modules/backup/backup.routes.js'
@@ -62,6 +63,9 @@ router.use('/avisos-terminal', avisosTerminalRoutes)
 // Videos informativos: ver los publicados es universal; la gestión exige
 // 'videos:gestionar' (ver videos.routes.js).
 router.use('/videos', videosRoutes)
+// Sitio web público (WordPress): Skynet publica noticias, eventos y empresas
+// en elterminalneiva.com. Cada ruta exige su permiso (ver sitio_web.routes.js).
+router.use('/sitio-web', sitioWebRoutes)
 router.use('/perfil', perfilRoutes)
 router.use('/copiloto', copilotoRoutes)
 router.use('/backup', backupRoutes)

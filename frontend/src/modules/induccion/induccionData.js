@@ -119,12 +119,12 @@ export const MODULOS = [
           <div class="ind-box">
             <p>Descarga y lee detenidamente cada una de las políticas institucionales de la empresa:</p>
             <div class="ind-downloads">
-              <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/politica_sistema_de_gestion_integral.pdf" download>📄 Política del Sistema de Gestión Integral</a>
-              <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/politica_alcohol_y_drogas.pdf" download>📄 Política de Alcohol y Drogas</a>
-              <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/politica_desconexion_laboral.pdf" download>📄 Política de Desconexión Laboral</a>
-              <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/politica_discriminacion.pdf" download>📄 Política de No Discriminación</a>
-              <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/politica_acoso_laboral.pdf" download>📄 Política de Prevención del Acoso Laboral</a>
-              <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/politica_acoso_sexual.pdf" download>📄 Política de Prevención de Acoso Sexual</a>
+              <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/politica_sistema_de_gestion_integral.pdf" download>Política del Sistema de Gestión Integral</a>
+              <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/politica_alcohol_y_drogas.pdf" download>Política de Alcohol y Drogas</a>
+              <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/politica_desconexion_laboral.pdf" download>Política de Desconexión Laboral</a>
+              <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/politica_discriminacion.pdf" download>Política de No Discriminación</a>
+              <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/politica_acoso_laboral.pdf" download>Política de Prevención del Acoso Laboral</a>
+              <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/politica_acoso_sexual.pdf" download>Política de Prevención de Acoso Sexual</a>
             </div>
           </div>
         `,
@@ -188,18 +188,18 @@ export const MODULOS = [
     secciones: [
       {
         id: 'info',
-        titulo: '🩺 Medicina Preventiva y del Trabajo',
+        titulo: 'Medicina Preventiva y del Trabajo',
         html: `
           <p class="ind-lead">Orientada por acciones de salud, se basa en la prevención y control de factores causantes de enfermedad común y ocupacional.</p>
           <div class="ind-content">
             <h3>Subprogramas</h3>
             <ul class="ind-list">
-              <li>🧪 Exámenes y Evaluaciones Médicas</li>
-              <li>💉 Jornadas de Vacunación</li>
-              <li>🏃‍♀️ Capacitaciones en Estilos de Vida Saludable</li>
-              <li>📊 Sistemas de Vigilancia Epidemiológica: Ergonómico, Auditivo y Biológico</li>
+              <li>Exámenes y Evaluaciones Médicas</li>
+              <li>Jornadas de Vacunación</li>
+              <li>Capacitaciones en Estilos de Vida Saludable</li>
+              <li>Sistemas de Vigilancia Epidemiológica: Ergonómico, Auditivo y Biológico</li>
             </ul>
-            <h3>🦺 Seguridad Industrial</h3>
+            <h3>Seguridad Industrial</h3>
             <p class="ind-lead">Para factores de riesgo causantes de accidentes de trabajo:</p>
             <ul class="ind-list">
               <li>Inspecciones e Investigaciones</li>
@@ -209,7 +209,7 @@ export const MODULOS = [
               <li>Mantenimiento (Equipos y Maquinaria)</li>
               <li>Hojas de Seguridad</li>
             </ul>
-            <h3>🧴 Higiene Industrial</h3>
+            <h3>Higiene Industrial</h3>
             <p class="ind-lead">Para factores de riesgo causantes de Enfermedad Laboral:</p>
             <ul class="ind-list">
               <li>Mediciones Ambientales y Ocupacionales</li>
@@ -226,7 +226,7 @@ export const MODULOS = [
       },
       {
         id: 'riesgos',
-        titulo: '⚠️ Factores de Riesgo Laboral',
+        titulo: 'Factores de Riesgo Laboral',
         html: `
           <p class="ind-lead">Los siguientes factores de riesgo aplican de manera general a todos los cargos de la empresa, incluyendo personal administrativo, operativo, de mantenimiento y de servicios generales.</p>
           <ul class="ind-list">
@@ -245,7 +245,7 @@ export const MODULOS = [
       },
       {
         id: 'deberes',
-        titulo: '🧾 Responsabilidades del Trabajador Según la Normatividad Legal Vigente',
+        titulo: 'Responsabilidades del Trabajador Según la Normatividad Legal Vigente',
         html: `
           <ul class="ind-list">
             <li>Procurar el cuidado integral de su salud atendiendo las recomendaciones y/o restricciones emitidas por el médico evaluador tanto en el ámbito intralaboral como en el extralaboral.</li>
@@ -263,7 +263,7 @@ export const MODULOS = [
             <li>Cumplir las normas, reglamentos e instrucciones del SG-SST de la empresa y las demás establecidas en el Decreto 1072 de 2015 y normas que lo modifiquen, sustituyan o adicionen.</li>
           </ul>
           <div class="ind-content">
-            <h3>🚦 Funciones y responsabilidades en Seguridad Vial</h3>
+            <h3>Funciones y responsabilidades en Seguridad Vial</h3>
             <ul class="ind-list">
               <li>Reportar siniestros viales en desplazamientos laborales.</li>
               <li>Participar en las capacitaciones de seguridad vial.</li>
@@ -274,7 +274,7 @@ export const MODULOS = [
       },
       {
         id: 'copasst',
-        titulo: '👥 Comité Paritario de Seguridad y Salud en el Trabajo (COPASST)',
+        titulo: 'Comité Paritario de Seguridad y Salud en el Trabajo (COPASST)',
         html: `
           <p class="ind-lead">El <strong>COPASST</strong> es un organismo de promoción y vigilancia de las normas y reglamentos sobre seguridad y salud en el trabajo. Su objetivo es fomentar la participación de todos los trabajadores en la prevención de riesgos laborales.</p>
           <div class="ind-content">
@@ -292,7 +292,7 @@ export const MODULOS = [
       },
       {
         id: 'convivencia',
-        titulo: '🤝 Comité de Convivencia Laboral',
+        titulo: 'Comité de Convivencia Laboral',
         html: `
           <div class="ind-content">
             <h3>¿Qué es?</h3>
@@ -310,7 +310,7 @@ export const MODULOS = [
       },
       {
         id: 'acoso-laboral',
-        titulo: '⚖️ Acoso Laboral',
+        titulo: 'Acoso Laboral',
         html: `
           <p class="ind-lead"><strong>LEY 1010 DE 2006:</strong> Acoso Laboral</p>
           <div class="ind-content">
@@ -335,7 +335,7 @@ export const MODULOS = [
       },
       {
         id: 'epp',
-        titulo: '🧤 Uso Adecuado de los Elementos de Protección Personal (EPP)',
+        titulo: 'Uso Adecuado de los Elementos de Protección Personal (EPP)',
         html: `
           <p class="ind-lead">Recuerda utilizar correctamente los elementos de protección personal para prevenir accidentes y enfermedades laborales.</p>
           <figure class="ind-figure">
@@ -345,7 +345,7 @@ export const MODULOS = [
       },
       {
         id: 'pausas-activas',
-        titulo: '🧘‍♀️ Pausas Activas en la Jornada Laboral',
+        titulo: 'Pausas Activas en la Jornada Laboral',
         html: `
           <p class="ind-lead">Las pausas activas son breves descansos que se realizan durante la jornada laboral para promover la salud física y mental, reducir el estrés y prevenir enfermedades musculoesqueléticas.</p>
           <ul class="ind-list">
@@ -355,7 +355,7 @@ export const MODULOS = [
             <li>Favorecen la circulación y la postura.</li>
           </ul>
           <div class="ind-downloads">
-            <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/instructivo_pausas_activas.pdf" target="_blank" rel="noreferrer">⬇️ Descargar Instructivo de Pausas Activas</a>
+            <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/instructivo_pausas_activas.pdf" target="_blank" rel="noreferrer">⬇Descargar Instructivo de Pausas Activas</a>
           </div>
         `,
       },
@@ -381,28 +381,28 @@ export const MODULOS = [
       },
       {
         id: 'pons',
-        titulo: '📘 ¿Qué son los PONS?',
+        titulo: '¿Qué son los PONS?',
         html: `
           <p class="ind-lead">Los <strong>Procedimientos Operativos Normalizados (PONS)</strong> son documentos que describen de forma clara, ordenada y secuencial cómo deben ejecutarse las tareas o procesos dentro de la organización. Su finalidad es garantizar la calidad, la seguridad y la eficiencia de las operaciones, reduciendo errores y promoviendo un ambiente laboral seguro.</p>
           <p class="ind-lead">Aplicar los PONS asegura que todos los colaboradores sigan las mismas pautas, permitiendo mantener la uniformidad en los resultados y el cumplimiento de los requisitos legales y normativos.</p>
           <div class="ind-downloads">
-            <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/PONS_en_caso_de_emergencia.xlsx" download>📥 Descargar PONS en caso de emergencia (Excel)</a>
+            <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/PONS_en_caso_de_emergencia.xlsx" download>Descargar PONS en caso de emergencia (Excel)</a>
           </div>
         `,
       },
       {
         id: 'brigadas',
-        titulo: '🚒 Brigadas de Emergencia',
+        titulo: 'Brigadas de Emergencia',
         html: `
           <p class="ind-lead">Es el grupo de trabajo conformado por empleados voluntarios, distribuidos estratégicamente en los diferentes niveles y turnos de trabajo, quienes reciben capacitación en primeros auxilios, técnicas bomberiles, salvamento y rescate. Además, tienen entrenamiento permanente y cuentan con la coordinación de empleados. Son quienes llevan a cabo las acciones operativas en caso de emergencia.</p>
         `,
       },
       {
         id: 'emergencias',
-        titulo: '🚨 Qué hacer en caso de un accidente laboral o incendio',
+        titulo: 'Qué hacer en caso de un accidente laboral o incendio',
         html: `
           <div class="ind-content">
-            <h3>🩹 Accidente Laboral</h3>
+            <h3>Accidente Laboral</h3>
             <ol class="ind-list-ol">
               <li>Detener labores inmediatamente.</li>
               <li>Suspender la operación de equipos y herramientas involucradas en el accidente.</li>
@@ -411,7 +411,7 @@ export const MODULOS = [
               <li>Si es necesario, trasladar al lesionado a la IPS más cercana.</li>
               <li>Reportar e investigar el accidente.</li>
             </ol>
-            <h3>🔥 Incendio</h3>
+            <h3>Incendio</h3>
             <ol class="ind-list-ol">
               <li>Analizar el tipo de incendio (Clase A: papel, madera; Clase B: gasolina; Clase C: eléctrico).</li>
               <li>Evaluar si puede ser controlado de forma segura.</li>
@@ -425,26 +425,26 @@ export const MODULOS = [
       },
       {
         id: 'alarmas',
-        titulo: '🏃‍♂️ Alarmas, Puntos de Encuentro y Protocolos de Accesibilidad',
+        titulo: 'Alarmas, Puntos de Encuentro y Protocolos de Accesibilidad',
         html: `
           <p class="ind-lead">En caso de emergencia, todas las personas deben seguir los protocolos establecidos para garantizar una evacuación rápida, segura y ordenada.</p>
           <div class="ind-content">
-            <h3>🔔 Alarmas</h3>
+            <h3>Alarmas</h3>
             <ul class="ind-list">
               <li><strong>Sonido intermitente — Alerta:</strong> inspección preventiva.</li>
               <li><strong>Sonido continuo — Evacuación inmediata:</strong> abandonar el área.</li>
             </ul>
-            <h3>📍 Puntos de Encuentro</h3>
+            <h3>Puntos de Encuentro</h3>
             <ul class="ind-puntos">
               <li><strong>1.</strong> Entrada oficinas administrativas, módulo Centenario.<img src="${I}/punto_1.png" alt="Punto de encuentro 1" /></li>
               <li><strong>2.</strong> Plataforma de abordaje, módulo Centenario.<img src="${I}/punto_2.png" alt="Punto de encuentro 2" /></li>
               <li><strong>3.</strong> Entrada principal del módulo Regional.<img src="${I}/punto_3.png" alt="Punto de encuentro 3" /></li>
               <li><strong>4.</strong> Zona norte (Propiedad Horizontal).<img src="${I}/punto_4.png" alt="Punto de encuentro 4" /></li>
             </ul>
-            <h3>♿ Protocolo de Accesibilidad</h3>
+            <h3>Protocolo de Accesibilidad</h3>
             <p class="ind-lead">Define las directrices para la atención y evacuación segura de personas con discapacidad en caso de emergencia.</p>
             <div class="ind-downloads">
-              <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/protocolo_de_accesibilidad.pdf" target="_blank" rel="noreferrer">📄 Descargar Protocolo de Accesibilidad</a>
+              <a class="panel-btn-secundario rounded-lg px-3 py-2 text-sm inline-block" href="${D}/protocolo_de_accesibilidad.pdf" target="_blank" rel="noreferrer">Descargar Protocolo de Accesibilidad</a>
             </div>
           </div>
         `,
@@ -463,7 +463,7 @@ export const MODULOS = [
     secciones: [
       {
         id: 'introduccion',
-        titulo: '🌿 Introducción a la Gestión Ambiental',
+        titulo: 'Introducción a la Gestión Ambiental',
         html: `
           <p class="ind-lead">La gestión ambiental es un pilar esencial para alcanzar el equilibrio entre el desarrollo organizacional y la preservación del entorno natural. A través de estrategias sostenibles y programas integrales, buscamos reducir los impactos ambientales derivados de nuestras actividades, optimizando el uso de los recursos y fomentando una cultura ecológica en todos los niveles de la organización.</p>
           <p class="ind-lead">Este compromiso va más allá del cumplimiento normativo: representa una apuesta por la innovación, la eficiencia y la mejora continua.</p>
@@ -471,14 +471,14 @@ export const MODULOS = [
       },
       {
         id: 'residuos',
-        titulo: '♻️ Programa de Gestión Integrado de Residuos',
+        titulo: 'Programa de Gestión Integrado de Residuos',
         html: `
           <p class="ind-lead">El <strong>Programa de Gestión Integrada de Residuos</strong> busca promover el manejo adecuado de los desechos generados en la organización, garantizando la separación en la fuente, el aprovechamiento de materiales reciclables y la disposición final responsable.</p>
           <p class="ind-lead">Dentro del programa se promueve el reciclaje de materiales como papel, cartón, plástico, vidrio y metales, alcanzando un promedio anual de <strong>15.000 kg de residuos reciclados</strong>. Asimismo, se gestionan los <strong>Residuos de Aparatos Eléctricos y Electrónicos (RAEE)</strong> y los residuos orgánicos mediante procesos de valorización ambiental.</p>
           <div class="ind-row">
             <img src="${I}/compostera.png" alt="Sistema de compostaje móvil inteligente fotovoltaico" />
             <div class="ind-row-texto">
-              <h4>🌱 Sistema de Compostaje Móvil Inteligente</h4>
+              <h4>Sistema de Compostaje Móvil Inteligente</h4>
               <p>En el año 2023 adquirimos, junto con la empresa huilense <strong>GOLDEN ALBA</strong>, un sistema de compostaje móvil inteligente fotovoltaico, como muestra de nuestro compromiso con el medio ambiente y el desarrollo sostenible.</p>
               <p>Procesa aproximadamente <strong>1.5 toneladas de residuos orgánicos al mes</strong>, funcionando completamente a base de <strong>energía solar</strong>.</p>
             </div>
@@ -487,18 +487,18 @@ export const MODULOS = [
       },
       {
         id: 'plagas',
-        titulo: '🐛 Programa de Control de Plagas',
+        titulo: 'Programa de Control de Plagas',
         html: `
           <p class="ind-lead">El <strong>Programa de Control de Plagas</strong> tiene como propósito prevenir, controlar y eliminar la presencia de organismos que puedan afectar la salud, la inocuidad, la infraestructura o el entorno de trabajo, minimizando el uso de productos químicos y priorizando métodos ecológicos y preventivos.</p>
           <div class="ind-content">
-            <h3>🔹 Medidas preventivas y monitoreo</h3>
+            <h3>Medidas preventivas y monitoreo</h3>
             <ul class="ind-list">
               <li>Mantener las áreas limpias, libres de restos de alimentos y basuras acumuladas.</li>
               <li>Evitar dejar puertas y ventanas abiertas innecesariamente; sellar accesos potenciales.</li>
               <li>Revisar y mantener limpios los puntos con humedad y almacenamiento de insumos.</li>
               <li>Implementación de <strong>cebaderas de monitoreo</strong> en puntos estratégicos para detección temprana.</li>
             </ul>
-            <h3>🔹 Intervenciones programadas y manejo responsable</h3>
+            <h3>Intervenciones programadas y manejo responsable</h3>
             <p class="ind-lead">Se realizan <strong>dos fumigaciones al año</strong> como mínimo, ejecutadas por personal especializado, con productos certificados y registro detallado de cada intervención.</p>
           </div>
           <div class="ind-grid">
@@ -506,12 +506,12 @@ export const MODULOS = [
             <div class="ind-tile"><img src="${I}/fumigacion.png" alt="Fumigación controlada" /><h4>Fumigaciones Programadas</h4><p>Dos fumigaciones anuales como estándar; ejecución anticipada si la situación lo exige.</p></div>
             <div class="ind-tile"><img src="${I}/comejen.png" alt="Control de comején" /><h4>Control de Comején</h4><p>Tratamientos focalizados y preventivos, protegiendo la estructura del edificio.</p></div>
           </div>
-          <p class="ind-highlight">🪴 El control adecuado de plagas protege la salud, la infraestructura y contribuye a la sostenibilidad operacional.</p>
+          <p class="ind-highlight">El control adecuado de plagas protege la salud, la infraestructura y contribuye a la sostenibilidad operacional.</p>
         `,
       },
       {
         id: 'energia',
-        titulo: '⚡ Programa de Uso Eficiente y Racional de Energía',
+        titulo: 'Programa de Uso Eficiente y Racional de Energía',
         html: `
           <p class="ind-lead">Este programa busca optimizar el consumo energético de la organización, promoviendo el uso responsable de la electricidad y la implementación de tecnologías limpias que reduzcan la huella de carbono.</p>
           <p class="ind-lead">Se han incorporado sistemas de energía renovable, incluyendo la instalación de <strong>paneles solares</strong>, además de fomentar el apagado de equipos no esenciales, la iluminación eficiente y la capacitación del personal en prácticas de ahorro energético.</p>
@@ -522,7 +522,7 @@ export const MODULOS = [
           </div>
           <figure class="ind-figure">
             <img src="${I}/resultado_paneles.jpeg" alt="Resultados del sistema de paneles solares" />
-            <figcaption>🔆 Resultados del Sistema Fotovoltaico: un avance significativo hacia la autosuficiencia energética.</figcaption>
+            <figcaption>Resultados del Sistema Fotovoltaico: un avance significativo hacia la autosuficiencia energética.</figcaption>
           </figure>
           <figure class="ind-figure">
             <img src="${I}/raee.png" alt="Gestión de RAEE" />
@@ -531,7 +531,7 @@ export const MODULOS = [
       },
       {
         id: 'agua',
-        titulo: '💧 Programa de Uso Eficiente y Racional de Agua',
+        titulo: 'Programa de Uso Eficiente y Racional de Agua',
         html: `
           <p class="ind-lead">Este programa tiene como propósito garantizar un uso consciente, responsable y sostenible del recurso hídrico dentro de la organización, promoviendo la reducción del consumo, la reutilización y el aprovechamiento eficiente del agua.</p>
           <p class="ind-lead">Entre las acciones implementadas se incluyen dispositivos ahorradores, la detección temprana de fugas, campañas de sensibilización para el personal y la gestión responsable del agua lluvia.</p>
@@ -539,7 +539,7 @@ export const MODULOS = [
       },
       {
         id: 'impactos',
-        titulo: '🌎 Impactos ambientales',
+        titulo: 'Impactos ambientales',
         html: `
           <p class="ind-lead">Todas las actividades humanas generan algún tipo de impacto sobre el ambiente. Identificar, prevenir y mitigar estos impactos permite reducir riesgos y cumplir con los compromisos de sostenibilidad de la empresa.</p>
           <div class="ind-grid">
@@ -548,30 +548,30 @@ export const MODULOS = [
             <div class="ind-tile"><img src="${I}/ruido.png" alt="Ruido y contaminación auditiva" /><h4>Ruido</h4><p>El exceso de ruido puede afectar la salud de las personas y la fauna cercana.</p></div>
             <div class="ind-tile"><img src="${I}/flora_fauna.png" alt="Afectación de flora y fauna" /><h4>Daño a flora y fauna</h4><p>La tala, vertimientos o residuos en lugares no permitidos alteran ecosistemas.</p></div>
           </div>
-          <p class="ind-highlight">🌱 Recuerda: cada trabajador puede prevenir los impactos ambientales siguiendo las buenas prácticas y reportando cualquier situación anormal.</p>
+          <p class="ind-highlight">Recuerda: cada trabajador puede prevenir los impactos ambientales siguiendo las buenas prácticas y reportando cualquier situación anormal.</p>
         `,
       },
       {
         id: 'plan',
-        titulo: '🗂️ Plan de Manejo Ambiental',
+        titulo: 'Plan de Manejo Ambiental',
         html: `
           <p class="ind-lead">El plan de manejo ambiental incluye acciones preventivas, responsables de ejecución y controles para reducir impactos. Cada trabajador tiene un rol: cumplir procedimientos, reportar incidentes y participar en campañas de formación.</p>
         `,
       },
       {
         id: 'sga',
-        titulo: '🧪 Sistema Globalmente Armonizado (SGA)',
+        titulo: 'Sistema Globalmente Armonizado (SGA)',
         html: `
           <p class="ind-lead">El <strong>Sistema Globalmente Armonizado de Clasificación y Etiquetado de Productos Químicos (SGA)</strong> tiene como objetivo comunicar de manera clara los peligros asociados al uso de sustancias químicas, garantizando que los trabajadores comprendan los riesgos y adopten medidas seguras para su manejo, almacenamiento y transporte.</p>
           <figure class="ind-figure">
             <img src="${I}/pictograma.png" alt="Pictogramas del Sistema Globalmente Armonizado" />
           </figure>
           <div class="ind-box">
-            <p>🔹 <strong>Recuerda:</strong> Antes de manipular cualquier sustancia química, verifica su etiqueta y ficha de seguridad (MSDS).</p>
-            <p>🔹 Usa siempre los elementos de protección personal recomendados.</p>
-            <p>🔹 Reporta de inmediato cualquier derrame o fuga a tu supervisor.</p>
+            <p><strong>Recuerda:</strong> Antes de manipular cualquier sustancia química, verifica su etiqueta y ficha de seguridad (MSDS).</p>
+            <p>Usa siempre los elementos de protección personal recomendados.</p>
+            <p>Reporta de inmediato cualquier derrame o fuga a tu supervisor.</p>
           </div>
-          <p class="ind-highlight">🧤 Comprender los símbolos del SGA te protege a ti, a tus compañeros y al medio ambiente.</p>
+          <p class="ind-highlight">Comprender los símbolos del SGA te protege a ti, a tus compañeros y al medio ambiente.</p>
         `,
       },
     ],
@@ -588,12 +588,12 @@ export const MODULOS = [
     secciones: [
       {
         id: 'definicion',
-        titulo: '🚦 Definición de Seguridad Vial',
+        titulo: 'Definición de Seguridad Vial',
         html: `<p class="ind-lead">La seguridad vial es el conjunto de normas, prácticas y medidas orientadas a prevenir y reducir los accidentes de tránsito, protegiendo a conductores, pasajeros y peatones. Promueve la responsabilidad y la cultura del autocuidado en la vía.</p>`,
       },
       {
         id: 'plan',
-        titulo: '📋 Plan Estratégico de Seguridad Vial',
+        titulo: 'Plan Estratégico de Seguridad Vial',
         html: `
           <p class="ind-lead">El Plan Estratégico de Seguridad Vial (PESV) incluye políticas, procesos y acciones preventivas para gestionar los riesgos viales: capacitación, control de rutas, mantenimiento de vehículos, evaluación de conductores y concienciación en buenas prácticas.</p>
           <p class="ind-lead">Su objetivo es reducir incidentes y garantizar desplazamientos laborales seguros.</p>
@@ -601,7 +601,7 @@ export const MODULOS = [
       },
       {
         id: 'comite',
-        titulo: '👥 Comité de Seguridad Vial',
+        titulo: 'Comité de Seguridad Vial',
         html: `
           <p class="ind-lead">El Comité de Seguridad Vial está compuesto por representantes de diferentes áreas. Sus funciones principales incluyen:</p>
           <ul class="ind-list">
@@ -614,7 +614,7 @@ export const MODULOS = [
       },
       {
         id: 'recomendaciones',
-        titulo: '⚠️ Recomendaciones de Seguridad Vial',
+        titulo: 'Recomendaciones de Seguridad Vial',
         html: `
           <ul class="ind-list">
             <li>Usa siempre el cinturón de seguridad y elementos de protección cuando aplique.</li>
@@ -1012,6 +1012,6 @@ export function obtenerQuiz(id) {
 // Encuestas a resolver antes de generar el certificado (mismas del
 // felicitaciones.html original).
 export const ENCUESTAS = [
-  { label: '📋 Perfil sociodemográfico', href: 'https://forms.gle/7zrhSJE9PC62LkfT9' },
-  { label: '🛣️ Diagnóstico seguridad vial', href: 'https://forms.gle/6BZe3jRzzzowm3Ut7' },
+  { label: 'Perfil sociodemográfico', href: 'https://forms.gle/7zrhSJE9PC62LkfT9' },
+  { label: 'Diagnóstico seguridad vial', href: 'https://forms.gle/6BZe3jRzzzowm3Ut7' },
 ]

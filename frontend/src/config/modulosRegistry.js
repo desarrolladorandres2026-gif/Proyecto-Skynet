@@ -1,6 +1,6 @@
 import {
   Wrench, Users, ShieldCheck, ScrollText, TriangleAlert,
-  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays, Mail, Bot, LayoutList, Brain, Megaphone, Clapperboard,
+  Gauge, SlidersHorizontal, FileText, Bell, CalendarDays, Mail, Bot, LayoutList, Brain, Megaphone, Clapperboard, Globe,
 } from 'lucide-react'
 
 // Registro único de módulos para el sidebar (AppLayout.jsx) y para decidir
@@ -158,6 +158,22 @@ export const MODULOS_REGISTRO = [
     items: [
       { to: '/videos', label: 'Ver videos', end: true },
       { to: '/videos/gestion', label: 'Gestionar videos', permiso: 'videos:gestionar' },
+    ],
+  },
+  {
+    // Módulo propio activable desde Sistema → Módulos. Publica en
+    // elterminalneiva.com; sin ningún item público: cada item exige su
+    // permiso, asignable desde Roles: noticias:gestionar, eventos:gestionar y
+    // publicaciones:gestionar (avisos).
+    key: 'sitio_web',
+    label: 'Sitio web',
+    icon: Globe,
+    items: [
+      { to: '/sitio-web', label: 'Resumen', end: true, permiso: ['sitio_web:gestionar', 'noticias:gestionar', 'eventos:gestionar', 'publicaciones:gestionar'] },
+      { to: '/sitio-web/noticias', label: 'Noticias', permiso: ['sitio_web:gestionar', 'noticias:gestionar'] },
+      { to: '/sitio-web/eventos', label: 'Eventos', permiso: ['sitio_web:gestionar', 'eventos:gestionar'] },
+      { to: '/sitio-web/avisos', label: 'Avisos al público', permiso: ['sitio_web:gestionar', 'publicaciones:gestionar'] },
+      { to: '/sitio-web/medios', label: 'Imágenes', permiso: ['sitio_web:gestionar', 'noticias:gestionar', 'eventos:gestionar', 'publicaciones:gestionar'] },
     ],
   },
   {

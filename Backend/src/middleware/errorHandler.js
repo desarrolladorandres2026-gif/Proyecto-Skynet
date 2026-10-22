@@ -34,7 +34,10 @@ export function errorHandler(err, req, res, _next) {
   // Los errores 5xx no exponen err.message al cliente: podría filtrar detalles
   // internos (mensajes de Mongoose/Mongo, rutas, etc.). Los 4xx son mensajes
   // de validación intencionales y sí se devuelven.
-  const mensaje = status < 500 ? err.message : 'Error interno del servidor'
+  // `err.expose` lo activa a propósito quien lanza el error cuando el mensaje
+  // 5xx es seguro y útil para el usuario (p. ej. "el sitio web rechazó las
+  // credenciales" en modules/sitio_web/wp.client.js).
+  const mensaje = status < 500 || err.expose === true ? err.message : 'Error interno del servidor'
   const body = { error: mensaje }
   if (status >= 500 && req.id) body.requestId = req.id
   res.status(status).json(body)

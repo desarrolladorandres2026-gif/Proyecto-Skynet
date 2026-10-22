@@ -34,8 +34,32 @@ export async function avisarIA({ usuarios, categoria, titulo, cuerpo, url }) {
   }
 }
 
+// Un aviso es "ahora": si el usuario estuvo días sin entrar, la cola se llenó
+// y al volver Skynet hablaba todos de golpe (p. ej. 5 "Nuevo Cuestionario
+// Programado" seguidos). Los avisos viejos ya viven en la campana de
+// notificaciones; aquí solo se entrega lo reciente y, si aun así son muchos,
+// uno solo resumido.
+const VIGENCIA_AVISO_MS = 6 * 60 * 60 * 1000
+const MAX_AVISOS_POR_ENTREGA = 3
+
 export async function listarPendientes(usuarioId) {
-  return AvisoIA.find({ usuario: usuarioId, leido: false }).sort({ creadoEn: 1 }).limit(20)
+  const limite = new Date(Date.now() - VIGENCIA_AVISO_MS)
+  await AvisoIA.updateMany({ usuario: usuarioId, leido: false, creadoEn: { $lt: limite } }, { $set: { leido: true } })
+
+  const recientes = await AvisoIA.find({ usuario: usuarioId, leido: false }).sort({ creadoEn: 1 }).limit(50)
+  if (recientes.length <= MAX_AVISOS_POR_ENTREGA) return recientes
+
+  // Se conserva el más nuevo como portador del resumen (el cliente marca
+  // leídos los ids que recibe); el resto se cierra aquí mismo.
+  const portador = recientes[recientes.length - 1]
+  const resto = recientes.slice(0, -1).map((a) => a._id)
+  await AvisoIA.updateMany({ _id: { $in: resto } }, { $set: { leido: true } })
+
+  const aviso = portador.toObject()
+  aviso.titulo = `Tienes ${recientes.length} avisos nuevos`
+  aviso.cuerpo = 'Revisa la campana de notificaciones para verlos todos.'
+  aviso.url = '/notificaciones/centro'
+  return [aviso]
 }
 
 export async function marcarLeidos(usuarioId, ids) {

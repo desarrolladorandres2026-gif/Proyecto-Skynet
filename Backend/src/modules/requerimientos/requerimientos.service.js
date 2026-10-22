@@ -111,7 +111,7 @@ function normalizarDetalleServicio(detalle) {
 }
 
 export async function crearRequerimiento(datos, usuarioActor) {
-  const { tipo, cargo, areaOProceso, itemsCompra, detalleServicio, origenDano } = datos || {}
+  const { tipo, cargo, areaOProceso, itemsCompra, detalleServicio, origenDano, dirigidoAlmacen } = datos || {}
   if (!['compra', 'servicio'].includes(tipo)) {
     throw new ErrorValidacion('tipo debe ser "compra" o "servicio"')
   }
@@ -130,6 +130,7 @@ export async function crearRequerimiento(datos, usuarioActor) {
     solicitante: usuarioActor.id_usuario,
     cargoSolicitante,
     areaOProceso: areaOProceso ? String(areaOProceso).trim() : '',
+    dirigidoAlmacen: dirigidoAlmacen === true,
     estado: 'pendiente_financiero',
   }
 
@@ -276,13 +277,18 @@ export async function aprobarComoFinanciero(id, body, usuarioActor) {
   // formal del formato, editable desde antes de aprobar) — esto es una
   // aclaración puntual que el aprobador puede dejar justo al firmar.
   if (body?.observacion !== undefined) doc.financiero.observacion = String(body.observacion).trim()
-  doc.estado = 'pendiente_bodega'
-  doc.bodega.estado = 'pendiente'
+  // Solo lo dirigido a almacén pasa a Bodega; el resto queda aprobado y se ve
+  // únicamente en supervisión (Todos), sin saturar la bandeja de Bodega.
+  const vaABodega = doc.dirigidoAlmacen === true
+  doc.estado = vaABodega ? 'pendiente_bodega' : 'aprobado'
+  if (vaABodega) doc.bodega.estado = 'pendiente'
 
   await doc.save()
-  await auditar(usuarioActor, 'aprobar_financiero', doc, 'Financiero aprobó el requerimiento (firma con reautenticación)', {
+  await auditar(usuarioActor, 'aprobar_financiero', doc, `Financiero aprobó el requerimiento (firma con reautenticación); ${vaABodega ? 'dirigido a Bodega' : 'queda en supervisión'}`, {
     observacion: doc.financiero.observacion || undefined,
   })
+
+  if (!vaABodega) return obtenerRequerimiento(doc._id)
 
   const bodega = await usuariosConPermiso('requerimientos:gestionar_bodega')
   notificarUsuarios(bodega, {
@@ -337,6 +343,9 @@ export async function marcarEstadoBodega(id, { estado, observacion, password } =
   const doc = await obtenerParaMutar(id)
   if (doc.estado !== 'pendiente_bodega') {
     throw new ErrorConflicto('Solo se puede gestionar en Bodega un requerimiento ya aprobado por Financiero')
+  }
+  if (doc.dirigidoAlmacen !== true) {
+    throw new ErrorConflicto('Este requerimiento no está dirigido a almacén')
   }
   if (!ESTADOS_BODEGA.includes(estado)) {
     throw new ErrorValidacion(`estado debe ser uno de: ${ESTADOS_BODEGA.join(', ')}`)
@@ -399,6 +408,9 @@ export async function marcarControlRecibidoItem(id, itemId, { recibido, observac
   if (doc.tipo !== 'compra') {
     throw new ErrorValidacion('El control de recibido solo aplica a requerimientos de compra')
   }
+  if (doc.dirigidoAlmacen !== true) {
+    throw new ErrorConflicto('Este requerimiento no está dirigido a almacén')
+  }
   if (doc.bodega.estado !== 'aprobada') {
     throw new ErrorConflicto('Solo se puede marcar el control de recibido cuando el requerimiento está aprobado en Bodega')
   }
@@ -438,13 +450,18 @@ export function listarBandejaFinanciero() {
 
 // Los despachados (bodega.estado 'aprobada') salen de la bandeja y se ven
 // solo con despachados=true.
-export function listarBandejaBodega({ despachados = false } = {}) {
-  const filtro = { estado: 'pendiente_bodega' }
+export async function listarBandejaBodega({ despachados = false } = {}, usuarioActor) {
+  const filtro = { estado: 'pendiente_bodega', dirigidoAlmacen: true }
   filtro['bodega.estado'] = despachados ? 'aprobada' : { $ne: 'aprobada' }
-  return Requerimiento.find(filtro)
+  const docs = await Requerimiento.find(filtro)
     .populate('solicitante', 'nombre nombre_usuario dependencia')
     .populate('financiero.aprobadoPor', 'nombre nombre_usuario')
     .sort({ createdAt: -1 })
+  const yo = String(usuarioActor?.id_usuario)
+  return docs.map((d) => {
+    const { leidoPorBodega, ...resto } = d.toObject()
+    return { ...resto, leido: (leidoPorBodega || []).some((u) => String(u) === yo) }
+  })
 }
 
 export function listarTodos({ estado, tipo } = {}) {
@@ -485,7 +502,7 @@ const ENCABEZADOS_CSV = [
   'ID', 'Fecha solicitud', 'Tipo', 'Solicitante', 'Cargo solicitante', 'Área/Proceso',
   'Estado', 'Estado Bodega', 'Aprobado/Rechazado por (Financiero)', 'Fecha decisión Financiero',
   'Motivo rechazo', 'Revisado por (Bodega)', 'Fecha Bodega', 'Observación Bodega',
-  'Ítems (compra)', 'Detalle (servicio)',
+  'Ítems (compra)', 'Detalle (servicio)', 'Dirigido a almacén',
 ]
 
 function filaCsv(r) {
@@ -514,6 +531,7 @@ function filaCsv(r) {
     r.bodega?.observacion || '',
     items,
     detalleServicio,
+    r.dirigidoAlmacen === true ? 'Sí' : 'No',
   ]
   return campos.map(csvEscapar).join(',')
 }
@@ -536,7 +554,7 @@ function filtroAlcanceExport(usuarioActor) {
   }
   const or = []
   if (usuarioActor.permisos?.has('requerimientos:aprobar_financiero')) or.push({ estado: 'pendiente_financiero' })
-  if (usuarioActor.permisos?.has('requerimientos:gestionar_bodega')) or.push({ estado: 'pendiente_bodega' })
+  if (usuarioActor.permisos?.has('requerimientos:gestionar_bodega')) or.push({ estado: 'pendiente_bodega', dirigidoAlmacen: true })
   if (or.length === 0) throw new ErrorConflicto('No tienes acceso a exportar requerimientos')
   return or.length === 1 ? or[0] : { $or: or }
 }
@@ -605,6 +623,10 @@ export async function obtenerDetalle(id, usuarioActor) {
   if (!doc) throw new ErrorNoEncontrado('Requerimiento no encontrado')
   if (!puedeVer(doc, usuarioActor)) {
     throw new ErrorConflicto('No tienes acceso a este requerimiento')
+  }
+  // Abrir el detalle lo marca "leído" para este usuario de Bodega.
+  if (usuarioActor.permisos?.has('requerimientos:gestionar_bodega') && doc.estado === 'pendiente_bodega') {
+    await Requerimiento.updateOne({ _id: doc._id }, { $addToSet: { leidoPorBodega: usuarioActor.id_usuario } })
   }
   return doc
 }

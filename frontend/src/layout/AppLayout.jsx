@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Moon, Sun } from 'lucide-react'
-import { motion, useReducedMotion } from 'framer-motion'
 import { Toaster } from 'sonner'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { MODULOS_REGISTRO } from '../config/modulosRegistry.js'
@@ -99,31 +98,32 @@ export default function AppLayout() {
   const modulosVisibles = useModulosVisibles()
   const [paletaAbierta, setPaletaAbierta] = useCommandPalette()
   const { pathname } = useLocation()
-  const prefiereReducido = useReducedMotion()
 
-  // Las barras nuevas son solo claras: se retira la clase "dark" que pudo
-  // dejar el toggle anterior (persistido en localStorage).
+  // Panel admin: .zp-admin activa los tokens de styles/tokens.css (claro por
+  // defecto, oscuro con la clase "dark" que alterna useTema, la misma que
+  // usa el shell móvil). Se retira al salir de este shell.
+  const [tema, alternarTema] = useTema()
   useEffect(() => {
-    document.documentElement.classList.remove('dark')
+    document.documentElement.classList.add('zp-admin')
+    return () => document.documentElement.classList.remove('zp-admin')
   }, [])
 
+  // Cerrar el menú al navegar (en pantallas angostas se superpone).
+  useEffect(() => {
+    setMenuAbierto(false)
+  }, [pathname])
+
   return (
-    <div className="panel-shell flex h-screen overflow-hidden bg-[var(--color-fondo)] text-[var(--color-texto)]">
-      <Toaster position="bottom-right" theme="light" />
+    <div className="panel-shell zp-app">
+      <Toaster position="bottom-right" theme={tema} />
       <CommandPalette abierto={paletaAbierta} onAbrirCambio={setPaletaAbierta} modulosVisibles={modulosVisibles} />
-      <BarraLateral modulosVisibles={modulosVisibles} abierta={menuAbierto} onCerrar={() => setMenuAbierto(false)} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <BarraSuperior onAbrirMenu={() => setMenuAbierto(true)} onBuscar={() => setPaletaAbierta(true)} />
-        <main className="relative flex-1 overflow-y-auto overscroll-contain p-6 lg:p-8">
-          <motion.div
-            key={pathname}
-            initial={prefiereReducido ? false : { opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-            className="relative space-y-6"
-          >
+      <BarraSuperior onAbrirMenu={() => setMenuAbierto(true)} onBuscar={() => setPaletaAbierta(true)} tema={tema} onAlternarTema={alternarTema} />
+      <div className="zp-body">
+        <BarraLateral modulosVisibles={modulosVisibles} abierta={menuAbierto} onCerrar={() => setMenuAbierto(false)} />
+        <main className="zp-main">
+          <div key={pathname}>
             <ContenidoRuta />
-          </motion.div>
+          </div>
         </main>
       </div>
     </div>

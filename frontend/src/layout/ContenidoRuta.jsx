@@ -1,4 +1,4 @@
-import { Component } from 'react'
+import { Component, Suspense } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { TriangleAlert, RotateCcw, House } from 'lucide-react'
 import { Btn } from '../components/ui.jsx'
@@ -93,7 +93,9 @@ export default function ContenidoRuta() {
         key={pathname}
         fallback={(error) => <PantallaDeError error={error} onReintentar={() => window.location.reload()} />}
       >
-        <Outlet />
+        <Suspense fallback={<p className="text-sm">Cargando…</p>}>
+          <Outlet />
+        </Suspense>
       </LimiteDeError>
     </>
   )

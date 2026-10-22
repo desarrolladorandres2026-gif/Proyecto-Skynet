@@ -1,0 +1,601 @@
+/* Panel admin, tema oscuro estilo Premiere Pro 25. Todo vive bajo
+   :root.zp-admin (AppLayout pone esa clase y "dark" en <html>), así que el
+   shell móvil, el login y las pantallas públicas no cambian. Va SIN capa y
+   se importa después de tipografia.css: le gana a las utilidades de
+   Tailwind y a panel.css sin necesitar "!" (ver feedback de cascade layers).
+   Reglas del diseño: sin sombras, sin gradientes, sin blur, radio de 4 px
+   solo en campos/botones/diálogos, sin íconos, un solo acento. */
+
+:root.zp-admin {
+  color-scheme: light;
+
+  /* Color de texto: solo dos (principal y de apoyo). Anula naranja/verde de
+     títulos, subtítulos y números de tipografia.css. */
+  --texto: var(--zp-text);
+  --titulo: var(--zp-text);
+  --subtitulo: var(--zp-text);
+
+  /* Densidad: tamaños fijos en vez de clamp() que crece con el viewport */
+  --ui-content-padding: 16px;
+  --ui-gap: 12px;
+  --ui-card-padding: 12px;
+  --ui-title-size: 18px;
+  --ui-body-size: 14px;
+
+  /* Puente hacia los tokens --panel-* que consumen ui.jsx y panel.css */
+  --panel-bg: var(--zp-bg);
+  --panel-fg: var(--zp-text);
+  --panel-sidebar-g1: var(--zp-surface);
+  --panel-sidebar-g2: var(--zp-surface);
+  --panel-sidebar-border: var(--zp-divider);
+  --panel-brand-color: var(--zp-text);
+  --panel-brand-glow: transparent;
+  --panel-navlink-color: var(--zp-text);
+  --panel-navlink-hover-bg: var(--zp-surface-hover);
+  --panel-navlink-hover-color: var(--zp-text);
+  --panel-navlink-active-bg: var(--zp-surface-active);
+  --panel-navlink-active-color: var(--zp-text);
+  --panel-card-g1: var(--zp-surface);
+  --panel-card-g2: var(--zp-surface);
+  --panel-card-border: var(--zp-divider);
+  --panel-card-border-hover: var(--zp-field-border);
+  --panel-accent-bg: var(--zp-accent);
+  --panel-accent-fg: var(--zp-text-on-accent);
+  --panel-btn-sec-border: var(--zp-field-border);
+  --panel-btn-sec-color: var(--zp-text);
+  --panel-btn-sec-hover-bg: var(--zp-surface-hover);
+  --panel-btn-sec-hover-border: var(--zp-field-border);
+  --panel-btn-fantasma-color: var(--zp-accent-text);
+  --panel-btn-fantasma-hover-bg: transparent;
+  --panel-input-bg: var(--zp-field);
+  --panel-input-border: var(--zp-field-border);
+  --panel-input-color: var(--zp-text);
+  --panel-input-placeholder: var(--zp-text-secondary);
+  --panel-input-focus-border: var(--zp-focus);
+  --panel-input-focus-bg: var(--zp-field);
+  --panel-input-focus-ring: transparent;
+  --panel-input-autofill-bg: var(--zp-field);
+  --panel-select-bg: var(--zp-field);
+  --panel-table-bg: transparent;
+  --panel-table-border: var(--zp-divider);
+  --panel-th-color: var(--zp-text);
+  --panel-th-border: var(--zp-divider);
+  --panel-td-color: var(--zp-text);
+  --panel-td-border: var(--zp-divider);
+  --panel-row-hover-bg: var(--zp-surface-hover);
+  --panel-navbar-bg: var(--zp-surface);
+  --panel-navbar-border: var(--zp-divider);
+  --panel-modal-backdrop-bg: rgba(0, 0, 0, 0.6);
+  --panel-modal-g1: var(--zp-surface);
+  --panel-modal-g2: var(--zp-surface);
+  --panel-modal-border: var(--zp-dialog-border);
+}
+
+:root.zp-admin body {
+  background: var(--zp-bg);
+  font-family: var(--zp-font);
+  font-size: var(--zp-fs-14);
+  line-height: var(--zp-lh);
+}
+
+:root.zp-admin.dark {
+  color-scheme: dark;
+}
+
+/* ---------- Estructura: barra superior, menú, área de trabajo ---------- */
+.zp-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--zp-bg);
+  color: var(--zp-text);
+  gap: var(--zp-gap);
+}
+
+.zp-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--zp-space-2);
+  height: var(--zp-topbar-h);
+  flex-shrink: 0;
+  padding: 0 var(--zp-space-3);
+  background: var(--zp-surface);
+}
+
+.zp-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: var(--zp-gap);
+}
+
+.zp-sidebar {
+  width: var(--zp-sidebar-w);
+  flex-shrink: 0;
+  overflow-y: auto;
+  background: var(--zp-surface);
+  padding-block: var(--zp-space-2);
+}
+
+.zp-main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--zp-surface);
+  padding: var(--zp-space-4);
+}
+
+.zp-main > * > * + * {
+  margin-top: var(--zp-space-4);
+}
+
+.zp-product {
+  font-size: var(--zp-fs-14);
+  font-weight: var(--zp-fw-semibold);
+  margin-right: var(--zp-space-2);
+}
+
+.zp-tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--zp-space-2);
+  height: var(--zp-control-h);
+  padding: 0 var(--zp-space-2);
+  border: 0;
+  background: transparent;
+  color: var(--zp-text-secondary);
+  font-size: var(--zp-fs-14);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 100ms, color 100ms;
+}
+
+.zp-tb-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.zp-tb-user {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+
+@media (max-width: 1100px) {
+  .zp-tb-nav {
+    display: none;
+  }
+}
+
+.zp-tb-btn:hover {
+  background: var(--zp-surface-hover);
+  color: var(--zp-text);
+}
+
+.zp-tb-btn.is-active {
+  color: var(--zp-text);
+  font-weight: var(--zp-fw-semibold);
+  box-shadow: inset 0 -2px 0 var(--zp-accent);
+}
+
+.zp-tb-menu {
+  display: none;
+}
+
+.zp-tb-user {
+  color: var(--zp-text);
+}
+
+.zp-nav-group {
+  padding: var(--zp-space-3) var(--zp-space-4) var(--zp-space-1);
+  font-size: var(--zp-fs-16);
+  font-weight: var(--zp-fw-semibold);
+  color: var(--zp-accent-text);
+}
+
+.zp-nav-item {
+  display: flex;
+  align-items: center;
+  height: var(--zp-row-h);
+  width: 100%;
+  padding: 0 var(--zp-space-4);
+  border: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  font-size: var(--zp-fs-13);
+  text-align: left;
+  color: var(--zp-text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background-color 100ms, color 100ms;
+}
+
+.zp-nav-item:hover {
+  background: var(--zp-surface-hover);
+  color: var(--zp-text);
+}
+
+.zp-nav-item.is-active {
+  background: var(--zp-surface-active);
+  border-left-color: var(--zp-accent);
+  color: var(--zp-text);
+  font-weight: var(--zp-fw-semibold);
+}
+
+@media (max-width: 1023px) {
+  .zp-tb-menu {
+    display: inline-flex;
+  }
+  .zp-sidebar {
+    position: fixed;
+    inset: var(--zp-topbar-h) auto 0 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    border-right: 1px solid var(--zp-dialog-border);
+  }
+  .zp-sidebar.is-open {
+    transform: translateX(0);
+  }
+}
+
+/* ---------- Superficies: planas, sin sombra, sin gradiente ---------- */
+:root.zp-admin .panel-card {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--zp-divider);
+  border-radius: 0;
+  box-shadow: none;
+  padding-inline: 0;
+}
+
+:root.zp-admin .panel-card .panel-card {
+  border-top: 1px solid var(--zp-divider);
+  padding-inline: 0;
+}
+
+:root.zp-admin .panel-table-wrap {
+  /* Scroll vertical propio: así el encabezado sticky de .panel-th queda fijo */
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:root.zp-admin .panel-modal {
+  background: var(--zp-surface);
+  border: 1px solid var(--zp-dialog-border);
+  border-radius: var(--zp-radius);
+  box-shadow: none;
+}
+
+:root.zp-admin .panel-modal-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: none;
+}
+
+/* Sin gradientes, blur, sombras ni escalados en ningún componente */
+:root.zp-admin [class*="bg-gradient"],
+:root.zp-admin [class*="bg-linear"] {
+  background-image: none;
+}
+:root.zp-admin [class*="backdrop-blur"] {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+:root.zp-admin [class*="shadow-"] {
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+}
+:root.zp-admin [class*="scale-"],
+:root.zp-admin [class*="rotate-"] {
+  scale: none;
+  rotate: none;
+}
+:root.zp-admin .animate-pulse {
+  animation: none;
+}
+:root.zp-admin .bg-clip-text {
+  background: none;
+}
+:root.zp-admin .text-transparent {
+  color: var(--zp-text);
+}
+
+/* Forma: radio 4 px en controles; paneles rectos */
+:root.zp-admin .rounded-md,
+:root.zp-admin .rounded-lg,
+:root.zp-admin .rounded-xl,
+:root.zp-admin .rounded-2xl,
+:root.zp-admin .rounded-3xl,
+:root.zp-admin button.rounded-full:not([role="switch"]),
+:root.zp-admin a.rounded-full {
+  border-radius: var(--zp-radius);
+}
+
+/* Tipografía: máximo 18 px, mínimo 12 px, tipo oración, espaciado normal */
+:root.zp-admin .text-xl,
+:root.zp-admin .text-2xl,
+:root.zp-admin .text-3xl,
+:root.zp-admin .text-4xl,
+:root.zp-admin .text-5xl,
+:root.zp-admin .text-6xl,
+:root.zp-admin .text-7xl {
+  font-size: var(--zp-fs-18);
+  line-height: 24px;
+}
+:root.zp-admin .text-lg {
+  font-size: var(--zp-fs-16);
+  line-height: 22px;
+}
+:root.zp-admin [class*="text-[9px]"],
+:root.zp-admin [class*="text-[10px]"],
+:root.zp-admin [class*="text-[11px]"] {
+  font-size: var(--zp-fs-12);
+}
+:root.zp-admin .uppercase {
+  text-transform: none;
+}
+:root.zp-admin [class*="tracking-"] {
+  letter-spacing: normal;
+}
+:root.zp-admin .panel-mono {
+  font-size: var(--zp-fs-12);
+}
+
+/* Movimiento: solo color, 100 ms */
+:root.zp-admin * {
+  transition-duration: 100ms;
+}
+
+/* Foco: contorno de 2 px, nunca resplandor */
+:root.zp-admin :focus-visible {
+  outline: 2px solid var(--zp-focus);
+  outline-offset: 2px;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-ring-offset-shadow: 0 0 #0000;
+}
+
+/* ---------- Íconos: fuera. Los botones que solo tenían ícono muestran su
+   etiqueta accesible como texto. ---------- */
+:root.zp-admin svg.lucide {
+  display: none;
+}
+:root.zp-admin :is(button, a)[aria-label]:not([aria-label^="Notificaciones"]):has(> svg.lucide:only-child)::after {
+  content: attr(aria-label);
+  font-size: var(--zp-fs-12);
+  white-space: nowrap;
+}
+:root.zp-admin button[aria-label^="Notificaciones"]::before {
+  content: "Notificaciones";
+  font-size: var(--zp-fs-14);
+}
+
+/* ---------- Botones ---------- */
+:root.zp-admin .panel-btn-primario,
+:root.zp-admin .panel-btn-secundario,
+:root.zp-admin .panel-btn-peligro,
+:root.zp-admin .panel-btn-fantasma {
+  min-height: var(--zp-control-h);
+  padding: 0 var(--zp-space-3);
+  border-radius: var(--zp-radius);
+  font-size: var(--zp-fs-14);
+  font-weight: var(--zp-fw-semibold);
+  box-shadow: none;
+  transform: none;
+  transition: background-color 100ms, border-color 100ms;
+}
+:root.zp-admin .panel-modal .panel-btn-primario,
+:root.zp-admin .panel-modal .panel-btn-secundario,
+:root.zp-admin .panel-modal .panel-btn-peligro {
+  min-height: var(--zp-control-h-lg);
+}
+:root.zp-admin .panel-btn-primario:hover:not(:disabled) {
+  background: var(--zp-accent-hover);
+  box-shadow: none;
+  transform: none;
+}
+:root.zp-admin .panel-btn-primario:active:not(:disabled) {
+  background: var(--zp-accent-pressed);
+}
+:root.zp-admin .panel-btn-secundario {
+  background: transparent;
+  border: 1px solid var(--zp-field-border);
+}
+:root.zp-admin .panel-btn-peligro {
+  background: transparent;
+  border: 1px solid var(--zp-danger);
+  color: var(--zp-danger);
+}
+:root.zp-admin .panel-btn-peligro:hover:not(:disabled) {
+  background: var(--zp-danger-fill);
+  border-color: var(--zp-danger-fill);
+  color: var(--zp-text-on-accent);
+  box-shadow: none;
+}
+:root.zp-admin .panel-modal .panel-btn-peligro {
+  background: var(--zp-danger-fill);
+  border-color: var(--zp-danger-fill);
+  color: var(--zp-text-on-accent);
+}
+:root.zp-admin .panel-btn-fantasma {
+  background: transparent;
+  border: 0;
+}
+:root.zp-admin .panel-btn-fantasma:hover {
+  text-decoration: underline;
+}
+
+/* No disponible: sin opacidad, con fondo y texto propios */
+:root.zp-admin button:disabled,
+:root.zp-admin input:disabled,
+:root.zp-admin select:disabled,
+:root.zp-admin textarea:disabled {
+  opacity: 1;
+  background: var(--zp-surface-hover);
+  border-color: var(--zp-divider);
+  color: var(--zp-text-secondary);
+  cursor: not-allowed;
+}
+
+/* ---------- Campos ---------- */
+:root.zp-admin .panel-input {
+  min-height: var(--zp-control-h);
+  padding: 3px var(--zp-space-2);
+  border-radius: var(--zp-radius);
+  font-size: var(--zp-fs-14);
+  transition: border-color 100ms;
+}
+:root.zp-admin .panel-modal .panel-input {
+  min-height: var(--zp-control-h-lg);
+}
+:root.zp-admin .panel-input:focus {
+  border-color: var(--zp-focus);
+  box-shadow: inset 0 0 0 1px var(--zp-focus);
+}
+:root.zp-admin input[type="checkbox"],
+:root.zp-admin input[type="radio"] {
+  accent-color: var(--zp-accent);
+}
+:root.zp-admin label > .panel-mono.block {
+  font-size: var(--zp-fs-12);
+  font-weight: var(--zp-fw-semibold);
+  color: var(--zp-text);
+}
+
+/* Casilla (Radix): marcada no se rellena de azul, muestra un chulito. El
+   ícono de lucide se oculta en el panel, así que el chulito se dibuja con CSS. */
+:root.zp-admin [role="checkbox"] {
+  width: 16px;
+  height: 16px;
+  background-color: var(--zp-field);
+  border: 1px solid var(--zp-field-border);
+  border-radius: 2px;
+}
+:root.zp-admin [role="checkbox"][data-state="checked"] {
+  background-color: var(--zp-field);
+  border-color: var(--zp-text);
+}
+:root.zp-admin [role="checkbox"][data-state="checked"]::after {
+  content: "";
+  width: 4px;
+  height: 9px;
+  margin-top: -2px;
+  border: solid var(--zp-text);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* ---------- Tablas ---------- */
+:root.zp-admin .panel-th {
+  height: var(--zp-row-h);
+  padding: 0 var(--zp-space-3);
+  background: var(--zp-surface-active);
+  color: var(--zp-text);
+  font-size: var(--zp-fs-12);
+  font-weight: var(--zp-fw-semibold);
+  text-align: left;
+  border-bottom: 1px solid var(--zp-divider);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+:root.zp-admin .panel-td {
+  height: var(--zp-row-h);
+  padding: 0 var(--zp-space-3);
+  font-size: var(--zp-fs-14);
+  border-bottom: 1px solid var(--zp-divider);
+}
+:root.zp-admin .panel-row:hover,
+:root.zp-admin .panel-row:hover .panel-td {
+  background: var(--zp-surface-hover);
+}
+:root.zp-admin th[aria-sort] {
+  color: var(--zp-accent-text);
+}
+
+/* ---------- Color de texto de las páginas ----------
+   Solo dos colores de texto. Los grises de Tailwind (slate/gray/zinc/
+   neutral/stone 300-950, con o sin dark:) pasan a --zp-text-secondary, que
+   mide 10,1:1 sobre la superficie. Los colores de marca (brand, azul,
+   violeta, etc.) pasan al texto principal; los de estado conservan su
+   semántica (rojo = error, verde = éxito, ámbar/naranja = alerta). Quedan
+   fuera los tonos 50-200, que se usan sobre rellenos de acento. */
+:root.zp-admin :is(
+  [class*="text-slate-3"], [class*="text-slate-4"], [class*="text-slate-5"], [class*="text-slate-6"], [class*="text-slate-7"], [class*="text-slate-8"], [class*="text-slate-9"],
+  [class*="text-gray-3"], [class*="text-gray-4"], [class*="text-gray-5"], [class*="text-gray-6"], [class*="text-gray-7"], [class*="text-gray-8"], [class*="text-gray-9"],
+  [class*="text-zinc-3"], [class*="text-zinc-4"], [class*="text-zinc-5"], [class*="text-zinc-6"], [class*="text-zinc-7"], [class*="text-zinc-8"], [class*="text-zinc-9"],
+  [class*="text-neutral-3"], [class*="text-neutral-4"], [class*="text-neutral-5"], [class*="text-neutral-6"], [class*="text-neutral-7"], [class*="text-neutral-8"], [class*="text-neutral-9"],
+  [class*="text-stone-3"], [class*="text-stone-4"], [class*="text-stone-5"], [class*="text-stone-6"], [class*="text-stone-7"], [class*="text-stone-8"], [class*="text-stone-9"]
+) {
+  color: var(--zp-text-secondary);
+}
+:root.zp-admin :is(
+  [class*="text-brand-"], [class*="text-blue-"], [class*="text-sky-"], [class*="text-indigo-"], [class*="text-violet-"],
+  [class*="text-purple-"], [class*="text-fuchsia-"], [class*="text-pink-"], [class*="text-teal-"], [class*="text-cyan-"]
+):not([class*="text-brand-50"]):not([class*="text-brand-100"]) {
+  color: var(--zp-text);
+}
+:root.zp-admin :is([class*="text-red-"], [class*="text-rose-"]) {
+  color: var(--zp-danger);
+}
+:root.zp-admin :is([class*="text-emerald-"], [class*="text-green-"], [class*="text-accent-"], [class*="text-lime-"]) {
+  color: var(--zp-success);
+}
+:root.zp-admin :is([class*="text-amber-"], [class*="text-orange-"], [class*="text-yellow-"], [class*="text-warn-"]) {
+  color: var(--zp-warning);
+}
+
+/* Rellenos claros fijos (bg-white, bg-slate-50...) quedarían como cajas
+   blancas con texto claro: pasan a la superficie activa del panel. */
+:root.zp-admin.dark :is(.bg-white, [class*="bg-slate-50"], [class*="bg-slate-100"], [class*="bg-slate-200"], [class*="bg-gray-50"], [class*="bg-gray-100"], [class*="bg-gray-200"], [class*="bg-brand-50"], [class*="bg-brand-100"], [class*="bg-accent-50"], [class*="bg-accent-100"], [class*="bg-warn-50"], [class*="bg-warn-100"], [class*="bg-red-50"], [class*="bg-red-100"], [class*="bg-amber-50"], [class*="bg-amber-100"]):not([aria-hidden="true"]):not([role="switch"]) {
+  background-color: var(--zp-surface-active);
+}
+
+/* Estado: la palabra en su color, sin píldora */
+:root.zp-admin [data-tono] {
+  font-weight: var(--zp-fw-semibold);
+}
+:root.zp-admin [data-tono="exito"] { color: var(--zp-success); }
+:root.zp-admin [data-tono="alerta"] { color: var(--zp-warning); }
+:root.zp-admin [data-tono="error"] { color: var(--zp-danger); }
+:root.zp-admin [data-tono="neutro"] { color: var(--zp-text); }
+
+/* Vacío: una línea, sin borde punteado */
+:root.zp-admin [class*="border-dashed"] {
+  border: 0;
+  border-top: 1px solid var(--zp-divider);
+  border-radius: 0;
+  text-align: left;
+}
+
+/* ---------- Notificaciones (sonner) ---------- */
+:root.zp-admin [data-sonner-toast] {
+  width: 360px;
+  background: var(--zp-surface-active);
+  color: var(--zp-text);
+  border: 0;
+  border-left: 2px solid var(--zp-field-border);
+  border-radius: 0;
+  box-shadow: none;
+  font-size: var(--zp-fs-14);
+}
+:root.zp-admin [data-sonner-toast][data-type="success"] { border-left-color: var(--zp-success); }
+:root.zp-admin [data-sonner-toast][data-type="error"] { border-left-color: var(--zp-danger); }
+:root.zp-admin [data-sonner-toast][data-type="warning"] { border-left-color: var(--zp-warning); }
+:root.zp-admin [data-sonner-toast] [data-icon] {
+  display: none;
+}
+
+/* Scrollbars */
+:root.zp-admin ::-webkit-scrollbar { width: 10px; height: 10px; }
+:root.zp-admin ::-webkit-scrollbar-thumb { background: var(--zp-field-border); }
+:root.zp-admin ::-webkit-scrollbar-track { background: transparent; }

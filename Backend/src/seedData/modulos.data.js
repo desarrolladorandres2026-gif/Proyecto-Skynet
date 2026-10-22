@@ -125,4 +125,12 @@ export const MODULOS_SISTEMA = [
     esNucleo: false,
     orden: 19,
   },
+  {
+    key: 'sitio_web',
+    nombre: 'Sitio web público',
+    descripcion:
+      'Publica y actualiza desde Skynet el contenido de elterminalneiva.com: noticias, eventos, avisos y empresas transportadoras.',
+    esNucleo: false,
+    orden: 20,
+  },
 ]

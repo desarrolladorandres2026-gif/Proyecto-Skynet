@@ -81,7 +81,7 @@ self.addEventListener('push', (event) => {
           ? {
               requireInteraction: true,
               vibrate: [200, 80, 200, 80, 400],
-              actions: [{ action: 'escuchar', title: '🔊 Escuchar ahora' }],
+              actions: [{ action: 'escuchar', title: 'Escuchar ahora' }],
             }
           : {}),
       }),
