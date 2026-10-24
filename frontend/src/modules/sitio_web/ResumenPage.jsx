@@ -36,7 +36,7 @@ function Tarjeta({ icono: Icono, titulo, to, permitido, cifras }) {
 export default function ResumenPage() {
   const { tienePermiso } = useAuth()
   const puede = (permiso) => tienePermiso('sitio_web:gestionar') || tienePermiso(permiso)
-  const { data, cargando, error, recargar } = useDatosConCache('sitioweb:resumen', () => sitioWebApi.resumen(), { ttlMs: 30_000 })
+  const { data, cargando, error, recargar } = useDatosConCache('sitioweb:resumen', () => sitioWebApi.resumen(), { ttlMs: 60_000 })
 
   const conexion = data?.conexion
   const n = data?.noticias

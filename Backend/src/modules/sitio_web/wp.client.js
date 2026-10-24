@@ -39,7 +39,7 @@ function construirUrl(ruta, query) {
 
 // Devuelve { data, total, totalPaginas }; los dos últimos salen de las
 // cabeceras X-WP-Total / X-WP-TotalPages (solo existen en los listados).
-export async function wpRequest(metodo, ruta, { query, body } = {}) {
+async function pedir(metodo, ruta, { query, body } = {}) {
   if (!wpConfigurado()) {
     throw errorWp('La conexión con el sitio web no está configurada en el servidor', 503)
   }
@@ -87,4 +87,63 @@ export async function wpRequest(metodo, ruta, { query, body } = {}) {
     total: Number(respuesta.headers.get('x-wp-total')) || 0,
     totalPaginas: Number(respuesta.headers.get('x-wp-totalpages')) || 0,
   }
+}
+
+// Caché de lecturas. Cada petición a WordPress cuesta ~0,6 s (1-3 s si el
+// sitio estaba frío) y una pantalla como el Resumen hace ~10 seguidas; sin
+// caché cada visita de cada persona las repetía todas. Dura poco (20 s) para
+// que lo publicado directo en WordPress aparezca casi enseguida, y cualquier
+// escritura hecha desde Skynet la vacía entera para que nadie vea datos
+// viejos tras guardar. En pruebas está apagada: los tests simulan WordPress
+// con un fetch falso y comparten URLs.
+let ttlLecturaMs = env.NODE_ENV === 'test' ? 0 : 20_000
+const MAX_ENTRADAS = 200
+const lecturas = new Map()
+const enVuelo = new Map()
+// Una lectura que empezó antes de una escritura no debe guardarse después de
+// ella: traería el dato anterior al cambio.
+let generacion = 0
+
+// Solo para pruebas del propio caché.
+export function fijarTtlCacheWp(ms) {
+  ttlLecturaMs = ms
+  limpiarCacheWp()
+}
+
+export function limpiarCacheWp() {
+  generacion += 1
+  lecturas.clear()
+  enVuelo.clear()
+}
+
+export async function wpRequest(metodo, ruta, opciones = {}) {
+  if (metodo !== 'GET') {
+    limpiarCacheWp()
+    try {
+      return await pedir(metodo, ruta, opciones)
+    } finally {
+      limpiarCacheWp()
+    }
+  }
+  if (!ttlLecturaMs || !wpConfigurado()) return pedir(metodo, ruta, opciones)
+
+  const clave = construirUrl(ruta, opciones.query).href
+  const guardada = lecturas.get(clave)
+  if (guardada && guardada.expira > Date.now()) return structuredClone(guardada.valor)
+  if (enVuelo.has(clave)) return structuredClone(await enVuelo.get(clave))
+
+  const nacida = generacion
+  const promesa = pedir(metodo, ruta, opciones)
+    .then((valor) => {
+      if (nacida === generacion) {
+        if (lecturas.size >= MAX_ENTRADAS) lecturas.delete(lecturas.keys().next().value)
+        lecturas.set(clave, { valor, expira: Date.now() + ttlLecturaMs })
+      }
+      return valor
+    })
+    .finally(() => {
+      if (enVuelo.get(clave) === promesa) enVuelo.delete(clave)
+    })
+  enVuelo.set(clave, promesa)
+  return structuredClone(await promesa)
 }

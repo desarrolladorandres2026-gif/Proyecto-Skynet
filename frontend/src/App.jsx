@@ -31,6 +31,8 @@ const MiFirmaPage = lazy(() => import('./modules/requerimientos/MiFirmaPage.jsx'
 const RequerimientoDetallePage = lazy(() => import('./modules/requerimientos/RequerimientoDetallePage.jsx'))
 const BandejaFinancieroPage = lazy(() => import('./modules/requerimientos/BandejaFinancieroPage.jsx'))
 const BandejaBodegaPage = lazy(() => import('./modules/requerimientos/BandejaBodegaPage.jsx'))
+const ConsolidadoBodegaPage = lazy(() => import('./modules/requerimientos/ConsolidadoBodegaPage.jsx'))
+const CatalogoArticulosPage = lazy(() => import('./modules/requerimientos/CatalogoArticulosPage.jsx'))
 const TodosRequerimientosPage = lazy(() => import('./modules/requerimientos/TodosRequerimientosPage.jsx'))
 const BancoPreguntasPage = lazy(() => import('./modules/sig_pregunta_dia/BancoPreguntasPage.jsx'))
 const PreguntaDelDiaPage = lazy(() => import('./modules/sig_pregunta_dia/PreguntaDelDiaPage.jsx'))
@@ -71,6 +73,7 @@ const NoticiasPage = lazy(() => import('./modules/sitio_web/NoticiasPage.jsx'))
 const EventosPage = lazy(() => import('./modules/sitio_web/EventosPage.jsx'))
 const AvisosPage = lazy(() => import('./modules/sitio_web/AvisosPage.jsx'))
 const MediosPage = lazy(() => import('./modules/sitio_web/MediosPage.jsx'))
+const RadicadosPage = lazy(() => import('./modules/sitio_web/RadicadosPage.jsx'))
 const SitioWebResumenPage = lazy(() => import('./modules/sitio_web/ResumenPage.jsx'))
 
 const PERMISOS_SITIO_WEB = ['sitio_web:gestionar', 'noticias:gestionar', 'eventos:gestionar', 'publicaciones:gestionar']
@@ -238,6 +241,7 @@ export default function App() {
             <Route path="sitio-web/noticias" element={<ModuloActivoRoute modulo="sitio_web"><PermissionRoute permiso={['sitio_web:gestionar', 'noticias:gestionar']}><NoticiasPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="sitio-web/eventos" element={<ModuloActivoRoute modulo="sitio_web"><PermissionRoute permiso={['sitio_web:gestionar', 'eventos:gestionar']}><EventosPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="sitio-web/avisos" element={<ModuloActivoRoute modulo="sitio_web"><PermissionRoute permiso={['sitio_web:gestionar', 'publicaciones:gestionar']}><AvisosPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="sitio-web/radicados" element={<ModuloActivoRoute modulo="sitio_web"><PermissionRoute permiso={['sitio_web:gestionar', 'pqrs:gestionar']}><RadicadosPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="sitio-web/medios" element={<ModuloActivoRoute modulo="sitio_web"><PermissionRoute permiso={PERMISOS_SITIO_WEB}><MediosPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="danos/reportar" element={<ModuloActivoRoute modulo="danos"><ReportarDanoPage /></ModuloActivoRoute>} />
             <Route path="danos/tareas" element={<ModuloActivoRoute modulo="danos"><PermissionRoute permiso="danos:gestionar"><TareasDanosPage /></PermissionRoute></ModuloActivoRoute>} />
@@ -258,6 +262,8 @@ export default function App() {
             <Route path="requerimientos/mi-firma" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:aprobar_financiero"><MiFirmaPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/financiero" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:aprobar_financiero"><BandejaFinancieroPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/bodega" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:gestionar_bodega"><BandejaBodegaPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="requerimientos/bodega/consolidado" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:gestionar_bodega"><ConsolidadoBodegaPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="requerimientos/catalogo" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:gestionar_bodega"><CatalogoArticulosPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/todos" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:ver_todos"><TodosRequerimientosPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/:id" element={<ModuloActivoRoute modulo="requerimientos"><RequerimientoDetallePage /></ModuloActivoRoute>} />
 

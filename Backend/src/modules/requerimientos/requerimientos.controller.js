@@ -1,4 +1,5 @@
 import * as service from './requerimientos.service.js'
+import * as articulosService from './articulos.service.js'
 
 export async function crear(req, res) {
   const requerimiento = await service.crearRequerimiento(req.body, req.usuario)
@@ -77,4 +78,32 @@ export async function eliminarPorRango(req, res) {
 export async function eliminarUno(req, res) {
   const resultado = await service.eliminarUno(req.params.id, req.body?.password, req.usuario)
   res.json(resultado)
+}
+
+export async function buscarArticulos(req, res) {
+  const articulos = await articulosService.buscarParaSolicitante(req.query.q)
+  res.json({ articulos })
+}
+
+export async function listarCatalogo(req, res) {
+  res.json(await articulosService.listarCatalogo({ q: req.query.q, grupo: req.query.grupo }))
+}
+
+export async function importarArticulos(req, res) {
+  const resultado = await articulosService.importarExistencias(req.body?.texto, req.usuario)
+  res.json(resultado)
+}
+
+export async function editarArticulo(req, res) {
+  const articulo = await articulosService.editarArticulo(req.params.id, req.body, req.usuario)
+  res.json({ articulo })
+}
+
+export async function consolidadoBodega(_req, res) {
+  res.json(await service.consolidadoDespacho())
+}
+
+export async function vincularItemArticulo(req, res) {
+  const requerimiento = await service.vincularItemArticulo(req.params.id, req.params.itemId, req.body, req.usuario)
+  res.json({ requerimiento })
 }

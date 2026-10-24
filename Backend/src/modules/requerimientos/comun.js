@@ -10,6 +10,8 @@ export const POPULATE_REQUERIMIENTO = [
   { path: 'financiero.aprobadoPor', select: 'nombre nombre_usuario' },
   { path: 'bodega.revisadoPor', select: 'nombre nombre_usuario' },
   { path: 'itemsCompra.controlRecibido.marcadoPor', select: 'nombre nombre_usuario' },
+  // Sin `existencia`: es dato de Bodega y este populate llega a todo solicitante.
+  { path: 'itemsCompra.articulo', select: 'nombre grupo presentaciones' },
 ]
 
 export function obtenerRequerimiento(id) {

@@ -2,6 +2,7 @@ import { obtenerResumen } from './resumen.service.js'
 import { listarMedios, subirMedio } from './medios.service.js'
 import { listarEventos, obtenerEvento, listarSedes, crearEvento, actualizarEvento, eliminarEvento } from './eventos.service.js'
 import { listarAvisos, obtenerAviso, crearAviso, actualizarAviso, eliminarAviso } from './avisos.service.js'
+import { listarFormularios, listarRadicados, obtenerRadicado, cambiarEstadoRadicado, eliminarRadicado, exportarRadicadosCsv, responderRadicado } from './radicados.service.js'
 import { ErrorValidacion } from '../../utils/errores.js'
 
 export function parsearId(valor) {
@@ -58,6 +59,49 @@ export async function eventosActualizar(req, res) {
 export async function eventosEliminar(req, res) {
   await eliminarEvento(parsearId(req.params.id), req.usuario, req.ip)
   res.status(204).end()
+}
+
+// ── Radicados (PQRSF y demás formularios) ─────────────────────────────────
+export async function radicadosFormularios(_req, res) {
+  res.json(await listarFormularios())
+}
+export async function radicadosListar(req, res) {
+  const formularioId = Number(req.query.formularioId)
+  res.json(
+    await listarRadicados({
+      ...paginacion(req.query, 50),
+      formularioId: Number.isInteger(formularioId) && formularioId > 0 ? formularioId : undefined,
+      estado: req.query.estado || undefined,
+      buscar: textoBusqueda(req.query.buscar),
+    }),
+  )
+}
+export async function radicadosObtener(req, res) {
+  res.json({ radicado: await obtenerRadicado(parsearId(req.params.id)) })
+}
+export async function radicadosEstado(req, res) {
+  res.json(await cambiarEstadoRadicado(parsearId(req.params.id), req.body?.estado, req.usuario, req.ip, { soloSiSinLeer: req.body?.soloSiSinLeer === true }))
+}
+
+export async function radicadosResponder(req, res) {
+  const marcarTramitado = req.body?.marcarTramitado === 'true' || req.body?.marcarTramitado === true
+  res.status(201).json(await responderRadicado(parsearId(req.params.id), { nota: req.body?.nota, marcarTramitado }, req.file, req.usuario, req.ip))
+}
+export async function radicadosEliminar(req, res) {
+  await eliminarRadicado(parsearId(req.params.id), req.usuario, req.ip)
+  res.status(204).end()
+}
+export async function radicadosExportar(req, res) {
+  const formularioId = Number(req.query.formularioId)
+  const csv = await exportarRadicadosCsv({
+    formularioId: Number.isInteger(formularioId) && formularioId > 0 ? formularioId : undefined,
+    estado: req.query.estado || undefined,
+  })
+  res.set({
+    'Content-Type': 'text/csv; charset=utf-8',
+    'Content-Disposition': `attachment; filename="radicados-${new Date().toISOString().slice(0, 10)}.csv"`,
+  })
+  res.send(csv)
 }
 
 // ── Avisos (popups) ───────────────────────────────────────────────────────

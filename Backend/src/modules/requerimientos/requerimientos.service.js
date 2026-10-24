@@ -1,4 +1,6 @@
+import mongoose from 'mongoose'
 import Requerimiento from '../../models/Requerimiento.js'
+import Articulo from '../../models/Articulo.js'
 import Usuario from '../../models/Usuario.js'
 import Rol from '../../models/Rol.js'
 import { ErrorNoEncontrado, ErrorValidacion, ErrorConflicto } from '../../utils/errores.js'
@@ -9,6 +11,8 @@ import { vincularRequerimiento } from '../danos/danos.service.js'
 import { usuariosConPermiso } from '../mantenimiento/comun.js'
 import { notificarUsuarios as _notificarUsuarios } from '../../utils/sendPush.js'
 import { obtenerRequerimiento, puedeVer, auditar } from './comun.js'
+import { buscar, coincidenciaExacta, normalizar } from './articulos.busqueda.js'
+import { agregarAlias } from './articulos.service.js'
 
 // pendiente = "pendiente por despachar" (recién llega de Financiero),
 // aprobada = "despachado", no_aprobada = "no se puede despachar" (exige
@@ -92,7 +96,41 @@ export function normalizarItemsCompra(items) {
     descripcionProducto: String(item.descripcionProducto).trim(),
     cantidad: Number(item.cantidad),
     destino: item.destino ? String(item.destino).trim() : '',
+    // El cliente puede mandar el id o el artículo poblado; la validación contra
+    // el catálogo (y el snapshot del nombre) la hace resolverArticulosItems.
+    articulo: item.articulo?._id || item.articulo || null,
+    presentacion: item.presentacion ? String(item.presentacion).trim() : '',
   }))
+}
+
+// Cruza cada ítem con el catálogo de Bodega. Un id enviado por el cliente se
+// valida y se toma del catálogo (nombre y factor NUNCA se confían al cliente).
+// Sin id solo se vincula solo cuando el texto coincide EXACTO con un nombre o
+// alias; lo difuso queda "sin identificar" y se sugiere en el consolidado.
+export async function resolverArticulosItems(items) {
+  const campos = 'nombre nombreNormalizado aliasNormalizados presentaciones'
+  const ids = items.map((i) => i.articulo).filter((id) => id && mongoose.isValidObjectId(id))
+  const [catalogo, enviados] = await Promise.all([
+    Articulo.find({ activo: true }).select(campos).lean(),
+    // Por id aunque esté inactivo: un ítem ya vinculado no debe desvincularse
+    // solo porque Bodega después dio de baja el artículo.
+    ids.length ? Articulo.find({ _id: { $in: ids } }).select(campos).lean() : [],
+  ])
+  const porId = new Map(enviados.map((a) => [String(a._id), a]))
+
+  return items.map((item) => {
+    const valido = item.articulo && mongoose.isValidObjectId(item.articulo) ? porId.get(String(item.articulo)) : null
+    const articulo = valido || coincidenciaExacta(item.descripcionProducto, catalogo)
+    if (!articulo) return { ...item, articulo: null, articuloNombre: '', presentacion: '', factorPresentacion: 1 }
+    const pres = (articulo.presentaciones || []).find((p) => normalizar(p.nombre) === normalizar(item.presentacion))
+    return {
+      ...item,
+      articulo: articulo._id,
+      articuloNombre: articulo.nombre,
+      presentacion: pres?.nombre || '',
+      factorPresentacion: pres?.factor || 1,
+    }
+  })
 }
 
 function validarDetalleServicio(detalle) {
@@ -136,7 +174,7 @@ export async function crearRequerimiento(datos, usuarioActor) {
 
   if (tipo === 'compra') {
     validarItemsCompra(itemsCompra)
-    datosCreacion.itemsCompra = normalizarItemsCompra(itemsCompra)
+    datosCreacion.itemsCompra = await resolverArticulosItems(normalizarItemsCompra(itemsCompra))
     datosCreacion.versionOriginal = { areaOProceso: datosCreacion.areaOProceso, itemsCompra: datosCreacion.itemsCompra }
   } else {
     validarDetalleServicio(detalleServicio)
@@ -187,7 +225,7 @@ function snapshotEditable(doc) {
 // (edición final justo al aprobar) — ambas guardan el mismo tipo de snapshot
 // en financiero.historialEdiciones. Devuelve `true` si de verdad hubo algún
 // cambio en el body (para que editar sin cambios sea un 400, no un no-op).
-function aplicarEdicionFinanciero(doc, cambios, usuarioActor) {
+async function aplicarEdicionFinanciero(doc, cambios, usuarioActor) {
   const huboCambios =
     cambios.areaOProceso !== undefined ||
     cambios.itemsCompra !== undefined ||
@@ -200,7 +238,7 @@ function aplicarEdicionFinanciero(doc, cambios, usuarioActor) {
   if (cambios.areaOProceso !== undefined) doc.areaOProceso = String(cambios.areaOProceso).trim()
   if (doc.tipo === 'compra' && cambios.itemsCompra !== undefined) {
     validarItemsCompra(cambios.itemsCompra)
-    doc.itemsCompra = normalizarItemsCompra(cambios.itemsCompra)
+    doc.itemsCompra = await resolverArticulosItems(normalizarItemsCompra(cambios.itemsCompra))
   }
   if (doc.tipo === 'servicio' && cambios.detalleServicio !== undefined) {
     validarDetalleServicio(cambios.detalleServicio)
@@ -230,7 +268,7 @@ export async function editarComoFinanciero(id, cambios, usuarioActor) {
   if (doc.estado !== 'pendiente_financiero') {
     throw new ErrorConflicto(`No se puede editar un requerimiento en estado "${doc.estado}"`)
   }
-  const huboCambios = aplicarEdicionFinanciero(doc, cambios || {}, usuarioActor)
+  const huboCambios = await aplicarEdicionFinanciero(doc, cambios || {}, usuarioActor)
   if (!huboCambios) throw new ErrorValidacion('No se recibió ningún cambio para guardar')
 
   await doc.save()
@@ -259,7 +297,7 @@ export async function aprobarComoFinanciero(id, body, usuarioActor) {
     )
   }
 
-  aplicarEdicionFinanciero(doc, body || {}, usuarioActor)
+  await aplicarEdicionFinanciero(doc, body || {}, usuarioActor)
 
   doc.financiero.aprobadoPor = usuarioActor.id_usuario
   doc.financiero.nombreAprobador = aprobador?.nombre || usuarioActor.nombre_usuario
@@ -433,6 +471,140 @@ export async function marcarControlRecibidoItem(id, itemId, { recibido, observac
     `Bodega marcó el ítem "${item.descripcionProducto}" como ${marcarRecibido ? 'recibido' : 'pendiente'}`
   )
   return obtenerRequerimiento(doc._id)
+}
+
+// Vincula (o desvincula, con articuloId vacío) un ítem de texto libre con un
+// artículo del catálogo. Lo usan Financiero, antes de aprobar, y Bodega, ya
+// con el requerimiento en su bandeja. Guarda por defecto lo que escribió el
+// solicitante como alias, y así el catálogo aprende cómo lo nombra la gente.
+export async function vincularItemArticulo(id, itemId, { articuloId, guardarAlias = true } = {}, usuarioActor) {
+  const doc = await obtenerParaMutar(id)
+  if (doc.tipo !== 'compra') throw new ErrorValidacion('Solo los requerimientos de compra tienen productos')
+  // Cada etapa la toca solo su dueño: Financiero antes de aprobar, Bodega ya
+  // con el requerimiento en su bandeja y sin despachar.
+  const permisos = usuarioActor.permisos
+  const esAdmin = usuarioActor.esSuperAdmin === true
+  const financieroEnSuEtapa =
+    doc.estado === 'pendiente_financiero' && (esAdmin || permisos?.has('requerimientos:aprobar_financiero'))
+  const bodegaEnSuEtapa =
+    doc.estado === 'pendiente_bodega' &&
+    doc.dirigidoAlmacen === true &&
+    doc.bodega.estado !== 'aprobada' &&
+    (esAdmin || permisos?.has('requerimientos:gestionar_bodega'))
+  if (!financieroEnSuEtapa && !bodegaEnSuEtapa) {
+    throw new ErrorConflicto('Este requerimiento ya no se puede modificar')
+  }
+  const item = doc.itemsCompra.id(itemId)
+  if (!item) throw new ErrorNoEncontrado('Ítem no encontrado')
+
+  if (!articuloId) {
+    item.articulo = null
+    item.articuloNombre = ''
+    item.presentacion = ''
+    item.factorPresentacion = 1
+  } else {
+    if (!mongoose.isValidObjectId(articuloId)) throw new ErrorValidacion('Artículo inválido')
+    const articulo = await Articulo.findById(articuloId).select('nombre')
+    if (!articulo) throw new ErrorNoEncontrado('Artículo no encontrado en el catálogo')
+    // La presentación pedida era de otro artículo (o no existe): vuelve a unidad.
+    // Si es el mismo artículo se conserva, para no achicar lo que se despacha.
+    if (String(item.articulo) !== String(articulo._id)) {
+      item.presentacion = ''
+      item.factorPresentacion = 1
+    }
+    item.articulo = articulo._id
+    item.articuloNombre = articulo.nombre
+    if (guardarAlias) await agregarAlias(articulo._id, item.descripcionProducto)
+  }
+
+  await doc.save()
+  await auditar(
+    usuarioActor,
+    'vincular_articulo',
+    doc,
+    articuloId ? `Vinculó "${item.descripcionProducto}" con el artículo "${item.articuloNombre}"` : `Desvinculó "${item.descripcionProducto}" del catálogo`
+  )
+  return obtenerRequerimiento(doc._id)
+}
+
+// Lo que Bodega tiene que despachar HOY: suma, por artículo del catálogo, todo
+// lo pedido en los requerimientos aprobados que siguen pendientes por
+// despachar. Los ítems de texto libre sin vincular se agrupan por texto
+// normalizado y traen sugerencias, para que Bodega los resuelva en un clic.
+export async function consolidadoDespacho() {
+  const docs = await Requerimiento.find({
+    tipo: 'compra',
+    estado: 'pendiente_bodega',
+    dirigidoAlmacen: true,
+    'bodega.estado': 'pendiente',
+  })
+    .populate('solicitante', 'nombre')
+    .sort({ createdAt: 1 })
+    .lean()
+
+  const catalogo = await Articulo.find({}).select('nombre nombreNormalizado grupo existencia alias aliasNormalizados activo').lean()
+  const porId = new Map(catalogo.map((a) => [String(a._id), a]))
+  const activos = catalogo.filter((a) => a.activo)
+
+  const vinculados = new Map()
+  const libres = new Map()
+  for (const d of docs) {
+    for (const it of d.itemsCompra || []) {
+      const unidades = it.cantidad * (it.factorPresentacion || 1)
+      const linea = {
+        requerimientoId: d._id,
+        itemId: it._id,
+        solicitante: d.solicitante?.nombre || '',
+        fecha: d.fechaSolicitud || d.createdAt,
+        cantidad: it.cantidad,
+        presentacion: it.presentacion || '',
+        factor: it.factorPresentacion || 1,
+        unidades,
+        destino: it.destino || '',
+        textoOriginal: it.descripcionProducto,
+      }
+      const articulo = it.articulo && porId.get(String(it.articulo))
+      if (articulo) {
+        const clave = String(articulo._id)
+        const fila = vinculados.get(clave) || { articulo, total: 0, desglose: [] }
+        fila.total += unidades
+        fila.desglose.push(linea)
+        vinculados.set(clave, fila)
+      } else {
+        const clave = normalizar(it.descripcionProducto) || it.descripcionProducto
+        const fila = libres.get(clave) || { texto: it.descripcionProducto, total: 0, desglose: [] }
+        fila.total += unidades
+        fila.desglose.push(linea)
+        libres.set(clave, fila)
+      }
+    }
+  }
+
+  const articulos = [...vinculados.values()]
+    .map((f) => ({
+      articulo: { _id: f.articulo._id, nombre: f.articulo.nombre, grupo: f.articulo.grupo, existencia: f.articulo.existencia },
+      total: f.total,
+      faltante: Math.max(0, f.total - (f.articulo.existencia || 0)),
+      desglose: f.desglose,
+    }))
+    .sort((a, b) => (a.articulo.grupo || '').localeCompare(b.articulo.grupo || '') || a.articulo.nombre.localeCompare(b.articulo.nombre))
+
+  const sinIdentificar = [...libres.values()].map((f) => ({
+    ...f,
+    sugerencias: buscar(f.texto, activos, { limite: 3 }).map((r) => ({
+      _id: r.articulo._id,
+      nombre: r.articulo.nombre,
+      grupo: r.articulo.grupo,
+      score: Math.round(r.score * 100) / 100,
+    })),
+  }))
+
+  return {
+    requerimientos: docs.length,
+    articulos,
+    sinIdentificar,
+    sinStock: articulos.filter((a) => a.faltante > 0).length,
+  }
 }
 
 export function listarMios(usuarioActor) {

@@ -125,6 +125,37 @@ function catalogoHerramientas(usuario, contexto = {}) {
     },
     {
       modulo: 'requerimientos',
+      permiso: 'requerimientos:gestionar_bodega',
+      declaracion: {
+        name: 'que_despachar',
+        description:
+          'Para Bodega: lista consolidada de lo que hay que despachar ahora, sumando todos los requerimientos aprobados pendientes, por artículo (con el nombre exacto de Elisa), cantidad total, existencia y faltante. Incluye los productos escritos libremente que aún no están vinculados al catálogo. Útil para "¿qué tengo que despachar?", "¿cuántas escobas me piden?".',
+        parameters: { type: Type.OBJECT, properties: {} },
+      },
+      ejecutar: async () => {
+        const c = await requerimientosService.consolidadoDespacho()
+        return {
+          requerimientosPendientes: c.requerimientos,
+          // Tope propio (no LIMITE_LISTA): una lista de despacho de 15 renglones
+          // quedaría cortada en un día normal. `totalArticulos` avisa si hubo corte.
+          totalArticulos: c.articulos.length,
+          articulos: c.articulos.slice(0, 60).map((f) => ({
+            articulo: f.articulo.nombre,
+            grupo: f.articulo.grupo,
+            despachar: f.total,
+            existencia: f.articulo.existencia,
+            faltante: f.faltante,
+          })),
+          sinIdentificar: c.sinIdentificar.slice(0, 30).map((f) => ({
+            textoEscrito: f.texto,
+            cantidad: f.total,
+            sugerencia: f.sugerencias[0]?.nombre,
+          })),
+        }
+      },
+    },
+    {
+      modulo: 'requerimientos',
       // Crear un requerimiento es capacidad universal (ver requerimientos.
       // routes.js) — cualquier usuario autenticado puede pedir uno.
       //

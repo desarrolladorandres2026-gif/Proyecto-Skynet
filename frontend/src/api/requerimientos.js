@@ -44,6 +44,35 @@ export const requerimientos = {
       body: JSON.stringify({ estado, observacion, password }),
     })
   },
+  // ── Catálogo de artículos (Bodega) ──
+  // Autocompletar del formulario: universal, sin existencias.
+  buscarArticulos(q) {
+    return request(`/requerimientos/articulos?q=${encodeURIComponent(q)}`)
+  },
+  catalogo({ q, grupo } = {}) {
+    const params = new URLSearchParams()
+    if (q) params.set('q', q)
+    if (grupo) params.set('grupo', grupo)
+    const qs = params.toString()
+    return request(`/requerimientos/articulos/catalogo${qs ? `?${qs}` : ''}`)
+  },
+  // texto = contenido del export de Elisa (Consulta.txt) ya decodificado.
+  importarArticulos(texto) {
+    return request('/requerimientos/articulos/importar', { method: 'POST', body: JSON.stringify({ texto }) })
+  },
+  editarArticulo(id, cambios) {
+    return request(`/requerimientos/articulos/${id}`, { method: 'PATCH', body: JSON.stringify(cambios) })
+  },
+  consolidadoBodega() {
+    return request('/requerimientos/bodega/consolidado')
+  },
+  // articuloId vacío = desvincular.
+  vincularItem(id, itemId, articuloId) {
+    return request(`/requerimientos/${id}/items/${itemId}/articulo`, {
+      method: 'PATCH',
+      body: JSON.stringify({ articuloId: articuloId || null }),
+    })
+  },
   marcarControlRecibido(id, itemId, recibido, observacion) {
     return request(`/requerimientos/${id}/bodega/items/${itemId}/recibido`, {
       method: 'PATCH',

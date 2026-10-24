@@ -37,7 +37,7 @@ function Grupo({ modulo, onNavigate }) {
             to={item.to}
             end={item.end}
             onClick={onNavigate}
-            className={cn('zp-nav-item', activo && 'is-active')}
+            className={cn('zp-nav-item', 'zp-nav-item--dot', activo && 'is-active')}
             title={item.label}
           >
             {item.label}

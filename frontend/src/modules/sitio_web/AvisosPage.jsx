@@ -71,7 +71,7 @@ export default function AvisosPage() {
   const [eliminando, setEliminando] = useState(false)
   const [cambiando, setCambiando] = useState(null)
 
-  const { data, cargando, error, recargar } = useDatosConCache('sitioweb:avisos', () => sitioWebApi.listarAvisos(), { ttlMs: 20_000 })
+  const { data, cargando, error, recargar } = useDatosConCache('sitioweb:avisos', () => sitioWebApi.listarAvisos(), { ttlMs: 60_000 })
   const avisos = data?.avisos || []
 
   // Un aviso se ve en el sitio cuando está publicado Y activado. El interruptor

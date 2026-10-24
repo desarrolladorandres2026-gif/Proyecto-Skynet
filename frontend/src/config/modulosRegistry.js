@@ -66,7 +66,9 @@ export const MODULOS_REGISTRO = [
       // lo propio, no necesitan registrar una rúbrica que nunca van a usar.
       { to: '/requerimientos/mi-firma', label: 'Mi firma', permiso: 'requerimientos:aprobar_financiero' },
       { to: '/requerimientos/financiero', label: 'Bandeja Financiero', permiso: 'requerimientos:aprobar_financiero' },
-      { to: '/requerimientos/bodega', label: 'Bandeja Bodega', permiso: 'requerimientos:gestionar_bodega' },
+      { to: '/requerimientos/bodega', label: 'Bandeja Bodega', permiso: 'requerimientos:gestionar_bodega', end: true },
+      { to: '/requerimientos/bodega/consolidado', label: 'Qué despachar', permiso: 'requerimientos:gestionar_bodega' },
+      { to: '/requerimientos/catalogo', label: 'Catálogo de artículos', permiso: 'requerimientos:gestionar_bodega' },
       { to: '/requerimientos/todos', label: 'Todos (supervisión)', permiso: 'requerimientos:ver_todos' },
     ],
   },
@@ -173,6 +175,7 @@ export const MODULOS_REGISTRO = [
       { to: '/sitio-web/noticias', label: 'Noticias', permiso: ['sitio_web:gestionar', 'noticias:gestionar'] },
       { to: '/sitio-web/eventos', label: 'Eventos', permiso: ['sitio_web:gestionar', 'eventos:gestionar'] },
       { to: '/sitio-web/avisos', label: 'Avisos al público', permiso: ['sitio_web:gestionar', 'publicaciones:gestionar'] },
+      { to: '/sitio-web/radicados', label: 'Solicitudes (PQRS)', permiso: ['sitio_web:gestionar', 'pqrs:gestionar'] },
       { to: '/sitio-web/medios', label: 'Imágenes', permiso: ['sitio_web:gestionar', 'noticias:gestionar', 'eventos:gestionar', 'publicaciones:gestionar'] },
     ],
   },

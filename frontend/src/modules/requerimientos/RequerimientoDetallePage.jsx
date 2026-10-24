@@ -13,6 +13,7 @@ import {
 import ReautenticacionModal from '../../components/ReautenticacionModal.jsx'
 import { generarPdfRequerimiento } from '../../pdf/requerimientoPdf.js'
 import FormularioCompra from './FormularioCompra.jsx'
+import ArticuloSelector from './ArticuloSelector.jsx'
 
 // Mismos valores que Backend/src/models/Requerimiento.js (bodega.estado) —
 // solo cambian las etiquetas que ve Bodega, ver también Badge (ui.jsx).
@@ -43,6 +44,28 @@ const CAMPOS_SERVICIO = [
   ['Labores a desarrollar', 'laboresADesarrollar'],
   ['Requisitos SST-A', 'requisitosSST'],
 ]
+
+// Estado del ítem frente al catálogo de Bodega. Bodega puede vincular a mano un
+// ítem de texto libre; el resto solo ve a qué artículo quedó asociado.
+function EstadoCatalogo({ item, puedeVincular, onVincular }) {
+  const [texto, setTexto] = useState('')
+  if (item.articulo) {
+    const unidades = item.cantidad * (item.factorPresentacion || 1)
+    return (
+      <p className="mt-1 text-xs text-accent-700 dark:text-accent-400">
+        Catálogo: {item.articuloNombre || item.articulo.nombre}
+        {item.presentacion ? ` · ${item.cantidad} ${item.presentacion} (x${item.factorPresentacion}) = ${unidades} unid.` : ''}
+      </p>
+    )
+  }
+  if (!puedeVincular) return null
+  return (
+    <div className="mt-2">
+      <p className="mb-1 text-xs text-warn-700 dark:text-warn-400">Sin identificar en el catálogo — busca el artículo para vincularlo:</p>
+      <ArticuloSelector texto={texto} onTexto={setTexto} onElegir={(a) => onVincular(a._id)} placeholder="Nombre del artículo" />
+    </div>
+  )
+}
 
 export default function RequerimientoDetallePage() {
   const { id } = useParams()
@@ -124,6 +147,17 @@ export default function RequerimientoDetallePage() {
   const puedeGestionarBodega = esBodega && req.estado === 'pendiente_bodega' && req.dirigidoAlmacen === true
   const mostrarColumnaRecibido = req.tipo === 'compra' && req.bodega?.estado === 'aprobada'
   const puedeControlRecibido = esBodega && mostrarColumnaRecibido
+
+  async function vincularItem(itemId, articuloId) {
+    setError('')
+    try {
+      const { requerimiento } = await requerimientosApi.vincularItem(id, itemId, articuloId)
+      setReq(requerimiento)
+      setOk('Producto vinculado al catálogo')
+    } catch (err) {
+      setError(err.message)
+    }
+  }
 
   function cambiosFinanciero(extra = {}) {
     const base = { areaOProceso, analisisTecnico, ...extra }
@@ -302,7 +336,10 @@ export default function RequerimientoDetallePage() {
                 {(req.itemsCompra || []).map((it, i) => (
                   <div key={it._id || i} className="py-2.5 first:pt-0 last:pb-0">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{it.descripcionProducto}</p>
+                      <div>
+                        <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{it.descripcionProducto}</p>
+                        <EstadoCatalogo item={it} puedeVincular={puedeGestionarBodega && req.bodega?.estado !== 'aprobada'} onVincular={(aid) => vincularItem(it._id, aid)} />
+                      </div>
                       <span className="panel-mono shrink-0 text-[11px] text-slate-500 dark:text-slate-400">
                         {fmtFecha(it.fechaSolicitud)}
                       </span>
@@ -346,7 +383,10 @@ export default function RequerimientoDetallePage() {
                   {(req.itemsCompra || []).map((it, i) => (
                     <tr key={it._id || i}>
                       <Td className="whitespace-nowrap">{fmtFecha(it.fechaSolicitud)}</Td>
-                      <Td>{it.descripcionProducto}</Td>
+                      <Td>
+                        {it.descripcionProducto}
+                        <EstadoCatalogo item={it} puedeVincular={puedeGestionarBodega && req.bodega?.estado !== 'aprobada'} onVincular={(aid) => vincularItem(it._id, aid)} />
+                      </Td>
                       <Td>{it.cantidad}</Td>
                       <Td>{it.destino || '—'}</Td>
                       {mostrarColumnaRecibido && (

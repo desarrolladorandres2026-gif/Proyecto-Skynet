@@ -141,7 +141,7 @@ export default function NoticiasPage() {
   const { data, cargando, error, recargar } = useDatosConCache(
     `sitioweb:noticias:${JSON.stringify({ buscar, estado, categoria, page })}`,
     () => sitioWebApi.listarNoticias({ page, limit: POR_PAGINA, buscar, estado, categoria }),
-    { ttlMs: 30_000 }
+    { ttlMs: 60_000 }
   )
   const { data: dataCategorias } = useDatosConCache('sitioweb:categorias', () => sitioWebApi.categorias(), { ttlMs: 300_000 })
   const noticias = data?.noticias || []

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Warehouse, Printer, Download, PackageCheck, ArrowLeft } from 'lucide-react'
+import { Warehouse, Printer, Download, PackageCheck, ArrowLeft, ClipboardList } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
 import { Badge, Btn, Card, ErrorMsg, TablaWrap, Th, Td, EmptyState, fmtFechaHora } from '../../components/ui.jsx'
 import ExportarRequerimientosModal from './ExportarRequerimientosModal.jsx'
@@ -47,6 +47,11 @@ export default function BandejaBodegaPage() {
           {verDespachados ? 'Requerimientos despachados' : 'Bandeja Bodega — aprobados por Financiero'}
         </h1>
         <div className="flex items-center gap-2">
+          <Link to="/requerimientos/bodega/consolidado">
+            <Btn className="flex items-center gap-1.5">
+              <ClipboardList className="h-4 w-4" aria-hidden="true" /> Qué despachar
+            </Btn>
+          </Link>
           <Btn variante="secundario" onClick={() => setVerDespachados((v) => !v)} className="flex items-center gap-1.5">
             {verDespachados ? (
               <><ArrowLeft className="h-4 w-4" aria-hidden="true" /> Volver a la bandeja</>

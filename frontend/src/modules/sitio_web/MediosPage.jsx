@@ -23,7 +23,7 @@ export default function MediosPage() {
   const { data, cargando, error, recargar } = useDatosConCache(
     `sitioweb:medios:${JSON.stringify({ buscar, page })}`,
     () => sitioWebApi.listarMedios({ page, limit: 24, buscar }),
-    { ttlMs: 30_000 }
+    { ttlMs: 60_000 }
   )
   const medios = data?.medios || []
 

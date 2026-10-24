@@ -134,7 +134,7 @@ export default function EventosPage() {
   const { data, cargando, error, recargar } = useDatosConCache(
     `sitioweb:eventos:${JSON.stringify({ buscar, estado, page })}`,
     () => sitioWebApi.listarEventos({ page, limit: POR_PAGINA, buscar, estado }),
-    { ttlMs: 30_000 }
+    { ttlMs: 60_000 }
   )
   const { data: dataSedes } = useDatosConCache('sitioweb:sedes', () => sitioWebApi.sedes(), { ttlMs: 300_000 })
   const eventos = data?.eventos || []

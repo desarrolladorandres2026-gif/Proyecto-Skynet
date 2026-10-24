@@ -308,8 +308,8 @@ export function Th({ children, className = '' }) {
   )
 }
 
-export function Td({ children, className = '' }) {
-  return <td className={cn('panel-td px-3 py-2 text-sm', className)}>{children}</td>
+export function Td({ children, className = '', ...resto }) {
+  return <td {...resto} className={cn('panel-td px-3 py-2 text-sm', className)}>{children}</td>
 }
 
 export function TablaWrap({ children, className = '', cuadricula = false }) {

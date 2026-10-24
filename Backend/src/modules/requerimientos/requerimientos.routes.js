@@ -6,6 +6,7 @@ import {
   crear, misRequerimientos, bandejaFinanciero, bandejaBodega, listarTodos, detalle,
   editarFinanciero, aprobarFinanciero, rechazarFinanciero, marcarEstadoBodega, marcarControlRecibido,
   exportar, eliminarPorRango, eliminarUno,
+  buscarArticulos, listarCatalogo, importarArticulos, editarArticulo, consolidadoBodega, vincularItemArticulo,
 } from './requerimientos.controller.js'
 
 // Crear un requerimiento y ver los propios son capacidad universal (igual
@@ -22,6 +23,14 @@ router.get('/', requierePermiso('requerimientos:ver_todos'), listarTodos)
 router.get('/mios', misRequerimientos)
 router.get('/financiero', requierePermiso('requerimientos:aprobar_financiero'), bandejaFinanciero)
 router.get('/bodega', requierePermiso('requerimientos:gestionar_bodega'), bandejaBodega)
+router.get('/bodega/consolidado', requierePermiso('requerimientos:gestionar_bodega'), consolidadoBodega)
+// Catálogo de artículos: buscar para armar el requerimiento es universal (como
+// crearlo); ver el catálogo completo con existencias, importarlo y editarlo es
+// de Bodega.
+router.get('/articulos', buscarArticulos)
+router.get('/articulos/catalogo', requierePermiso('requerimientos:gestionar_bodega'), listarCatalogo)
+router.post('/articulos/importar', requierePermiso('requerimientos:gestionar_bodega'), importarArticulos)
+router.patch('/articulos/:id', requierePermiso('requerimientos:gestionar_bodega'), editarArticulo)
 // Mismos 3 permisos que gobiernan las bandejas de Bodega/Financiero y la
 // vista de supervisión — exportar un rango de fechas no es una acción de
 // gestión nueva, es una lectura más de lo que cada uno ya puede ver.
@@ -39,6 +48,7 @@ router.get('/:id', detalle)
 // que la purga por rango (soloAdmin ya cubre el bypass de esSuperAdmin).
 router.delete('/:id', soloAdmin, eliminarUno)
 
+router.patch('/:id/items/:itemId/articulo', requierePermiso('requerimientos:aprobar_financiero', 'requerimientos:gestionar_bodega'), vincularItemArticulo)
 router.patch('/:id/financiero', requierePermiso('requerimientos:aprobar_financiero'), editarFinanciero)
 router.post('/:id/financiero/aprobar', requierePermiso('requerimientos:aprobar_financiero'), aprobarFinanciero)
 router.post('/:id/financiero/rechazar', requierePermiso('requerimientos:aprobar_financiero'), rechazarFinanciero)

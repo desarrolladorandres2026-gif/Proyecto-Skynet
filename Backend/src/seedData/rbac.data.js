@@ -417,6 +417,33 @@ export const ROLES = [
     ],
   },
   {
+    nombre: 'Secretaria de Gerencia',
+    slug: 'secretaria_gerencia',
+    descripcion: 'Apoya a la Gerencia del terminal: administra la correspondencia por email, transmite avisos institucionales por voz y consulta el calendario de ausencias del personal. Trabaja desde el panel denso de escritorio.',
+    esSuperAdmin: false,
+    ambito: 'global',
+    // No es esSistema: puede renombrarse o eliminarse desde la pantalla de
+    // Roles, mismo criterio que Comunicador y Talento Humano.
+    esSistema: false,
+    permisos: [
+      // Email: gestiona la correspondencia de la Gerencia. Sin
+      // email:configurar a propósito — conectar/desconectar cuentas lo decide
+      // el Administrador, no quien solo opera el buzón.
+      'email:ver',
+      'email:leer',
+      'email:buscar',
+      'email:enviar',
+      'email:eliminar',
+      // Anuncia citas, cierres y comunicados de la Gerencia al personal.
+      'avisos_terminal:transmitir',
+      'avisos_terminal:ver_historial',
+      // Solo lectura (calendario): coordinar la agenda de la Gerencia con
+      // las ausencias del personal. Aprobarlas sigue siendo de Talento Humano.
+      'ausencias:ver_todas',
+      'notificaciones:recibir_email',
+    ],
+  },
+  {
     // Mismo piso de privilegios que 'Usuario Común' (ninguna capacidad propia
     // más allá de las universales de cualquier autenticado), con una sola
     // diferencia: recibe las notificaciones por correo.

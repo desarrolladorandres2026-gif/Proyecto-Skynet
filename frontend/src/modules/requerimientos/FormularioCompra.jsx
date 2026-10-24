@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { Btn, Field, Input, Modal, TablaWrap, Th, Td } from '../../components/ui.jsx'
+import { Btn, Field, Input, Modal, Select, TablaWrap, Th, Td } from '../../components/ui.jsx'
+import ArticuloSelector from './ArticuloSelector.jsx'
 
 export function filaVaciaCompra() {
   return {
     fechaSolicitud: new Date().toISOString().slice(0, 10),
     descripcionProducto: '',
+    articulo: null,
+    presentacion: '',
     cantidad: 1,
     destino: '',
   }
@@ -15,6 +18,45 @@ export function filaVaciaCompra() {
 export default function FormularioCompra({ items, onChange }) {
   function actualizarFila(i, campo, valor) {
     onChange(items.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)))
+  }
+
+  function actualizarVarios(i, cambios) {
+    onChange(items.map((it, idx) => (idx === i ? { ...it, ...cambios } : it)))
+  }
+
+  // Escribir sobre un ítem ya vinculado lo desvincula: el texto dejó de ser el
+  // del artículo, y vincular algo distinto en silencio sería peor que pedir
+  // que se vuelva a elegir.
+  function cambiarTexto(i, texto) {
+    const it = items[i]
+    const sigueVinculado = it.articulo && texto === it.articulo.nombre
+    actualizarVarios(i, { descripcionProducto: texto, ...(sigueVinculado ? {} : { articulo: null, presentacion: '' }) })
+  }
+
+  function elegirArticulo(i, articulo) {
+    actualizarVarios(i, { descripcionProducto: articulo.nombre, articulo, presentacion: '' })
+  }
+
+  function campoDescripcion(it, i) {
+    return (
+      <>
+        <ArticuloSelector
+          required
+          texto={it.descripcionProducto}
+          vinculado={Boolean(it.articulo)}
+          onTexto={(texto) => cambiarTexto(i, texto)}
+          onElegir={(articulo) => elegirArticulo(i, articulo)}
+        />
+        {it.articulo?.presentaciones?.length > 0 && (
+          <Select className="mt-2" aria-label="Presentación" value={it.presentacion || ''} onChange={(e) => actualizarFila(i, 'presentacion', e.target.value)}>
+            <option value="">Por unidad</option>
+            {it.articulo.presentaciones.map((p) => (
+              <option key={p.nombre} value={p.nombre}>{p.nombre} (x{p.factor})</option>
+            ))}
+          </Select>
+        )}
+      </>
+    )
   }
 
   function agregarFila() {
@@ -85,13 +127,12 @@ export default function FormularioCompra({ items, onChange }) {
                 onChange={(e) => actualizarFila(i, 'fechaSolicitud', e.target.value)}
               />
             </Field>
-            <Field label="Descripción del producto">
-              <Input
-                required
-                value={it.descripcionProducto}
-                onChange={(e) => actualizarFila(i, 'descripcionProducto', e.target.value)}
-              />
-            </Field>
+            <div>
+              <span className="panel-mono mb-1.5 block text-[11px] tracking-[0.1em] text-brand-700/80 uppercase dark:text-brand-300/80">
+                Descripción del producto
+              </span>
+              {campoDescripcion(it, i)}
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <Field label="Cantidad">
                 <Input
@@ -131,13 +172,7 @@ export default function FormularioCompra({ items, onChange }) {
                   onChange={(e) => actualizarFila(i, 'fechaSolicitud', e.target.value)}
                 />
               </Td>
-              <Td>
-                <Input
-                  required
-                  value={it.descripcionProducto}
-                  onChange={(e) => actualizarFila(i, 'descripcionProducto', e.target.value)}
-                />
-              </Td>
+              <Td className="min-w-[16rem]">{campoDescripcion(it, i)}</Td>
               <Td>
                 <Input
                   type="number"

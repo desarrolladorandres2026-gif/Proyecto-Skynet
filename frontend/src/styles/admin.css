@@ -200,7 +200,7 @@
 .zp-nav-item {
   display: flex;
   align-items: center;
-  height: var(--zp-row-h);
+  height: 26px;
   width: 100%;
   padding: 0 var(--zp-space-4);
   border: 0;
@@ -215,6 +215,20 @@
   text-overflow: ellipsis;
   cursor: pointer;
   transition: background-color 100ms, color 100ms;
+}
+
+.zp-nav-item--dot::before {
+  content: '';
+  flex: none;
+  width: 4px;
+  height: 4px;
+  margin-right: var(--zp-space-2);
+  border-radius: 50%;
+  background: var(--zp-text-secondary);
+}
+
+.zp-nav-item--dot.is-active::before {
+  background: var(--zp-accent-text);
 }
 
 .zp-nav-item:hover {
@@ -242,6 +256,9 @@
   }
   .zp-sidebar.is-open {
     transform: translateX(0);
+  }
+  .zp-nav-item {
+    height: var(--zp-row-h);
   }
 }
 

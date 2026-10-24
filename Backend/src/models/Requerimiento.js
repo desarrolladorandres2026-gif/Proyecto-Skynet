@@ -24,6 +24,15 @@ const itemCompraSchema = new mongoose.Schema(
     fechaSolicitud: { type: Date, required: true },
     descripcionProducto: { type: String, required: true, trim: true },
     cantidad: { type: Number, required: true, min: 1 },
+    // Vínculo con el catálogo de Bodega (ver Articulo.js). Null = texto libre
+    // "sin identificar": Bodega/Financiero lo vinculan después. El nombre se
+    // copia para que el documento no cambie si el catálogo se renombra.
+    articulo: { type: mongoose.Schema.Types.ObjectId, ref: 'Articulo', default: null },
+    articuloNombre: { type: String, trim: true },
+    // Presentación pedida ("paquete") y cuántas unidades de Elisa equivale cada
+    // una. El total a despachar es cantidad * factorPresentacion.
+    presentacion: { type: String, trim: true },
+    factorPresentacion: { type: Number, default: 1, min: 1 },
     destino: { type: String, trim: true },
     // Solo la llena Bodega, y solo cuando bodega.estado ya es 'aprobada'
     // (ver requerimientos.service.js) — paso posterior y distinto a esa

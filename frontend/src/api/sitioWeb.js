@@ -1,16 +1,21 @@
-import { request } from './client.js'
+import { request, requestBlob } from './client.js'
 import { invalidarCachePorPrefijo } from '../hooks/useDatosConCache.js'
 
 // "Sitio web público": ver Backend/src/modules/sitio_web. Cada sección exige su
 // permiso (noticias:gestionar, eventos:gestionar, publicaciones:gestionar).
 // Toda mutación invalida la caché 'sitioweb:' para que listados y resumen
 // reflejen el cambio en la siguiente visita sin esperar el ttl.
-function conInvalidacion(promesa) {
+// `prefijo` acota qué se descarta: abrir o responder un radicado no debe
+// tirar la caché de noticias, eventos o imágenes (cada una cuesta una ida y
+// vuelta a WordPress al volver a pedirla).
+function conInvalidacion(promesa, prefijo = 'sitioweb:') {
   return promesa.then((res) => {
-    invalidarCachePorPrefijo('sitioweb:')
+    invalidarCachePorPrefijo(prefijo)
     return res
   })
 }
+
+const conInvalidacionRadicados = (promesa) => conInvalidacion(promesa, 'sitioweb:radicado')
 
 function aQuery(params) {
   const q = new URLSearchParams()
@@ -48,6 +53,24 @@ export const sitioWebApi = {
   crearEvento: (datos) => conInvalidacion(request('/sitio-web/eventos', json('POST', datos))),
   actualizarEvento: (id, datos) => conInvalidacion(request(`/sitio-web/eventos/${id}`, json('PUT', datos))),
   eliminarEvento: (id) => conInvalidacion(request(`/sitio-web/eventos/${id}`, { method: 'DELETE' })),
+
+  // Radicados (PQRSF y demás formularios del sitio): permiso pqrs:gestionar.
+  radicadosFormularios: () => request('/sitio-web/radicados/formularios'),
+  listarRadicados: ({ page = 1, limit = 15, buscar, estado, formularioId } = {}) =>
+    request(`/sitio-web/radicados${aQuery({ page, limit, buscar, estado, formularioId })}`),
+  obtenerRadicado: (id) => request(`/sitio-web/radicados/${id}`),
+  cambiarEstadoRadicado: (id, estado, { soloSiSinLeer = false } = {}) =>
+    conInvalidacionRadicados(request(`/sitio-web/radicados/${id}/estado`, json('PUT', { estado, ...(soloSiSinLeer ? { soloSiSinLeer: true } : {}) }))),
+
+  responderRadicado(id, { nota, archivo, marcarTramitado }) {
+    const datos = new FormData()
+    datos.append('nota', nota || '')
+    datos.append('marcarTramitado', marcarTramitado ? 'true' : 'false')
+    if (archivo) datos.append('archivo', archivo)
+    return conInvalidacionRadicados(request(`/sitio-web/radicados/${id}/respuesta`, { method: 'POST', body: datos }))
+  },
+  eliminarRadicado: (id) => conInvalidacionRadicados(request(`/sitio-web/radicados/${id}`, { method: 'DELETE' })),
+  exportarRadicados: ({ estado, formularioId } = {}) => requestBlob(`/sitio-web/radicados/exportar${aQuery({ estado, formularioId })}`, { timeoutMs: 60_000 }),
 
   listarAvisos: () => request('/sitio-web/avisos'),
   crearAviso: (datos) => conInvalidacion(request('/sitio-web/avisos', json('POST', datos))),

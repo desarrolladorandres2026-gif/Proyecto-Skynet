@@ -23,7 +23,7 @@ import { LOGO_TERMINAL } from '../modules/induccion/induccionData.js'
 // la vez: manda la cookie hacia el propio origen (logo) y la omite hacia
 // Cloudinary (firma), evitando además un preflight CORS que Cloudinary no
 // está configurado para aceptar con credenciales.
-function cargarImagen(src) {
+export function cargarImagen(src) {
   return new Promise((resolve, reject) => {
     fetch(src, { credentials: 'same-origin' })
       .then((res) => {
