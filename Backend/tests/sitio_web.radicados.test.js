@@ -134,10 +134,24 @@ describe('radicados del sitio web', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('con solo pqrs:gestionar (Operador) no se puede eliminar', async () => {
+    const res = await request(app).delete('/api/sitio-web/radicados/14').set(auth(gestor))
+    expect(res.status).toBe(403)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('pqrs:eliminar permite eliminar aunque no tenga sitio_web:gestionar', async () => {
+    const borrador = await crearUsuario({ permisos: ['pqrs:gestionar', 'pqrs:eliminar'] })
+    fetchMock.mockResolvedValue(respuestaWp({ id: 14 }))
+    const res = await request(app).delete('/api/sitio-web/radicados/14').set(auth(borrador))
+    expect(res.status).toBe(204)
+  })
+
   it('elimina el radicado en WordPress y deja auditoría', async () => {
+    const comunicador = await crearUsuario({ permisos: ['sitio_web:gestionar'] })
     fetchMock.mockResolvedValue(respuestaWp({ id: 14 }))
 
-    const res = await request(app).delete('/api/sitio-web/radicados/14').set(auth(gestor))
+    const res = await request(app).delete('/api/sitio-web/radicados/14').set(auth(comunicador))
 
     expect(res.status).toBe(204)
     expect(fetchMock.mock.calls[0][1].method).toBe('DELETE')

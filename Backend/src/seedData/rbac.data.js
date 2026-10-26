@@ -79,6 +79,7 @@ export const PERMISOS = [
 
   // Atención al ciudadano / contenido (Fase 4)
   permiso('pqrs', 'gestionar', 'Gestionar PQRS'),
+  permiso('pqrs', 'eliminar', 'Eliminar radicados del sitio web (PQRS)'),
   permiso('noticias', 'gestionar', 'Administrar noticias'),
   permiso('eventos', 'gestionar', 'Administrar eventos'),
   permiso('publicaciones', 'gestionar', 'Gestionar publicaciones'),

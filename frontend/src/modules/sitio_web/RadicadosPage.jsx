@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Download, FileDown, Inbox, Paperclip } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuth } from '../../auth/AuthContext.jsx'
 import { sitioWebApi } from '../../api/sitioWeb.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Badge, Btn, ErrorMsg, Field, Input, Modal, Pager, Td, Textarea, Th, fmtFecha, fmtFechaHora } from '../../components/ui.jsx'
@@ -131,6 +132,9 @@ function Detalle({ id, onCerrar, onCambio, onEliminar }) {
     ttlMs: 60_000,
   })
   const radicado = data?.radicado
+  // Mismo criterio que el backend (sitio_web.routes.js): el Operador responde pero no elimina.
+  const { tienePermiso } = useAuth()
+  const puedeEliminar = tienePermiso('sitio_web:gestionar') || tienePermiso('pqrs:eliminar')
   const [guardando, setGuardando] = useState(false)
   const [generandoPdf, setGenerandoPdf] = useState(false)
 
@@ -250,9 +254,11 @@ function Detalle({ id, onCerrar, onCambio, onEliminar }) {
                 <FileDown className="h-4 w-4" aria-hidden="true" />
                 {generandoPdf ? 'Generando…' : 'Descargar PDF'}
               </Btn>
-              <Btn variante="fantasma" className="!text-red-600 dark:!text-red-400" onClick={() => onEliminar(radicado)}>
-                Eliminar
-              </Btn>
+              {puedeEliminar && (
+                <Btn variante="fantasma" className="!text-red-600 dark:!text-red-400" onClick={() => onEliminar(radicado)}>
+                  Eliminar
+                </Btn>
+              )}
             </div>
           </div>
         </div>

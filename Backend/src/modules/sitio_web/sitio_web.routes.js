@@ -53,6 +53,11 @@ const permAvisos = requierePermiso(TODO, 'publicaciones:gestionar')
 // Radicados (PQRSF): pqrs:gestionar ya existía en el catálogo RBAC; lo tiene
 // Gestión/Comunicador y Operador.
 const permRadicados = requierePermiso(TODO, 'pqrs:gestionar')
+// Borrar es irreversible (también borra las respuestas y los PDF): el Operador
+// ve y responde con pqrs:gestionar pero no elimina. Quien tiene
+// sitio_web:gestionar (Administrador, Financiero, Comunicador) conserva el
+// borrado sin migrar la base; pqrs:eliminar permite delegarlo a otro rol.
+const permEliminarRadicados = requierePermiso(TODO, 'pqrs:eliminar')
 
 // La imagen se queda en memoria (tope de 8 MB) en vez de pasar por disco:
 // se valida su contenido real y se reenvía a WordPress en el mismo instante,
@@ -103,7 +108,7 @@ router.get('/radicados/:id', permRadicados, radicadosObtener)
 router.put('/radicados/:id/estado', permRadicados, radicadosEstado)
 // El permiso va ANTES de recibir el archivo, igual que en /medios.
 router.post('/radicados/:id/respuesta', permRadicados, recibirPdf, radicadosResponder)
-router.delete('/radicados/:id', permRadicados, radicadosEliminar)
+router.delete('/radicados/:id', permEliminarRadicados, radicadosEliminar)
 
 router.get('/avisos', permAvisos, avisosListar)
 router.get('/avisos/:id', permAvisos, avisosObtener)
