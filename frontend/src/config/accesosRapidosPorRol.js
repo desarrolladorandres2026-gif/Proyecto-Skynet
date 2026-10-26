@@ -32,6 +32,15 @@ export const ACCESOS_RAPIDOS_PANEL_DENSO = {
     { to: '/avisos-terminal/transmitir', label: 'Transmitir aviso', icon: Megaphone },
     { to: '/ausencias/calendario', label: 'Calendario de ausencias', icon: CalendarDays },
   ],
+  // En Atlas el rol "Secretaria de Gerencia" que usa Laura Sofía es el rol de
+  // sistema 'seguridad' renombrado (el slug no cambia al renombrar), con
+  // permisos propios: avisos, ausencias, requerimientos y sitio web.
+  seguridad: [
+    { to: '/avisos-terminal/transmitir', label: 'Transmitir aviso', icon: Megaphone },
+    { to: '/ausencias/bandeja', label: 'Ausencias por decidir', icon: CalendarDays },
+    { to: '/requerimientos/todos', label: 'Requerimientos', icon: FileText },
+    { to: '/danos/tareas', label: 'Daños pendientes', icon: TriangleAlert },
+  ],
   sig_hseq: [
     { to: '/sig/banco', label: 'Banco de preguntas', icon: Brain },
     { to: '/sig/programacion', label: 'Programación', icon: CalendarClock },
