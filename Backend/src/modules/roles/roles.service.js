@@ -94,10 +94,9 @@ export async function actualizarRol(id, datos, usuarioActor) {
 
   const actualizado = await repo.actualizar(id, cambios)
 
-  // Cualquier cambio en este rol (permisos, ámbito, nivel) debe aplicar de
-  // inmediato a todos los usuarios que lo tengan asignado, no solo al
-  // siguiente que inicie sesión — reutiliza tokenVersion (ver auth.js).
-  await repo.invalidarSesionesDeRol(id)
+  // Sin invalidar sesiones: auth.js relee rol y permisos de la BD en CADA
+  // petición, así que el cambio aplica al instante sin cerrar la sesión de
+  // nadie (tokenVersion queda solo para contraseña/estado/rol asignado).
 
   await registrarAuditoria({
     usuario: usuarioActor,

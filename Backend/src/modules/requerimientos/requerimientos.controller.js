@@ -99,8 +99,12 @@ export async function editarArticulo(req, res) {
   res.json({ articulo })
 }
 
-export async function consolidadoBodega(_req, res) {
-  res.json(await service.consolidadoDespacho())
+export async function consolidadoBodega(req, res) {
+  res.json(await service.consolidadoDespacho({ despachados: req.query.despachados === 'true' }))
+}
+
+export async function consolidadoSupervision(req, res) {
+  res.json(await service.consolidadoDespacho({ supervision: true, estado: req.query.estado || undefined }))
 }
 
 export async function vincularItemArticulo(req, res) {

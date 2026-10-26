@@ -531,13 +531,16 @@ export async function vincularItemArticulo(id, itemId, { articuloId, guardarAlia
 // lo pedido en los requerimientos aprobados que siguen pendientes por
 // despachar. Los ítems de texto libre sin vincular se agrupan por texto
 // normalizado y traen sugerencias, para que Bodega los resuelva en un clic.
-export async function consolidadoDespacho() {
-  const docs = await Requerimiento.find({
-    tipo: 'compra',
-    estado: 'pendiente_bodega',
-    dirigidoAlmacen: true,
-    'bodega.estado': 'pendiente',
-  })
+//
+// Con `supervision` el mismo cálculo corre sobre TODOS los requerimientos de
+// compra (no solo los pendientes de Bodega), opcionalmente filtrados por
+// estado: sirve para que Admin verifique cómo se está identificando cada
+// producto, sin tocar nada (vincular sigue siendo de Financiero/Bodega).
+export async function consolidadoDespacho({ supervision = false, estado, despachados = false } = {}) {
+  const filtro = supervision
+    ? { tipo: 'compra', ...(estado ? { estado } : {}) }
+    : { tipo: 'compra', estado: 'pendiente_bodega', dirigidoAlmacen: true, 'bodega.estado': despachados ? 'aprobada' : 'pendiente' }
+  const docs = await Requerimiento.find(filtro)
     .populate('solicitante', 'nombre')
     .sort({ createdAt: 1 })
     .lean()
@@ -555,6 +558,7 @@ export async function consolidadoDespacho() {
         requerimientoId: d._id,
         itemId: it._id,
         solicitante: d.solicitante?.nombre || '',
+        estado: d.estado,
         fecha: d.fechaSolicitud || d.createdAt,
         cantidad: it.cantidad,
         presentacion: it.presentacion || '',

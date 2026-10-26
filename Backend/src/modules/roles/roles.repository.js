@@ -30,7 +30,3 @@ export function eliminar(id) {
 export function contarUsuariosConRol(id) {
   return Usuario.countDocuments({ rol: id })
 }
-
-export function invalidarSesionesDeRol(id) {
-  return Usuario.updateMany({ rol: id }, { $inc: { tokenVersion: 1 }, $set: { sesionesActivas: [] } })
-}

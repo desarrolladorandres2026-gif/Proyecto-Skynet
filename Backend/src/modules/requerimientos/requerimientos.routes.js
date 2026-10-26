@@ -6,7 +6,7 @@ import {
   crear, misRequerimientos, bandejaFinanciero, bandejaBodega, listarTodos, detalle,
   editarFinanciero, aprobarFinanciero, rechazarFinanciero, marcarEstadoBodega, marcarControlRecibido,
   exportar, eliminarPorRango, eliminarUno,
-  buscarArticulos, listarCatalogo, importarArticulos, editarArticulo, consolidadoBodega, vincularItemArticulo,
+  buscarArticulos, listarCatalogo, importarArticulos, editarArticulo, consolidadoBodega, consolidadoSupervision, vincularItemArticulo,
 } from './requerimientos.controller.js'
 
 // Crear un requerimiento y ver los propios son capacidad universal (igual
@@ -20,6 +20,7 @@ router.use(verificarToken, requiereModuloActivo('requerimientos'))
 // Rutas literales antes de '/:id': si no, Express las trataría como un id.
 router.post('/', crear)
 router.get('/', requierePermiso('requerimientos:ver_todos'), listarTodos)
+router.get('/consolidado', requierePermiso('requerimientos:ver_todos'), consolidadoSupervision)
 router.get('/mios', misRequerimientos)
 router.get('/financiero', requierePermiso('requerimientos:aprobar_financiero'), bandejaFinanciero)
 router.get('/bodega', requierePermiso('requerimientos:gestionar_bodega'), bandejaBodega)

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { LayoutList, Download, Trash2 } from 'lucide-react'
+import { LayoutList, Download, Trash2, ClipboardList } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { Badge, Btn, Card, CardLink, ErrorMsg, OkMsg, Select, TablaWrap, Th, Td, EmptyState, fmtFechaHora } from '../../components/ui.jsx'
@@ -74,6 +74,11 @@ export default function TodosRequerimientosPage() {
               <option key={o.valor} value={o.valor}>{o.label}</option>
             ))}
           </Select>
+          <Link to="/requerimientos/todos/consolidado">
+            <Btn variante="secundario" className="flex items-center gap-1.5">
+              <ClipboardList className="h-4 w-4" aria-hidden="true" /> Consolidado
+            </Btn>
+          </Link>
           <Btn variante="secundario" onClick={() => setModalExportar(true)} className="flex items-center gap-1.5">
             <Download className="h-4 w-4" aria-hidden="true" /> Exportar
           </Btn>

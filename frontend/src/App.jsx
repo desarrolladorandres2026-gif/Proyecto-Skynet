@@ -264,6 +264,7 @@ export default function App() {
             <Route path="requerimientos/bodega" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:gestionar_bodega"><BandejaBodegaPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/bodega/consolidado" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:gestionar_bodega"><ConsolidadoBodegaPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/catalogo" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:gestionar_bodega"><CatalogoArticulosPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="requerimientos/todos/consolidado" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:ver_todos"><ConsolidadoBodegaPage supervision /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/todos" element={<ModuloActivoRoute modulo="requerimientos"><PermissionRoute permiso="requerimientos:ver_todos"><TodosRequerimientosPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="requerimientos/:id" element={<ModuloActivoRoute modulo="requerimientos"><RequerimientoDetallePage /></ModuloActivoRoute>} />
 

@@ -63,8 +63,12 @@ export const requerimientos = {
   editarArticulo(id, cambios) {
     return request(`/requerimientos/articulos/${id}`, { method: 'PATCH', body: JSON.stringify(cambios) })
   },
-  consolidadoBodega() {
-    return request('/requerimientos/bodega/consolidado')
+  consolidadoBodega(despachados = false) {
+    return request(`/requerimientos/bodega/consolidado${despachados ? '?despachados=true' : ''}`)
+  },
+  // Supervisión: mismo consolidado sobre todos los requerimientos de compra.
+  consolidadoSupervision(estado) {
+    return request(`/requerimientos/consolidado${estado ? `?estado=${encodeURIComponent(estado)}` : ''}`)
   },
   // articuloId vacío = desvincular.
   vincularItem(id, itemId, articuloId) {

@@ -1,6 +1,6 @@
 import {
   Home, Wrench, TriangleAlert, GraduationCap, CalendarDays,
-  FileText, ClipboardList, Brain, Mail,
+  FileText, ClipboardList, Brain, Mail, Megaphone,
 } from 'lucide-react'
 
 // Atajos curados a mano para la barra inferior de MobileShell (roles
@@ -69,6 +69,13 @@ export const MOBILE_NAV_POR_ROL = {
   comunicador: [
     { to: '/email', label: 'Email', icon: Mail },
     { to: '/sig/pregunta-del-dia', label: 'Cuestionario', icon: Brain },
+  ],
+  // Secretaria de Gerencia trabaja desde el panel denso de escritorio
+  // (usaPanelDenso), pero si abre desde el celular o con la ventana angosta
+  // (<=768px) cae aquí: sus dos tareas son el buzón y los avisos.
+  secretaria_gerencia: [
+    { to: '/email', label: 'Email', icon: Mail },
+    { to: '/avisos-terminal/transmitir', label: 'Avisos', icon: Megaphone },
   ],
 }
 

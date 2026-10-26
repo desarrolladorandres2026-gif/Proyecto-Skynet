@@ -209,6 +209,9 @@ describe('consolidado de despacho', () => {
     const { marcarEstadoBodega } = await import('../src/modules/requerimientos/requerimientos.service.js')
     await marcarEstadoBodega(req._id, { estado: 'aprobada', password: bodega.password }, bodega.actor)
     expect((await consolidadoDespacho()).requerimientos).toBe(0)
+    const ya = await consolidadoDespacho({ despachados: true })
+    expect(ya.requerimientos).toBe(1)
+    expect(ya.articulos[0].total).toBe(1)
   })
 
   it('Financiero no toca lo que ya firmó y Bodega no toca lo que Financiero no aprobó', async () => {
@@ -224,6 +227,22 @@ describe('consolidado de despacho', () => {
     )
     const itemPendiente = pendiente.itemsCompra[0]._id
     await expect(vincularItemArticulo(pendiente._id, itemPendiente, { articuloId: String(escoba._id) }, bodega.actor)).rejects.toThrow(/ya no se puede modificar/)
+  })
+
+  it('supervisión incluye también lo despachado y permite filtrar por estado', async () => {
+    const { escoba, bodega, pedir } = await armarEscenario()
+    const despachado = await pedir([{ descripcionProducto: 'escoba', cantidad: 3, fechaSolicitud: hoy(), articulo: String(escoba._id) }])
+    const { marcarEstadoBodega } = await import('../src/modules/requerimientos/requerimientos.service.js')
+    await marcarEstadoBodega(despachado._id, { estado: 'aprobada', password: bodega.password }, bodega.actor)
+    await pedir([{ descripcionProducto: 'escobas grandes', cantidad: 4, fechaSolicitud: hoy() }])
+
+    expect((await consolidadoDespacho()).requerimientos).toBe(1)
+    const c = await consolidadoDespacho({ supervision: true })
+    expect(c.requerimientos).toBe(2)
+    expect(c.articulos[0]).toMatchObject({ total: 3 })
+    expect(c.articulos[0].desglose[0].estado).toBe('pendiente_bodega')
+    expect(c.sinIdentificar[0].texto).toBe('escobas grandes')
+    expect((await consolidadoDespacho({ supervision: true, estado: 'rechazado' })).requerimientos).toBe(0)
   })
 
   it('re-vincular al mismo artículo conserva la presentación', async () => {

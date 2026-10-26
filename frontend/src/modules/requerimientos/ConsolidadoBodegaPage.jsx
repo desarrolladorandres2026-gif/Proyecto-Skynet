@@ -2,10 +2,19 @@ import { Fragment, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ClipboardList, ArrowLeft, Printer, Library, ChevronRight, ChevronDown } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
-import { Btn, Card, ErrorMsg, OkMsg, TablaWrap, Th, Td, EmptyState, fmtFecha } from '../../components/ui.jsx'
+import { Btn, Card, ErrorMsg, OkMsg, Select, TablaWrap, Th, Td, EmptyState, fmtFecha } from '../../components/ui.jsx'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import ArticuloSelector from './ArticuloSelector.jsx'
+
+const ESTADOS_SUPERVISION = [
+  { valor: '', label: 'Todos los estados' },
+  { valor: 'pendiente_financiero', label: 'Pendiente Financiero' },
+  { valor: 'pendiente_bodega', label: 'Aprobado (en Bodega)' },
+  { valor: 'aprobado', label: 'Aprobado (sin Bodega)' },
+  { valor: 'rechazado', label: 'Rechazado' },
+]
+const LABEL_ESTADO = Object.fromEntries(ESTADOS_SUPERVISION.filter((e) => e.valor).map((e) => [e.valor, e.label]))
 
 function Resumen({ etiqueta, valor, alerta = false }) {
   return (
@@ -21,7 +30,7 @@ function textoPedido(l) {
   return l.presentacion ? `${l.cantidad} ${l.presentacion} (x${l.factor}) = ${l.unidades}` : String(l.cantidad)
 }
 
-function Desglose({ lineas }) {
+function Desglose({ lineas, mostrarEstado = false }) {
   return (
     <ul className="divide-y divide-brand-600/10 text-sm dark:divide-brand-400/10">
       {lineas.map((l) => (
@@ -30,6 +39,7 @@ function Desglose({ lineas }) {
             {l.solicitante}
             {l.destino ? <span className="text-slate-700 dark:text-slate-300"> · {l.destino}</span> : null}
             {l.textoOriginal ? <span className="text-slate-700 dark:text-slate-300"> · «{l.textoOriginal}»</span> : null}
+            {mostrarEstado && l.estado ? <span className="text-slate-700 dark:text-slate-300"> · {LABEL_ESTADO[l.estado] || l.estado}</span> : null}
           </span>
           <span className="flex items-center gap-3">
             <span className="panel-mono text-xs text-slate-700 dark:text-slate-300">{fmtFecha(l.fecha)}</span>
@@ -44,7 +54,7 @@ function Desglose({ lineas }) {
   )
 }
 
-function FilaSinIdentificar({ fila, onVincular, ocupado }) {
+function FilaSinIdentificar({ fila, onVincular, ocupado, soloLectura = false }) {
   const [texto, setTexto] = useState('')
   return (
     <div className="space-y-3 border-b border-brand-600/20 py-3 dark:border-brand-400/20">
@@ -52,7 +62,14 @@ function FilaSinIdentificar({ fila, onVincular, ocupado }) {
         <p className="text-sm font-medium text-slate-800 dark:text-slate-100">«{fila.texto}»</p>
         <p className="text-sm text-slate-700 dark:text-slate-300">Total pedido: <strong>{fila.total}</strong></p>
       </div>
-      <Desglose lineas={fila.desglose} />
+      <Desglose lineas={fila.desglose} mostrarEstado={soloLectura} />
+      {soloLectura ? (
+        fila.sugerencias.length > 0 && (
+          <p className="text-xs text-slate-700 dark:text-slate-300">
+            Parecido a: {fila.sugerencias.map((s) => s.nombre).join(' · ')}
+          </p>
+        )
+      ) : (
       <div className="space-y-2 print:hidden">
         {fila.sugerencias.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
@@ -66,14 +83,20 @@ function FilaSinIdentificar({ fila, onVincular, ocupado }) {
         )}
         <ArticuloSelector texto={texto} onTexto={setTexto} onElegir={(a) => onVincular(fila, a._id)} placeholder="O busca otro artículo del catálogo" />
       </div>
+      )}
     </div>
   )
 }
 
-export default function ConsolidadoBodegaPage() {
+// supervision: misma pantalla en solo lectura sobre todos los requerimientos
+// de compra (Admin), para comprobar cómo se identifica cada producto.
+export default function ConsolidadoBodegaPage({ supervision = false }) {
+  const [estado, setEstado] = useState('')
+  // Bodega: los despachados salen de "Qué despachar" pero se pueden consultar aparte.
+  const [despachados, setDespachados] = useState(false)
   const { data, cargando, error, recargarSilencioso } = useDatosConCache(
-    'requerimientos:consolidadoBodega',
-    () => requerimientosApi.consolidadoBodega(),
+    supervision ? `requerimientos:consolidadoSupervision:${estado}` : `requerimientos:consolidadoBodega:${despachados}`,
+    () => (supervision ? requerimientosApi.consolidadoSupervision(estado) : requerimientosApi.consolidadoBodega(despachados)),
     { ttlMs: 15_000 },
   )
   const [abiertos, setAbiertos] = useState(() => new Set())
@@ -113,6 +136,7 @@ export default function ConsolidadoBodegaPage() {
 
   const articulos = data?.articulos || []
   const sinIdentificar = data?.sinIdentificar || []
+  const soloLectura = supervision || despachados
   const vacio = !cargando && articulos.length === 0 && sinIdentificar.length === 0
 
   // Agrupa por "grupo" de Elisa, ya vienen ordenados por grupo y nombre.
@@ -129,19 +153,33 @@ export default function ConsolidadoBodegaPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold !text-black dark:!text-white">
           <ClipboardList className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
-          Qué despachar
+          {supervision ? 'Consolidado de productos' : despachados ? 'Ya despachado' : 'Qué despachar'}
         </h1>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
-          <Link to="/requerimientos/bodega">
+          {!supervision && (
+            <Btn variante="secundario" onClick={() => setDespachados((v) => !v)}>
+              {despachados ? 'Ver pendientes' : 'Ver despachados'}
+            </Btn>
+          )}
+          {supervision && (
+            <Select value={estado} onChange={(e) => setEstado(e.target.value)} className="w-48">
+              {ESTADOS_SUPERVISION.map((o) => (
+                <option key={o.valor} value={o.valor}>{o.label}</option>
+              ))}
+            </Select>
+          )}
+          <Link to={supervision ? '/requerimientos/todos' : '/requerimientos/bodega'}>
             <Btn variante="secundario" className="flex items-center gap-1.5">
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Bandeja
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {supervision ? 'Todos' : 'Bandeja'}
             </Btn>
           </Link>
-          <Link to="/requerimientos/catalogo">
-            <Btn variante="secundario" className="flex items-center gap-1.5">
-              <Library className="h-4 w-4" aria-hidden="true" /> Catálogo
-            </Btn>
-          </Link>
+          {!supervision && (
+            <Link to="/requerimientos/catalogo">
+              <Btn variante="secundario" className="flex items-center gap-1.5">
+                <Library className="h-4 w-4" aria-hidden="true" /> Catálogo
+              </Btn>
+            </Link>
+          )}
           <Btn variante="secundario" onClick={() => window.print()} className="flex items-center gap-1.5">
             <Printer className="h-4 w-4" aria-hidden="true" /> Imprimir
           </Btn>
@@ -154,23 +192,23 @@ export default function ConsolidadoBodegaPage() {
       {cargando ? (
         <Card>Cargando…</Card>
       ) : vacio ? (
-        <EmptyState mensaje="No hay nada pendiente por despachar" />
+        <EmptyState mensaje={supervision ? 'No hay productos con este filtro' : despachados ? 'Aún no se ha despachado nada' : 'No hay nada pendiente por despachar'} />
       ) : (
         <>
           <p className="flex flex-wrap gap-x-6 gap-y-1 border-y border-brand-600/20 py-2 text-sm text-slate-700 dark:border-brand-400/20 dark:text-slate-300">
-            <Resumen etiqueta="Requerimientos pendientes" valor={data.requerimientos} />
+            <Resumen etiqueta={supervision ? 'Requerimientos' : despachados ? 'Requerimientos despachados' : 'Requerimientos pendientes'} valor={data.requerimientos} />
             <Resumen etiqueta="Artículos" valor={articulos.length} />
-            <Resumen etiqueta="Sin stock suficiente" valor={data.sinStock} alerta />
+            {!soloLectura && <Resumen etiqueta="Sin stock suficiente" valor={data.sinStock} alerta />}
             <Resumen etiqueta="Por identificar" valor={sinIdentificar.length} alerta />
           </p>
 
           {sinIdentificar.length > 0 && (
             <section>
               <h2 className="panel-mono text-xs uppercase tracking-[0.1em] text-warn-700 dark:text-warn-400">
-                Por identificar — vincúlalos al catálogo para sumarlos
+                {supervision ? 'Sin identificar — no coinciden con el catálogo' : 'Por identificar — vincúlalos al catálogo para sumarlos'}
               </h2>
               {sinIdentificar.map((fila) => (
-                <FilaSinIdentificar key={fila.texto} fila={fila} onVincular={vincularFila} ocupado={ocupado} />
+                <FilaSinIdentificar key={fila.texto} fila={fila} onVincular={vincularFila} ocupado={ocupado} soloLectura={soloLectura} />
               ))}
             </section>
           )}
@@ -184,7 +222,7 @@ export default function ConsolidadoBodegaPage() {
                     <Th>Artículo (nombre en Elisa)</Th>
                     <Th>Despachar</Th>
                     <Th>En existencia</Th>
-                    <Th>Estado</Th>
+                    {!soloLectura && <Th>Estado</Th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -202,18 +240,20 @@ export default function ConsolidadoBodegaPage() {
                           </Td>
                           <Td className="text-base font-semibold">{f.total}</Td>
                           <Td>{f.articulo.existencia}</Td>
-                          <Td>
-                            {f.faltante > 0 ? (
-                              <span className="text-warn-700 dark:text-warn-400">Faltan {f.faltante}</span>
-                            ) : (
-                              <span className="text-accent-700 dark:text-accent-400">Hay stock</span>
-                            )}
-                          </Td>
+                          {!soloLectura && (
+                            <Td>
+                              {f.faltante > 0 ? (
+                                <span className="text-warn-700 dark:text-warn-400">Faltan {f.faltante}</span>
+                              ) : (
+                                <span className="text-accent-700 dark:text-accent-400">Hay stock</span>
+                              )}
+                            </Td>
+                          )}
                         </tr>
                         {abierto && (
                           <tr>
-                            <Td colSpan={4} className="!bg-transparent">
-                              <Desglose lineas={f.desglose} />
+                            <Td colSpan={soloLectura ? 3 : 4} className="!bg-transparent">
+                              <Desglose lineas={f.desglose} mostrarEstado={supervision} />
                             </Td>
                           </tr>
                         )}
