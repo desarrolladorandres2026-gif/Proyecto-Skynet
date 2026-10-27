@@ -13,6 +13,7 @@ import { duracionAMs } from '../../utils/duration.js'
 import { keysModulosDesactivados } from '../sistema/sistema.service.js'
 import { estadoEfectivo } from '../plataforma/plataforma.service.js'
 import { aEstadoPublico } from '../plataforma/plataforma.dto.js'
+import { tienePanelEscritorio } from '../../utils/panelEscritorio.js'
 
 // Umbral de bloqueo por fuerza bruta a nivel de cuenta: complementa el rate
 // limiting por IP (Backend/src/middleware/rateLimit.js), que no detiene un
@@ -130,6 +131,7 @@ function usuarioPublico(usuario) {
       nombre: usuario.rol.nombre,
       slug: usuario.rol.slug,
       ambito: usuario.rol.ambito,
+      panelEscritorio: tienePanelEscritorio(usuario.rol),
     },
     esSuperAdmin: usuario.rol.esSuperAdmin === true,
     permisos: (usuario.rol.permisos || []).map((p) => p.codigo),

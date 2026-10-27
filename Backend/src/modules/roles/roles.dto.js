@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { ErrorValidacion } from '../../utils/errores.js'
+import { tienePanelEscritorio } from '../../utils/panelEscritorio.js'
 
 const crearRolSchema = z.object({
   nombre: z.string().trim().min(3, 'El nombre debe tener al menos 3 caracteres'),
@@ -13,6 +14,7 @@ const crearRolSchema = z.object({
   // con el módulo flota/Empresa.
   ambito: z.enum(['global']).default('global'),
   esSuperAdmin: z.boolean().default(false),
+  panelEscritorio: z.boolean().optional(),
   // Códigos de Permiso (p. ej. "vehiculos:gestionar"); el Service los resuelve
   // a ObjectId contra el catálogo antes de guardar.
   permisos: z.array(z.string()).default([]),
@@ -46,6 +48,7 @@ export function aRolPublico(rol) {
     slug: rol.slug,
     descripcion: rol.descripcion,
     esSuperAdmin: rol.esSuperAdmin,
+    panelEscritorio: tienePanelEscritorio(rol),
     ambito: rol.ambito,
     estado: rol.estado,
     esSistema: rol.esSistema,

@@ -9,6 +9,11 @@ const rolSchema = new mongoose.Schema(
     // todos los módulos" sincronizado a mano con cada módulo nuevo del ERP.
     esSuperAdmin: { type: Boolean, default: false },
     permisos: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Permiso' }],
+    // Si el rol usa el panel denso de escritorio (sidebar + tablas) cuando se
+    // entra desde un computador; sin él ve siempre el shell móvil. Sin default
+    // a propósito: un rol sin el campo guardado cae a la lista legada de
+    // utils/panelEscritorio.js (tienePanelEscritorio), no a false.
+    panelEscritorio: { type: Boolean },
     // Solo 'global' desde que se retiró el módulo flota/Empresa: el scoping
     // multi-tenant ambito:'empresa' (Usuario.empresa, cargarScopeEmpresa())
     // no tiene ya ningún dato al cual restringir. El campo se conserva

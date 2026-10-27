@@ -183,12 +183,9 @@ export function esRolAdmin(usuario) {
 // Administrativo y Financiero en el panel denso. Por eso, aunque no sean
 // "admin", usan el mismo shell de escritorio que Admin en vez del feed móvil
 // tipo app social (ver AppShell.jsx y DashboardPage.jsx).
-// 'administrativo_financiero' (Dir. Administrativo y Gestión) se agregó
-// 2026-08-05 a pedido explícito del usuario: quien tenga ese rol trabaja
-// desde computador, con las mismas bandejas y tablas densas que Admin.
-// 'sig_hseq' (SIG/HSEQ) se agregó por el mismo motivo: administrar el banco
-// de preguntas, programar campañas con recurrencia y leer el dashboard de
-// desempeño es trabajo de escritorio, no el feed móvil tipo app social.
+// Qué roles tienen panel de escritorio ya no está hardcodeado aquí: se decide
+// por rol desde Roles y permisos (Rol.panelEscritorio, que /auth/me entrega en
+// usuario.rol.panelEscritorio). Super Admin siempre lo tiene.
 export function usaPanelDenso(usuario) {
-  return esRolAdmin(usuario) || ['bodega', 'administrativo_financiero', 'sig_hseq', 'comunicador', 'secretaria_gerencia', 'seguridad'].includes(usuario?.rol?.slug)
+  return esRolAdmin(usuario) || usuario?.rol?.panelEscritorio === true
 }

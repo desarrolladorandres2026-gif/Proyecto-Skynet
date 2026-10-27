@@ -17,6 +17,7 @@ const FORM_VACIO = {
   descripcion: '',
   ambito: 'global',
   esSuperAdmin: false,
+  panelEscritorio: false,
   permisos: [],
 }
 
@@ -54,6 +55,7 @@ export default function RolesPage() {
       descripcion: rol.descripcion || '',
       ambito: rol.ambito,
       esSuperAdmin: rol.esSuperAdmin,
+      panelEscritorio: rol.panelEscritorio === true,
       permisos: rol.permisos.map((p) => p.codigo),
     })
     setErrorForm('')
@@ -215,6 +217,14 @@ export default function RolesPage() {
               </div>
             </Field>
           </div>
+
+          <CheckboxLabel
+            disabled={form.esSuperAdmin}
+            checked={form.esSuperAdmin || form.panelEscritorio}
+            onCheckedChange={(checked) => setForm({ ...form, panelEscritorio: checked === true })}
+          >
+            Tiene panel de escritorio (en computador ve el panel completo con menú lateral; sin esto, ve la versión tipo app móvil)
+          </CheckboxLabel>
 
           {!form.esSuperAdmin && (
             <fieldset>

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Skynet Bridge
  * Description: Expone por REST las solicitudes (PQRS y demás radicados) del módulo Form-Terminal del tema terminal-theme para que Skynet las gestione, y publica en la consulta de radicado la respuesta (nota y PDF) que deja el Terminal. No crea radicados.
- * Version:     1.2.0
+ * Version:     1.2.1
  * Author:      Terminal de Transportes de Neiva
  */
 
@@ -21,13 +21,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * clase no existe, las rutas responden 503 en vez de romper el sitio.
  *
  * Lo único público es admin-ajax `skynet_respuesta_publica`: devuelve la nota
- * y el PDF de respuesta de un radicado a quien conozca su número Y el correo
- * con el que lo radicó (los números son consecutivos, el número solo no basta).
+ * y el PDF de respuesta de un radicado a quien conozca su número (limitado a
+ * 10 consultas por minuto y por IP).
  */
 class Skynet_Bridge {
 
 	const ESTADOS  = array( 'unread', 'read', 'processed' );
-	const VERSION  = '1.2.0';
+	const VERSION  = '1.2.1';
 	const MAX_PDF  = 10485760; // 10 MB.
 	const MAX_NOTA = 3000;
 
@@ -516,10 +516,6 @@ class Skynet_Bridge {
 	 */
 	public static function ajax_respuesta_publica() {
 		$vacio  = array( 'respuestas' => array() );
-		$pedir  = array(
-			'respuestas'     => array(),
-			'requiereCorreo' => true,
-		);
 		// Los radicados son consecutivos: sin tope, un script los recorre todos.
 		// 10 consultas por minuto y por IP alcanzan de sobra para una persona.
 		$ip     = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
@@ -544,26 +540,11 @@ class Skynet_Bridge {
 			wp_send_json_success( $vacio );
 		}
 
-		// El radicado es consecutivo y fácil de adivinar: la respuesta (que puede
-		// traer datos del caso) solo se entrega a quien también conoce el correo
-		// con el que se radicó.
-		$correo = isset( $_POST['correo'] ) ? sanitize_email( wp_unslash( $_POST['correo'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
-		if ( '' === $correo ) {
-			wp_send_json_success( $pedir );
-		}
-		$fallos_clave = 'skynet_cf_' . md5( $ip . '|' . $codigo );
-		$fallos       = (int) get_transient( $fallos_clave );
-		if ( $fallos >= 5 ) {
-			wp_send_json_success( array_merge( $pedir, array( 'bloqueado' => true ) ) );
-		}
-		$completo = Terminal_Forms_DB::get_submission( (int) $s->id );
-		$resumen  = self::resumen_de_valores( $completo ? $completo->values : array() );
-		$esperado = strtolower( trim( $resumen['correo'] ) );
-		if ( '' === $esperado || ! hash_equals( $esperado, strtolower( $correo ) ) ) {
-			set_transient( $fallos_clave, $fallos + 1, 15 * MINUTE_IN_SECONDS );
-			wp_send_json_success( array_merge( $pedir, array( 'correoInvalido' => true ) ) );
-		}
-
+		// Decisión del Terminal: basta el número de radicado, sin pedir correo
+		// (antes se exigía, y los radicados sin correo nunca mostraban la
+		// respuesta). Por eso Skynet advierte al responder que no se incluyan
+		// datos sensibles: el número es consecutivo y el tope por IP de arriba
+		// es lo único que frena recorrerlos.
 		$salida = array();
 		foreach ( (array) $filas as $r ) {
 			$salida[] = array(
@@ -598,70 +579,17 @@ class Skynet_Bridge {
     return isNaN(d.getTime()) ? '' : d.toLocaleString('es-CO', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
-  function quitarFormulario(raiz) {
-    var viejo = raiz.querySelector('.skynet-correo');
-    if (viejo) viejo.remove();
-  }
-
-  // El número de radicado es consecutivo: la respuesta solo se muestra a quien
-  // también escribe el correo con el que radicó.
-  function pedirCorreo(codeEl, raiz, datos) {
-    quitarFormulario(raiz);
-    var caja = document.createElement('div');
-    caja.className = 'tf-status-banner skynet-respuesta skynet-correo';
-    var titulo = document.createElement('strong');
-    titulo.textContent = 'Este radicado tiene una respuesta del Terminal';
-    caja.appendChild(titulo);
-    var texto = document.createElement('p');
-    texto.textContent = datos.bloqueado
-      ? 'Demasiados intentos con un correo que no coincide. Espera unos minutos e inténtalo de nuevo.'
-      : datos.correoInvalido
-        ? 'Ese correo no coincide con el del radicado. Revísalo e inténtalo de nuevo.'
-        : 'Escribe el correo electrónico con el que radicaste tu solicitud para verla.';
-    caja.appendChild(texto);
-    if (!datos.bloqueado) {
-      var form = document.createElement('form');
-      form.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:10px';
-      var campo = document.createElement('input');
-      campo.type = 'email';
-      campo.required = true;
-      campo.autocomplete = 'email';
-      campo.placeholder = 'correo@ejemplo.com';
-      campo.setAttribute('aria-label', 'Correo electrónico del radicado');
-      campo.style.cssText = 'flex:1 1 220px;min-width:0;padding:8px 10px';
-      var boton = document.createElement('button');
-      boton.type = 'submit';
-      boton.textContent = 'Ver respuesta';
-      boton.style.cssText = 'padding:8px 14px;font-weight:600;cursor:pointer';
-      form.appendChild(campo);
-      form.appendChild(boton);
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        boton.disabled = true;
-        consultar(codeEl, raiz, campo.value.trim());
-      });
-      caja.appendChild(form);
-    }
-    raiz.appendChild(caja);
-  }
-
-  function consultar(codeEl, raiz, correo) {
+  function consultar(codeEl, raiz) {
     var cuerpo = new FormData();
     cuerpo.append('action', 'skynet_respuesta_publica');
     cuerpo.append('tracking_code', codeEl.textContent.trim());
-    if (correo) cuerpo.append('correo', correo);
     fetch(AJAX, { method: 'POST', body: cuerpo, credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (res) {
         var datos = res && res.success && res.data;
         if (!datos) return;
-        if (datos.requiereCorreo) {
-          pedirCorreo(codeEl, raiz, datos);
-          return;
-        }
         var lista = datos.respuestas;
         if (!lista || !lista.length) return;
-        quitarFormulario(raiz);
         lista.forEach(function (r) {
           var caja = document.createElement('div');
           caja.className = 'tf-status-banner skynet-respuesta';
@@ -697,7 +625,7 @@ class Skynet_Bridge {
   function pintar(codeEl) {
     if (codeEl.getAttribute('data-skynet')) return;
     codeEl.setAttribute('data-skynet', '1');
-    consultar(codeEl, codeEl.closest('[class*="tf-track-status"]') || codeEl.parentNode, '');
+    consultar(codeEl, codeEl.closest('[class*="tf-track-status"]') || codeEl.parentNode);
   }
 
   new MutationObserver(function () {
