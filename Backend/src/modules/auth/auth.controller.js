@@ -24,8 +24,11 @@ const BLOQUEO_MS = 15 * 60 * 1000
 // seguridad estricto (tokenVersion sigue pudiendo cerrar todo de golpe si
 // hace falta) — es solo para que el array no crezca sin fin si alguien nunca
 // cierra sesión desde varios navegadores/dispositivos. 8 alcanza de sobra
-// para un ERP interno (móvil, tablet, 1-2 computadores, algún repuesto).
-const MAX_SESIONES_ACTIVAS = 8
+// para un usuario personal; el margen extra es por las cuentas de cargo
+// (Bodega, Mantenimiento...) que el Terminal comparte entre turnos y equipos:
+// con 8, el noveno login descartaba la sesión más vieja y esa persona recibía
+// 401 "Sesión inválida" a mitad de trabajo.
+const MAX_SESIONES_ACTIVAS = 20
 
 function firmarToken(usuario, jti) {
   return jwt.sign(
@@ -92,12 +95,17 @@ async function registrarSesion(usuario, jti) {
 // lo que bajo concurrencia muy alta podría subcontar intentos; es un trade-off
 // aceptable aquí porque el rate limiter por IP ya acota a 10 intentos/15min
 // antes de que esto entre en juego.
+//
+// Los fallos cuentan solo dentro de una ventana de BLOQUEO_MS: sin ella, cinco
+// errores de tipeo repartidos en semanas bloqueaban la cuenta.
 async function registrarIntentoFallido(usuario) {
-  const intentos = usuario.intentosFallidos + 1
+  const ahora = new Date()
+  const vigente = usuario.ultimoIntentoFallido && ahora - usuario.ultimoIntentoFallido < BLOQUEO_MS
+  const intentos = (vigente ? usuario.intentosFallidos : 0) + 1
   const actualizacion =
     intentos >= INTENTOS_MAX
-      ? { intentosFallidos: 0, bloqueadoHasta: new Date(Date.now() + BLOQUEO_MS) }
-      : { intentosFallidos: intentos }
+      ? { intentosFallidos: 0, bloqueadoHasta: new Date(ahora.getTime() + BLOQUEO_MS), ultimoIntentoFallido: ahora }
+      : { intentosFallidos: intentos, ultimoIntentoFallido: ahora }
   await Usuario.updateOne({ _id: usuario._id }, { $set: actualizacion })
 }
 

@@ -335,7 +335,7 @@ export default function LoginPage() {
                     <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-950/30 p-3 text-xs text-amber-200">
                       <AlertCircle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
                       <p>
-                        Tu sesión se cerró porque un administrador actualizó tu rol o tus permisos. Inicia sesión de nuevo para continuar.
+                        Tu sesión se cerró. Puede ser por un cambio de rol o permisos, o porque la cuenta se abrió en demasiados dispositivos. Inicia sesión de nuevo para continuar.
                       </p>
                     </div>
                   )}

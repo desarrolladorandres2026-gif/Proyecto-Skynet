@@ -85,6 +85,9 @@ const usuarioSchema = new mongoose.Schema(
     // IP (que no protege contra un ataque distribuido desde muchas IPs).
     intentosFallidos: { type: Number, default: 0 },
     bloqueadoHasta: { type: Date, default: null },
+    // Cuándo fue el último fallo: los intentosFallidos solo cuentan si ese fallo
+    // es reciente (ver registrarIntentoFallido en auth.controller.js).
+    ultimoIntentoFallido: { type: Date, default: null },
 
     // Sesiones activas (una entrada por login), para poder revocar UNA sola
     // sesión en logout sin cerrar las demás sesiones/dispositivos del mismo

@@ -138,6 +138,27 @@ describe('LOGIN', () => {
     expect(recargado.bloqueadoHasta).not.toBeNull()
   })
 
+  it('fallos viejos (fuera de la ventana de 15 min) no se acumulan hacia el bloqueo', async () => {
+    await Usuario.updateOne(
+      { _id: usuario._id },
+      { $set: { intentosFallidos: 4, ultimoIntentoFallido: new Date(Date.now() - 20 * 60 * 1000) } }
+    )
+    await request(app).post('/api/auth/login').send({ email: usuario.email, password: 'mal-otra-vez' })
+    const recargado = await Usuario.findById(usuario._id)
+    expect(recargado.bloqueadoHasta).toBeNull()
+    expect(recargado.intentosFallidos).toBe(1)
+  })
+
+  it('más de 8 sesiones simultáneas siguen vigentes (cuentas de cargo compartidas)', async () => {
+    const cookies = []
+    for (let i = 0; i < 12; i++) {
+      const res = await request(app).post('/api/auth/login').send({ email: usuario.email, password: PASSWORD_OK })
+      cookies.push(res.headers['set-cookie'])
+    }
+    const primera = await request(app).get('/api/auth/me').set('Cookie', cookies[0])
+    expect(primera.status).toBe(200)
+  })
+
   it('una cuenta cuyo bloqueo ya venció puede volver a iniciar sesión con normalidad', async () => {
     await Usuario.updateOne(
       { _id: usuario._id },
@@ -163,10 +184,20 @@ describe('LOGIN', () => {
 })
 
 describe('LOGIN — rate limit (app con el limiter real, aislado del resto)', () => {
-  it('corta con 429 después de 10 intentos en la ventana', async () => {
+  // Debe ir ANTES del test que agota el contador: el limiter es un singleton
+  // por archivo y, una vez en 429, rechazaría también los logins buenos.
+  it('los logins exitosos NO consumen el límite (IP compartida por todo el Terminal)', async () => {
+    const appLimitado = appConLimiteReal()
+    for (let i = 0; i < 35; i++) {
+      const res = await request(appLimitado).post('/api/auth/login').send({ email: usuario.email, password: PASSWORD_OK })
+      expect(res.status).toBe(200)
+    }
+  })
+
+  it('corta con 429 después de 30 intentos fallidos en la ventana', async () => {
     const appLimitado = appConLimiteReal()
     let ultimaRespuesta
-    for (let i = 0; i < 11; i++) {
+    for (let i = 0; i < 31; i++) {
       ultimaRespuesta = await request(appLimitado).post('/api/auth/login').send({ email: 'x@example.com', password: 'y' })
     }
     expect(ultimaRespuesta.status).toBe(429)
