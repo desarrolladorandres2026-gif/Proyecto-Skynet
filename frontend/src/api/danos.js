@@ -25,10 +25,10 @@ export const danos = {
   tecnicos() {
     return request('/danos/tecnicos')
   },
-  asignar(id, tecnicoId, nota, forzar = false) {
+  asignar(id, tecnicoId, nota) {
     return request(`/danos/${id}/asignar`, {
       method: 'PATCH',
-      body: JSON.stringify({ tecnicoId, nota, forzar }),
+      body: JSON.stringify({ tecnicoId, nota }),
     })
   },
   // reparacionFecha/reparacionModulo/evidencias (Files[]) solo aplican al

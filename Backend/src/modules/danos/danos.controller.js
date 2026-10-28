@@ -113,8 +113,8 @@ export async function listarTecnicos(req, res) {
 }
 
 export async function asignarReporte(req, res) {
-  const { tecnicoId, nota, forzar } = req.body
-  const reporte = await servicio.asignarReporte(req.params.id, { tecnicoId, nota, forzar: forzar === true || forzar === 'true' }, req.usuario)
+  const { tecnicoId, nota } = req.body
+  const reporte = await servicio.asignarReporte(req.params.id, { tecnicoId, nota }, req.usuario)
   res.json({ reporte })
 }
 

@@ -439,7 +439,7 @@ async function validarTecnico(tecnicoId) {
   return usuario
 }
 
-export async function asignarReporte(id, { tecnicoId, nota, forzar }, actor) {
+export async function asignarReporte(id, { tecnicoId, nota }, actor) {
   if (!tecnicoId) throw new ErrorValidacion('tecnicoId es obligatorio')
 
   const reporte = await ReporteDano.findById(id)
@@ -462,20 +462,10 @@ export async function asignarReporte(id, { tecnicoId, nota, forzar }, actor) {
     throw new ErrorConflicto(`El reporte ya está asignado a ${tecnico.nombre}`)
   }
 
-  // Tope de carga (regla del Terminal): nadie cruza las MAX_ACTIVAS_TECNICO
-  // sin que un supervisor lo autorice explícitamente con `forzar`. El reparto
-  // automático (asignarAutomaticamente) ya respeta este techo sin necesidad
-  // de override porque simplemente no elige a alguien saturado.
-  const activasDelTecnico = await ReporteDano.countDocuments({
-    asignadoA: tecnico._id,
-    estado: { $in: ESTADOS_QUE_OCUPAN },
-  })
-  if (activasDelTecnico >= MAX_ACTIVAS_TECNICO && !forzar) {
-    throw new ErrorConflicto(
-      `${tecnico.nombre} ya tiene ${activasDelTecnico} órdenes activas (máximo ${MAX_ACTIVAS_TECNICO} sin autorización). Confirma para asignar de todas formas.`
-    )
-  }
-
+  // Sin tope de carga: hoy hay un único encargado de mantenimiento (ver
+  // ENCARGADO_DANOS) y se le puede asignar cualquier cantidad de órdenes.
+  // MAX_ACTIVAS_TECNICO queda solo para elegirTecnicoDisponible, por si se
+  // vuelve a repartir entre varios técnicos.
   const estadoAnterior = reporte.estado
   reporte.asignadoA = tecnico._id
   reporte.asignadoPor = actor.id_usuario

@@ -196,22 +196,16 @@ function PanelEquipo({ tecnicos, cargando }) {
 function ModalAsignar({ reporte, tecnicos, puedeAsignarAOtros, miId, onCerrar, onConfirmar }) {
   const [tecnicoId, setTecnicoId] = useState('')
   const [nota, setNota] = useState('')
-  const [forzar, setForzar] = useState(false)
   const [enviando, setEnviando] = useState(false)
 
   if (!reporte) return null
   const actual = reporte.asignadoA?._id
-  const elegido = tecnicos.find((t) => t._id === tecnicoId)
-  // Espejo de MAX_ACTIVAS_TECNICO en danos.service.js: solo es informativo,
-  // el backend es quien realmente bloquea sin `forzar` (ver el mensaje de
-  // error que sube confirmarAsignacion si se intenta sin marcar la casilla).
-  const superaTope = elegido && elegido.activos >= 5
 
   async function confirmar() {
     if (!tecnicoId) return
     setEnviando(true)
     try {
-      await onConfirmar(reporte, tecnicoId, nota, forzar)
+      await onConfirmar(reporte, tecnicoId, nota)
     } finally {
       setEnviando(false)
     }
@@ -271,16 +265,6 @@ function ModalAsignar({ reporte, tecnicos, puedeAsignarAOtros, miId, onCerrar, o
       <Field label="Nota (opcional)" className="mt-4">
         <Textarea rows={2} value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Instrucciones para quien repara…" />
       </Field>
-
-      {superaTope && (
-        <label className="mt-3 flex items-start gap-2 rounded-lg border border-warn-500/30 bg-warn-500/5 p-3 text-xs text-slate-600 dark:text-slate-300">
-          <input type="checkbox" checked={forzar} onChange={(e) => setForzar(e.target.checked)} className="mt-0.5 accent-brand-600" />
-          <span>
-            {elegido.nombre} ya tiene {elegido.activos} órdenes activas (máximo 5 sin autorización). Marca esto
-            para asignarle de todas formas.
-          </span>
-        </label>
-      )}
 
       <div className="mt-4 flex justify-end gap-2">
         <Btn variante="secundario" onClick={onCerrar}>Cancelar</Btn>
@@ -566,10 +550,10 @@ export default function TareasDanosPage() {
     setFiltros((f) => ({ ...f, [clave]: valor }))
   }
 
-  async function confirmarAsignacion(reporte, tecnicoId, nota, forzar) {
+  async function confirmarAsignacion(reporte, tecnicoId, nota) {
     setOk('')
     try {
-      const { reporte: actualizado } = await danosApi.asignar(reporte._id, tecnicoId, nota, forzar)
+      const { reporte: actualizado } = await danosApi.asignar(reporte._id, tecnicoId, nota)
       setOk(`Reporte asignado a ${actualizado.asignadoA?.nombre}. Se le envió una notificación.`)
       setAsignando(null)
       recargarTodo()
