@@ -75,6 +75,7 @@ export async function crearReporte(req, res) {
   // sale ya asignado y notificado, sin pasar por el administrador. Es
   // best-effort — nunca hace fallar la creación (ver el service).
   await servicio.asignarAutomaticamente(reporte)
+  await servicio.avisarReporteNuevo(reporte, req.usuario)
 
   await reporte.populate([POPULATE_REPORTANTE, { path: 'asignadoA', select: 'nombre nombre_usuario' }])
   res.status(201).json({ reporte })

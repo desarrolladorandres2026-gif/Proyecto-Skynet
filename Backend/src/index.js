@@ -19,6 +19,7 @@ import { iniciarWorkerAuditoria } from './modules/auditoria/auditoria.worker.js'
 import { iniciarWorkerSig } from './modules/sig_pregunta_dia/sig.worker.js'
 import { iniciarWorkerDespliegue } from './modules/copiloto/copiloto.despliegue.worker.js'
 import { iniciarWorkerPlataforma } from './modules/plataforma/plataforma.worker.js'
+import { iniciarWorkerRadicados } from './modules/sitio_web/radicados.worker.js'
 import { evaluarTransiciones } from './modules/plataforma/plataforma.service.js'
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js'
 import { bloqueoMantenimiento } from './middleware/mantenimientoPlataforma.js'
@@ -159,6 +160,9 @@ async function iniciarWorkers() {
   // sig.worker.js. Mismo patrón que los dos workers de arriba, sin
   // infraestructura adicional (no hay node-cron en el proyecto).
   iniciarWorkerSig()
+
+  // Aviso de radicados (PQRS) nuevos del sitio web: ver radicados.avisos.js.
+  iniciarWorkerRadicados()
 
   // Estado de plataforma: persiste las transiciones programadas (iniciar /
   // finalizar), registra el historial y dispara las notificaciones.

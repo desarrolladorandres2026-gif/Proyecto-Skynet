@@ -15,7 +15,8 @@ import ReporteDano from '../src/models/ReporteDano.js'
 // importar el modelo aquí, mongoose no tiene el schema registrado en este
 // archivo de test aislado.
 import '../src/models/Requerimiento.js'
-import { redistribuirPendientes, MAX_ACTIVAS_TECNICO } from '../src/modules/danos/danos.service.js'
+import Notificacion from '../src/models/Notificacion.js'
+import { redistribuirPendientes, avisarReporteNuevo, MAX_ACTIVAS_TECNICO } from '../src/modules/danos/danos.service.js'
 
 async function crearPermiso(codigo) {
   const [modulo, accion] = codigo.split(':')
@@ -103,5 +104,30 @@ describe('reparto automático de daños — encargado único', () => {
     await redistribuirPendientes()
 
     expect((await ReporteDano.findById(pendiente._id)).estado).toBe('pendiente')
+  })
+})
+
+describe('aviso de reporte nuevo a los gestores', () => {
+  it('avisa a quien tiene danos:gestionar de cualquier tipo de reporte, sin avisar al que reporta ni al técnico asignado', async () => {
+    const { usuario: gestor } = await crearUsuarioConPermiso('danos:gestionar')
+    const { usuario: tecnicoGestor, actor: _a } = await crearUsuarioConPermiso('danos:gestionar')
+    const { usuario: reportante, actor } = await crearUsuarioConPermiso('danos:gestionar')
+    const reporte = await ReporteDano.create({
+      tipo: 'sugerencia',
+      fecha: new Date(),
+      descripcion: 'Poner más bancas en la sala de espera',
+      reportadoPor: reportante._id,
+      estado: 'asignado',
+      asignadoA: tecnicoGestor._id,
+    })
+
+    await avisarReporteNuevo(reporte, actor)
+
+    const avisados = (await Notificacion.find({ categoria: 'danos' }).lean()).map((e) => String(e.usuario))
+    expect(avisados).toContain(String(gestor._id))
+    expect(avisados).not.toContain(String(reportante._id))
+    expect(avisados).not.toContain(String(tecnicoGestor._id))
+    const envio = await Notificacion.findOne({ usuario: gestor._id, categoria: 'danos' }).lean()
+    expect(envio.titulo).toBe('Nuevo reporte: sugerencia')
   })
 })

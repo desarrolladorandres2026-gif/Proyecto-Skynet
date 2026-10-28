@@ -293,6 +293,38 @@ export async function asignarAutomaticamente(reporte) {
   return reporte
 }
 
+const ETIQUETA_TIPO = { dano: 'daño', novedad: 'novedad', sugerencia: 'sugerencia', otro: 'reporte' }
+
+// Aviso a quienes gestionan reportes de que alguien reportó algo — de
+// cualquier tipo, no solo daños físicos: una novedad o una sugerencia no entra
+// al reparto automático, así que sin este aviso nadie se enteraba de que
+// existía. Best-effort como asignarAutomaticamente: nunca hace fallar la
+// creación. Se llama DESPUÉS del reparto para saber quién ya fue avisado.
+export async function avisarReporteNuevo(reporte, actor) {
+  try {
+    const gestores = await usuariosConPermiso('danos:gestionar')
+    const yaAvisados = new Set([String(actor.id_usuario)])
+    // El técnico recibió "Nuevo daño asignado automáticamente".
+    if (reporte.asignadoA) yaAvisados.add(String(idDe(reporte.asignadoA)))
+    // Un daño sin asignar ya se le avisó a los supervisores en asignarAutomaticamente.
+    if (reporte.estado === 'pendiente' && TIPOS_AUTOASIGNABLES.includes(reporte.tipo)) {
+      for (const s of await usuariosConPermiso(PERMISO_SUPERVISOR)) yaAvisados.add(String(s))
+    }
+
+    const destinatarios = gestores.filter((id) => !yaAvisados.has(String(id)))
+    if (!destinatarios.length) return
+
+    const etiqueta = ETIQUETA_TIPO[reporte.tipo] || 'reporte'
+    await notificarUsuarios(destinatarios, {
+      titulo: `Nuevo reporte: ${etiqueta}`,
+      cuerpo: `${actor.nombre_usuario} reportó: ${reporte.descripcion.slice(0, 120)}`,
+      url: '/danos/tareas',
+    })
+  } catch (err) {
+    console.error('No se pudo avisar del reporte nuevo', String(reporte._id), err.message)
+  }
+}
+
 // Se llama cada vez que alguien libera cupo (resuelve/cancela una tarea) o
 // libera un reporte (vuelve a 'pendiente'): sin esto, un daño solo se
 // repartía en el instante en que se CREABA, y uno que se hubiera quedado

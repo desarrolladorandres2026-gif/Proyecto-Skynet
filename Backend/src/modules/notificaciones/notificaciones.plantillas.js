@@ -19,6 +19,7 @@ const ACCION_POR_CATEGORIA = {
   mantenimiento: 'Abrir en Mantenimiento',
   danos: 'Ver el reporte',
   requerimientos: 'Ver el requerimiento',
+  pqrs: 'Abrir el radicado',
   ausencias: 'Ver la solicitud',
   sig_pregunta_dia: 'Responder la pregunta',
   plataforma: 'Abrir la plataforma',

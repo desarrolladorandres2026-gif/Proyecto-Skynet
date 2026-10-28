@@ -152,6 +152,10 @@ export const env = {
   // es el punto en que a alguien todavía le da tiempo de cerrar lo que está
   // haciendo sin que el aviso llegue tan pronto que se olvide.
   PLATAFORMA_AVISO_PREVIO_MIN: Number(process.env.PLATAFORMA_AVISO_PREVIO_MIN) || 15,
+  // Cada cuánto se consulta WordPress buscando radicados (PQRS) nuevos para
+  // avisar al equipo. 2 min: el aviso llega casi enseguida y son solo 1-2
+  // peticiones livianas por vuelta al sitio público.
+  RADICADOS_WORKER_INTERVALO_MS: Number(process.env.RADICADOS_WORKER_INTERVALO_MS) || 120_000,
   STORAGE_ROOT: process.env.STORAGE_ROOT || './storage',
   FILES_PUBLIC_URL: process.env.FILES_PUBLIC_URL || 'http://localhost:3001/storage',
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,

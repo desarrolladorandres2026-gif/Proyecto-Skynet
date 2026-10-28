@@ -12,6 +12,7 @@ const ETIQUETA_CATEGORIA = {
   mantenimiento: 'Mantenimiento',
   danos: 'Daños',
   requerimientos: 'Requerimientos',
+  pqrs: 'PQRS',
   ausencias: 'Ausencias',
   sig_pregunta_dia: 'Cuestionarios',
   sistema: 'Sistema',

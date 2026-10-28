@@ -28,6 +28,7 @@ const ICONOS_CATEGORIA = {
   mantenimiento: Wrench,
   danos: TriangleAlert,
   requerimientos: FileText,
+  pqrs: FileText,
   ausencias: CalendarDays,
   sig_pregunta_dia: Brain,
   plataforma: Server,

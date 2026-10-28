@@ -24,6 +24,11 @@ export const CATEGORIAS_NOTIFICACION = [
     descripcion: 'Solicitudes de compra/servicio: aprobaciones y rechazos en cada etapa.',
   },
   {
+    key: 'pqrs',
+    nombre: 'PQRS del sitio web',
+    descripcion: 'Peticiones, quejas, reclamos y demás radicados nuevos que llegan por el sitio público.',
+  },
+  {
     key: 'ausencias',
     nombre: 'Vacaciones y ausencias',
     descripcion: 'Solicitudes de vacaciones, permisos e incapacidades: nuevas solicitudes y su decisión.',
