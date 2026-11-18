@@ -106,7 +106,7 @@ export default function AvisosPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div>
       <EncabezadoSeccion
         icono={Megaphone}
         titulo="Avisos al público"

@@ -1,0 +1,12 @@
+{
+  "appId": "online.skynetttn.app",
+  "appName": "TTN Neiva",
+  "webDir": "dist",
+  "server": {
+    "url": "https://skynetttn.online",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

@@ -240,17 +240,27 @@ describe('RESET de contraseña', () => {
   it('solicitar reset con usuario existente responde el mensaje genérico', async () => {
     const res = await request(app)
       .post('/api/auth/solicitar-reset')
-      .send({ nombre_usuario: usuario.nombre_usuario, email: usuario.email })
+      .send({ email: usuario.email })
     expect(res.status).toBe(200)
-    expect(res.body.mensaje).toMatch(/Si el usuario existe/)
+    expect(res.body.mensaje).toMatch(/Si el correo existe/)
+  })
+
+  it('solicitar reset sin correo (o con un objeto NoSQL) responde 400', async () => {
+    const sinCorreo = await request(app).post('/api/auth/solicitar-reset').send({})
+    expect(sinCorreo.status).toBe(400)
+    const inyeccion = await request(app).post('/api/auth/solicitar-reset').send({ email: { $ne: null } })
+    expect(inyeccion.status).toBe(400)
+    const malFormato = await request(app).post('/api/auth/solicitar-reset').send({ email: 'esto-no-es-un-correo' })
+    expect(malFormato.status).toBe(400)
+    expect(malFormato.body.error).toMatch(/formato válido/)
   })
 
   it('solicitar reset con usuario inexistente responde EXACTAMENTE el mismo mensaje genérico', async () => {
     const res = await request(app)
       .post('/api/auth/solicitar-reset')
-      .send({ nombre_usuario: 'no-existe', email: 'no-existe@example.com' })
+      .send({ email: 'no-existe@example.com' })
     expect(res.status).toBe(200)
-    expect(res.body.mensaje).toMatch(/Si el usuario existe/)
+    expect(res.body.mensaje).toMatch(/Si el correo existe/)
   })
 
   it('token inválido (inexistente) no valida y no permite restablecer', async () => {
@@ -303,10 +313,10 @@ describe('RESET de contraseña', () => {
 
   it('solicitar un segundo reset invalida el token anterior (usado:true) sin que nadie lo haya usado', async () => {
     const PasswordResetToken = (await import('../src/models/PasswordResetToken.js')).default
-    await request(app).post('/api/auth/solicitar-reset').send({ nombre_usuario: usuario.nombre_usuario, email: usuario.email })
+    await request(app).post('/api/auth/solicitar-reset').send({ email: usuario.email })
     const primero = await PasswordResetToken.findOne({ usuario: usuario._id })
 
-    await request(app).post('/api/auth/solicitar-reset').send({ nombre_usuario: usuario.nombre_usuario, email: usuario.email })
+    await request(app).post('/api/auth/solicitar-reset').send({ email: usuario.email })
 
     const primeroRecargado = await PasswordResetToken.findById(primero._id)
     expect(primeroRecargado.usado).toBe(true)

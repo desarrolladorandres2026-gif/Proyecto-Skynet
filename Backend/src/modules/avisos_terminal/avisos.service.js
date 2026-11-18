@@ -7,9 +7,10 @@ import Notificacion from '../../models/Notificacion.js'
 import AvisoTerminal from '../../models/AvisoTerminal.js'
 import AvisoTerminalEntrega from '../../models/AvisoTerminalEntrega.js'
 import webpush from '../../utils/webpush.js'
+import { publicar, hayConexion } from '../../utils/streamNativo.js'
 import { escapeRegex } from '../../utils/regex.js'
 import { registrarAuditoria } from '../../utils/auditoria.js'
-import { ErrorValidacion, ErrorNoEncontrado, ErrorAutorizacion } from '../../utils/errores.js'
+import { ErrorValidacion, ErrorNoEncontrado, ErrorAutorizacion, ErrorConflicto } from '../../utils/errores.js'
 import { logger } from '../../config/logger.js'
 import { generarAudioVoz } from './avisos.tts.js'
 import { esVozTtsValida, VOZ_TTS_DEFECTO, VOCES_TTS } from './vocesTts.js'
@@ -127,19 +128,36 @@ async function resolverDestinatarios({ tipo, usuarios, rol, dependencia }) {
 // del lado del polling.
 const TTL_PUSH_SEGUNDOS = 3600
 
+// Payload único del aviso para cualquier canal (Web Push o SSE de la app
+// Android). Lo que el servicio nativo necesita para sonar SOLO, con el
+// teléfono bloqueado, sin abrir la WebView: el texto de la locución (voz local
+// de respaldo) y las rutas relativas del audio institucional y de la
+// confirmación de estado — la app las resuelve contra su base URL.
+function construirPayloadAviso(entrega, aviso) {
+  return {
+    tipo: 'aviso_terminal',
+    title: 'Terminal de Transportes de Neiva',
+    body: aviso.texto,
+    url: '/avisos-terminal/mios',
+    tag: String(entrega._id),
+    avisoId: String(aviso._id),
+    entregaId: String(entrega._id),
+    // Distinta en cada reenvío: la app descarta duplicados por esta clave (el
+    // backend reenvía lo pendiente al reconectar), pero un reenvío manual SÍ
+    // debe volver a sonar.
+    claveEnvio: `${entrega._id}:${entrega.reenvios || 0}`,
+    textoLocucion: aviso.textoLocucion,
+    audioUrl: `/api/avisos-terminal/${aviso._id}/audio`,
+    estadoUrl: `/api/avisos-terminal/entregas/${entrega._id}/estado`,
+    creadoEn: aviso.createdAt ? new Date(aviso.createdAt).getTime() : Date.now(),
+  }
+}
+
 async function enviarPushEntrega(entrega, aviso) {
   try {
     const suscripciones = await PushSubscription.find({ usuario: entrega.usuario, estado: 'activa' })
-    const payload = JSON.stringify({
-      tipo: 'aviso_terminal',
-      title: 'Terminal de Transportes de Neiva',
-      body: aviso.texto,
-      url: '/avisos-terminal/mios',
-      tag: String(entrega._id),
-      avisoId: String(aviso._id),
-      entregaId: String(entrega._id),
-      textoLocucion: aviso.textoLocucion,
-    })
+    const datosAviso = construirPayloadAviso(entrega, aviso)
+    const payload = JSON.stringify(datosAviso)
 
     // Un solo bulkWrite para "último uso" en vez de un sub.save() por
     // dispositivo: con destinatarios:'todos' (cientos de personas, varios
@@ -150,6 +168,15 @@ async function enviarPushEntrega(entrega, aviso) {
     await Promise.allSettled(
       suscripciones.map(async (sub) => {
         try {
+          // App Android propia: no hay endpoint Web Push (endpoint =
+          // 'nativo:<id>', sin claves), llega por la conexión SSE que
+          // mantiene su servicio en primer plano. Si en este instante no hay
+          // conexión viva no es un error: streamNativo (notificaciones
+          // controller) reenvía lo pendiente al reconectar.
+          if (sub.tipo === 'nativo') {
+            if (publicar(String(sub.usuario), sub.dispositivoId, 'aviso_terminal', datosAviso)) idsExitosos.push(sub._id)
+            return
+          }
           await webpush.sendNotification(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
             payload,
@@ -172,9 +199,13 @@ async function enviarPushEntrega(entrega, aviso) {
   } catch (err) {
     logger.error('No se pudo enviar el push de un Aviso Terminal de Neiva', { error: err.message })
   } finally {
-    entrega.estado = 'enviado'
-    entrega.enviadoEn = new Date()
-    await entrega.save().catch(() => {})
+    // Condicional a 'pendiente': el servicio nativo puede confirmar
+    // 'entregado' (por SSE, en milisegundos) antes de que llegue este
+    // finally, y un save() ciego lo haría retroceder a 'enviado'.
+    await AvisoTerminalEntrega.updateOne(
+      { _id: entrega._id, estado: 'pendiente' },
+      { $set: { estado: 'enviado', enviadoEn: new Date() } }
+    ).catch(() => {})
   }
 }
 
@@ -366,7 +397,36 @@ export async function obtenerDetalle(id) {
   ])
   if (!aviso) throw new ErrorNoEncontrado('Aviso no encontrado')
 
-  return { aviso, entregas }
+  // ¿Por qué canal le puede llegar a cada persona? Es lo que el administrador
+  // necesita para saber a quién NO se le oyó la alerta: 'app' = app Android
+  // con el servicio conectado en este instante (suena bloqueado), 'app_sin_conexion'
+  // = tiene la app pero el servicio no está conectado (apagado, sin señal, batería),
+  // 'web' = solo navegador/PWA (suena únicamente con la página abierta),
+  // 'ninguno' = sin dispositivos registrados.
+  const idsUsuarios = entregas.map((e) => e.usuario?._id).filter(Boolean)
+  const subs = idsUsuarios.length
+    ? await PushSubscription.find({ usuario: { $in: idsUsuarios }, estado: 'activa' }).select('usuario tipo dispositivoId')
+    : []
+  const canalPorUsuario = new Map()
+  for (const s of subs) {
+    const k = String(s.usuario)
+    const actual = canalPorUsuario.get(k) || 'ninguno'
+    let canal = actual
+    if (s.tipo === 'nativo') {
+      if (hayConexion(k, s.dispositivoId)) canal = 'app'
+      else if (actual !== 'app') canal = 'app_sin_conexion'
+    } else if (actual === 'ninguno') {
+      canal = 'web'
+    }
+    canalPorUsuario.set(k, canal)
+  }
+
+  const entregasConCanal = entregas.map((e) => ({
+    ...e.toObject(),
+    canal: canalPorUsuario.get(String(e.usuario?._id)) || 'ninguno',
+  }))
+
+  return { aviso, entregas: entregasConCanal }
 }
 
 // Audio institucional (WAV) de un aviso ya transmitido. Autoriza a dos
@@ -416,18 +476,104 @@ export async function probarVozInstitucional(texto, voz) {
 // oculta de "Mis avisos".
 const VENTANA_AUTOPLAY_MS = 60 * 60 * 1000
 
+// Dentro de la ventana de "anuncio en vivo": desde la transmisión original o,
+// si el administrador lo reenvió, desde ese último reenvío.
+const dentroDeVentana = (corte) => ({ $or: [{ createdAt: { $gte: corte } }, { reenviadoEn: { $gte: corte } }] })
+
 export async function listarPendientes(usuarioId) {
   const corte = new Date(Date.now() - VENTANA_AUTOPLAY_MS)
   const entregas = await AvisoTerminalEntrega.find({
     usuario: usuarioId,
     estado: { $in: ['pendiente', 'enviado', 'entregado'] },
-    createdAt: { $gte: corte },
+    ...dentroDeVentana(corte),
   })
     .populate({ path: 'aviso', select: 'texto textoLocucion createdAt' })
     .sort({ createdAt: 1 })
     .limit(10)
 
   return entregas.filter((e) => e.aviso)
+}
+
+// Reenvía por el SSE de un dispositivo nativo recién (re)conectado los avisos
+// que le llegaron mientras no tenía conexión (túnel, sin señal, servicio
+// reiniciado). Solo 'pendiente'/'enviado': 'entregado' significa que el
+// servicio nativo ya los recibió y confirmó, así que no se repite el sonido.
+// Misma ventana de 1 h que listarPendientes/TTL del push.
+export async function reenviarPendientesNativo(usuarioId, dispositivoId) {
+  const corte = new Date(Date.now() - VENTANA_AUTOPLAY_MS)
+  const entregas = await AvisoTerminalEntrega.find({
+    usuario: usuarioId,
+    estado: { $in: ['pendiente', 'enviado'] },
+    ...dentroDeVentana(corte),
+  })
+    .populate({ path: 'aviso', select: 'texto textoLocucion createdAt' })
+    .sort({ createdAt: 1 })
+    .limit(3)
+
+  for (const entrega of entregas) {
+    if (!entrega.aviso) continue
+    publicar(String(usuarioId), dispositivoId, 'aviso_terminal', construirPayloadAviso(entrega, entrega.aviso))
+  }
+}
+
+// Vista previa de a cuántas personas llegaría una transmisión y por qué canal:
+// alimenta el diálogo de confirmación del administrador, para que decida
+// sabiendo "340 personas, 280 con la app (suena bloqueado), 40 solo navegador,
+// 20 sin dispositivo" en vez de enviar a ciegas. No guarda nada.
+export async function resumirAudiencia(destinatarios) {
+  const { usuariosDocs, etiqueta } = await resolverDestinatarios(destinatarios || {})
+  const ids = usuariosDocs.map((u) => u._id)
+  const subs = ids.length
+    ? await PushSubscription.find({ usuario: { $in: ids }, estado: 'activa' }).select('usuario tipo')
+    : []
+  const conApp = new Set()
+  const conWeb = new Set()
+  for (const s of subs) (s.tipo === 'nativo' ? conApp : conWeb).add(String(s.usuario))
+  const soloWeb = [...conWeb].filter((id) => !conApp.has(id)).length
+  return {
+    etiqueta,
+    total: ids.length,
+    conApp: conApp.size,
+    soloWeb,
+    sinDispositivo: ids.length - conApp.size - soloWeb,
+  }
+}
+
+// Reenvío manual: vuelve a sonar el aviso a quienes NO lo escucharon. Solo el
+// más reciente: un aviso ya reemplazado por uno nuevo dejó de ser vigente (ver
+// el cancelado de crearYTransmitirAviso) y repetirlo pisaría al actual.
+export async function reenviarAviso(avisoId, admin) {
+  if (!mongoose.Types.ObjectId.isValid(avisoId)) throw new ErrorNoEncontrado('Aviso no encontrado')
+  const [aviso, masReciente] = await Promise.all([
+    AvisoTerminal.findById(avisoId),
+    AvisoTerminal.findOne({}).sort({ createdAt: -1 }).select('_id'),
+  ])
+  if (!aviso) throw new ErrorNoEncontrado('Aviso no encontrado')
+  if (String(masReciente._id) !== String(aviso._id)) {
+    throw new ErrorConflicto('Solo se puede reenviar el aviso más reciente: uno más nuevo ya lo reemplazó')
+  }
+
+  const filtro = { aviso: aviso._id, estado: { $in: ['pendiente', 'enviado', 'entregado'] } }
+  const { modifiedCount } = await AvisoTerminalEntrega.updateMany(filtro, {
+    $set: { estado: 'pendiente', reenviadoEn: new Date() },
+    $inc: { reenvios: 1 },
+  })
+  if (!modifiedCount) throw new ErrorValidacion('Todos los destinatarios ya escucharon este aviso')
+
+  const entregas = await AvisoTerminalEntrega.find({ aviso: aviso._id, estado: 'pendiente', reenviadoEn: { $ne: null } })
+  // Fire-and-forget, igual que la transmisión original.
+  Promise.allSettled(entregas.map((entrega) => enviarPushEntrega(entrega, aviso))).catch(() => {})
+
+  await registrarAuditoria({
+    usuario: admin,
+    accion: 'reenviar',
+    modulo: 'avisos_terminal',
+    entidad: 'AvisoTerminal',
+    entidadId: aviso._id,
+    descripcion: `Reenvió un Aviso Terminal de Neiva a ${modifiedCount} destinatario(s) que no lo habían escuchado`,
+  })
+
+  return { reenviados: modifiedCount }
 }
 
 export async function listarMisAvisos(usuarioId, { page = 1, limit = PAGE_SIZE_DEFECTO } = {}) {
@@ -467,7 +613,10 @@ export async function actualizarEstadoEntrega(entregaId, usuarioId, nuevoEstado)
     throw new ErrorAutorizacion('No puedes confirmar la entrega de un aviso ajeno')
   }
 
-  if (entrega.estado === 'fallido') return entrega
+  // 'cancelado' (reemplazado por un aviso más nuevo) y 'fallido' son
+  // terminales: indexOf() los da como -1 y sin este corte un 'entregado'
+  // tardío del dispositivo "resucitaría" un aviso ya cancelado.
+  if (entrega.estado === 'fallido' || entrega.estado === 'cancelado') return entrega
   if (ORDEN_ESTADO.indexOf(nuevoEstado) <= ORDEN_ESTADO.indexOf(entrega.estado)) return entrega
 
   entrega.estado = nuevoEstado

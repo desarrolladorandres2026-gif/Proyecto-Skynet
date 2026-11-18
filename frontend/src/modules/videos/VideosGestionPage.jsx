@@ -337,7 +337,7 @@ export default function VideosGestionPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div>
       <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <Clapperboard className="h-5 w-5 text-brand-600 dark:text-brand-400" aria-hidden="true" />

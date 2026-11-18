@@ -123,28 +123,30 @@ describe('centro.service — ownership', () => {
     const deB = await Notificacion.findOne({ usuario: b._id })
 
     await expect(centro.marcarLeida(deB._id, a._id)).rejects.toThrow('Notificación no encontrada')
-    expect((await Notificacion.findById(deB._id)).leida).toBe(false)
+    // La ajena sigue intacta: el intento de A no la borró.
+    expect(await Notificacion.findById(deB._id)).not.toBeNull()
   })
 
-  it('marcarLeida del propio dueño sí funciona y sella leidaEn', async () => {
+  // Leer una notificación la ELIMINA (no hay borrado lógico, ver
+  // centro.service.js#marcarLeida): ya no existe un estado "leída".
+  it('marcarLeida del propio dueño la elimina de la base', async () => {
     const b = await crearUsuario('b-marca@example.com')
     await notificar({ usuarios: [b._id], categoria: 'requerimientos', tipo: 'test', titulo: 'Para B', cuerpo: 'Cuerpo' })
     const deB = await Notificacion.findOne({ usuario: b._id })
 
-    const actualizada = await centro.marcarLeida(deB._id, b._id)
-    expect(actualizada.leida).toBe(true)
-    expect(actualizada.leidaEn).toBeInstanceOf(Date)
+    await centro.marcarLeida(deB._id, b._id)
+    expect(await Notificacion.findById(deB._id)).toBeNull()
   })
 
-  it('marcarTodasLeidas solo toca las del usuario indicado', async () => {
+  it('marcarTodasLeidas solo elimina las del usuario indicado', async () => {
     const a = await crearUsuario('a-todas@example.com')
     const b = await crearUsuario('b-todas@example.com')
     await notificar({ usuarios: [a._id, b._id], categoria: 'requerimientos', tipo: 'test', titulo: 'Evento', cuerpo: 'Cuerpo' })
 
     const { actualizadas } = await centro.marcarTodasLeidas(b._id)
     expect(actualizadas).toBe(1)
-    expect((await Notificacion.findOne({ usuario: a._id })).leida).toBe(false)
-    expect((await Notificacion.findOne({ usuario: b._id })).leida).toBe(true)
+    expect(await Notificacion.findOne({ usuario: a._id })).not.toBeNull()
+    expect(await Notificacion.findOne({ usuario: b._id })).toBeNull()
   })
 
   it('contarNoLeidas cuenta solo las propias y solo las no leídas', async () => {
@@ -266,10 +268,10 @@ describe('Escenario A → B de extremo a extremo', () => {
     expect(listado.body.notificaciones).toHaveLength(1)
     const id = listado.body.notificaciones[0]._id
 
-    // B puede marcarla como leída por HTTP
+    // B puede marcarla como leída por HTTP (la elimina: ya no vuelve en su historial)
     const marcar = await request(app).put(`/api/notificaciones/mias/${id}/leida`).set('Authorization', autorizacion(b))
     expect(marcar.status).toBe(200)
-    expect(marcar.body.leida).toBe(true)
+    expect(await Notificacion.findById(id)).toBeNull()
 
     // Un administrador puede consultar EnvioNotificacion directamente
     const admin = await crearUsuario('admin-e2e@example.com', { permisos: ['notificaciones:ver_historial'] })

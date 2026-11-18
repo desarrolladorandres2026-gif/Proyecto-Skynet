@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Filter } from 'lucide-react'
-import { Btn, Card, Field, Input, Select } from '../ui.jsx'
+import { Btn, Field, Input, Select } from '../ui.jsx'
 
 // Filtros combinables reutilizados por Dashboard, Reporte individual y Plan
 // de refuerzo (sección 12 del encargo: fecha, dependencia, cargo,
@@ -24,21 +23,17 @@ export default function FiltrosDashboardSig({ filtros, onChange, onAplicar, comp
     <div className="mb-4">
       <Btn
         variante="secundario"
-        className="flex items-center gap-1.5"
         aria-expanded={abierto}
         onClick={() => setAbierto((a) => !a)}
       >
-        <Filter className="h-4 w-4" aria-hidden="true" />
         Filtros
         {activos > 0 && (
-          <span className="panel-mono text-[10px] font-semibold text-brand-600 dark:text-brand-400">
-            {activos}
-          </span>
+          <span className="ml-1.5 text-sm font-semibold">({activos})</span>
         )}
       </Btn>
 
       {abierto && (
-        <Card className="mt-2">
+        <div className="mt-2 border-t border-borde pt-3">
           <form
             onSubmit={(e) => { e.preventDefault(); onAplicar() }}
             className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
@@ -89,7 +84,7 @@ export default function FiltrosDashboardSig({ filtros, onChange, onAplicar, comp
               <Btn type="submit" className="w-full" onClick={onAplicar}>Aplicar filtros</Btn>
             </div>
           </form>
-        </Card>
+        </div>
       )}
     </div>
   )

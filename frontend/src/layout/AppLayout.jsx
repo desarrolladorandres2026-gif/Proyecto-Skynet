@@ -4,9 +4,11 @@ import { Moon, Sun } from 'lucide-react'
 import { Toaster } from 'sonner'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { MODULOS_REGISTRO } from '../config/modulosRegistry.js'
+import { useNovedades } from '../hooks/useNovedades.js'
 import BarraLateral from './BarraLateral.jsx'
 import BarraSuperior from './BarraSuperior.jsx'
 import ContenidoRuta from './ContenidoRuta.jsx'
+import { TematicaEfectos } from '../tematicas/index.js'
 import { Tooltip } from '../components/Tooltip.jsx'
 import { CommandPalette, useCommandPalette } from '../components/CommandPalette.jsx'
 // panel.css se importa una sola vez, globalmente, desde index.css — junto
@@ -94,8 +96,8 @@ export function useModulosVisibles() {
 }
 
 export default function AppLayout() {
-  const [menuAbierto, setMenuAbierto] = useState(false)
   const modulosVisibles = useModulosVisibles()
+  const novedades = useNovedades(modulosVisibles)
   const [paletaAbierta, setPaletaAbierta] = useCommandPalette()
   const { pathname } = useLocation()
 
@@ -108,18 +110,14 @@ export default function AppLayout() {
     return () => document.documentElement.classList.remove('zp-admin')
   }, [])
 
-  // Cerrar el menú al navegar (en pantallas angostas se superpone).
-  useEffect(() => {
-    setMenuAbierto(false)
-  }, [pathname])
-
   return (
     <div className="panel-shell zp-app">
+      <TematicaEfectos />
       <Toaster position="bottom-right" theme={tema} />
       <CommandPalette abierto={paletaAbierta} onAbrirCambio={setPaletaAbierta} modulosVisibles={modulosVisibles} />
-      <BarraSuperior onAbrirMenu={() => setMenuAbierto(true)} onBuscar={() => setPaletaAbierta(true)} tema={tema} onAlternarTema={alternarTema} />
+      <BarraSuperior onBuscar={() => setPaletaAbierta(true)} tema={tema} onAlternarTema={alternarTema} />
       <div className="zp-body">
-        <BarraLateral modulosVisibles={modulosVisibles} abierta={menuAbierto} onCerrar={() => setMenuAbierto(false)} />
+        <BarraLateral modulosVisibles={modulosVisibles} novedades={novedades} />
         <main className="zp-main">
           <div key={pathname}>
             <ContenidoRuta />

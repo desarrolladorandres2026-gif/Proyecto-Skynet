@@ -1,0 +1,4 @@
+# Se regeneran con: npm run voz / node grabar.mjs / node componer.mjs
+grabacion/
+narracion/
+*.mp4

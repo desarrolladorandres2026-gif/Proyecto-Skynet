@@ -25,6 +25,18 @@ import {
   listarBandeja,
   calendario,
 } from '../src/modules/ausencias/ausencias.service.js'
+import {
+  verificarIncapacidad,
+  devolverIncapacidad,
+  reenviarIncapacidad,
+  foliarIncapacidad,
+  direccionarIncapacidad,
+  completarFolioIncapacidad,
+  tramitarIncapacidad,
+  listarTramite,
+  supervisarIncapacidades,
+  listarDestinatarios,
+} from '../src/modules/ausencias/incapacidades.service.js'
 
 async function crearPermiso(codigo) {
   const [modulo, accion] = codigo.split(':')
@@ -184,7 +196,10 @@ describe('Ausencias — capa HTTP', () => {
 
   it('el calendario no expone motivo, motivoLicencia ni soporte médico a quien solo tiene ausencias:aprobar', async () => {
     const { actor } = await crearActor(null)
-    const { usuario: jefe, actor: jefeActor } = await crearActor('ausencias:aprobar')
+    const { usuario: jefe } = await crearActor('ausencias:aprobar')
+    // Una incapacidad no la aprueba Talento Humano: la verifica SIG, y desde ahí
+    // ya cuenta como ausencia en firme para el calendario.
+    const { actor: sigActor } = await crearActor('ausencias:verificar_incapacidades')
     const lunes = lunesFuturo()
 
     const doc = await crearAusencia(
@@ -197,7 +212,7 @@ describe('Ausencias — capa HTTP', () => {
       },
       actor
     )
-    await aprobarAusencia(doc._id, {}, jefeActor)
+    await verificarIncapacidad(doc._id, {}, sigActor)
 
     const res = await request(app).get('/api/ausencias/calendario').set('Authorization', autorizacion(jefe))
     expect(res.status).toBe(200)
@@ -665,5 +680,400 @@ describe('Ausencias — el día guardado es el día pedido', () => {
     expect(await calendario({ desde: '2027-08-19', hasta: '2027-08-19' })).toHaveLength(0)
     // Un día después del último, tampoco.
     expect(await calendario({ desde: '2027-08-25', hasta: '2027-08-25' })).toHaveLength(0)
+  })
+})
+
+// ── Trámite de incapacidades ───────────────────────────────────────────────
+// trabajador -> SIG (verifica/devuelve) -> Secretaria (folía) -> Gerencia
+// (direcciona) -> Talento Humano (recibe); la Secretaria completa el folio.
+
+const SOPORTE_OK = { url: 'https://res.cloudinary.com/demo/soporte.pdf', publicId: 'demo/soporte', nombreArchivo: 'incapacidad.pdf' }
+
+async function reportarIncapacidad(trabajador, dia = lunesFuturo(3)) {
+  return crearAusencia(
+    { tipo: 'incapacidad', fechaInicio: dia, fechaFin: sumarDias(dia, 2), soporte: SOPORTE_OK, motivo: 'Reposo' },
+    trabajador
+  )
+}
+
+async function equipoDelTramite() {
+  const trabajador = await crearActor(null)
+  const sig = await crearActor('ausencias:verificar_incapacidades')
+  const secretaria = await crearActor('ausencias:foliar_incapacidades')
+  const gerencia = await crearActor('ausencias:direccionar_incapacidades')
+  const talentoHumano = await crearActor('ausencias:recibir_incapacidades')
+  return { trabajador, sig, secretaria, gerencia, talentoHumano }
+}
+
+describe('Incapacidades — trámite completo', () => {
+  it('nace en verificación y avisa a SIG, no a Talento Humano', async () => {
+    const { trabajador, sig } = await equipoDelTramite()
+    const { usuario: rrhh } = await crearActor('ausencias:aprobar')
+
+    const doc = await reportarIncapacidad(trabajador.actor)
+    expect(doc.estado).toBe('pendiente')
+    expect(doc.etapa).toBe('en_verificacion')
+    expect(doc.historial.map((h) => h.accion)).toEqual(['creada'])
+
+    const avisoSig = await esperarNotificaciones({ usuario: sig.usuario._id })
+    expect(avisoSig.length).toBeGreaterThan(0)
+    // Con 'ausencias:aprobar' (decide vacaciones y permisos) no le toca verificar.
+    await new Promise((r) => setTimeout(r, 150))
+    expect(await EnvioNotificacion.find({ usuario: rrhh._id })).toHaveLength(0)
+  })
+
+  it('Talento Humano ya no aprueba ni rechaza una incapacidad por la vía de vacaciones', async () => {
+    const { trabajador } = await equipoDelTramite()
+    const { actor: rrhh } = await crearActor('ausencias:aprobar')
+    const doc = await reportarIncapacidad(trabajador.actor)
+
+    await expect(aprobarAusencia(doc._id, {}, rrhh)).rejects.toThrow(/no se aprueban aquí/)
+    await expect(rechazarAusencia(doc._id, { motivoRechazo: 'x' }, rrhh)).rejects.toThrow(/no se aprueban aquí/)
+    // Y no aparece en la bandeja de vacaciones y permisos.
+    expect((await listarBandeja()).map((a) => String(a._id))).not.toContain(String(doc._id))
+  })
+
+  it('recorre todo el trámite, cada paso con su responsable, y deja la línea de tiempo', async () => {
+    const { trabajador, sig, secretaria, gerencia, talentoHumano } = await equipoDelTramite()
+    const doc = await reportarIncapacidad(trabajador.actor)
+
+    // 1. SIG: verificado y aprobado -> ya es ausencia en firme.
+    const verificada = await verificarIncapacidad(doc._id, { observacion: 'Soporte completo' }, sig.actor)
+    expect(verificada.estado).toBe('aprobada')
+    expect(verificada.etapa).toBe('por_foliar')
+    expect(verificada.verificacion.nombre).toBe('Persona Prueba')
+    expect(await calendario({ desde: doc.fechaInicio, hasta: doc.fechaFin })).toHaveLength(1)
+    expect((await esperarNotificaciones({ usuario: secretaria.usuario._id })).length).toBeGreaterThan(0)
+
+    // 2. Secretaria: folía y queda a la espera de direccionamiento.
+    const foliada = await foliarIncapacidad(doc._id, { numeroFolio: ' 0457 ', observacion: 'Incapacidad EPS' }, secretaria.actor)
+    expect(foliada.etapa).toBe('foliada')
+    expect(foliada.folio.numero).toBe('0457')
+    expect(foliada.folio.destinatarioRegistrado).toBe(false)
+    expect((await esperarNotificaciones({ usuario: gerencia.usuario._id })).length).toBeGreaterThan(0)
+
+    // 3. Gerencia: despacha a una persona de Talento Humano, con mensaje.
+    const direccionada = await direccionarIncapacidad(
+      doc._id,
+      { destinatarioId: talentoHumano.usuario._id, mensaje: 'Para trámite de nómina' },
+      gerencia.actor
+    )
+    expect(direccionada.etapa).toBe('direccionada')
+    expect(direccionada.direccionamiento.nombreDestinatario).toBe('Persona Prueba')
+    expect(direccionada.direccionamiento.mensaje).toBe('Para trámite de nómina')
+    // El destinatario y la Secretaria (que debe completar el folio) reciben aviso.
+    const avisoDestinatario = await esperarNotificaciones({ usuario: talentoHumano.usuario._id, titulo: /dirigida a ti/i })
+    expect(avisoDestinatario.length).toBeGreaterThan(0)
+    const avisoFolio = await esperarNotificaciones({ usuario: secretaria.usuario._id, titulo: /Completa el folio/i })
+    expect(avisoFolio.length).toBeGreaterThan(0)
+
+    // 4. Secretaria: ya conoce el destinatario y lo anota en el folio (una sola vez).
+    const completa = await completarFolioIncapacidad(doc._id, {}, secretaria.actor)
+    expect(completa.folio.destinatarioRegistrado).toBe(true)
+    await expect(completarFolioIncapacidad(doc._id, {}, secretaria.actor)).rejects.toThrow(/ya tiene el destinatario/)
+
+    expect(completa.historial.map((h) => h.accion)).toEqual([
+      'creada', 'verificada', 'foliada', 'direccionada', 'folio_completado',
+    ])
+  })
+
+  it('no deja saltarse pasos', async () => {
+    const { trabajador, sig, secretaria, gerencia, talentoHumano } = await equipoDelTramite()
+    const doc = await reportarIncapacidad(trabajador.actor)
+
+    // Sin verificar no se puede foliar ni direccionar.
+    await expect(foliarIncapacidad(doc._id, { numeroFolio: '1' }, secretaria.actor)).rejects.toThrow(/No se puede foliar/)
+    await expect(
+      direccionarIncapacidad(doc._id, { destinatarioId: talentoHumano.usuario._id }, gerencia.actor)
+    ).rejects.toThrow(/No se puede direccionar/)
+
+    await verificarIncapacidad(doc._id, {}, sig.actor)
+    // Verificada pero sin foliar: tampoco se direcciona, ni se verifica de nuevo.
+    await expect(
+      direccionarIncapacidad(doc._id, { destinatarioId: talentoHumano.usuario._id }, gerencia.actor)
+    ).rejects.toThrow(/No se puede direccionar/)
+    await expect(verificarIncapacidad(doc._id, {}, sig.actor)).rejects.toThrow(/No se puede verificar/)
+    // El número de folio es opcional (la Secretaria llena el folio en físico).
+    const sinNumero = await foliarIncapacidad(doc._id, { numeroFolio: '  ' }, secretaria.actor)
+    expect(sinNumero.etapa).toBe('foliada')
+    expect(sinNumero.folio.numero).toBe('')
+  })
+
+  it('el destinatario tiene que poder recibir incapacidades en Talento Humano', async () => {
+    const { trabajador, sig, secretaria, gerencia } = await equipoDelTramite()
+    const { usuario: cualquiera } = await crearActor(null)
+    const doc = await reportarIncapacidad(trabajador.actor)
+    await verificarIncapacidad(doc._id, {}, sig.actor)
+    await foliarIncapacidad(doc._id, { numeroFolio: '9' }, secretaria.actor)
+
+    await expect(direccionarIncapacidad(doc._id, {}, gerencia.actor)).rejects.toThrow(/a quién de Talento Humano/)
+    await expect(
+      direccionarIncapacidad(doc._id, { destinatarioId: cualquiera._id }, gerencia.actor)
+    ).rejects.toThrow(/no puede recibir/)
+  })
+
+  it('nadie verifica su propia incapacidad', async () => {
+    const sig = await crearActor('ausencias:verificar_incapacidades')
+    const doc = await reportarIncapacidad(sig.actor)
+    await expect(verificarIncapacidad(doc._id, {}, sig.actor)).rejects.toThrow(/tu propia incapacidad/)
+  })
+
+  it('una incapacidad anterior al trámite que sigue pendiente entra a SIG', async () => {
+    const { trabajador, sig } = await equipoDelTramite()
+    const doc = await reportarIncapacidad(trabajador.actor)
+    // Registro "viejo": sin etapa ni historial.
+    await Ausencia.collection.updateOne({ _id: doc._id }, { $unset: { etapa: '', etapaDesde: '', historial: '' } })
+
+    const { porVerificar } = await listarTramite(sig.actor)
+    expect(porVerificar.map((a) => String(a._id))).toContain(String(doc._id))
+    const verificada = await verificarIncapacidad(doc._id, {}, sig.actor)
+    expect(verificada.etapa).toBe('por_foliar')
+  })
+})
+
+describe('Incapacidades — Talento Humano cierra el ciclo', () => {
+  async function hastaDireccionada() {
+    const eq = await equipoDelTramite()
+    const doc = await reportarIncapacidad(eq.trabajador.actor)
+    await verificarIncapacidad(doc._id, {}, eq.sig.actor)
+    await foliarIncapacidad(doc._id, { numeroFolio: '1' }, eq.secretaria.actor)
+    await direccionarIncapacidad(doc._id, { destinatarioId: eq.talentoHumano.usuario._id }, eq.gerencia.actor)
+    return { ...eq, doc }
+  }
+
+  it('la recibe y la tramita; el trabajador recibe el aviso y queda en la línea de tiempo', async () => {
+    const { trabajador, talentoHumano, doc } = await hastaDireccionada()
+    const otraPersonaDeTh = await crearActor('ausencias:recibir_incapacidades')
+
+    // Cualquiera del área puede cerrarla, no solo la persona nombrada.
+    const cerrada = await tramitarIncapacidad(doc._id, { observacion: 'Radicada ante la EPS' }, otraPersonaDeTh.actor)
+    expect(cerrada.etapa).toBe('tramitada')
+    expect(cerrada.tramite.observacion).toBe('Radicada ante la EPS')
+    expect(cerrada.historial.at(-1).accion).toBe('tramitada')
+    const aviso = await esperarNotificaciones({ usuario: trabajador.usuario._id, titulo: /tramitada/i })
+    expect(aviso.length).toBeGreaterThan(0)
+
+    // No se tramita dos veces, ni se tramita lo que no ha llegado.
+    await expect(tramitarIncapacidad(doc._id, {}, talentoHumano.actor)).rejects.toThrow(/No se puede tramitar/)
+    const sinLlegar = await reportarIncapacidad((await crearActor(null)).actor, lunesFuturo(6))
+    await expect(tramitarIncapacidad(sinLlegar._id, {}, talentoHumano.actor)).rejects.toThrow(/No se puede tramitar/)
+  })
+
+  it('la Secretaria puede completar el folio aunque ya esté tramitada, y deja de contar días', async () => {
+    const { secretaria, talentoHumano, doc } = await hastaDireccionada()
+    await tramitarIncapacidad(doc._id, {}, talentoHumano.actor)
+
+    expect((await listarTramite(secretaria.actor)).porCompletarFolio.map((x) => String(x._id))).toContain(String(doc._id))
+    const completa = await completarFolioIncapacidad(doc._id, {}, secretaria.actor)
+    expect(completa.folio.destinatarioRegistrado).toBe(true)
+    expect(completa.etapa).toBe('tramitada')
+
+    const { incapacidades, resumen } = await supervisarIncapacidades({ etapa: 'tramitada' })
+    const item = incapacidades.find((x) => String(x._id) === String(doc._id))
+    expect(item.diasEnEtapa).toBeNull()
+    expect(resumen.tramitada).toBeGreaterThanOrEqual(1)
+  })
+
+  it('Talento Humano ve en Recibidas las pendientes y las ya tramitadas', async () => {
+    const { talentoHumano, doc } = await hastaDireccionada()
+    expect((await listarTramite(talentoHumano.actor)).recibidas.map((x) => x.etapa)).toContain('direccionada')
+    await tramitarIncapacidad(doc._id, {}, talentoHumano.actor)
+    expect((await listarTramite(talentoHumano.actor)).recibidas.map((x) => x.etapa)).toContain('tramitada')
+  })
+
+  it('exige el permiso de recibir por HTTP', async () => {
+    const { sig, talentoHumano, doc } = await hastaDireccionada()
+    const app = crearApp()
+    expect((await request(app).post(`/api/ausencias/${doc._id}/tramitar`).set('Authorization', autorizacion(sig.usuario))).status).toBe(403)
+    const ok = await request(app).post(`/api/ausencias/${doc._id}/tramitar`).set('Authorization', autorizacion(talentoHumano.usuario)).send({})
+    expect(ok.status).toBe(200)
+    expect(ok.body.ausencia.etapa).toBe('tramitada')
+  })
+})
+
+describe('Incapacidades — devolución y corrección', () => {
+  it('SIG la devuelve con el motivo y el trabajador la corrige y la reenvía', async () => {
+    const { trabajador, sig } = await equipoDelTramite()
+    const doc = await reportarIncapacidad(trabajador.actor)
+
+    await expect(devolverIncapacidad(doc._id, {}, sig.actor)).rejects.toThrow(/qué falta/)
+    const devuelta = await devolverIncapacidad(doc._id, { motivo: 'El certificado está cortado' }, sig.actor)
+    expect(devuelta.etapa).toBe('devuelta')
+    expect(devuelta.estado).toBe('pendiente')
+    expect(devuelta.historial.at(-1).nota).toBe('El certificado está cortado')
+    const aviso = await esperarNotificaciones({ usuario: trabajador.usuario._id, titulo: /corrección/i })
+    expect(aviso[0].cuerpo).toContain('certificado está cortado')
+
+    // No se puede verificar mientras está devuelta.
+    await expect(verificarIncapacidad(doc._id, {}, sig.actor)).rejects.toThrow(/No se puede verificar/)
+    // Reenviar sin corregir nada no sirve.
+    await expect(reenviarIncapacidad(doc._id, {}, trabajador.actor)).rejects.toThrow(/Adjunta un soporte corregido/)
+    // Solo el dueño la corrige.
+    await expect(
+      reenviarIncapacidad(doc._id, { comentario: 'x' }, sig.actor)
+    ).rejects.toThrow(/Solo quien reportó/)
+
+    const nuevoArchivo = { archivo: '123_nuevo.pdf', nombreArchivo: 'nuevo.pdf', mimetype: 'application/pdf', size: 10 }
+    const reenviada = await reenviarIncapacidad(doc._id, { soporte: nuevoArchivo, comentario: 'Adjunto completo' }, trabajador.actor)
+    expect(reenviada.etapa).toBe('en_verificacion')
+    expect(reenviada.soporte.archivo).toBe('123_nuevo.pdf')
+    expect(reenviada.historial.map((h) => h.accion)).toEqual(['creada', 'devuelta', 'reenviada'])
+
+    // Y vuelve a SIG, que ahora sí la puede verificar.
+    expect((await verificarIncapacidad(doc._id, {}, sig.actor)).etapa).toBe('por_foliar')
+  })
+
+  it('corregir las fechas revalida el cruce con otras ausencias', async () => {
+    const { trabajador, sig } = await equipoDelTramite()
+    const dia = lunesFuturo(3)
+    const doc = await reportarIncapacidad(trabajador.actor, dia)
+    await crearAusencia({ tipo: 'vacaciones', fechaInicio: sumarDias(dia, 10), fechaFin: sumarDias(dia, 12) }, trabajador.actor)
+    await devolverIncapacidad(doc._id, { motivo: 'Las fechas no coinciden con el certificado' }, sig.actor)
+
+    await expect(
+      reenviarIncapacidad(doc._id, { fechaInicio: sumarDias(dia, 9), fechaFin: sumarDias(dia, 11) }, trabajador.actor)
+    ).rejects.toThrow(/se cruza/)
+
+    const ok = await reenviarIncapacidad(doc._id, { fechaInicio: dia, fechaFin: sumarDias(dia, 4) }, trabajador.actor)
+    expect(ok.diasHabiles).toBe(5)
+  })
+
+  it('el trabajador puede retirar una incapacidad devuelta, y ya no se verifica', async () => {
+    const { trabajador, sig } = await equipoDelTramite()
+    const doc = await reportarIncapacidad(trabajador.actor)
+    await devolverIncapacidad(doc._id, { motivo: 'Falta la hoja 2' }, sig.actor)
+
+    const cancelada = await cancelarAusencia(doc._id, trabajador.actor)
+    expect(cancelada.estado).toBe('cancelada')
+    expect(cancelada.historial.at(-1).accion).toBe('cancelada')
+    await expect(verificarIncapacidad(doc._id, {}, sig.actor)).rejects.toThrow(/cancelada/)
+  })
+})
+
+describe('Incapacidades — bandejas y supervisión', () => {
+  it('cada persona ve solo la bandeja del paso que le toca', async () => {
+    const { trabajador, sig, secretaria, gerencia, talentoHumano } = await equipoDelTramite()
+    const a = await reportarIncapacidad(trabajador.actor, lunesFuturo(3))
+    const b = await reportarIncapacidad((await crearActor(null)).actor, lunesFuturo(3))
+    await verificarIncapacidad(b._id, {}, sig.actor)
+
+    const deSig = await listarTramite(sig.actor)
+    expect(Object.keys(deSig)).toEqual(['porVerificar'])
+    expect(deSig.porVerificar.map((x) => String(x._id))).toEqual([String(a._id)])
+
+    const deSecretaria = await listarTramite(secretaria.actor)
+    expect(deSecretaria.porFoliar.map((x) => String(x._id))).toEqual([String(b._id)])
+    expect(deSecretaria.porCompletarFolio).toEqual([])
+    expect(deSecretaria.porVerificar).toBeUndefined()
+
+    expect(Object.keys(await listarTramite(gerencia.actor))).toEqual(['porDireccionar'])
+
+    await foliarIncapacidad(b._id, { numeroFolio: '10' }, secretaria.actor)
+    expect((await listarTramite(gerencia.actor)).porDireccionar).toHaveLength(1)
+
+    await direccionarIncapacidad(b._id, { destinatarioId: talentoHumano.usuario._id }, gerencia.actor)
+    const deRrhh = await listarTramite(talentoHumano.actor)
+    expect(deRrhh.recibidas).toHaveLength(1)
+    expect(deRrhh.recibidas[0].paraMi).toBe(true)
+    // A la Secretaria le queda pendiente completar el folio.
+    expect((await listarTramite(secretaria.actor)).porCompletarFolio).toHaveLength(1)
+  })
+
+  it('la supervisión ve todas, filtra por etapa y por folio, y cuenta cada etapa', async () => {
+    const { trabajador, sig, secretaria } = await equipoDelTramite()
+    const uno = await reportarIncapacidad(trabajador.actor, lunesFuturo(4))
+    const dos = await reportarIncapacidad((await crearActor(null)).actor, lunesFuturo(4))
+    await verificarIncapacidad(dos._id, {}, sig.actor)
+    await foliarIncapacidad(dos._id, { numeroFolio: 'F-77' }, secretaria.actor)
+
+    const todas = await supervisarIncapacidades({})
+    const ids = todas.incapacidades.map((x) => String(x._id))
+    expect(ids).toEqual(expect.arrayContaining([String(uno._id), String(dos._id)]))
+    expect(todas.resumen.en_verificacion).toBeGreaterThanOrEqual(1)
+    expect(todas.resumen.foliada).toBeGreaterThanOrEqual(1)
+    expect(todas.incapacidades.find((x) => String(x._id) === String(uno._id)).diasEnEtapa).toBe(0)
+
+    const foliadas = await supervisarIncapacidades({ etapa: 'foliada' })
+    expect(foliadas.incapacidades.map((x) => String(x._id))).toContain(String(dos._id))
+    expect(foliadas.incapacidades.map((x) => String(x._id))).not.toContain(String(uno._id))
+
+    const porFolio = await supervisarIncapacidades({ q: 'f-77' })
+    expect(porFolio.incapacidades.map((x) => String(x._id))).toEqual([String(dos._id)])
+    // La búsqueda no interpreta regex del usuario.
+    expect((await supervisarIncapacidades({ q: '.*' })).incapacidades).toEqual([])
+  })
+
+  it('lista como destinatarios solo a quien puede recibir incapacidades', async () => {
+    const { talentoHumano } = await equipoDelTramite()
+    const { usuario: otro } = await crearActor('ausencias:foliar_incapacidades')
+    const ids = (await listarDestinatarios()).map((u) => String(u._id))
+    expect(ids).toContain(String(talentoHumano.usuario._id))
+    expect(ids).not.toContain(String(otro._id))
+  })
+})
+
+describe('Incapacidades — capa HTTP', () => {
+  const app = crearApp()
+
+  it('las rutas del trámite exigen el permiso de cada paso', async () => {
+    const { trabajador, sig, secretaria, gerencia } = await equipoDelTramite()
+    const supervisor = await crearActor('ausencias:supervisar_incapacidades')
+    const doc = await reportarIncapacidad(trabajador.actor)
+    const de = (a) => autorizacion(a.usuario)
+
+    // Sin ningún permiso del trámite: ni bandejas ni supervisión.
+    expect((await request(app).get('/api/ausencias/incapacidades/tramite').set('Authorization', de(trabajador))).status).toBe(403)
+    expect((await request(app).get('/api/ausencias/incapacidades/supervision').set('Authorization', de(sig))).status).toBe(403)
+    expect((await request(app).get('/api/ausencias/incapacidades/tramite').set('Authorization', de(sig))).status).toBe(200)
+    expect((await request(app).get('/api/ausencias/incapacidades/supervision').set('Authorization', de(supervisor))).status).toBe(200)
+
+    // Cada acción, con su permiso: la Secretaria no verifica, SIG no folía.
+    const verificarConSecretaria = await request(app).post(`/api/ausencias/${doc._id}/verificar`).set('Authorization', de(secretaria))
+    expect(verificarConSecretaria.status).toBe(403)
+    expect((await request(app).post(`/api/ausencias/${doc._id}/foliar`).set('Authorization', de(sig)).send({ numeroFolio: '1' })).status).toBe(403)
+    expect((await request(app).post(`/api/ausencias/${doc._id}/direccionar`).set('Authorization', de(secretaria)).send({})).status).toBe(403)
+    expect((await request(app).get('/api/ausencias/incapacidades/destinatarios').set('Authorization', de(sig))).status).toBe(403)
+    expect((await request(app).get('/api/ausencias/incapacidades/destinatarios').set('Authorization', de(gerencia))).status).toBe(200)
+
+    const ok = await request(app).post(`/api/ausencias/${doc._id}/verificar`).set('Authorization', de(sig)).send({ observacion: 'ok' })
+    expect(ok.status).toBe(200)
+    expect(ok.body.ausencia.etapa).toBe('por_foliar')
+    // La vía antigua queda cerrada para incapacidades.
+    const { usuario: rrhh } = await crearActor('ausencias:aprobar')
+    expect((await request(app).post(`/api/ausencias/${doc._id}/aprobar`).set('Authorization', autorizacion(rrhh))).status).toBe(409)
+  })
+
+  it('quien interviene en el trámite abre el soporte de la incapacidad; un curioso no', async () => {
+    const { trabajador, sig } = await equipoDelTramite()
+    const { usuario: curioso } = await crearActor(null)
+    const pdf = Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF')
+    const res = await request(app)
+      .post('/api/ausencias')
+      .set('Authorization', autorizacion(trabajador.usuario))
+      .field('tipo', 'incapacidad')
+      .field('fechaInicio', lunesFuturo(5).toISOString())
+      .field('fechaFin', lunesFuturo(5).toISOString())
+      .attach('soporte', pdf, { filename: 'certificado.pdf', contentType: 'application/pdf' })
+    expect(res.status).toBe(201)
+    const id = res.body.ausencia._id
+
+    expect((await request(app).get(`/api/ausencias/${id}/soporte`).set('Authorization', autorizacion(sig.usuario))).status).toBe(200)
+    expect((await request(app).get(`/api/ausencias/${id}/soporte`).set('Authorization', autorizacion(curioso))).status).toBe(409)
+  })
+
+  it('el trabajador reenvía la incapacidad devuelta subiendo un PDF real', async () => {
+    const { trabajador, sig } = await equipoDelTramite()
+    const doc = await reportarIncapacidad(trabajador.actor)
+    await devolverIncapacidad(doc._id, { motivo: 'Ilegible' }, sig.actor)
+
+    const pdf = Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF')
+    const res = await request(app)
+      .post(`/api/ausencias/${doc._id}/reenviar`)
+      .set('Authorization', autorizacion(trabajador.usuario))
+      .field('comentario', 'Escaneado de nuevo')
+      .attach('soporte', pdf, { filename: 'nuevo.pdf', contentType: 'application/pdf' })
+    expect(res.status).toBe(200)
+    expect(res.body.ausencia.etapa).toBe('en_verificacion')
+    expect(res.body.ausencia.soporte.archivo).toMatch(/_nuevo\.pdf$/)
   })
 })

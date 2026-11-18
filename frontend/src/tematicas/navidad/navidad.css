@@ -1,0 +1,421 @@
+/* Temática Navidad: escena de Inicio y gorrito. Luces, adornos y selector son
+   genéricos y viven en ../base.css */
+
+@keyframes navidad-parpadeo {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Escena de Inicio: Papá Noel en el Polo Norte */
+.navidad-escena {
+  position: relative;
+  height: 130px;
+  flex: none;
+  min-height: 130px;
+  overflow: hidden;
+  border-radius: 12px;
+  container-type: size;
+  background: linear-gradient(180deg, #050f26 0%, #0f2a5a 45%, #2f5fa0 80%, #5f8fc8 100%);
+  pointer-events: none;
+}
+.navidad-aurora {
+  position: absolute;
+  inset: -20% -10% 30% -10%;
+  background:
+    radial-gradient(ellipse 45% 60% at 25% 30%, rgba(74, 255, 170, 0.38), transparent 70%),
+    radial-gradient(ellipse 40% 55% at 60% 20%, rgba(130, 110, 255, 0.34), transparent 70%),
+    radial-gradient(ellipse 35% 50% at 85% 35%, rgba(60, 220, 255, 0.28), transparent 70%);
+  filter: blur(14px);
+  animation: navidad-aurora 9s ease-in-out infinite alternate;
+}
+.navidad-estrellas {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 20px 18px, #fff, transparent),
+    radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 160px 12px, #fff, transparent),
+    radial-gradient(1px 1px at 230px 50px, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 300px 26px, #fff, transparent),
+    radial-gradient(1px 1px at 55px 70px, #fff, transparent),
+    radial-gradient(1px 1px at 265px 88px, #fff, transparent);
+  background-size: 340px 110px;
+  animation: navidad-titilar 3s ease-in-out infinite;
+}
+.navidad-fugaz {
+  position: absolute;
+  top: 18%;
+  left: 78%;
+  width: 70px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #fff);
+  border-radius: 2px;
+  opacity: 0;
+  animation: navidad-fugaz 11s linear infinite;
+}
+
+/* Capas con parallax: más lejos = más lento */
+.navidad-capa {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  width: max-content;
+  animation: navidad-avance linear infinite;
+}
+.navidad-capa-lejos { animation-duration: 72s; bottom: 18px; }
+.navidad-capa-medio { animation-duration: 32s; bottom: 6px; }
+.navidad-capa-cerca { animation-duration: 16s; }
+.navidad-tile { flex: none; display: block; }
+
+.navidad-ventana { animation: navidad-parpadeo 2.6s ease-in-out infinite; }
+.navidad-nariz { animation: navidad-parpadeo 0.9s ease-in-out infinite; }
+.navidad-bombilla-svg { animation: navidad-parpadeo 1.4s ease-in-out infinite; }
+.navidad-humo {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: navidad-humo 3.3s ease-out infinite;
+}
+.navidad-pata {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: navidad-galope 0.6s ease-in-out infinite alternate;
+}
+.navidad-reno { animation: navidad-brinco 0.6s ease-in-out infinite alternate; }
+.navidad-pompon { transform-box: fill-box; transform-origin: center; animation: navidad-brinco 1.2s ease-in-out infinite alternate; }
+
+.navidad-vuelo { position: absolute; left: 70px; bottom: 90px; animation: navidad-vuelo 2.6s ease-in-out infinite; }
+.navidad-trineo { display: block; overflow: visible; }
+.navidad-chispa {
+  position: absolute;
+  left: 2px;
+  width: 4px;
+  height: 4px;
+  background: #fde68a;
+  border-radius: 50%;
+  box-shadow: 0 0 6px 2px rgba(253, 224, 71, 0.8);
+  animation: navidad-estela 1.4s ease-out infinite;
+}
+
+/* Regalo: caja con cinta; cae desde el trineo hasta la chimenea (32px). */
+.navidad-regalo {
+  position: absolute;
+  left: 143px;
+  bottom: 92px;
+  width: 14px;
+  height: 12px;
+  border-radius: 2px;
+  background:
+    linear-gradient(#facc15, #facc15) center / 3px 100% no-repeat,
+    linear-gradient(#facc15, #facc15) center / 100% 3px no-repeat,
+    #ef4444;
+  opacity: 0;
+  animation: navidad-entrega 16s linear infinite backwards;
+}
+
+.navidad-nieve-escena { position: absolute; inset: 0; overflow: hidden; }
+.navidad-nieve-escena span {
+  position: absolute;
+  top: -10px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.85;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+  animation: navidad-caer linear infinite;
+}
+.navidad-nieve-escena span.cerca { filter: blur(1.2px); opacity: 0.95; }
+
+.navidad-titulo {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  right: 16px;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+}
+.navidad-titulo { animation: navidad-flotar 4s ease-in-out infinite; }
+.navidad-titulo h3 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #fde68a;
+  /* brillo dorado que recorre el texto */
+  background: linear-gradient(100deg, #fbbf24 0%, #fde68a 30%, #fff 45%, #fde68a 60%, #f59e0b 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 1px 6px rgba(0, 0, 0, 0.55));
+  animation: navidad-entra 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both, navidad-brillo 4.5s linear 1s infinite;
+}
+.navidad-titulo p {
+  margin: 6px 0 4px;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  animation: navidad-entra 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.35s both;
+}
+.navidad-titulo strong {
+  display: inline-block;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  animation: navidad-entra 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.7s both, navidad-pulso 2.8s ease-in-out 1.6s infinite;
+}
+
+@keyframes navidad-entra {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes navidad-brillo {
+  from { background-position: 150% 0; }
+  to { background-position: -100% 0; }
+}
+@keyframes navidad-flotar {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes navidad-pulso {
+  0%, 100% { text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55); }
+  50% { text-shadow: 0 0 10px rgba(253, 224, 71, 0.9), 0 1px 6px rgba(0, 0, 0, 0.55); }
+}
+@keyframes navidad-avance { to { transform: translateX(-800px); } }
+@keyframes navidad-vuelo {
+  0%, 100% { transform: translateY(0) rotate(-1.2deg); }
+  50% { transform: translateY(5px) rotate(1.2deg); }
+}
+@keyframes navidad-titilar { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes navidad-aurora {
+  0% { transform: translateX(-4%) scaleY(0.9); opacity: 0.7; }
+  100% { transform: translateX(4%) scaleY(1.15); opacity: 1; }
+}
+@keyframes navidad-fugaz {
+  0%, 86% { opacity: 0; transform: translate(0, 0) rotate(28deg); }
+  88% { opacity: 1; }
+  96% { opacity: 0; transform: translate(-170px, 90px) rotate(28deg); }
+  100% { opacity: 0; transform: translate(-170px, 90px) rotate(28deg); }
+}
+@keyframes navidad-humo {
+  0% { opacity: 0.8; transform: translate(0, 0) scale(0.6); }
+  100% { opacity: 0; transform: translate(9px, -28px) scale(1.9); }
+}
+@keyframes navidad-galope {
+  from { transform: rotate(-38deg); }
+  to { transform: rotate(38deg); }
+}
+@keyframes navidad-brinco {
+  from { transform: translateY(0); }
+  to { transform: translateY(-2.5px); }
+}
+@keyframes navidad-estela {
+  0% { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-46px, 6px) scale(0.3); }
+}
+@keyframes navidad-caer {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(var(--vaiven), 52cqh); }
+  100% { transform: translate(calc(var(--vaiven) * -1), 110cqh); }
+}
+/* cae 0.8s (5% de 16s) hasta la chimenea y desaparece dentro */
+@keyframes navidad-entrega {
+  0% { opacity: 1; transform: translateY(0) rotate(0); }
+  5% { opacity: 1; transform: translateY(32px) rotate(25deg); }
+  6% { opacity: 0; transform: translateY(36px) rotate(25deg); }
+  100% { opacity: 0; transform: translateY(36px) rotate(25deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navidad-capa, .navidad-vuelo, .navidad-regalo, .navidad-estrellas, .navidad-aurora,
+  .navidad-fugaz, .navidad-ventana, .navidad-nariz, .navidad-bombilla-svg, .navidad-humo,
+  .navidad-pata, .navidad-reno, .navidad-pompon, .navidad-chispa,
+  .navidad-nieve-escena span, .navidad-titulo, .navidad-titulo h3,
+  .navidad-titulo p, .navidad-titulo strong { animation: none; }
+  .navidad-regalo, .navidad-chispa, .navidad-humo { display: none; }
+}
+
+/* Gorrito de Papá Noel sobre la esquina superior izquierda de un botón */
+.navidad-gorrito {
+  position: absolute;
+  top: -13px;
+  left: -7px;
+  transform: rotate(-18deg);
+  transform-origin: bottom left;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+  animation: navidad-gorrito 3s ease-in-out infinite alternate;
+}
+@keyframes navidad-gorrito {
+  from { transform: rotate(-20deg); }
+  to { transform: rotate(-14deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .navidad-gorrito { animation: none; }
+}
+
+/* Barra lateral: nieve, guirnalda vertical y paisaje al pie. */
+.navidad-lateral-fondo {
+  position: sticky;
+  top: 0;
+  height: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.navidad-lateral-nieve,
+.navidad-lateral-luces { position: absolute; top: 0; }
+.navidad-lateral-nieve { left: 0; right: 0; height: 100vh; overflow: hidden; }
+.navidad-lateral-nieve span {
+  position: absolute;
+  top: -10px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.85;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+  animation: navidad-caer-lateral linear infinite;
+}
+.navidad-lateral-luces {
+  right: 3px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+.navidad-lateral-luces span {
+  width: 6px;
+  height: 9px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: var(--c);
+  box-shadow: 0 0 7px var(--c);
+  animation: navidad-parpadeo 1.6s ease-in-out infinite;
+}
+.navidad-lateral-pie { display: none; flex: none; pointer-events: none; margin-top: 8px; }
+.navidad-lateral-pie svg { display: block; }
+@media (min-width: 768px) {
+  .navidad-lateral-pie { display: block; }
+}
+@keyframes navidad-caer-lateral {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(var(--vaiven), 52vh); }
+  100% { transform: translate(calc(var(--vaiven) * -1), 105vh); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .navidad-lateral-nieve span, .navidad-lateral-luces span { animation: none; }
+  .navidad-lateral-nieve { display: none; }
+}
+/* En móvil el menú es un desplegable sin recorte: sin nieve ni guirnalda. */
+@media (max-width: 767px) {
+  .navidad-lateral-fondo { display: none; }
+}
+
+/* Pantalla de login */
+.navidad-login-nieve { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 40; }
+.navidad-login-nieve span {
+  position: absolute;
+  top: -10px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.85;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+  animation: navidad-caer-lateral linear infinite;
+}
+.navidad-login-nieve span.cerca { filter: blur(1.2px); opacity: 0.95; }
+
+.navidad-login-saludo {
+  display: none;
+  position: absolute;
+  top: 28px;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  text-align: center;
+  pointer-events: none;
+}
+.navidad-login-saludo span {
+  display: inline-block;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #fde68a;
+  /* sin contenedor: la sombra mantiene el texto legible sobre la foto */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 2px 12px rgba(0, 0, 0, 0.7);
+  animation: navidad-entra 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both, navidad-pulso 2.8s ease-in-out 1.6s infinite;
+}
+@media (min-width: 1024px) {
+  .navidad-login-saludo { display: block; }
+}
+
+.navidad-login-trineo {
+  position: absolute;
+  top: 6px;
+  left: -220px;
+  z-index: 6;
+  pointer-events: none;
+  transform-origin: left top;
+  animation: navidad-login-cruce 18s linear infinite;
+}
+.navidad-login-trineo svg { animation: navidad-vuelo 2.6s ease-in-out infinite; }
+@media (max-width: 639px) {
+  .navidad-login-trineo { scale: 0.55; }
+}
+@media (min-width: 1024px) {
+  .navidad-login-trineo { top: 84px; }
+}
+@keyframes navidad-login-cruce {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(100vw + 260px)); }
+}
+
+.navidad-login-pie {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+.navidad-login-pie svg { width: 100%; height: auto; display: block; }
+@media (min-width: 1024px) and (min-height: 760px) {
+  .navidad-login-pie { display: block; }
+}
+
+.navidad-gorrito-grande { width: 46px; height: 41px; top: -24px; left: -16px; z-index: 2; }
+
+@media (prefers-reduced-motion: reduce) {
+  .navidad-login-nieve { display: none; }
+  .navidad-login-trineo, .navidad-login-trineo svg, .navidad-login-saludo span { animation: none; }
+  .navidad-login-trineo { left: 24px; }
+}
+
+/* Teléfono */
+.navidad-login-nieve.navidad-movil-nieve { z-index: 30; }
+.navidad-movil-pie {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -12px;
+  width: 100%;
+  height: 14px;
+  pointer-events: none;
+}
+
+/* Saludo del login en pantallas chicas: una línea sobre la foto */
+@media (max-width: 1023px) {
+  .navidad-login-saludo { display: block; top: 6px; }
+  .navidad-login-saludo span { font-size: 0.72rem; }
+  .navidad-login-trineo { top: 26px; }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .navidad-login-saludo { top: 14px; }
+  .navidad-login-saludo span { font-size: 0.95rem; }
+  .navidad-login-trineo { top: 44px; }
+}
+
+/* La escena en el teléfono es más baja y angosta: textos más pequeños */
+@container (max-width: 480px) {
+  .navidad-titulo { top: 8px; left: 10px; right: 10px; }
+  .navidad-titulo h3 { font-size: 0.95rem; }
+  .navidad-titulo p { font-size: 0.7rem; margin: 3px 0 2px; }
+  .navidad-titulo strong { font-size: 0.62rem; }
+}

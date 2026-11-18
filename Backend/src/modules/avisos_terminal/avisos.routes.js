@@ -12,6 +12,8 @@ import {
   confirmarEstadoEntrega,
   obtenerAudioAviso,
   probarVoz,
+  resumenAudiencia,
+  reenviarAvisoNoEscuchado,
 } from './avisos.controller.js'
 
 const router = safeRouter()
@@ -39,6 +41,8 @@ router.get('/:id/audio', obtenerAudioAviso)
 // Gestión/Comunicador; Super Admin bypassa por esSuperAdmin).
 router.get('/destinatarios/opciones', requierePermiso('avisos_terminal:transmitir'), obtenerOpcionesDestinatarios)
 router.get('/destinatarios/usuarios', requierePermiso('avisos_terminal:transmitir'), buscarUsuarios)
+router.post('/destinatarios/resumen', requierePermiso('avisos_terminal:transmitir'), resumenAudiencia)
+router.post('/:id/reenviar', requierePermiso('avisos_terminal:transmitir'), reenviarAvisoNoEscuchado)
 router.post('/voz/probar', requierePermiso('avisos_terminal:transmitir'), probarVoz)
 router.post('/', requierePermiso('avisos_terminal:transmitir'), transmitirAviso)
 

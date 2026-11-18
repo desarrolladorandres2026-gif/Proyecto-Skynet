@@ -9,6 +9,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight, X } from 'lucide-react'
+import { TematicaGorro } from '../tematicas/index.js'
 
 export function ListRow({ icon: Icon, leading, title, subtitle, badge, trailing, onClick, className = '' }) {
   const Comp = onClick ? 'button' : 'div'
@@ -115,8 +116,9 @@ export function SectionHeader({ children, className = '' }) {
 export function QuickAction({ icon: Icon, label, to, onClick }) {
   const contenido = (
     <>
-      <span className="m-card flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--mobile-accent)]">
+      <span className="m-card relative flex h-14 w-14 items-center justify-center rounded-2xl text-[var(--mobile-accent)]">
         <Icon className="h-6 w-6" aria-hidden="true" />
+        <TematicaGorro />
       </span>
       <span className="mt-1.5 block max-w-[4.5rem] truncate text-center text-[11px] font-medium text-[var(--mobile-text-dim)]">
         {label}

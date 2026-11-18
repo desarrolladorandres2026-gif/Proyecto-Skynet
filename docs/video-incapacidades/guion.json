@@ -1,0 +1,19 @@
+[
+  { "id": "intro", "texto": "En este video verás, paso a paso, cómo se tramita una incapacidad en Skynet: desde el celular del trabajador, hasta que Talento Humano la recibe y la tramita." },
+  { "id": "resumen", "texto": "El proceso pasa por cinco manos. Primero, el trabajador reporta la incapacidad. Luego, SIG verifica el soporte. La Secretaria de Gerencia la folía. La Gerencia la direcciona a una persona de Talento Humano. Y Talento Humano la recibe y la tramita." },
+  { "id": "abrir", "texto": "Empecemos en el celular del trabajador. En Vacaciones, toca el botón: Reportar incapacidad." },
+  { "id": "fechas", "texto": "Indica desde qué fecha, hasta qué fecha, estuvo incapacitado." },
+  { "id": "foto", "texto": "Luego adjunta el soporte médico. Toma una foto de cada hoja del certificado, o elige fotos de la galería. Skynet detecta el papel, lo endereza, lo recorta y lo deja limpio, como un escáner, y arma el PDF automáticamente. Si ya tienes el PDF, también puedes subirlo directo." },
+  { "id": "enviar", "texto": "Al enviar, la incapacidad queda en verificación, y el trabajador puede ver en qué punto va, en cualquier momento." },
+  { "id": "sig", "texto": "Ahora le llega a SIG. En Trámite de incapacidades, pestaña Por verificar, abre el soporte y revisa que esté completo y legible. Si algo falta, la devuelve, escribiendo qué hay que corregir." },
+  { "id": "corregir", "texto": "El trabajador ve en su celular qué debe corregir. Toca Corregir, adjunta el soporte completo, y la reenvía, sin crear otra solicitud." },
+  { "id": "verificar", "texto": "SIG la revisa de nuevo. Si todo está bien, toca: Verificar y aprobar." },
+  { "id": "aprobada", "texto": "El trabajador ve en su celular que su incapacidad fue verificada y aprobada." },
+  { "id": "secretaria", "texto": "Ahora le llega a la Secretaria de Gerencia. En Por foliar, registra el número de folio y una observación, y la marca como foliada. Queda a la espera de direccionamiento." },
+  { "id": "gerencia", "texto": "Luego le llega a la Gerencia. Revisa la incapacidad y la despacha a Talento Humano: elige a quién va dirigida, por ejemplo, Karol Tamayo, y deja un mensaje." },
+  { "id": "folio", "texto": "Con el destinatario ya definido, la Secretaria tiene lo que le faltaba para completar el folio. Lo anota, y lo registra en el sistema." },
+  { "id": "th", "texto": "Talento Humano recibe la incapacidad. A la persona nombrada le aparece marcada: Para ti. Al terminar el trámite, toca: Marcar tramitada." },
+  { "id": "tramitada", "texto": "Y el trabajador ve en su celular que su incapacidad ya fue tramitada." },
+  { "id": "supervision", "texto": "En cualquier momento, quien supervisa puede ver todas las incapacidades, en qué etapa está cada una, cuántos días lleva detenida, y todo su recorrido." },
+  { "id": "cierre", "texto": "Así de simple: el trabajador reporta, SIG verifica, la Secretaria folía, la Gerencia direcciona, y Talento Humano tramita. Cada quien ve solo lo que le corresponde." }
+]

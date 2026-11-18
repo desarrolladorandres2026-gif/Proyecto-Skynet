@@ -7,6 +7,8 @@ import {
   correoConexionCuentaTexto,
   correoRestablecerPassword,
   correoRestablecerPasswordTexto,
+  correoRespuestaRadicado,
+  correoRespuestaRadicadoTexto,
 } from './emailPlantillasTransaccionales.js'
 
 const transporter = nodemailer.createTransport({
@@ -131,6 +133,23 @@ export async function enviarEmailGenerico({ to, subject, html, text, headers }) 
 // solo problema de configuración.
 export async function verificarConfiguracionEmail() {
   await transporter.verify()
+}
+
+// Respuesta oficial a quien radicó una PQRSF en el sitio web. Con reintentos
+// (la persona espera esa constancia) y devuelve el messageId del SMTP, que
+// queda guardado en RespuestaRadicado como prueba del envío. `adjunto` es
+// { nombre, contenido: Buffer } y viaja como PDF.
+export async function enviarEmailRespuestaRadicado({ to, solicitante, radicado, asunto, nota, adjunto, archivoNombre, archivoUrl }) {
+  const datos = { solicitante, radicado, asunto, nota, archivoNombre, archivoUrl, adjuntado: Boolean(adjunto) }
+  const info = await enviarConReintentos({
+    from: REMITENTE,
+    to,
+    subject: `Respuesta a su solicitud ${radicado}`,
+    html: correoRespuestaRadicado(datos),
+    text: correoRespuestaRadicadoTexto(datos),
+    attachments: adjunto ? [{ filename: adjunto.nombre, content: adjunto.contenido, contentType: 'application/pdf' }] : undefined,
+  })
+  return { messageId: info?.messageId || '' }
 }
 
 // Alerta de seguridad enviada a Usuario.email (la cuenta REGISTRADA en

@@ -3,6 +3,9 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import { ChevronDown, Menu as MenuIcon, LogOut, FileText, Search } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { useModulosVisibles, useTema, ToggleTema } from './AppLayout.jsx'
+import { useNovedades, SIN_NOVEDADES } from '../hooks/useNovedades.js'
+import { PuntoNovedad } from '../components/PuntoNovedad.jsx'
+import { TematicaAdorno, TematicaEfectos, TematicaMovil } from '../tematicas/index.js'
 import ContenidoRuta from './ContenidoRuta.jsx'
 import { MOBILE_NAV_POR_ROL, INICIO_ITEM } from '../config/mobileNavPorRol.js'
 import { BottomSheet, ListRow } from '../components/mobileUi.jsx'
@@ -29,7 +32,9 @@ function normalizarTexto(texto) {
 // un solo grupo desplegado a la vez, igual que el sidebar de escritorio),
 // otro tap en su ítem navega. La búsqueda es la excepción: si el usuario ya
 // escribió qué busca, sí queremos la fila final visible sin un tap extra.
-export function MasSheetContent({ modulosVisibles, rutasOcultas, onNavigate }) {
+// `novedades` (useNovedades) es opcional: pinta el punto en lo nuevo, y en el
+// módulo mientras está cerrado (abierto, el punto baja a su ítem).
+export function MasSheetContent({ modulosVisibles, rutasOcultas, onNavigate, novedades = SIN_NOVEDADES }) {
   const { pathname } = useLocation()
   const [busqueda, setBusqueda] = useState('')
 
@@ -81,18 +86,15 @@ export function MasSheetContent({ modulosVisibles, rutasOcultas, onNavigate }) {
           ruido. Con muchos (Admin, Super Admin...) es la salida rápida a no
           tener que abrir módulo por módulo para dar con uno. */}
       {totalItems > 8 && (
-        <div className="relative mb-3">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-[var(--mobile-text-dim)]"
-            aria-hidden="true"
-          />
+        <div className="m-row mb-3 flex items-center rounded-full py-1 pr-1 pl-3.5">
           <input
             type="search"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar módulo..."
-            className="m-row w-full rounded-2xl py-2.5 pr-3 pl-10 text-sm text-[var(--mobile-text)] placeholder:text-[var(--mobile-text-dim)] focus:outline-none"
+            className="w-full min-w-0 bg-transparent py-1.5 text-sm text-[var(--mobile-text)] placeholder:text-[var(--mobile-text-dim)] focus:outline-none"
           />
+          <Search className="h-4 w-4 shrink-0 text-[var(--mobile-text-dim)]" aria-hidden="true" />
         </div>
       )}
 
@@ -111,13 +113,18 @@ export function MasSheetContent({ modulosVisibles, rutasOcultas, onNavigate }) {
                 finge ser un acordeón de una sola fila. */}
             {gruposUnicos.has(m.key) ? (
               <Link to={m.items[0].to} onClick={onNavigate}>
-                <ListRow icon={m.icon} title={m.label} />
+                <ListRow
+                  icon={m.icon}
+                  title={m.label}
+                  badge={novedades.esNueva(m.items[0]) ? <PuntoNovedad /> : undefined}
+                />
               </Link>
             ) : (
               <>
                 <ListRow
                   icon={m.icon}
                   title={m.label}
+                  badge={!abierto && novedades.moduloTieneNovedad(m) ? <PuntoNovedad /> : undefined}
                   onClick={buscando ? undefined : () => setGrupoAbierto((actual) => (actual === m.key ? null : m.key))}
                   trailing={
                     buscando ? undefined : (
@@ -132,7 +139,11 @@ export function MasSheetContent({ modulosVisibles, rutasOcultas, onNavigate }) {
                   <div className="mt-1 mb-1 flex flex-col gap-1 pl-4">
                     {m.items.map((item) => (
                       <Link key={item.to} to={item.to} onClick={onNavigate}>
-                        <ListRow title={item.label} className="!border-0 !bg-transparent !shadow-none" />
+                        <ListRow
+                          title={item.label}
+                          badge={novedades.esNueva(item) ? <PuntoNovedad /> : undefined}
+                          className="!border-0 !bg-transparent !shadow-none"
+                        />
                       </Link>
                     ))}
                   </div>
@@ -146,7 +157,7 @@ export function MasSheetContent({ modulosVisibles, rutasOcultas, onNavigate }) {
   )
 }
 
-function TabItem({ to, end, icon: Icon, label }) {
+function TabItem({ to, end, icon: Icon, label, nuevo }) {
   return (
     <NavLink
       to={to}
@@ -175,6 +186,9 @@ function TabItem({ to, end, icon: Icon, label }) {
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-400 border border-slate-900"></span>
               </span>
             )}
+            {/* Activo ya tiene su propio punto (arriba); el de novedad es
+                para cuando todavía no se ha visitado. */}
+            {nuevo && !isActive && <PuntoNovedad className="absolute -top-0.5 -right-0.5" />}
           </div>
           <span
             className={cn(
@@ -194,6 +208,7 @@ export default function MobileShell() {
   const { usuario, logout } = useAuth()
   const [tema, alternarTema] = useTema()
   const modulosVisibles = useModulosVisibles()
+  const novedades = useNovedades(modulosVisibles)
   const [masAbierto, setMasAbierto] = useState(false)
   const [cuentaAbierta, setCuentaAbierta] = useState(false)
   const [errorLogout, setErrorLogout] = useState(null)
@@ -207,10 +222,24 @@ export default function MobileShell() {
   // atajos curados de este rol) no necesita repetirse en la hoja "Más".
   const rutasEnBarra = new Set([INICIO_ITEM.to, ...accesos.map((item) => item.to)])
 
+  // Los atajos de la barra no son items del registro (solo comparten la ruta):
+  // se buscan por `to` para saber si el item real es novedad.
+  const itemPorRuta = new Map(modulosVisibles.flatMap((m) => m.items.map((i) => [i.to, i])))
+  // "Más" esconde todo lo que no está en la barra: si ahí dentro hay algo
+  // nuevo, el punto tiene que verse en el propio botón o nadie lo encontraría.
+  const hayNovedadEnMas = modulosVisibles.some(
+    (m) => m.key !== 'dashboard' && m.items.some((i) => !rutasEnBarra.has(i.to) && novedades.esNueva(i))
+  )
+
   return (
     <div className="m-shell flex h-svh flex-col">
+      <TematicaEfectos />
+      <TematicaMovil zona="fondo" />
       <header className="m-bar flex shrink-0 items-center justify-between border-b px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <MarcaSkynet variante="compacta" />
+        <div className="flex min-w-0 items-center gap-2">
+          <MarcaSkynet variante="compacta" />
+          <TematicaAdorno lado="izq" />
+        </div>
         <div className="flex items-center gap-2">
           <ToggleTema tema={tema} onToggle={alternarTema} />
           <button
@@ -228,17 +257,27 @@ export default function MobileShell() {
         <ContenidoRuta />
       </main>
 
-      <nav className="m-bar flex shrink-0 items-stretch border-t pb-[env(safe-area-inset-bottom)]">
+      <nav className="m-bar relative flex shrink-0 items-stretch border-t pb-[env(safe-area-inset-bottom)]">
+        <TematicaMovil zona="pie" />
         <TabItem to={INICIO_ITEM.to} end={INICIO_ITEM.end} icon={INICIO_ITEM.icon} label={INICIO_ITEM.label} />
         {accesos.map((item) => (
-          <TabItem key={item.to} to={item.to} icon={item.icon} label={item.label} />
+          <TabItem
+            key={item.to}
+            to={item.to}
+            icon={item.icon}
+            label={item.label}
+            nuevo={novedades.esNueva(itemPorRuta.get(item.to))}
+          />
         ))}
         <button
           type="button"
           onClick={() => setMasAbierto(true)}
           className="m-navitem flex flex-1 flex-col items-center justify-center gap-1 py-2"
         >
-          <MenuIcon className="h-5 w-5" aria-hidden="true" />
+          <span className="relative">
+            <MenuIcon className="h-5 w-5" aria-hidden="true" />
+            {hayNovedadEnMas && <PuntoNovedad className="absolute -top-1 -right-1.5" />}
+          </span>
           <span className="text-[10px] font-medium">Más</span>
           <span className="m-navdot h-1 w-1 rounded-full" aria-hidden="true" />
         </button>
@@ -249,6 +288,7 @@ export default function MobileShell() {
           modulosVisibles={modulosVisibles}
           rutasOcultas={rutasEnBarra}
           onNavigate={() => setMasAbierto(false)}
+          novedades={novedades}
         />
       </BottomSheet>
 

@@ -17,10 +17,10 @@ function ChipCategoria({ activo, onClick, children }) {
       onClick={onClick}
       aria-pressed={activo}
       className={cn(
-        'shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+        'shrink-0 rounded-full border px-3 py-1 text-sm font-semibold',
         activo
-          ? 'bg-brand-600 text-white dark:bg-brand-500'
-          : 'text-slate-600 hover:bg-slate-200/70 dark:text-slate-300 dark:hover:bg-slate-800'
+          ? 'border-brand-700 bg-brand-700 text-white'
+          : 'border-borde-fuerte text-tinta dark:text-slate-100'
       )}
     >
       {children}
@@ -59,7 +59,7 @@ export default function VideosPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div>
       <div className="mb-1 flex items-center gap-2.5">
         <Clapperboard className="h-5 w-5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Videos informativos</h1>

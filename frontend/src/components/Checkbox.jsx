@@ -9,7 +9,7 @@ export function Checkbox({ className = '', ...props }) {
     <CheckboxPrimitive.Root
       className={cn(
         'flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors',
-        'border-slate-300 bg-white data-[state=checked]:border-brand-600 data-[state=checked]:bg-brand-600',
+        'border-slate-400 bg-white data-[state=checked]:border-brand-600 data-[state=checked]:bg-brand-600',
         'dark:border-slate-600 dark:bg-white/5 dark:data-[state=checked]:border-brand-500 dark:data-[state=checked]:bg-brand-500',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--panel-bg)]',
         'disabled:cursor-not-allowed disabled:opacity-50',

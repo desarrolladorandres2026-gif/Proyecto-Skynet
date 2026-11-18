@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { Megaphone, Volume2, Send, X, Search } from 'lucide-react'
+import { Megaphone, Volume2, Send, X } from 'lucide-react'
 import { avisosTerminal } from '../../api/avisosTerminal.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { Field, Input, Select, Textarea, Btn, ErrorMsg, OkMsg } from '../../components/ui.jsx'
+import { SearchInput } from '../../components/ds/index.js'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 import { useAnuncioVoz } from './useAnuncioVoz.js'
 import { SelectorVozAviso } from './SelectorVozAviso.jsx'
@@ -35,6 +36,7 @@ export default function TransmitirAvisoPage() {
   const [rolId, setRolId] = useState('')
   const [dependencia, setDependencia] = useState('')
   const [confirmando, setConfirmando] = useState(false)
+  const [audiencia, setAudiencia] = useState(null) // null = cargando · { error } · { total, conApp, soloWeb, sinDispositivo }
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
@@ -151,6 +153,19 @@ export default function TransmitirAvisoPage() {
     return { tipo: 'todos' }
   }
 
+  // Al abrir la confirmación se pide el resumen real de la audiencia (cuántas
+  // personas y por qué canal) para que el administrador decida con datos. Si
+  // el resumen falla no bloquea la transmisión: se confirma sin cifras.
+  async function abrirConfirmacion() {
+    setConfirmando(true)
+    setAudiencia(null)
+    try {
+      setAudiencia(await avisosTerminal.resumenAudiencia(armarDestinatarios()))
+    } catch {
+      setAudiencia({ error: true })
+    }
+  }
+
   async function transmitir() {
     setEnviando(true)
     setError('')
@@ -238,15 +253,11 @@ export default function TransmitirAvisoPage() {
 
           {tipo === 'usuario' && (
             <div className="mt-3">
-              <div className="relative">
-                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                <Input
-                  value={busquedaUsuario}
-                  onChange={(e) => setBusquedaUsuario(e.target.value)}
-                  placeholder="Buscar por nombre o usuario…"
-                  className="pl-9"
-                />
-              </div>
+              <SearchInput
+                value={busquedaUsuario}
+                onChange={setBusquedaUsuario}
+                placeholder="Buscar por nombre o usuario…"
+              />
               {resultadosBusqueda.length > 0 && (
                 <div className="panel-card mt-1.5 max-h-48 overflow-y-auto rounded-lg p-1">
                   {resultadosBusqueda.map((u) => (
@@ -303,7 +314,7 @@ export default function TransmitirAvisoPage() {
           )}
 
           <div className="mt-5 flex flex-wrap items-center gap-2">
-            <Btn disabled={!textoListo || !destinoListo || enviando} onClick={() => setConfirmando(true)}>
+            <Btn disabled={!textoListo || !destinoListo || enviando} onClick={abrirConfirmacion}>
               <Send className="h-4 w-4" aria-hidden="true" />
               Transmitir aviso
             </Btn>
@@ -357,10 +368,32 @@ export default function TransmitirAvisoPage() {
         onCancelar={() => setConfirmando(false)}
         onConfirmar={transmitir}
         titulo="Transmitir aviso institucional"
-        descripcion={`Vas a transmitir este aviso por voz a ${resumenDestinatarios({ tipo, usuarios: usuariosSeleccionados, rolNombre: rolSeleccionado?.nombre, dependencia })}. Esta acción no se puede deshacer.`}
+        descripcion={
+          <>
+            <span className="block">
+              Vas a transmitir este aviso a{' '}
+              <strong>{resumenDestinatarios({ tipo, usuarios: usuariosSeleccionados, rolNombre: rolSeleccionado?.nombre, dependencia })}</strong>.
+            </span>
+            <span className="mt-2 block rounded-lg border border-warn-500/30 bg-warn-500/10 px-3 py-2 text-warn-700 dark:text-warn-300">
+              Sonará como una alerta de emergencia: a volumen máximo, aunque el teléfono esté en silencio o bloqueado.
+            </span>
+            <span className="mt-2 block">
+              {audiencia === null && 'Calculando a cuántas personas llega…'}
+              {audiencia?.error && 'No se pudo calcular la audiencia; puedes transmitir igualmente.'}
+              {audiencia && !audiencia.error && (
+                <>
+                  <strong>{audiencia.total}</strong> persona{audiencia.total === 1 ? '' : 's'}:{' '}
+                  {audiencia.conApp} con la app (suena bloqueado), {audiencia.soloWeb} solo con navegador (suena con la página abierta)
+                  {audiencia.sinDispositivo > 0 && ` y ${audiencia.sinDispositivo} sin dispositivo (lo verán al abrir la app)`}.
+                </>
+              )}
+            </span>
+            <span className="mt-2 block">Esta acción no se puede deshacer.</span>
+          </>
+        }
         confirmarLabel="Transmitir"
         variante="primario"
-        cargando={enviando}
+        cargando={enviando || audiencia === null}
       />
     </div>
   )

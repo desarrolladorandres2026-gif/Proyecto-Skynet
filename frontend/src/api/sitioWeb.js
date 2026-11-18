@@ -62,13 +62,15 @@ export const sitioWebApi = {
   cambiarEstadoRadicado: (id, estado, { soloSiSinLeer = false } = {}) =>
     conInvalidacionRadicados(request(`/sitio-web/radicados/${id}/estado`, json('PUT', { estado, ...(soloSiSinLeer ? { soloSiSinLeer: true } : {}) }))),
 
-  responderRadicado(id, { nota, archivo, marcarTramitado }) {
+  responderRadicado(id, { nota, archivo, enviarCorreo = true }) {
     const datos = new FormData()
     datos.append('nota', nota || '')
-    datos.append('marcarTramitado', marcarTramitado ? 'true' : 'false')
+    datos.append('enviarCorreo', enviarCorreo ? 'true' : 'false')
     if (archivo) datos.append('archivo', archivo)
     return conInvalidacionRadicados(request(`/sitio-web/radicados/${id}/respuesta`, { method: 'POST', body: datos }))
   },
+  reenviarCorreoRespuesta: (id, constanciaId) =>
+    conInvalidacionRadicados(request(`/sitio-web/radicados/${id}/respuestas/${constanciaId}/reenviar-correo`, { method: 'POST' })),
   eliminarRadicado: (id) => conInvalidacionRadicados(request(`/sitio-web/radicados/${id}`, { method: 'DELETE' })),
   exportarRadicados: ({ estado, formularioId } = {}) => requestBlob(`/sitio-web/radicados/exportar${aQuery({ estado, formularioId })}`, { timeoutMs: 60_000 }),
 

@@ -39,6 +39,12 @@ const avisoTerminalEntregaSchema = new mongoose.Schema(
     entregadoEn: { type: Date },
     reproducidoEn: { type: Date },
     canceladoEn: { type: Date },
+    // Reenvío manual del administrador (ver reenviarAviso en avisos.service.js):
+    // vuelve a sonar a quien no lo escuchó. `reenviadoEn` reinicia la ventana
+    // de 1 h del anuncio en vivo para ESA entrega, y `reenvios` hace distinta
+    // la clave de envío para que el servicio nativo no lo descarte como duplicado.
+    reenviadoEn: { type: Date },
+    reenvios: { type: Number, default: 0 },
     error: { type: String, trim: true },
   },
   { timestamps: true }

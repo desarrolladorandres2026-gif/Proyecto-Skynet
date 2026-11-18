@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { LayoutList, Download, Trash2, ClipboardList } from 'lucide-react'
+import { LayoutList, Trash2 } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { Badge, Btn, Card, CardLink, ErrorMsg, OkMsg, Select, TablaWrap, Th, Td, EmptyState, fmtFechaHora } from '../../components/ui.jsx'
@@ -75,19 +75,19 @@ export default function TodosRequerimientosPage() {
             ))}
           </Select>
           <Link to="/requerimientos/todos/consolidado">
-            <Btn variante="secundario" className="flex items-center gap-1.5">
-              <ClipboardList className="h-4 w-4" aria-hidden="true" /> Consolidado
+            <Btn variante="secundario">
+              Consolidado
             </Btn>
           </Link>
-          <Btn variante="secundario" onClick={() => setModalExportar(true)} className="flex items-center gap-1.5">
-            <Download className="h-4 w-4" aria-hidden="true" /> Exportar
+          <Btn variante="secundario" onClick={() => setModalExportar(true)}>
+            Exportar
           </Btn>
           {/* Purgar por fecha es exclusivo de Super Admin — es mantenimiento
               de plataforma, no una acción de negocio con permiso RBAC propio
               (ver requerimientos.routes.js: soloAdmin). */}
           {usuario?.esSuperAdmin && (
-            <Btn variante="peligro" onClick={() => setModalEliminar(true)} className="flex items-center gap-1.5">
-              <Trash2 className="h-4 w-4" aria-hidden="true" /> Eliminar por fecha
+            <Btn variante="peligro" onClick={() => setModalEliminar(true)}>
+              Eliminar por fecha
             </Btn>
           )}
         </div>

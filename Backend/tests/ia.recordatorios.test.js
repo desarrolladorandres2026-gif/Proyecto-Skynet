@@ -49,10 +49,9 @@ describe('armarRecordatorio', () => {
     expect(r.acciones).toEqual([])
   })
 
-  it('cae al destino alterno cuando el principal no está disponible', () => {
+  it('no recuerda requerimientos a quien solo supervisa (vista "todos")', () => {
     const destinos = [destino('requerimientos_todos', '/requerimientos/todos', 'Todos los requerimientos')]
-    const r = armarRecordatorio({ tarjetas: { requerimientosPendientes: 5 }, destinos })
-    expect(r.acciones).toEqual([{ etiqueta: 'Todos los requerimientos', ruta: '/requerimientos/todos' }])
+    expect(armarRecordatorio({ tarjetas: { requerimientosPendientes: 5 }, destinos })).toBeNull()
   })
 
   it('limita los botones a tres', () => {

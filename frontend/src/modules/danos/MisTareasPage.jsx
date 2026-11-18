@@ -352,7 +352,7 @@ export default function MisTareasPage() {
   }))
 
   return (
-    <div className="mx-auto max-w-md md:max-w-2xl">
+    <div className="mx-auto max-w-md md:max-w-none">
       <h1 className="mb-1 flex items-center gap-2 text-xl font-bold text-[var(--mobile-text)]">
         <Wrench className="h-5 w-5 text-[var(--mobile-accent)]" aria-hidden="true" /> Mis tareas
       </h1>

@@ -1,0 +1,115 @@
+/* Estilos genéricos del módulo de temáticas (luces, adornos, escena
+   genérica). Los estilos propios de cada temática viven en su carpeta. */
+
+/* Guirnalda de luces: cada bombillo toma su color de --c */
+.tem-luces {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 14px;
+  padding: 0 4%;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 9997;
+  border-top: 2px solid var(--tem-borde, transparent);
+}
+.tem-luces .luz {
+  width: 8px;
+  height: 11px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: var(--c);
+  box-shadow: 0 2px 8px var(--c);
+  animation: tem-parpadeo 1.6s ease-in-out infinite;
+}
+
+/* Adornos en la barra superior */
+.tem-adorno { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; line-height: 1; pointer-events: none; }
+.tem-adorno > span { font-size: 1.3rem; }
+.tem-adorno-der { margin-left: 4px; }
+.tem-anim-saludo { animation: tem-saludo 2.4s ease-in-out infinite; transform-origin: 50% 90%; font-size: 1.5rem !important; }
+.tem-anim-salto { animation: tem-salto 2s ease-in-out infinite; font-size: 1.1rem !important; }
+
+/* Detalle sobre la esquina de un botón (versión emoji) */
+.tem-gorro-emoji {
+  position: absolute;
+  top: -10px;
+  left: -6px;
+  font-size: 15px;
+  line-height: 1;
+  transform: rotate(-18deg);
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+}
+
+/* La escena llena el espacio libre bajo los botones; todo se ancla abajo. */
+.tem-hueco { position: relative; flex: 1 1 auto; min-height: 250px; margin-top: 20px; }
+.tem-hueco > .tem-escena,
+.tem-hueco > .tem-escena-propia { position: absolute; inset: 0; }
+.tem-hueco .tem-escena-propia > * { height: 100%; min-height: 0; }
+
+/* Escena genérica (temáticas definidas solo con datos) */
+.tem-escena {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  container-type: size;
+  pointer-events: none;
+}
+.tem-particulas { position: absolute; inset: 0; overflow: hidden; }
+.tem-particulas span {
+  position: absolute;
+  top: -20px;
+  font-size: 14px;
+  opacity: 0.9;
+  animation: tem-caer linear infinite;
+}
+.tem-particulas span.cerca { font-size: 22px; filter: blur(0.6px); }
+
+.tem-desfile {
+  position: absolute;
+  left: 0;
+  bottom: 6px;
+  display: flex;
+  width: max-content;
+  animation: tem-avance 28s linear infinite;
+}
+.tem-desfile-fila { display: flex; flex: none; gap: 56px; padding-right: 56px; }
+.tem-desfile-fila span { font-size: 38px; line-height: 1; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35)); }
+
+.tem-titulo {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  right: 16px;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+  animation: tem-flotar 4s ease-in-out infinite;
+}
+.tem-titulo h3 { margin: 0; font-size: 1.35rem; font-weight: 800; line-height: 1.2; }
+.tem-titulo p { margin: 6px 0 4px; font-size: 0.85rem; opacity: 0.92; }
+.tem-titulo strong { display: inline-block; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; }
+
+@keyframes tem-parpadeo { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes tem-saludo { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@keyframes tem-salto { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes tem-flotar { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes tem-avance { to { transform: translateX(-50%); } }
+@keyframes tem-caer {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(var(--vaiven), 52cqh); }
+  100% { transform: translate(calc(var(--vaiven) * -1), 110cqh); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tem-luces .luz, .tem-anim-saludo, .tem-anim-salto,
+  .tem-particulas span, .tem-desfile, .tem-titulo { animation: none; }
+}
+
+/* Escena de Inicio en teléfono: bloque de alto fijo */
+.tem-movil-escena { position: relative; height: 180px; flex: none; }
+.tem-movil-escena > .tem-escena,
+.tem-movil-escena > .tem-escena-propia { position: absolute; inset: 0; }
+.tem-movil-escena .tem-escena-propia > * { height: 100%; min-height: 0; }

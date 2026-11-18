@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { SlidersHorizontal, CircleCheck, CircleX, MailCheck } from 'lucide-react'
+import { SlidersHorizontal } from 'lucide-react'
 import { email as emailApi } from '../../api/email.js'
-import { Card, Btn, ErrorMsg, OkMsg } from '../../components/ui.jsx'
+import { Btn, ErrorMsg, OkMsg, SeccionLateral } from '../../components/ui.jsx'
 
 // El clic en "Aprobar"/"Denegar" del correo termina en OTRA pestaña (Google
 // redirige al backend, que sirve una página propia — ver
@@ -92,7 +92,7 @@ export default function EmailConfiguracionPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
         <SlidersHorizontal className="h-6 w-6 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <div>
@@ -110,7 +110,6 @@ export default function EmailConfiguracionPage() {
 
       {pendiente && (
         <div className="flex items-start gap-2 rounded-lg border border-brand-600/30 bg-brand-500/10 px-3 py-2 text-sm text-brand-800 dark:border-brand-400/20 dark:text-brand-300">
-          <MailCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <p>
             Te enviamos un correo a tu cuenta describiendo este intento de conexión. Solo se conectará la
             cuenta de Gmail si apruebas el acceso desde ese correo (el enlace vence en 15 minutos).
@@ -118,55 +117,39 @@ export default function EmailConfiguracionPage() {
         </div>
       )}
 
-      <Card>
-        <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">Estado actual</h2>
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-sm">
-            {conexion?.conectada ? (
-              <>
-                <CircleCheck className="h-4 w-4 text-accent-600 dark:text-accent-400" aria-hidden="true" />
-                <span className="text-slate-700 dark:text-slate-300">Conectado como {conexion.cuenta}</span>
-              </>
+      <SeccionLateral titulo="Estado actual" descripcion="Si hay una cuenta de correo conectada a la plataforma.">
+        <p className="text-sm text-slate-900 dark:text-slate-100">
+          {conexion?.conectada ? `Conectado como ${conexion.cuenta}` : 'Desconectado'}
+        </p>
+        {conexion?.conectada && (
+          <Btn variante="peligro" disabled={desconectando} onClick={desconectar}>
+            {desconectando ? 'Desconectando…' : 'Desconectar'}
+          </Btn>
+        )}
+      </SeccionLateral>
+
+      <SeccionLateral titulo="Proveedor" descripcion="Servicio de correo que se conecta por OAuth.">
+        {PROVEEDORES.map((p) => (
+          <div key={p.key} className="flex items-center justify-between gap-4">
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{p.nombre}</p>
+            {p.disponible ? (
+              <Btn
+                variante="secundario"
+                disabled={conexion?.conectada}
+                onClick={() => {
+                  window.location.href = emailApi.urlConectarGmail()
+                }}
+              >
+                {conexion?.conectada ? 'Ya conectado' : 'Conectar'}
+              </Btn>
             ) : (
-              <>
-                <CircleX className="h-4 w-4 text-red-500" aria-hidden="true" />
-                <span className="text-slate-700 dark:text-slate-300">Desconectado</span>
-              </>
+              <Btn variante="secundario" disabled title="Proveedor aún no implementado">
+                Conectar
+              </Btn>
             )}
           </div>
-          {conexion?.conectada && (
-            <Btn variante="peligro" disabled={desconectando} onClick={desconectar}>
-              {desconectando ? 'Desconectando…' : 'Desconectar'}
-            </Btn>
-          )}
-        </div>
-      </Card>
-
-      <Card>
-        <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">Proveedor</h2>
-        <div className="space-y-3">
-          {PROVEEDORES.map((p) => (
-            <div key={p.key} className="flex items-center justify-between gap-4">
-              <p className="text-sm text-slate-700 dark:text-slate-300">{p.nombre}</p>
-              {p.disponible ? (
-                <Btn
-                  variante="secundario"
-                  disabled={conexion?.conectada}
-                  onClick={() => {
-                    window.location.href = emailApi.urlConectarGmail()
-                  }}
-                >
-                  {conexion?.conectada ? 'Ya conectado' : 'Conectar'}
-                </Btn>
-              ) : (
-                <Btn variante="secundario" disabled title="Proveedor aún no implementado">
-                  Conectar
-                </Btn>
-              )}
-            </div>
-          ))}
-        </div>
-      </Card>
+        ))}
+      </SeccionLateral>
     </div>
   )
 }

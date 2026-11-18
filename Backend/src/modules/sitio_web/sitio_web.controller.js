@@ -2,7 +2,7 @@ import { obtenerResumen } from './resumen.service.js'
 import { listarMedios, subirMedio } from './medios.service.js'
 import { listarEventos, obtenerEvento, listarSedes, crearEvento, actualizarEvento, eliminarEvento } from './eventos.service.js'
 import { listarAvisos, obtenerAviso, crearAviso, actualizarAviso, eliminarAviso } from './avisos.service.js'
-import { listarFormularios, listarRadicados, obtenerRadicado, cambiarEstadoRadicado, eliminarRadicado, exportarRadicadosCsv, responderRadicado } from './radicados.service.js'
+import { listarFormularios, listarRadicados, obtenerRadicado, cambiarEstadoRadicado, eliminarRadicado, exportarRadicadosCsv, responderRadicado, reenviarCorreoRespuesta } from './radicados.service.js'
 import { ErrorValidacion } from '../../utils/errores.js'
 
 export function parsearId(valor) {
@@ -84,8 +84,12 @@ export async function radicadosEstado(req, res) {
 }
 
 export async function radicadosResponder(req, res) {
-  const marcarTramitado = req.body?.marcarTramitado === 'true' || req.body?.marcarTramitado === true
-  res.status(201).json(await responderRadicado(parsearId(req.params.id), { nota: req.body?.nota, marcarTramitado }, req.file, req.usuario, req.ip))
+  // Por defecto se envía por correo; solo "false" lo omite.
+  const enviarCorreo = !(req.body?.enviarCorreo === 'false' || req.body?.enviarCorreo === false)
+  res.status(201).json(await responderRadicado(parsearId(req.params.id), { nota: req.body?.nota, enviarCorreo }, req.file, req.usuario, req.ip))
+}
+export async function radicadosReenviarCorreo(req, res) {
+  res.json(await reenviarCorreoRespuesta(parsearId(req.params.id), req.params.constanciaId, req.usuario, req.ip))
 }
 export async function radicadosEliminar(req, res) {
   await eliminarRadicado(parsearId(req.params.id), req.usuario, req.ip)

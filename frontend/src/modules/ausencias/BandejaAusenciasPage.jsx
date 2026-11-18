@@ -67,7 +67,7 @@ export default function BandejaAusenciasPage() {
   const urlSoporteDecision = decision ? getUrlSoporte(decision.ausencia) : null
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div>
       <h1 className="panel-mono mb-4 flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
         <Inbox className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         Solicitudes por decidir
@@ -187,7 +187,7 @@ export default function BandejaAusenciasPage() {
                     href={urlSoporteDecision}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-md bg-brand-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm hover:bg-brand-500 dark:bg-brand-500 dark:text-slate-950 dark:hover:bg-brand-400"
+                    className="inline-flex items-center gap-1 rounded-md bg-brand-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm hover:bg-brand-500 dark:bg-brand-500 dark:hover:bg-brand-400"
                   >
                     <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                     Ver documento

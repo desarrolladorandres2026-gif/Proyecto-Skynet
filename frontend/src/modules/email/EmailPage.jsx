@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useParams } from 'react-router-dom'
-import { Inbox, Star, Send, FileEdit, Trash2, Search, Mail as MailIcon } from 'lucide-react'
+import { Inbox, Star, Send, FileEdit, Trash2, Mail as MailIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { email as emailApi } from '../../api/email.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
-import { Card, Input, Btn, ErrorMsg, EmptyState } from '../../components/ui.jsx'
+import { Card, ErrorMsg, EmptyState } from '../../components/ui.jsx'
+import { SearchInput } from '../../components/ds/index.js'
 import { cn } from '../../lib/cn.js'
 
 // Sin proveedor conectado todavía (ver Backend/src/modules/email/providers):
@@ -91,18 +92,14 @@ export default function EmailPage() {
           </div>
         </div>
 
-        <form onSubmit={buscar} className="mb-4 flex gap-2">
-          <Input
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar correos…"
-            aria-label="Buscar correos"
-          />
-          <Btn type="submit" variante="secundario" className="shrink-0">
-            <Search className="h-4 w-4" aria-hidden="true" />
-            Buscar
-          </Btn>
-        </form>
+        <SearchInput
+          value={busqueda}
+          onChange={setBusqueda}
+          onSubmit={buscar}
+          placeholder="Buscar correos…"
+          aria-label="Buscar correos"
+          className="mb-4 max-w-md"
+        />
 
         <ErrorMsg>{error}</ErrorMsg>
 

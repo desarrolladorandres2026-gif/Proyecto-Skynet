@@ -7,12 +7,14 @@
 
 import * as Dialog from '@radix-ui/react-dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
+import { useId } from 'react'
 import { cva } from 'class-variance-authority'
 import { Link } from 'react-router-dom'
 import { ChevronRight, X } from 'lucide-react'
 import { cn } from '../lib/cn.js'
 
-const inputBase = 'panel-input w-full rounded-lg px-3 py-2 text-sm'
+const inputBase = 'panel-input w-full rounded-full px-4 py-2 text-sm'
+const textareaBase = 'panel-input w-full rounded-2xl px-4 py-2 text-sm'
 
 export function Field({ label, children, className = '' }) {
   return (
@@ -22,6 +24,26 @@ export function Field({ label, children, className = '' }) {
       </span>
       {children}
     </label>
+  )
+}
+
+// Disposición "Título de sección a la izquierda": título + explicación en
+// una columna fija y los campos a la derecha (una sola columna, máx. 460px).
+// Solo para pantallas con VARIOS grupos de campos. Estilos en index.css
+// (.seccion-lateral). `acciones` = botones al final de la columna derecha.
+export function SeccionLateral({ titulo, descripcion, acciones, children, className = '' }) {
+  const idTitulo = useId()
+  return (
+    <section aria-labelledby={idTitulo} className={cn('seccion-lateral', className)}>
+      <div className="seccion-lateral__cabecera">
+        <h2 id={idTitulo} className="seccion-lateral__titulo">{titulo}</h2>
+        {descripcion && <p className="seccion-lateral__descripcion">{descripcion}</p>}
+      </div>
+      <div className="seccion-lateral__cuerpo">
+        {children}
+        {acciones && <div className="seccion-lateral__acciones">{acciones}</div>}
+      </div>
+    </section>
   )
 }
 
@@ -38,11 +60,11 @@ export function Select({ children, ...props }) {
 }
 
 export function Textarea(props) {
-  return <textarea rows={3} {...props} className={cn(inputBase, props.className)} />
+  return <textarea rows={3} {...props} className={cn(textareaBase, props.className)} />
 }
 
 const btnVariants = cva(
-  'inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--panel-bg)]',
+  'inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
   {
     variants: {
       variante: {
@@ -88,6 +110,13 @@ export function Switch({ checked, onChange, disabled = false, label }) {
 }
 
 const BADGE_COLORES = {
+  // etapas del trámite de una incapacidad (ver config/ausenciasConstants.js)
+  en_verificacion: 'bg-warn-400/10 text-warn-700 dark:text-warn-300 ring-1 ring-inset ring-warn-400/30',
+  devuelta: 'bg-rose-400/10 text-rose-700 dark:text-rose-300 ring-1 ring-inset ring-rose-400/30',
+  por_foliar: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
+  foliada: 'bg-violet-400/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-400/30',
+  tramitada: 'bg-accent-400/10 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-400/30',
+  direccionada: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
   // mantenimiento
   pendiente: 'bg-warn-400/10 text-warn-700 dark:text-warn-300 ring-1 ring-inset ring-warn-400/30',
   programado: 'bg-brand-400/10 text-brand-700 dark:text-brand-300 ring-1 ring-inset ring-brand-400/30',
@@ -212,7 +241,9 @@ export function OkMsg({ children }) {
 // afuera, aria-* correctos — nada de esto lo tenía el modal a mano
 // anterior). La API externa no cambia: abierto/titulo/onCerrar/children/
 // ancho, así que ninguno de los ~39 call-sites necesita tocarse.
-export function Modal({ abierto, titulo, onCerrar, children, ancho = 'max-w-lg' }) {
+// `pantallaCompleta`: ocupa toda la ventana (para expedientes largos) con la
+// cabecera fija arriba y el contenido centrado y con ancho máximo.
+export function Modal({ abierto, titulo, onCerrar, children, ancho = 'max-w-lg', pantallaCompleta = false }) {
   return (
     <Dialog.Root open={abierto} onOpenChange={(open) => !open && onCerrar()}>
       <Dialog.Portal>
@@ -220,13 +251,20 @@ export function Modal({ abierto, titulo, onCerrar, children, ancho = 'max-w-lg' 
         <Dialog.Content
           className={cn(
             'panel-modal fixed top-1/2 left-1/2 z-50 max-h-[85svh] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl p-6 outline-none data-[state=open]:animate-zoom-in data-[state=closed]:animate-fade-out',
-            ancho
+            pantallaCompleta ? 'inset-0 flex h-[100svh] max-h-none w-screen max-w-none translate-x-0 translate-y-0 flex-col overflow-hidden rounded-none p-0 data-[state=open]:animate-fade-in' : ancho
           )}
         >
           <VisuallyHidden asChild>
             <Dialog.Description>{titulo}</Dialog.Description>
           </VisuallyHidden>
-          <div className="mb-4 flex items-center justify-between">
+          <div
+            className={cn(
+              'flex items-center justify-between',
+              pantallaCompleta
+                ? 'shrink-0 border-b border-slate-200/80 px-4 py-2 sm:px-6 dark:border-slate-800/80'
+                : 'mb-4'
+            )}
+          >
             <Dialog.Title className="panel-mono text-base font-semibold tracking-wide text-slate-900 dark:text-white">
               {titulo}
             </Dialog.Title>
@@ -239,7 +277,14 @@ export function Modal({ abierto, titulo, onCerrar, children, ancho = 'max-w-lg' 
               </button>
             </Dialog.Close>
           </div>
-          {children}
+          {pantallaCompleta ? (
+            // En pantallas grandes el cuerpo llena el alto disponible y cada
+            // sección desplaza por dentro si su contenido no cabe; en móvil
+            // se apila y desplaza toda la página.
+            <div className="mx-auto flex min-h-0 w-full max-w-[120rem] flex-1 flex-col overflow-y-auto px-4 py-3 sm:px-6 lg:overflow-hidden">{children}</div>
+          ) : (
+            children
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

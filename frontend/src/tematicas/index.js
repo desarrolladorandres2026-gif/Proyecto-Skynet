@@ -1,0 +1,11 @@
+// API pública del módulo de temáticas. Las pantallas importan solo de aquí.
+export { default as TematicaEfectos } from './componentes/TematicaEfectos.jsx'
+export { default as TematicaAdorno } from './componentes/TematicaAdorno.jsx'
+export { default as TematicaGorro } from './componentes/TematicaGorro.jsx'
+export { default as TematicaEscena } from './componentes/TematicaEscena.jsx'
+export { default as TematicaLogin } from './componentes/TematicaLogin.jsx'
+export { default as TematicaMovil } from './componentes/TematicaMovil.jsx'
+export { default as TematicaLateral } from './componentes/TematicaLateral.jsx'
+export { default as TematicaTicker } from './componentes/TematicaTicker.jsx'
+export { prepararAudio, sonarInicioSesion } from './sonido.js'
+export { useTematica } from './useTematica.js'

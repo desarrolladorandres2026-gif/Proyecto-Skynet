@@ -1,10 +1,17 @@
-/* Panel admin, tema oscuro estilo Premiere Pro 25. Todo vive bajo
-   :root.zp-admin (AppLayout pone esa clase y "dark" en <html>), así que el
-   shell móvil, el login y las pantallas públicas no cambian. Va SIN capa y
-   se importa después de tipografia.css: le gana a las utilidades de
-   Tailwind y a panel.css sin necesitar "!" (ver feedback de cascade layers).
-   Reglas del diseño: sin sombras, sin gradientes, sin blur, radio de 4 px
-   solo en campos/botones/diálogos, sin íconos, un solo acento. */
+/* Panel admin, estructura y tabla/checkbox/toast del tema "Premiere Pro 25".
+   Todo vive bajo :root.zp-admin (AppLayout pone esa clase y "dark" en
+   <html>), así que el shell móvil, el login y las pantallas públicas no
+   cambian. Va SIN capa y se importa después de tipografia.css: le gana a
+   las utilidades de Tailwind y a panel.css sin necesitar "!" (ver feedback
+   de cascade layers).
+   Los resets globales que antes aplanaban TODO el panel (sin sombra, sin
+   gradiente, sin blur, radio fijo de 4 px, íconos lucide ocultos, duración
+   de transición fija) se quitaron: el sistema de diseño nuevo (components/
+   ds/, BarraLateral.jsx) depende de sombras, radios grandes, scale/rotate,
+   blur y dibujos SVG — esas reglas los anulaban por completo. Lo que queda
+   aquí es la estructura del shell y los componentes legados (panel-btn-*,
+   panel-input, tabla, checkbox, sonner) que todavía no migraron al sistema
+   nuevo. */
 
 :root.zp-admin {
   color-scheme: light;
@@ -101,6 +108,8 @@
   flex-shrink: 0;
   padding: 0 var(--zp-space-3);
   background: var(--zp-surface);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 14px -6px rgb(0 0 0 / 0.12);
 }
 
 .zp-body {
@@ -128,6 +137,45 @@
   padding: var(--zp-space-4);
 }
 
+/* Paleta "cielo" del tema claro: todos los tokens salen del matiz de #00AAFF
+   (≈199°) para que superficies, bordes, texto y estados armonicen con el fondo
+   #EAF7FF. Textos y acento mantienen contraste AA sobre blanco. */
+:root.zp-admin:not(.dark) {
+  --zp-bg: #d3eefc;
+  --zp-surface: #ffffff;
+  --zp-surface-hover: #f1faff;
+  --zp-surface-active: #e0f3fd;
+  --zp-selected: #cbeafb;
+  --zp-field: #ffffff;
+  --zp-field-border: #5a7e94;
+  --zp-divider: #cfe6f3;
+  --zp-dialog-border: #b3d5e8;
+
+  --zp-text: #0f2a3d;
+  --zp-text-secondary: #2f4d62;
+
+  --zp-accent: #0072b5;
+  --zp-accent-hover: #005f98;
+  --zp-accent-pressed: #004d7c;
+  --zp-accent-text: #0072b5;
+  --zp-focus: #0072b5;
+
+  --zp-success: #12795a;
+  --zp-warning: #96600a;
+  --zp-danger: #c0344d;
+  --zp-danger-fill: #c0344d;
+}
+
+/* Fondo del área de trabajo (inicio de los paneles) en tema claro. */
+:root.zp-admin:not(.dark) .zp-main {
+  background: #eaf7ff;
+}
+
+/* Sombras con tinte azul en vez de gris, para que las tarjetas floten sobre el celeste. */
+:root.zp-admin:not(.dark) .zp-topbar {
+  box-shadow: 0 1px 2px rgb(0 80 130 / 0.06), 0 4px 14px -6px rgb(0 100 160 / 0.22);
+}
+
 .zp-main > * > * + * {
   margin-top: var(--zp-space-4);
 }
@@ -135,22 +183,26 @@
 .zp-product {
   font-size: var(--zp-fs-14);
   font-weight: var(--zp-fw-semibold);
+  letter-spacing: 0.02em;
   margin-right: var(--zp-space-2);
+  padding-right: var(--zp-space-3);
+  border-right: 1px solid var(--zp-divider);
 }
 
 .zp-tb-btn {
   display: inline-flex;
   align-items: center;
   gap: var(--zp-space-2);
-  height: var(--zp-control-h);
+  height: calc(var(--zp-topbar-h) - 10px);
   padding: 0 var(--zp-space-2);
   border: 0;
+  border-radius: 8px;
   background: transparent;
   color: var(--zp-text-secondary);
   font-size: var(--zp-fs-14);
   cursor: pointer;
   text-decoration: none;
-  transition: background-color 100ms, color 100ms;
+  transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
 }
 
 .zp-tb-btn {
@@ -158,8 +210,19 @@
   flex-shrink: 0;
 }
 
+@media (max-width: 1280px) {
+  .zp-topbar { gap: var(--zp-space-1); padding: 0 var(--zp-space-2); }
+  .zp-tb-btn { font-size: var(--zp-fs-13, 13px); }
+  .zp-product { padding-right: var(--zp-space-2); }
+}
+
+@media (max-width: 900px) {
+  .zp-product { border-right: 0; padding-right: 0; }
+  .zp-tb-user { max-width: 110px; }
+}
+
 .zp-tb-user {
-  max-width: 220px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   flex-shrink: 1;
@@ -179,88 +242,25 @@
 .zp-tb-btn.is-active {
   color: var(--zp-text);
   font-weight: var(--zp-fw-semibold);
-  box-shadow: inset 0 -2px 0 var(--zp-accent);
+  background: var(--zp-surface-hover);
+  box-shadow: inset 0 0 0 1px var(--zp-divider);
 }
 
-.zp-tb-menu {
-  display: none;
+.zp-tb-btn:focus-visible {
+  outline: 2px solid var(--zp-accent);
+  outline-offset: 1px;
 }
 
 .zp-tb-user {
   color: var(--zp-text);
 }
 
-.zp-nav-group {
-  padding: var(--zp-space-3) var(--zp-space-4) var(--zp-space-1);
-  font-size: var(--zp-fs-16);
-  font-weight: var(--zp-fw-semibold);
-  color: var(--zp-accent-text);
-}
-
-.zp-nav-item {
-  display: flex;
-  align-items: center;
-  height: 26px;
-  width: 100%;
-  padding: 0 var(--zp-space-4);
-  border: 0;
-  border-left: 2px solid transparent;
-  background: transparent;
-  font-size: var(--zp-fs-13);
-  text-align: left;
-  color: var(--zp-text-secondary);
-  text-decoration: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: pointer;
-  transition: background-color 100ms, color 100ms;
-}
-
-.zp-nav-item--dot::before {
-  content: '';
-  flex: none;
-  width: 4px;
-  height: 4px;
-  margin-right: var(--zp-space-2);
-  border-radius: 50%;
-  background: var(--zp-text-secondary);
-}
-
-.zp-nav-item--dot.is-active::before {
-  background: var(--zp-accent-text);
-}
-
-.zp-nav-item:hover {
-  background: var(--zp-surface-hover);
-  color: var(--zp-text);
-}
-
-.zp-nav-item.is-active {
-  background: var(--zp-surface-active);
-  border-left-color: var(--zp-accent);
-  color: var(--zp-text);
-  font-weight: var(--zp-fw-semibold);
-}
-
-@media (max-width: 1023px) {
-  .zp-tb-menu {
-    display: inline-flex;
-  }
-  .zp-sidebar {
-    position: fixed;
-    inset: var(--zp-topbar-h) auto 0 0;
-    z-index: 50;
-    transform: translateX(-100%);
-    border-right: 1px solid var(--zp-dialog-border);
-  }
-  .zp-sidebar.is-open {
-    transform: translateX(0);
-  }
-  .zp-nav-item {
-    height: var(--zp-row-h);
-  }
-}
+/* La navegación lateral (BarraLateral.jsx: "SideMenu") ya no vive en
+   .zp-sidebar/.zp-nav-item — es su propio sistema de diseño (azul-oscuro
+   sólido, acordeón, glider con blur) que no depende del tema claro/oscuro
+   de este panel, así que no necesita reglas aquí. El botón "Menú" del
+   topbar tampoco existe: el propio SideMenu colapsa a su botón
+   "Menú: [categoría]" en pantallas angostas. */
 
 /* ---------- Superficies: planas, sin sombra, sin gradiente ---------- */
 :root.zp-admin .panel-card {
@@ -299,45 +299,6 @@
   backdrop-filter: none;
 }
 
-/* Sin gradientes, blur, sombras ni escalados en ningún componente */
-:root.zp-admin [class*="bg-gradient"],
-:root.zp-admin [class*="bg-linear"] {
-  background-image: none;
-}
-:root.zp-admin [class*="backdrop-blur"] {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-:root.zp-admin [class*="shadow-"] {
-  --tw-shadow: 0 0 #0000;
-  --tw-shadow-colored: 0 0 #0000;
-}
-:root.zp-admin [class*="scale-"],
-:root.zp-admin [class*="rotate-"] {
-  scale: none;
-  rotate: none;
-}
-:root.zp-admin .animate-pulse {
-  animation: none;
-}
-:root.zp-admin .bg-clip-text {
-  background: none;
-}
-:root.zp-admin .text-transparent {
-  color: var(--zp-text);
-}
-
-/* Forma: radio 4 px en controles; paneles rectos */
-:root.zp-admin .rounded-md,
-:root.zp-admin .rounded-lg,
-:root.zp-admin .rounded-xl,
-:root.zp-admin .rounded-2xl,
-:root.zp-admin .rounded-3xl,
-:root.zp-admin button.rounded-full:not([role="switch"]),
-:root.zp-admin a.rounded-full {
-  border-radius: var(--zp-radius);
-}
-
 /* Tipografía: máximo 18 px, mínimo 12 px, tipo oración, espaciado normal */
 :root.zp-admin .text-xl,
 :root.zp-admin .text-2xl,
@@ -366,34 +327,6 @@
 }
 :root.zp-admin .panel-mono {
   font-size: var(--zp-fs-12);
-}
-
-/* Movimiento: solo color, 100 ms */
-:root.zp-admin * {
-  transition-duration: 100ms;
-}
-
-/* Foco: contorno de 2 px, nunca resplandor */
-:root.zp-admin :focus-visible {
-  outline: 2px solid var(--zp-focus);
-  outline-offset: 2px;
-  --tw-ring-shadow: 0 0 #0000;
-  --tw-ring-offset-shadow: 0 0 #0000;
-}
-
-/* ---------- Íconos: fuera. Los botones que solo tenían ícono muestran su
-   etiqueta accesible como texto. ---------- */
-:root.zp-admin svg.lucide {
-  display: none;
-}
-:root.zp-admin :is(button, a)[aria-label]:not([aria-label^="Notificaciones"]):has(> svg.lucide:only-child)::after {
-  content: attr(aria-label);
-  font-size: var(--zp-fs-12);
-  white-space: nowrap;
-}
-:root.zp-admin button[aria-label^="Notificaciones"]::before {
-  content: "Notificaciones";
-  font-size: var(--zp-fs-14);
 }
 
 /* ---------- Botones ---------- */
@@ -538,6 +471,81 @@
 :root.zp-admin th[aria-sort] {
   color: var(--zp-accent-text);
 }
+
+/* Tablas "tarjeta" (tema claro): cada fila es una tarjeta blanca flotando sobre el
+   celeste, con esquinas redondeadas, aire entre filas, encabezado en mayúsculas
+   con acento y una barra azul que aparece al pasar el cursor. */
+:root.zp-admin:not(.dark) .panel-table-wrap {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root.zp-admin:not(.dark) .panel-table-wrap table {
+  border-collapse: separate;
+  border-spacing: 0 6px;
+}
+:root.zp-admin:not(.dark) .panel-th {
+  height: 34px;
+  background: #eaf7ff; /* igual que el fondo, para tapar filas al hacer scroll */
+  color: var(--zp-accent-text);
+  font-size: 11.5px;
+  font-weight: var(--zp-fw-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 0;
+}
+/* Encabezados: mismo fondo que la barra lateral y esquinas redondeadas */
+:root.zp-admin .panel-th,
+:root.zp-admin:not(.dark) .panel-th {
+  background: #00AAFF;
+  color: #ffffff;
+}
+:root.zp-admin th[aria-sort] {
+  color: #ffffff;
+}
+:root.zp-admin .panel-th:first-child {
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+:root.zp-admin .panel-th:last-child {
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+:root.zp-admin .panel-th:only-child {
+  border-radius: 12px;
+}
+:root.zp-admin:not(.dark) .panel-td {
+  height: 44px;
+  background: #ffffff;
+  border-top: 1px solid #dcedf8;
+  border-bottom: 1px solid #dcedf8;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+:root.zp-admin:not(.dark) .panel-td:first-child {
+  border-left: 3px solid transparent;
+  border-radius: 10px 0 0 10px;
+}
+:root.zp-admin:not(.dark) .panel-td:last-child {
+  border-right: 1px solid #dcedf8;
+  border-radius: 0 10px 10px 0;
+}
+:root.zp-admin:not(.dark) .panel-row:hover,
+:root.zp-admin:not(.dark) .panel-row:hover .panel-td {
+  background: #f3fbff;
+}
+:root.zp-admin:not(.dark) .panel-row:hover .panel-td {
+  border-top-color: #bfe3f7;
+  border-bottom-color: #bfe3f7;
+  box-shadow: 0 6px 14px -10px rgb(0 114 181 / 0.45);
+}
+:root.zp-admin:not(.dark) .panel-row:hover .panel-td:first-child {
+  border-left-color: #00aaff;
+}
+:root.zp-admin:not(.dark) .panel-row:hover .panel-td:last-child {
+  border-right-color: #bfe3f7;
+}
+
 
 /* ---------- Color de texto de las páginas ----------
    Solo dos colores de texto. Los grises de Tailwind (slate/gray/zinc/

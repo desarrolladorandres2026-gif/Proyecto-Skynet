@@ -12,7 +12,11 @@ import Usuario from '../src/models/Usuario.js'
 import Rol from '../src/models/Rol.js'
 import Permiso from '../src/models/Permiso.js'
 import RegistroAuditoria from '../src/models/RegistroAuditoria.js'
+import RespuestaRadicado from '../src/models/RespuestaRadicado.js'
+import { enviarEmailRespuestaRadicado } from '../src/utils/email.js'
 import { invalidarCacheModulos } from '../src/modules/sistema/sistema.service.js'
+
+vi.mock('../src/utils/email.js', () => ({ enviarEmailGenerico: vi.fn(), enviarEmailRespuestaRadicado: vi.fn() }))
 
 // Radicados del sitio (PQRSF…). WordPress se simula con un fetch falso: ninguna
 // prueba toca el sitio real.
@@ -194,9 +198,27 @@ describe('radicados del sitio web', () => {
   describe('respuesta al ciudadano', () => {
     const PDF = Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n')
     const respuestaCreada = () => respuestaWp({ id: 3, nota: 'Su caso fue resuelto', archivoUrl: 'https://sitio.test/x.pdf', archivoNombre: 'respuesta.pdf' }, { status: 200 })
+    const detalleWp = (extra = {}) => respuestaWp({ ...itemWp(), ip: '', navegador: '', campos: [], respuestas: [], ...extra })
+
+    // WordPress falso: GET radicado, POST respuesta y POST estado.
+    function wordpress({ radicado = detalleWp(), respuesta = respuestaCreada, estado = () => respuestaWp({ id: 14, estado: 'processed' }) } = {}) {
+      fetchMock.mockImplementation(async (url, init = {}) => {
+        const ruta = String(url)
+        if (ruta.endsWith('/estado')) return estado()
+        if (ruta.endsWith('/respuesta')) return respuesta()
+        if ((init.method || 'GET') === 'GET') return radicado.clone()
+        throw new Error(`llamada inesperada: ${ruta}`)
+      })
+    }
+    const llamadaPost = (sufijo) => fetchMock.mock.calls.find(([url, init]) => String(url).endsWith(sufijo) && init?.method === 'POST')
+
+    beforeEach(() => {
+      enviarEmailRespuestaRadicado.mockReset()
+      enviarEmailRespuestaRadicado.mockResolvedValue({ messageId: '<abc@smtp>' })
+    })
 
     it('envía nota y PDF a WordPress, deja auditoría y puede marcar tramitado', async () => {
-      fetchMock.mockImplementation(async (url) => (String(url).endsWith('/estado') ? respuestaWp({ id: 14, estado: 'processed' }) : respuestaCreada()))
+      wordpress()
 
       const res = await request(app)
         .post('/api/sitio-web/radicados/14/respuesta')
@@ -208,11 +230,131 @@ describe('radicados del sitio web', () => {
       expect(res.status).toBe(201)
       expect(res.body.respuesta.archivoUrl).toBe('https://sitio.test/x.pdf')
       expect(res.body.estado).toBe('tramitado')
-      const envio = fetchMock.mock.calls[0]
+      const envio = llamadaPost('/respuesta')
       expect(new URL(String(envio[0])).pathname).toBe('/wp-json/skynet/v1/radicados/14/respuesta')
       expect(envio[1].body.get('nota')).toBe('Su caso fue resuelto')
       expect(envio[1].body.get('archivo').type).toBe('application/pdf')
       expect(await RegistroAuditoria.countDocuments({ modulo: 'sitio_web', entidad: 'radicado', accion: 'crear' })).toBe(1)
+    })
+
+    it('envía la respuesta por correo al solicitante con el PDF adjunto y deja la constancia', async () => {
+      wordpress()
+
+      const res = await request(app)
+        .post('/api/sitio-web/radicados/14/respuesta')
+        .set(auth(gestor))
+        .field('nota', 'Su caso fue resuelto')
+        .attach('archivo', PDF, { filename: 'respuesta.pdf', contentType: 'application/pdf' })
+
+      expect(res.status).toBe(201)
+      expect(res.body.avisoCorreo).toBeUndefined()
+      expect(res.body.constancia.correo).toMatchObject({ estado: 'enviado', destinatario: 'ana@example.com', adjuntoIncluido: true })
+
+      expect(enviarEmailRespuestaRadicado).toHaveBeenCalledTimes(1)
+      const enviado = enviarEmailRespuestaRadicado.mock.calls[0][0]
+      expect(enviado).toMatchObject({ to: 'ana@example.com', radicado: 'TTN-2026-0014', solicitante: 'Ana', nota: 'Su caso fue resuelto' })
+      expect(enviado.adjunto.contenido.equals(PDF)).toBe(true)
+
+      const registro = await RespuestaRadicado.findOne({ radicadoId: 14 }).lean()
+      expect(registro).toMatchObject({
+        radicado: 'TTN-2026-0014',
+        wpRespuestaId: 3,
+        nota: 'Su caso fue resuelto',
+        respondidoPor: { nombreUsuario: gestor.nombre_usuario, nombre: 'Persona Prueba' },
+        correo: { estado: 'enviado', destinatario: 'ana@example.com', messageId: '<abc@smtp>', intentos: 1 },
+      })
+      expect(registro.archivo.sha256).toMatch(/^[0-9a-f]{64}$/)
+    })
+
+    it('con enviarCorreo=false publica sin enviar, lo deja registrado y se puede enviar después', async () => {
+      wordpress()
+
+      const res = await request(app)
+        .post('/api/sitio-web/radicados/14/respuesta')
+        .set(auth(gestor))
+        .field('nota', 'Resuelto')
+        .field('enviarCorreo', 'false')
+
+      expect(res.status).toBe(201)
+      expect(res.body.avisoCorreo).toBeUndefined()
+      expect(res.body.constancia.correo).toMatchObject({ estado: 'no_enviado', destinatario: 'ana@example.com' })
+      expect(enviarEmailRespuestaRadicado).not.toHaveBeenCalled()
+
+      const envio = await request(app)
+        .post(`/api/sitio-web/radicados/14/respuestas/${res.body.constancia.id}/reenviar-correo`)
+        .set(auth(gestor))
+      expect(envio.status).toBe(200)
+      expect(envio.body.constancia.correo.estado).toBe('enviado')
+      expect(enviarEmailRespuestaRadicado).toHaveBeenCalledTimes(1)
+    })
+
+    it('si el correo falla, la respuesta queda publicada, se avisa y se puede reenviar', async () => {
+      wordpress()
+      enviarEmailRespuestaRadicado.mockRejectedValueOnce(new Error('SMTP caído'))
+
+      const res = await request(app).post('/api/sitio-web/radicados/14/respuesta').set(auth(gestor)).field('nota', 'Resuelto')
+
+      expect(res.status).toBe(201)
+      expect(res.body.respuesta.id).toBe(3)
+      expect(res.body.avisoCorreo).toMatch(/NO se pudo enviar el correo a ana@example.com/)
+      expect(res.body.constancia.correo).toMatchObject({ estado: 'fallido', error: 'SMTP caído' })
+
+      const reenvio = await request(app)
+        .post(`/api/sitio-web/radicados/14/respuestas/${res.body.constancia.id}/reenviar-correo`)
+        .set(auth(gestor))
+      expect(reenvio.status).toBe(200)
+      expect(reenvio.body.constancia.correo).toMatchObject({ estado: 'enviado', destinatario: 'ana@example.com' })
+      expect(enviarEmailRespuestaRadicado).toHaveBeenCalledTimes(2)
+      expect((await RespuestaRadicado.findOne({ radicadoId: 14 }).lean()).correo.intentos).toBe(2)
+    })
+
+    it('sin correo válido del solicitante publica igual, no envía y lo deja registrado', async () => {
+      wordpress({ radicado: detalleWp({ resumen: { tipo: 'Queja', asunto: 'Cobro', solicitante: 'Ana', correo: 'no-es-un-correo' } }) })
+
+      const res = await request(app).post('/api/sitio-web/radicados/14/respuesta').set(auth(gestor)).field('nota', 'Resuelto')
+
+      expect(res.status).toBe(201)
+      expect(res.body.avisoCorreo).toMatch(/no trae un correo válido/)
+      expect(res.body.constancia.correo.estado).toBe('sin_correo')
+      expect(enviarEmailRespuestaRadicado).not.toHaveBeenCalled()
+
+      const reenvio = await request(app).post(`/api/sitio-web/radicados/14/respuestas/${res.body.constancia.id}/reenviar-correo`).set(auth(gestor))
+      expect(reenvio.status).toBe(400)
+    })
+
+    it('encuentra el correo por la etiqueta del campo si el resumen no lo trae', async () => {
+      wordpress({
+        radicado: detalleWp({
+          resumen: { tipo: '', asunto: '', solicitante: 'Ana', correo: '' },
+          campos: [{ clave: 'c', etiqueta: 'Correo electrónico', valor: ' Ana@Example.com ' }],
+        }),
+      })
+      const res = await request(app).post('/api/sitio-web/radicados/14/respuesta').set(auth(gestor)).field('nota', 'Resuelto')
+      expect(res.body.constancia.correo.destinatario).toBe('ana@example.com')
+    })
+
+    it('el detalle del radicado muestra quién respondió y el estado del correo de cada respuesta', async () => {
+      const respuestas = [
+        { id: 3, nota: 'Resuelto', archivoUrl: '', archivoNombre: '', autor: 'x', fecha: '2026-10-23 09:00:00' },
+        { id: 2, nota: 'Vieja', archivoUrl: '', archivoNombre: '', autor: 'y', fecha: '2026-10-01 09:00:00' },
+      ]
+      wordpress({ radicado: detalleWp({ respuestas }) })
+      await request(app).post('/api/sitio-web/radicados/14/respuesta').set(auth(gestor)).field('nota', 'Resuelto')
+
+      const res = await request(app).get('/api/sitio-web/radicados/14').set(auth(gestor))
+
+      expect(res.body.radicado.correoRespuesta).toBe('ana@example.com')
+      const [nueva, anterior] = res.body.radicado.respuestas
+      expect(nueva.constancia).toMatchObject({ respondidoPor: 'Persona Prueba', correo: { estado: 'enviado', destinatario: 'ana@example.com' } })
+      expect(anterior.constancia).toBeNull()
+    })
+
+    it('si el radicado ya no existe no se publica nada', async () => {
+      fetchMock.mockResolvedValue(respuestaWp({ code: 'skynet_no_existe' }, { status: 404 }))
+      const res = await request(app).post('/api/sitio-web/radicados/14/respuesta').set(auth(gestor)).field('nota', 'Resuelto')
+      expect(res.status).toBe(404)
+      expect(llamadaPost('/respuesta')).toBeUndefined()
+      expect(enviarEmailRespuestaRadicado).not.toHaveBeenCalled()
     })
 
     it('rechaza un archivo que dice ser PDF pero no lo es', async () => {
@@ -233,10 +375,12 @@ describe('radicados del sitio web', () => {
       expect(fetchMock).not.toHaveBeenCalled()
     })
 
-    it('sin pqrs:gestionar no se puede ni subir el archivo', async () => {
+    it('sin pqrs:gestionar no se puede ni subir el archivo ni reenviar el correo', async () => {
       const otro = await crearUsuario({ permisos: ['noticias:gestionar'] })
       const res = await request(app).post('/api/sitio-web/radicados/14/respuesta').set(auth(otro)).field('nota', 'x')
+      const reenvio = await request(app).post('/api/sitio-web/radicados/14/respuestas/6543210fedcba9876543210f/reenviar-correo').set(auth(otro))
       expect(res.status).toBe(403)
+      expect(reenvio.status).toBe(403)
     })
   })
 
@@ -278,9 +422,13 @@ describe('radicados del sitio web', () => {
     })
 
     it('si falla marcar tramitado, la respuesta ya publicada no devuelve error y avisa', async () => {
-      fetchMock.mockImplementation(async (url) =>
-        String(url).endsWith('/estado') ? respuestaWp({ message: 'boom' }, { status: 500 }) : respuestaWp({ id: 3, nota: 'ok', archivoUrl: '', archivoNombre: '' }),
-      )
+      enviarEmailRespuestaRadicado.mockResolvedValue({ messageId: '<m>' })
+      fetchMock.mockImplementation(async (url) => {
+        const ruta = String(url)
+        if (ruta.endsWith('/estado')) return respuestaWp({ message: 'boom' }, { status: 500 })
+        if (ruta.endsWith('/respuesta')) return respuestaWp({ id: 3, nota: 'ok', archivoUrl: '', archivoNombre: '' })
+        return respuestaWp({ ...itemWp(), ip: '', navegador: '', campos: [], respuestas: [] })
+      })
       const res = await request(app).post('/api/sitio-web/radicados/14/respuesta').set(auth(gestor)).field('nota', 'ok').field('marcarTramitado', 'true')
       expect(res.status).toBe(201)
       expect(res.body.respuesta.id).toBe(3)

@@ -4,6 +4,7 @@ import { useAuth } from '../../auth/AuthContext.jsx'
 import { avisosTerminal } from '../../api/avisosTerminal.js'
 import { useAvisosTerminalPendientes } from './useAvisosTerminalPendientes.js'
 import { useAnuncioVoz } from './useAnuncioVoz.js'
+import { esAppNativa, SkynetNotif, EVENTO_ALERTAS_CAMBIO } from '../../pwa/skynetNotif.js'
 
 // Cuánto queda visible el banner tras terminar de hablar antes de
 // desaparecer solo (si no hay otro aviso encolado detrás) — suficiente para
@@ -26,7 +27,29 @@ const RESPIRO_ENTRE_AVISOS_MS = 900
 // institucional de ancho completo, sin tarjetas ni subcontenedores.
 export default function AvisoTerminalPlayer() {
   const { usuario, moduloActivo } = useAuth()
-  const activo = Boolean(usuario) && moduloActivo('avisos_terminal')
+  // En la app Android con el servicio de notificaciones propio activo, el
+  // aviso suena desde el SERVICIO NATIVO (canal de alarma: suena bloqueado,
+  // en silencio y en "No molestar" — ver NotifService/AvisoAlarma.java). Este
+  // reproductor web se apaga ahí para que no hable un segundo aviso encima.
+  // Si el servicio nativo no está activo (o es navegador/PWA), sigue igual.
+  const [servicioNativoActivo, setServicioNativoActivo] = useState(false)
+  useEffect(() => {
+    if (!esAppNativa()) return
+    let vivo = true
+    const revisar = () =>
+      SkynetNotif.estado()
+        .then((r) => vivo && setServicioNativoActivo(Boolean(r?.activo)))
+        .catch(() => {})
+    revisar()
+    // Se vuelve a leer cuando la persona activa/desactiva las alertas (ver
+    // pwa/skynetNotif.js) para no quedar con el estado de la primera lectura.
+    window.addEventListener(EVENTO_ALERTAS_CAMBIO, revisar)
+    return () => {
+      vivo = false
+      window.removeEventListener(EVENTO_ALERTAS_CAMBIO, revisar)
+    }
+  }, [usuario])
+  const activo = Boolean(usuario) && moduloActivo('avisos_terminal') && !servicioNativoActivo
 
   const { reproducir, reintentar, detener: detenerVoz, fase } = useAnuncioVoz()
   const [entregaActual, setEntregaActual] = useState(null)

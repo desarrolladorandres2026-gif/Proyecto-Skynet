@@ -112,7 +112,7 @@ export default function CalendarioAusenciasPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div>
       <h1 className="panel-mono mb-4 flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
         <CalendarCheck className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         Calendario de ausencias

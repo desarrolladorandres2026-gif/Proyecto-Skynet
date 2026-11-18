@@ -116,6 +116,67 @@ export function correoRestablecerPasswordTexto({ nombreUsuario, enlace: url, ttl
   })
 }
 
+// ── Respuesta a un radicado (PQRSF) del sitio web
+// Va a quien hizo la petición y es la constancia de que se respondió: lleva el
+// número de radicado y el texto completo (sin el nombre de quien respondió,
+// igual que la consulta pública del sitio). El PDF
+// de soporte, si lo hay, viaja adjunto (ver enviarEmailRespuestaRadicado).
+function contenidoRespuestaRadicado({ solicitante, radicado, asunto, nota: texto, archivoNombre, adjuntado, archivoUrl }) {
+  const cierreArchivo = archivoNombre
+    ? adjuntado
+      ? `Adjuntamos el documento de respuesta (${archivoNombre}).`
+      : `El documento de respuesta (${archivoNombre}) está disponible en el enlace de abajo.`
+    : ''
+  return {
+    titulo: 'Respuesta a su solicitud',
+    cuerpo: `${saludo(solicitante)} el Terminal de Transportes de Neiva dio respuesta a su solicitud con el radicado ${radicado}.`,
+    detalles: [
+      { etiqueta: 'Radicado', valor: radicado },
+      { etiqueta: 'Asunto', valor: asunto },
+    ],
+    respuesta: texto,
+    cierreArchivo,
+    archivoUrl: adjuntado ? '' : archivoUrl,
+    pie: 'Conserve este correo como constancia de la respuesta a su solicitud. Puede consultar el estado de su radicado en elterminalneiva.com con el número indicado.',
+  }
+}
+
+export function correoRespuestaRadicado(datos) {
+  const c = contenidoRespuestaRadicado(datos)
+  const fecha = datos.fecha ?? new Date()
+  return documentoCorreo({
+    titulo: c.titulo,
+    preheader: `Respuesta a su solicitud ${datos.radicado}.`,
+    categoria: 'Atención al ciudadano',
+    fecha,
+    cuerpoHtml:
+      parrafo(c.cuerpo) +
+      (c.respuesta
+        ? `<div style="margin:0 0 16px;padding:14px 16px;border-left:3px solid #15679b;background:#f4f7fa;">${esc(c.respuesta)
+            .split(/\r?\n/)
+            .map((l) => l || '&nbsp;')
+            .join('<br>')}</div>`
+        : '') +
+      (c.cierreArchivo ? parrafo(c.cierreArchivo) : ''),
+    detalles: c.detalles,
+    accion: c.archivoUrl ? { etiqueta: 'Ver documento de respuesta', url: c.archivoUrl } : undefined,
+    pieHtml: esc(c.pie),
+  })
+}
+
+export function correoRespuestaRadicadoTexto(datos) {
+  const c = contenidoRespuestaRadicado(datos)
+  return documentoTexto({
+    titulo: c.titulo,
+    categoria: 'Atención al ciudadano',
+    fecha: datos.fecha ?? new Date(),
+    parrafos: [c.cuerpo, ...(c.respuesta ? [c.respuesta] : []), ...(c.cierreArchivo ? [c.cierreArchivo] : [])],
+    detalles: c.detalles,
+    accion: c.archivoUrl ? { etiqueta: 'Ver documento de respuesta', url: c.archivoUrl } : undefined,
+    pie: c.pie,
+  })
+}
+
 // ── Protocolo de despliegue (ver copiloto.despliegue.js)
 // Contenido 100% estático (sin datos que vengan de fuera), a propósito: es un
 // envío de verificación, no debe depender de nada que pueda fallar al

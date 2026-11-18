@@ -16,6 +16,10 @@ import {
 // Cada ITEM puede además declarar su propio `permiso` (string o array de
 // alternativas): así un módulo agrupa páginas con permisos distintos y cada
 // rol ve solo los items suyos (el módulo desaparece si no le queda ninguno).
+// Un ITEM puede llevar `nuevoHasta: 'AAAA-MM-DD'` para mostrar el punto de
+// "novedad" (ver hooks/useNovedades.js): aparece hasta que el usuario visita la
+// ruta, o hasta esa fecha, lo que ocurra primero. Cuando una función deja de
+// ser novedad basta con borrar el campo (o dejar que venza).
 export const MODULOS_REGISTRO = [
   {
     key: 'dashboard',
@@ -83,6 +87,21 @@ export const MODULOS_REGISTRO = [
       { to: '/ausencias/mias', label: 'Mis ausencias' },
       { to: '/ausencias/bandeja', label: 'Por decidir', permiso: 'ausencias:aprobar' },
       { to: '/ausencias/calendario', label: 'Calendario', permiso: ['ausencias:aprobar', 'ausencias:ver_todas'] },
+      // Trámite de incapacidades (SIG -> folio -> Gerencia -> Talento Humano):
+      // cada persona ve el item solo si tiene el permiso de alguno de los pasos.
+      // end: true para que no quede resaltado también al estar en Supervisión.
+      {
+        to: '/ausencias/incapacidades',
+        label: 'Trámite de incapacidades',
+        end: true,
+        permiso: [
+          'ausencias:verificar_incapacidades',
+          'ausencias:foliar_incapacidades',
+          'ausencias:direccionar_incapacidades',
+          'ausencias:recibir_incapacidades',
+        ],
+      },
+      { to: '/ausencias/incapacidades/supervision', label: 'Supervisión de incapacidades', permiso: 'ausencias:supervisar_incapacidades' },
     ],
   },
   {
@@ -175,7 +194,7 @@ export const MODULOS_REGISTRO = [
       { to: '/sitio-web/noticias', label: 'Noticias', permiso: ['sitio_web:gestionar', 'noticias:gestionar'] },
       { to: '/sitio-web/eventos', label: 'Eventos', permiso: ['sitio_web:gestionar', 'eventos:gestionar'] },
       { to: '/sitio-web/avisos', label: 'Avisos al público', permiso: ['sitio_web:gestionar', 'publicaciones:gestionar'] },
-      { to: '/sitio-web/radicados', label: 'Solicitudes (PQRS)', permiso: ['sitio_web:gestionar', 'pqrs:gestionar'] },
+      { to: '/sitio-web/radicados', label: 'Solicitudes (PQRS)', permiso: ['sitio_web:gestionar', 'pqrs:gestionar'], nuevoHasta: '2026-12-18' },
       { to: '/sitio-web/medios', label: 'Imágenes', permiso: ['sitio_web:gestionar', 'noticias:gestionar', 'eventos:gestionar', 'publicaciones:gestionar'] },
     ],
   },
@@ -240,7 +259,7 @@ export const MODULOS_REGISTRO = [
     icon: Bell,
     permiso: ['notificaciones:ver_historial', 'notificaciones:configurar_canales'],
     items: [
-      { to: '/notificaciones/canales', label: 'Elección de notificaciones', permiso: ['notificaciones:ver_historial', 'notificaciones:configurar_canales'] },
+      { to: '/notificaciones/canales', label: 'Elección de notificaciones', permiso: ['notificaciones:ver_historial', 'notificaciones:configurar_canales'], nuevoHasta: '2026-12-18' },
     ],
   },
   {
@@ -252,10 +271,11 @@ export const MODULOS_REGISTRO = [
     // filtro por item decide qué entradas se ven. Sin esto, delegar solo
     // 'plataforma:gestionar' a un rol le daría el permiso pero ningún enlace
     // por el que llegar a la pantalla.
-    permiso: ['sistema:gestionar_modulos', 'plataforma:gestionar'],
+    permiso: ['sistema:gestionar_modulos', 'plataforma:gestionar', 'tematica:gestionar'],
     items: [
       { to: '/sistema/modulos', label: 'Módulos del sistema', permiso: 'sistema:gestionar_modulos' },
       { to: '/sistema/plataforma', label: 'Estado de plataforma', permiso: 'plataforma:gestionar' },
+      { to: '/sistema/tematica', label: 'Temática del sistema', permiso: 'tematica:gestionar' },
       // soloSuperAdmin, no permiso: ver la nota en useModulosVisibles
       // (AppLayout.jsx) — el backup completo no debe quedar delegable.
       { to: '/sistema/backup', label: 'Copia de seguridad', soloSuperAdmin: true },

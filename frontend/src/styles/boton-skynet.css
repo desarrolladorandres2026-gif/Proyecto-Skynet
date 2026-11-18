@@ -1,0 +1,114 @@
+/* Botón estándar de Skynet: píldora con círculo blanco + flecha que sale en
+   diagonal y vuelve a entrar al pasar el cursor. Color base = el de la barra
+   lateral (bg-azul-oscuro); hover = negro.
+   Se aplica a .btn-sk (componentes ds / Btn) y a las clases legadas
+   panel-btn-primario/secundario/peligro, así todos los botones del proyecto
+   comparten diseño. Fantasma (panel-btn-fantasma) y TextButton quedan como
+   enlaces de texto a propósito.
+   El prefijo :root:not(#sk) sube la especificidad para ganarle a admin.css
+   (:root.zp-admin ...) y a las utilidades de Tailwind sin usar !important. */
+
+:root {
+  --sk-btn-clr: var(--color-azul-oscuro, #2f8a52);
+  --sk-btn-clr-danger: var(--color-rojo, #b3261e);
+}
+
+:root:not(#sk) :is(.btn-sk, .panel-btn-primario, .panel-btn-secundario, .panel-btn-peligro) {
+  --sk-clr: var(--sk-btn-clr);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 0;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+  border-radius: 10rem;
+  background: var(--sk-clr);
+  color: #fff;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem 0.75rem 1.25rem;
+  box-shadow: none;
+  transform: none;
+  transition: background-color 0.3s;
+}
+
+:root:not(#sk) :is(.panel-btn-peligro, .btn-sk--danger) {
+  --sk-clr: var(--sk-btn-clr-danger);
+}
+
+/* Círculo blanco con la flecha (SVG embebido, color = verde de la barra). */
+:root:not(#sk) :is(.btn-sk, .panel-btn-primario, .panel-btn-secundario, .panel-btn-peligro)::before {
+  content: '';
+  flex-shrink: 0;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background-color: #fff;
+  background-repeat: no-repeat;
+  background-size: 10px 10px;
+  background-position: 7.5px 7.5px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 15' fill='none'%3E%3Cpath d='M13.376 11.552l-.264-10.44-10.44-.24.024 2.28 6.96-.048L.2 12.56l1.488 1.488 9.432-9.432-.048 6.912 2.304.024z' fill='%232f8a52'/%3E%3C/svg%3E");
+}
+
+:root:not(#sk) .panel-btn-peligro::before,
+:root:not(#sk) .btn-sk--danger::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 15' fill='none'%3E%3Cpath d='M13.376 11.552l-.264-10.44-10.44-.24.024 2.28 6.96-.048L.2 12.56l1.488 1.488 9.432-9.432-.048 6.912 2.304.024z' fill='%23b3261e'/%3E%3C/svg%3E");
+}
+
+/* Sin círculo/flecha en ningún botón (los que traen su propio icono también). */
+:root:not(#sk) :is(.btn-sk, .panel-btn-primario, .panel-btn-secundario, .panel-btn-peligro)::before {
+  display: none;
+}
+
+:root:not(#sk) :is(.btn-sk, .panel-btn-primario, .panel-btn-secundario, .panel-btn-peligro) {
+  padding: 0.75rem 1.5rem;
+}
+
+:root:not(#sk) :is(.btn-sk, .panel-btn-primario, .panel-btn-secundario, .panel-btn-peligro):hover:not(:disabled) {
+  background: #000;
+  box-shadow: none;
+  transform: none;
+}
+
+/* La flecha actual sale arriba-derecha y la copia entra desde abajo-izquierda. */
+:root:not(#sk) :is(.btn-sk, .panel-btn-primario, .panel-btn-secundario, .panel-btn-peligro):hover:not(:disabled)::before {
+  animation: none;
+}
+
+@keyframes sk-flecha {
+  0% { background-position: 7.5px 7.5px; }
+  49% { background-position: 30px -20px; }
+  50% { background-position: -20px 30px; }
+  100% { background-position: 7.5px 7.5px; }
+}
+
+:root:not(#sk) :is(.btn-sk, .panel-btn-primario, .panel-btn-secundario, .panel-btn-peligro):disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--sk-clr);
+  color: #fff;
+}
+
+:root:not(#sk) :is(.btn-sk, .panel-btn-primario, .panel-btn-secundario, .panel-btn-peligro):focus-visible {
+  outline: 2px solid var(--sk-clr);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not(#sk) :is(.btn-sk, .panel-btn-primario, .panel-btn-secundario, .panel-btn-peligro):hover:not(:disabled)::before {
+    animation: none;
+  }
+}
+
+/* Campos (inputs/selects) en píldora en todo el sistema, incluido el tema
+   denso "Premiere Pro 25" de admin.css (:root.zp-admin .panel-input fija
+   border-radius: var(--zp-radius), 4px). Mismo truco de especificidad que
+   los botones de arriba: :root:not(#sk) le gana sin usar "!important".
+   textarea queda fuera a propósito (campo multilínea, no es píldora). */
+:root:not(#sk) input.panel-input,
+:root:not(#sk) select.panel-input {
+  border-radius: 10rem;
+}

@@ -80,7 +80,9 @@ describe('useCentroNotificaciones (comportamiento)', () => {
     expect(notificacionesApi.misNotificaciones).toHaveBeenCalledWith({ page: 1, limit: 15 })
   })
 
-  it('marcarLeida actualiza el estado local al instante (optimista) y llama al API con el id correcto', async () => {
+  // Leer una notificación la elimina (ver centro.service.js#marcarLeida): sale
+  // de la lista al instante en vez de quedar con un estado "leída".
+  it('marcarLeida la quita de la lista al instante (optimista) y llama al API con el id correcto', async () => {
     const { result } = renderHook(() => useCentroNotificaciones())
     await waitFor(() => expect(result.current.noLeidas).toBe(2))
     await act(async () => {
@@ -92,11 +94,11 @@ describe('useCentroNotificaciones (comportamiento)', () => {
     })
 
     expect(notificacionesApi.marcarLeida).toHaveBeenCalledWith('n1')
-    expect(result.current.notificaciones.find((n) => n._id === 'n1').leida).toBe(true)
+    expect(result.current.notificaciones.find((n) => n._id === 'n1')).toBeUndefined()
     expect(result.current.noLeidas).toBe(1)
   })
 
-  it('marcarTodasLeidas pone el contador en 0 y marca todo localmente', async () => {
+  it('marcarTodasLeidas pone el contador en 0 y vacía la lista localmente', async () => {
     const { result } = renderHook(() => useCentroNotificaciones())
     await waitFor(() => expect(result.current.noLeidas).toBe(2))
     await act(async () => {
@@ -109,7 +111,7 @@ describe('useCentroNotificaciones (comportamiento)', () => {
 
     expect(notificacionesApi.marcarTodasLeidas).toHaveBeenCalledTimes(1)
     expect(result.current.noLeidas).toBe(0)
-    expect(result.current.notificaciones.every((n) => n.leida)).toBe(true)
+    expect(result.current.notificaciones).toHaveLength(0)
   })
 
   it('refrescarContador responde al mensaje SKYNET_PUSH_RECEIVED del Service Worker', async () => {

@@ -113,7 +113,7 @@ export default function ReportarDanoPage() {
 
   if (tecnicoPuro) {
     return (
-      <div className="mx-auto max-w-md md:max-w-2xl">
+      <div className="mx-auto max-w-md md:max-w-none">
         <div className="m-card flex flex-col items-center gap-3 rounded-3xl p-8 text-center">
           <ShieldOff className="h-8 w-8 text-[var(--mobile-text-dim)]" aria-hidden="true" />
           <h1 className="text-lg font-bold text-[var(--mobile-text)]">Mantenimiento no reporta daños</h1>
@@ -127,7 +127,7 @@ export default function ReportarDanoPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md md:max-w-2xl">
+    <div className="mx-auto max-w-md md:max-w-none">
       <h1 className="mb-1 text-xl font-bold text-[var(--mobile-text)]">Reportar</h1>
       <p className="mb-4 text-sm text-[var(--mobile-text-dim)]">
         Daños físicos, novedades, sugerencias o cualquier otra cosa que quieras contarnos.

@@ -106,7 +106,7 @@ export function ModalPersonalizacionDashboard({
                       <select
                         value={sec.ancho || 'completo'}
                         onChange={(e) => cambiarAnchoSeccion(sec.id, e.target.value)}
-                        className="panel-input rounded-lg px-2.5 py-1 text-xs"
+                        className="panel-input rounded-full px-3 py-1 text-xs"
                       >
                         {OPCIONES_ANCHO.map((op) => (
                           <option key={op.clave} value={op.clave}>

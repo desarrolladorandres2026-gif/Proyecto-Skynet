@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import {
   Users, Wrench, FileText, CalendarDays, ShieldCheck, ScrollText, Bell,
@@ -15,7 +16,10 @@ import { DashboardHeader } from '../../components/dashboard/DashboardHeader.jsx'
 import { ModalPersonalizacionDashboard } from '../../components/dashboard/ModalPersonalizacionDashboard.jsx'
 import { usePersonalizacionDashboardCompleta } from '../../components/dashboard/usePersonalizacionDashboardCompleta.js'
 import { ACCESOS_RAPIDOS_PANEL_DENSO } from '../../config/accesosRapidosPorRol.js'
+import { StatCard } from '../../components/dashboard/StatCard.jsx'
+import { AccesoRapidoDenso } from '../../components/dashboard/AccesoRapidoDenso.jsx'
 import VideoDestacado from '../../components/videos/VideoDestacado.jsx'
+import { TematicaEscena } from '../../tematicas/index.js'
 
 const TARJETAS = [
   { clave: 'notificaciones', label: 'Notificaciones sin leer', icon: Bell, to: '/notificaciones/centro', tono: 'brand' },
@@ -62,6 +66,9 @@ function HomeFeed({ usuario, onRefrescar, cargando }) {
         </div>
       )}
 
+      {/* Escena de la temática activa (no ocupa espacio sin temática) */}
+      <TematicaEscena movil />
+
       {/* Video informativo destacado (no se muestra si no hay publicados) */}
       <VideoDestacado />
     </div>
@@ -92,37 +99,27 @@ function PanelDenso({ usuario, visibles, data, onRefrescar, cargando }) {
     restablecerTodo,
   } = usePersonalizacionDashboardCompleta(visibles)
 
-  // Las métricas viven en el hueco bajo el texto del video (columna derecha).
   const kpisVisibles = secciones.some((s) => s.id === 'kpis' && s.visible)
-  const listaKpis = kpisVisibles ? (
-    <dl className="grid grid-cols-1 gap-x-8 @md:grid-cols-2">
-      {tarjetasFiltradas.map((t) => (
-        <Link
-          key={t.clave}
-          to={t.to}
-          className="flex items-baseline justify-between gap-4 border-b border-slate-200/80 py-2 hover:text-brand-700 dark:border-slate-800/80 dark:hover:text-brand-300"
-        >
-          <dt className="text-sm text-slate-600 dark:text-slate-300">{t.label}</dt>
-          <dd className="text-base font-bold tabular-nums text-slate-900 dark:text-white">
-            {tarjetas?.[t.clave] ?? '—'}
-          </dd>
-        </Link>
-      ))}
-    </dl>
-  ) : null
+  const reducir = useReducedMotion()
+  const contenedor = {
+    oculto: {},
+    visible: { transition: { staggerChildren: reducir ? 0 : 0.07, delayChildren: 0.05 } },
+  }
+  const item = {
+    oculto: reducir ? { opacity: 0 } : { opacity: 0, y: 16 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
+  }
 
-  // El panel debe llenar exactamente el área útil del <main> (su caja de
-  // contenido, sin padding) para que el video llegue al borde inferior sin
-  // hueco ni scroll. Se mide en vez de estimar con calc(): así no depende del
-  // alto de la barra superior ni del padding responsive del layout.
+  // El panel ocupa exactamente el área útil del <main> (sin scroll): se mide
+  // en vez de estimar con calc() para no depender de la barra superior.
   const raiz = useRef(null)
-  const [altoMin, setAltoMin] = useState(0)
+  const [alto, setAlto] = useState(0)
   useLayoutEffect(() => {
     const main = raiz.current?.closest('main')
     if (!main) return undefined
     const medir = () => {
       const cs = getComputedStyle(main)
-      setAltoMin(main.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom))
+      setAlto(main.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom))
     }
     medir()
     const ro = new ResizeObserver(medir)
@@ -131,8 +128,20 @@ function PanelDenso({ usuario, visibles, data, onRefrescar, cargando }) {
   }, [])
 
   return (
-    <div ref={raiz} style={{ minHeight: altoMin || undefined }} className="flex w-full flex-col gap-3.5">
-      {/* 1. Header Ejecutivo Compacto con botón de Personalizar */}
+    <motion.div
+      ref={raiz}
+      style={{ height: alto || undefined }}
+      variants={contenedor}
+      initial="oculto"
+      animate="visible"
+      className="relative flex w-full flex-col gap-3 overflow-hidden"
+    >
+      {/* Resplandor decorativo de fondo */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-24 right-0 -z-10 h-72 w-72 rounded-full bg-brand-400/20 blur-3xl motion-safe:animate-pulse"
+      />
+
       <DashboardHeader
         usuario={usuario}
         accesos={[]}
@@ -140,10 +149,43 @@ function PanelDenso({ usuario, visibles, data, onRefrescar, cargando }) {
         cargando={cargando}
       />
 
-      {/* Video informativo destacado: fuera del grid personalizable porque es
-          un comunicado institucional para todo el personal, no una métrica
-          que cada persona pueda ocultar. No se pinta si no hay publicados. */}
-      <VideoDestacado llenar>{listaKpis}</VideoDestacado>
+      {/* Accesos rápidos del rol */}
+      {accesos.length > 0 && (
+        <motion.div variants={item} className="flex flex-wrap gap-2">
+          {accesos.map((a) => (
+            <motion.div key={a.to} whileHover={reducir ? undefined : { y: -2 }} whileTap={reducir ? undefined : { scale: 0.97 }}>
+              <AccesoRapidoDenso icon={a.icon} label={a.label} to={a.to} />
+            </motion.div>
+          ))}
+        </motion.div>
+      )}
+
+      {/* Video informativo destacado: comunicado institucional, fuera del grid
+          personalizable. No se pinta si no hay publicados. */}
+      <motion.div variants={item} className="flex min-h-0 flex-1 flex-col">
+        <VideoDestacado llenar />
+      </motion.div>
+
+      {/* Métricas */}
+      {kpisVisibles && tarjetasFiltradas.length > 0 && (
+        <motion.div variants={contenedor} className="grid shrink-0 grid-cols-2 gap-2.5 lg:grid-cols-3 2xl:grid-cols-4">
+          {tarjetasFiltradas.map((t) => (
+            <motion.div key={t.clave} variants={item} whileHover={reducir ? undefined : { y: -3 }}>
+              <Link
+                to={t.to}
+                className="group relative block overflow-hidden rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 shadow-sm backdrop-blur transition-shadow hover:shadow-lg hover:shadow-brand-500/10 dark:border-slate-800/80 dark:bg-slate-900/60"
+              >
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 bg-gradient-to-r from-brand-500 to-brand-300 transition-transform duration-300 group-hover:scale-x-100"
+                />
+                <StatCard compacto icon={t.icon} label={t.label} valor={tarjetas?.[t.clave]} tono={t.tono} />
+              </Link>
+            </motion.div>
+          ))}
+        </motion.div>
+      )}
+
       {/* Modal de Personalización */}
       <ModalPersonalizacionDashboard
         abierto={modalAbierto}
@@ -160,7 +202,7 @@ function PanelDenso({ usuario, visibles, data, onRefrescar, cargando }) {
         moverTarjeta={moverTarjeta}
         onRestablecer={restablecerTodo}
       />
-    </div>
+    </motion.div>
   )
 }
 

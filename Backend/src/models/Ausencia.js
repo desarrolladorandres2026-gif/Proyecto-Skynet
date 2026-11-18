@@ -32,6 +32,37 @@ export const MOTIVOS_PERMISO_REMUNERADO = [
 
 export const ESTADOS_AUSENCIA = ['pendiente', 'aprobada', 'rechazada', 'cancelada']
 
+// Etapas del trámite de una INCAPACIDAD. Vacaciones y permisos no las usan
+// (los decide Talento Humano de una vez); la incapacidad pasa por varias manos:
+//   en_verificacion  SIG revisa que el soporte esté completo y legible
+//   devuelta         SIG la devolvió al trabajador con lo que falta
+//   por_foliar       verificada y aprobada; la Secretaria de Gerencia la folía
+//   foliada          foliada, a la espera de que la Gerencia la direccione
+//   direccionada     la Gerencia la despachó a una persona de Talento Humano
+//   tramitada        Talento Humano la recibió y la tramitó (cierra el ciclo)
+// `estado` sigue su significado de siempre: 'pendiente' mientras SIG no la
+// apruebe y 'aprobada' desde que la verifica, que es lo que hace que el
+// calendario y el control de solapamiento la vean.
+export const ETAPAS_INCAPACIDAD = ['en_verificacion', 'devuelta', 'por_foliar', 'foliada', 'direccionada', 'tramitada']
+
+export const ACCIONES_HISTORIAL = [
+  'creada', 'verificada', 'devuelta', 'reenviada', 'foliada', 'direccionada', 'folio_completado', 'tramitada', 'cancelada',
+]
+
+// Quién hizo qué, congelado al momento (nombre y cargo no se reescriben si la
+// persona cambia de cargo). Es la línea de tiempo que ve la supervisión.
+const pasoHistorialSchema = new mongoose.Schema(
+  {
+    accion: { type: String, enum: ACCIONES_HISTORIAL, required: true },
+    por: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+    nombre: { type: String, trim: true, default: '' },
+    cargo: { type: String, trim: true, default: '' },
+    fecha: { type: Date, default: Date.now },
+    nota: { type: String, trim: true, default: '' },
+  },
+  { _id: false }
+)
+
 const ausenciaSchema = new mongoose.Schema(
   {
     solicitante: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true, index: true },
@@ -97,6 +128,60 @@ const ausenciaSchema = new mongoose.Schema(
     },
 
     canceladaEn: { type: Date, default: null },
+
+    // ── Trámite de la incapacidad (solo tipo 'incapacidad') ──────────────
+    // Sin default a propósito: en vacaciones y permisos queda undefined y el
+    // enum no se dispara. El service lo fija al crear la incapacidad.
+    etapa: { type: String, enum: ETAPAS_INCAPACIDAD, index: true },
+    // Desde cuándo está en la etapa actual: la supervisión lo usa para ver
+    // qué incapacidades llevan demasiado tiempo detenidas.
+    etapaDesde: { type: Date },
+
+    // SIG: verificación del soporte. Si la devuelve, el motivo va al historial.
+    verificacion: {
+      por: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', default: null },
+      nombre: { type: String, trim: true, default: '' },
+      cargo: { type: String, trim: true, default: '' },
+      fecha: { type: Date, default: null },
+      observacion: { type: String, trim: true, default: '' },
+    },
+
+    // Secretaria de Gerencia: lo que anota al foliar. El destinatario no se
+    // conoce aún en ese momento: la Gerencia lo define al direccionar y la
+    // Secretaria lo registra después en el folio (destinatarioRegistrado).
+    folio: {
+      numero: { type: String, trim: true, default: '' },
+      observacion: { type: String, trim: true, default: '' },
+      fecha: { type: Date, default: null },
+      por: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', default: null },
+      nombre: { type: String, trim: true, default: '' },
+      cargo: { type: String, trim: true, default: '' },
+      destinatarioRegistrado: { type: Boolean, default: false },
+      destinatarioRegistradoEn: { type: Date, default: null },
+      destinatarioRegistradoPor: { type: String, trim: true, default: '' },
+    },
+
+    // Gerencia: a quién de Talento Humano va dirigida y con qué mensaje.
+    direccionamiento: {
+      destinatario: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', default: null },
+      nombreDestinatario: { type: String, trim: true, default: '' },
+      mensaje: { type: String, trim: true, default: '' },
+      fecha: { type: Date, default: null },
+      por: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', default: null },
+      nombre: { type: String, trim: true, default: '' },
+      cargo: { type: String, trim: true, default: '' },
+    },
+
+    // Talento Humano: cierre del ciclo.
+    tramite: {
+      por: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', default: null },
+      nombre: { type: String, trim: true, default: '' },
+      cargo: { type: String, trim: true, default: '' },
+      fecha: { type: Date, default: null },
+      observacion: { type: String, trim: true, default: '' },
+    },
+
+    historial: { type: [pasoHistorialSchema], default: undefined },
   },
   { timestamps: true }
 )
@@ -104,5 +189,7 @@ const ausenciaSchema = new mongoose.Schema(
 // Sirve a las dos consultas calientes del módulo: "mis ausencias" y la
 // detección de solapamiento (solicitante + rango de fechas).
 ausenciaSchema.index({ solicitante: 1, fechaInicio: 1, fechaFin: 1 })
+// Las bandejas del trámite de incapacidades filtran por tipo + etapa.
+ausenciaSchema.index({ tipo: 1, etapa: 1, etapaDesde: 1 })
 
 export default mongoose.model('Ausencia', ausenciaSchema)

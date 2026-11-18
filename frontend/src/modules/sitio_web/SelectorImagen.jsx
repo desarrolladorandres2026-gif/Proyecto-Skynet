@@ -5,7 +5,8 @@ import { sitioWebApi } from '../../api/sitioWeb.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { useValorDiferido } from '../../hooks/useValorDiferido.js'
 import { cn } from '../../lib/cn.js'
-import { Btn, ErrorMsg, Input, Modal, Pager } from '../../components/ui.jsx'
+import { Btn, ErrorMsg, Modal, Pager } from '../../components/ui.jsx'
+import { SearchInput } from '../../components/ds/index.js'
 
 const ACEPTA = 'image/jpeg,image/png,image/webp,image/gif'
 const MAX_BYTES = 8 * 1024 * 1024
@@ -50,10 +51,9 @@ export function SelectorImagen({ abierto, onCerrar, onElegir }) {
   return (
     <Modal abierto={abierto} titulo="Elegir imagen" onCerrar={subiendo ? () => {} : onCerrar} ancho="max-w-3xl">
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        <Input
-          type="search"
+        <SearchInput
           value={busqueda}
-          onChange={(e) => { setBusqueda(e.target.value); setPage(1) }}
+          onChange={(v) => { setBusqueda(v); setPage(1) }}
           placeholder="Buscar en la biblioteca…"
           className="sm:max-w-xs"
         />

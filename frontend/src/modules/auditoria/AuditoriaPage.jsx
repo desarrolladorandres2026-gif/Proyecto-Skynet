@@ -284,8 +284,7 @@ export default function AuditoriaPage() {
           </p>
           <div className="flex gap-2">
             <Btn variante="fantasma" onClick={() => setSeleccionados(new Set())}>Quitar selección</Btn>
-            <Btn variante="peligro" onClick={abrirLote} className="flex items-center gap-1.5">
-              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+            <Btn variante="peligro" onClick={abrirLote}>
               Eliminar seleccionados
             </Btn>
           </div>

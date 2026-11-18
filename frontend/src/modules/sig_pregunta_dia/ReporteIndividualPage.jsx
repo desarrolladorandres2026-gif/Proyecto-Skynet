@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { UserRoundSearch, Search, ArrowLeft, ChevronRight } from 'lucide-react'
+import { UserRoundSearch, ArrowLeft, ChevronRight } from 'lucide-react'
 import { sig } from '../../api/sig.js'
 import { catalogosApi } from '../../api/catalogos.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import {
-  Btn, Card, ErrorMsg, Input, Badge, TablaWrap, Th, Td, EmptyState, fmtFecha,
+  Btn, Card, ErrorMsg, Badge, TablaWrap, Th, Td, EmptyState, fmtFecha,
 } from '../../components/ui.jsx'
+import { SearchInput } from '../../components/ds/index.js'
 import FiltrosDashboardSig from '../../components/sig/FiltrosDashboardSig.jsx'
 
 const FILTROS_VACIOS = { desde: '', hasta: '', dependencia: '', cargo: '', componenteSig: '', tema: '', resultado: '' }
@@ -149,19 +150,12 @@ export default function ReporteIndividualPage() {
       {!usuarioId ? (
         <>
           <Card className="mb-4">
-            <div className="relative">
-              <Search
-                className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-slate-400"
-                aria-hidden="true"
-              />
-              <Input
-                className="!pl-8"
-                placeholder="Filtrar por nombre, cargo o dependencia…"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                aria-label="Filtrar el listado por nombre"
-              />
-            </div>
+            <SearchInput
+              placeholder="Filtrar por nombre, cargo o dependencia…"
+              value={busqueda}
+              onChange={setBusqueda}
+              aria-label="Filtrar el listado por nombre"
+            />
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
               {cargandoLista
                 ? 'Cargando…'

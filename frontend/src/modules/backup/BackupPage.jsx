@@ -41,7 +41,7 @@ export default function BackupPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="space-y-6">
       <div className="mb-2 flex items-center gap-3">
         <DatabaseBackup className="h-6 w-6 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <div>

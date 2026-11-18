@@ -7,6 +7,7 @@ import Permiso from '../../models/Permiso.js'
 import EnvioNotificacion from '../../models/EnvioNotificacion.js'
 import Notificacion from '../../models/Notificacion.js'
 import webpush from '../../utils/webpush.js'
+import { publicar } from '../../utils/streamNativo.js'
 import { env } from '../../config/env.js'
 import { enviarEmailGenerico } from '../../utils/email.js'
 import { sinEmoji } from '../../utils/emailDiseno.js'
@@ -233,6 +234,23 @@ async function enviarPush(envio) {
   if (!sub || sub.estado === 'expirada') {
     throw Object.assign(new Error('La suscripción push ya no existe'), { descartar: true })
   }
+  if (sub.tipo === 'nativo') {
+    const entregado = publicar(String(sub.usuario), sub.dispositivoId, 'notificacion', {
+      id: String(envio._id),
+      title: envio.titulo,
+      body: envio.cuerpo,
+      url: envio.url || '/',
+    })
+    if (!entregado) {
+      // La app no está conectada ahora mismo (celular sin red, servicio
+      // detenido). No es un fallo real ni cuenta como intento: se reintenta
+      // cada minuto hasta que se reconecte (ver registrarFallo).
+      throw Object.assign(new Error('Dispositivo sin conexión'), { sinConexion: true })
+    }
+    sub.ultimoUsoEn = new Date()
+    await sub.save()
+    return
+  }
   await webpush.sendNotification(
     { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
     // El "tag" de Notifications API NO es una etiqueta cosmética: si dos
@@ -286,6 +304,15 @@ async function registrarFallo(envio, err) {
 
   if (esSuscripcionMuerta && envio.pushSubscription) {
     await PushSubscription.deleteOne({ _id: envio.pushSubscription })
+  }
+
+  // Dispositivo nativo desconectado: espera sin gastar intentos, y se rinde
+  // a las 24 h (una notificación de ayer ya no sirve).
+  if (err.sinConexion && Date.now() - envio.createdAt.getTime() < 24 * 60 * 60 * 1000) {
+    envio.error = err.message
+    envio.proximoIntentoEn = new Date(Date.now() + 60 * 1000)
+    await envio.save()
+    return
   }
 
   envio.intentos += 1

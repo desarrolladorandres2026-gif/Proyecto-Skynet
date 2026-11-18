@@ -1,8 +1,8 @@
 import { toast } from 'sonner'
-import { Bot, Volume2 } from 'lucide-react'
+import { Bot } from 'lucide-react'
 import { ia as iaApi } from '../../api/ia.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
-import { Card, Switch, ErrorMsg } from '../../components/ui.jsx'
+import { SeccionLateral, Switch, ErrorMsg } from '../../components/ui.jsx'
 
 export default function PreferenciasIAPage() {
   const { data, error, actualizarLocal } = useDatosConCache(
@@ -28,14 +28,14 @@ export default function PreferenciasIAPage() {
 
   if (!preferencias) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div>
         <ErrorMsg>{error}</ErrorMsg>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Bot className="h-6 w-6 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <div>
@@ -51,17 +51,11 @@ export default function PreferenciasIAPage() {
 
       <ErrorMsg>{error}</ErrorMsg>
 
-      <Card>
-        <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-          <Volume2 className="h-4 w-4 text-brand-600 dark:text-brand-400" aria-hidden="true" />
-          Voz
-        </h2>
+      <SeccionLateral titulo="Voz" descripcion="Si Skynet te lee los avisos en voz alta.">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-slate-800 dark:text-slate-100">Leer los avisos en voz alta</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Si lo apagas, los avisos siguen llegando al chat como burbuja, pero Skynet no los lee en voz.
-            </p>
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Leer los avisos en voz alta</p>
+            <p className="text-sm text-slate-700 dark:text-slate-200">Si lo apagas, los avisos siguen llegando al chat como burbuja, pero Skynet no los lee en voz.</p>
           </div>
           <Switch
             checked={preferencias.voz.activo}
@@ -69,17 +63,13 @@ export default function PreferenciasIAPage() {
             label="Activar voz para avisos de IA"
           />
         </div>
-      </Card>
+      </SeccionLateral>
 
-      <Card>
+      <SeccionLateral titulo="Recordatorios" descripcion="Avisos por iniciativa de Skynet cuando tienes trabajo esperando.">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-slate-800 dark:text-slate-100">Recordarme lo que tengo pendiente</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Skynet te avisa por su cuenta, como máximo cada 2 horas, cuando tienes trabajo esperando
-              (requerimientos por aprobar, solicitudes por revisar, tareas asignadas). Si no hay nada
-              pendiente, no dice nada.
-            </p>
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Recordarme lo que tengo pendiente</p>
+            <p className="text-sm text-slate-700 dark:text-slate-200">Como máximo cada 2 horas, cuando tienes trabajo esperando (requerimientos por aprobar, solicitudes por revisar, tareas asignadas). Si no hay nada pendiente, no dice nada.</p>
           </div>
           <Switch
             checked={preferencias.recordatorios?.activo !== false}
@@ -89,31 +79,28 @@ export default function PreferenciasIAPage() {
             label="Activar recordatorios de pendientes"
           />
         </div>
-      </Card>
+      </SeccionLateral>
 
-      <Card>
-        <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">Qué te avisa Skynet</h2>
-        <div className="space-y-3">
-          {categorias.map((cat) => (
-            <div key={cat.key} className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{cat.nombre}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{cat.descripcion}</p>
-              </div>
-              <Switch
-                checked={preferencias.categorias[cat.key] !== false}
-                onChange={(v) =>
-                  guardar({ categorias: { [cat.key]: v } }, (p) => ({
-                    ...p,
-                    categorias: { ...p.categorias, [cat.key]: v },
-                  }))
-                }
-                label={`Avisarme de ${cat.nombre}`}
-              />
-            </div>
-          ))}
+      <SeccionLateral titulo="Qué te avisa Skynet" descripcion="Categorías de avisos que quieres recibir.">
+        {categorias.map((cat) => (
+        <div key={cat.key} className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{cat.nombre}</p>
+            <p className="text-sm text-slate-700 dark:text-slate-200">{cat.descripcion}</p>
+          </div>
+            <Switch
+              checked={preferencias.categorias[cat.key] !== false}
+              onChange={(v) =>
+                guardar({ categorias: { [cat.key]: v } }, (p) => ({
+                  ...p,
+                  categorias: { ...p.categorias, [cat.key]: v },
+                }))
+              }
+              label={`Avisarme de ${cat.nombre}`}
+            />
         </div>
-      </Card>
+        ))}
+      </SeccionLateral>
     </div>
   )
 }

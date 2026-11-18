@@ -1,0 +1,15 @@
+{
+  "name": "video-incapacidades",
+  "private": true,
+  "type": "module",
+  "description": "Video informativo del trámite de incapacidades: animación en HTML + voz local + render a MP4",
+  "scripts": {
+    "voz": "powershell -NoProfile -ExecutionPolicy Bypass -File sintetizar.ps1",
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "msedge-tts": "^2.1.1",
+    "puppeteer-core": "^23.0.0"
+  }
+}

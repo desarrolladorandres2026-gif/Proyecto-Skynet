@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TTN Neiva</string>
+    <string name="title_activity_main">TTN Neiva</string>
+    <string name="package_name">online.skynetttn.app</string>
+    <string name="custom_url_scheme">online.skynetttn.app</string>
+    <string name="skynet_base_url">https://skynetttn.online</string>
+</resources>

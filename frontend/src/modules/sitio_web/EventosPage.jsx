@@ -156,7 +156,7 @@ export default function EventosPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div>
       <EncabezadoSeccion
         icono={CalendarDays}
         titulo="Eventos"

@@ -10,6 +10,9 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { useAuth } from './AuthContext.jsx'
+import {
+  TematicaEfectos, TematicaGorro, TematicaLogin, prepararAudio, sonarInicioSesion,
+} from '../tematicas/index.js'
 import logoClaro from '../assets/claro.png'
 import './login.css'
 
@@ -78,9 +81,11 @@ export default function LoginPage() {
 
     setError('')
     setFase('verificando')
+    prepararAudio() // dentro del gesto del clic: el navegador solo así permite sonar
 
     try {
       const resUsuario = await login(email, password)
+      sonarInicioSesion() // sonido de la temática activa (no bloquea el ingreso)
       setUsuarioData(resUsuario)
       setFase('concedido')
     } catch (err) {
@@ -99,6 +104,11 @@ export default function LoginPage() {
         if (enSecuencia) navigate('/', { replace: true })
       }}
     >
+      {/* Temática del sistema: luces + nieve a pantalla completa (la temática
+          es pública: se lee sin sesión) */}
+      <TematicaEfectos />
+      <TematicaLogin zona="fondo" />
+
       {/* Transición suave al entrar */}
       {fase === 'entrando' && <div className="skynet-portal-flash" aria-hidden="true" />}
 
@@ -122,6 +132,8 @@ export default function LoginPage() {
           <div className="skynet-hero-img" />
           <div className="skynet-hero-vignette absolute inset-0" />
         </div>
+
+        <TematicaLogin zona="hero" />
 
         {/* Pie inferior del Hero: Título institucional y lema */}
         <div className="relative z-10 pt-0 lg:pt-10">
@@ -222,6 +234,7 @@ export default function LoginPage() {
                 {/* Logo institucional con aura */}
                 <div className="mb-7 sm:mb-6 text-center">
                   <div className="group relative mx-auto mb-4 sm:mb-3.5 flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-2xl bg-gradient-to-b from-white to-slate-100 p-2.5 shadow-xl ring-4 ring-blue-500/20 transition-transform duration-300 hover:scale-105">
+                    <TematicaGorro grande />
                     <img
                       src={logoClaro}
                       alt="Terminal de Transportes de Neiva"
@@ -306,6 +319,14 @@ export default function LoginPage() {
                         )}
                       </button>
                     </div>
+                    <div className="text-right">
+                      <Link
+                        to="/recuperar-password"
+                        className="text-[11px] font-medium text-[#4585bd] underline-offset-2 transition-colors hover:text-blue-300 hover:underline"
+                      >
+                        ¿Olvidaste tu contraseña?
+                      </Link>
+                    </div>
                   </div>
 
                   {/* Telemetría animada durante verificación */}
@@ -387,6 +408,7 @@ export default function LoginPage() {
             )}
           </div>
         </div>
+        <TematicaLogin zona="pie" />
       </div>
   )
 }

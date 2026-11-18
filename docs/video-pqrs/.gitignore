@@ -1,0 +1,5 @@
+# Se regeneran con: node voz-edge.mjs / node grabar.mjs / node componer.mjs
+grabacion/
+narracion/
+node_modules/
+*.mp4

@@ -27,3 +27,30 @@ export const MOTIVOS_PERMISO_REMUNERADO = [
 ]
 
 export const MOTIVO_LICENCIA_LABELS = Object.fromEntries(MOTIVOS_PERMISO_REMUNERADO.map((m) => [m.value, m.label]))
+
+// Trámite de una incapacidad (espejo de ETAPAS_INCAPACIDAD en
+// Backend/src/models/Ausencia.js). Pasa por SIG, la Secretaria de Gerencia, la
+// Gerencia y Talento Humano; ver Backend/src/modules/ausencias/incapacidades.service.js.
+export const ETAPAS_INCAPACIDAD = [
+  { value: 'en_verificacion', label: 'En verificación (SIG)' },
+  { value: 'devuelta', label: 'Devuelta al trabajador' },
+  { value: 'por_foliar', label: 'Verificada y aprobada' },
+  { value: 'foliada', label: 'Foliada · espera direccionamiento' },
+  { value: 'direccionada', label: 'En Talento Humano' },
+  { value: 'tramitada', label: 'Tramitada' },
+]
+
+export const ETAPA_INCAPACIDAD_LABELS = Object.fromEntries(ETAPAS_INCAPACIDAD.map((e) => [e.value, e.label]))
+
+// Lo que cada paso de la línea de tiempo cuenta, en lenguaje de quien lo lee.
+export const ACCION_HISTORIAL_LABELS = {
+  creada: 'Reportó la incapacidad',
+  verificada: 'Verificó y aprobó el soporte',
+  devuelta: 'Devolvió la incapacidad al trabajador',
+  reenviada: 'Corrigió y reenvió a verificación',
+  foliada: 'Foliada',
+  direccionada: 'Direccionó a Talento Humano',
+  folio_completado: 'Completó el folio con el destinatario',
+  tramitada: 'Recibió y tramitó',
+  cancelada: 'Retiró la solicitud',
+}

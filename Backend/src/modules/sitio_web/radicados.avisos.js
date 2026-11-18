@@ -2,6 +2,7 @@ import SeguimientoRadicados from '../../models/SeguimientoRadicados.js'
 import { notificarUsuarios } from '../../utils/sendPush.js'
 import { usuariosConPermiso } from '../mantenimiento/comun.js'
 import { wpConfigurado, wpRequest } from './wp.client.js'
+import { esSpamProbable } from './radicados.spam.js'
 
 // Aviso de radicados (PQRS) nuevos. Los radicados los crea el formulario
 // público en WordPress, sin pasar por Skynet, así que no hay un punto de
@@ -80,8 +81,12 @@ export async function avisarRadicadosNuevos() {
   )
   if (!reclamado) return 0
 
+  // El spam marcado no genera aviso (la marca ya avanzó: no se reintenta) pero sigue en la bandeja.
+  const avisables = nuevos.filter((r) => !esSpamProbable(r.resumen))
+  if (!avisables.length) return 0
+
   const destinatarios = await usuariosConPermiso(PERMISO_PQRS)
-  const avisos = nuevos.length > MAX_AVISOS_INDIVIDUALES ? [payloadResumen(nuevos)] : nuevos.map(payloadIndividual)
+  const avisos = avisables.length > MAX_AVISOS_INDIVIDUALES ? [payloadResumen(avisables)] : avisables.map(payloadIndividual)
   for (const payload of avisos) await notificarUsuarios(destinatarios, payload, 'pqrs')
-  return nuevos.length
+  return avisables.length
 }

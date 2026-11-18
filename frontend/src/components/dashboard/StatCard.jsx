@@ -37,8 +37,24 @@ function useConteoAnimado(valor, duracionMs = 700) {
   return mostrado
 }
 
-export function StatCard({ icon: Icon, label, valor, tono = 'brand', trend, className = '' }) {
+export function StatCard({ icon: Icon, label, valor, tono = 'brand', trend, compacto = false, className = '' }) {
   const mostrado = useConteoAnimado(valor)
+  if (compacto) {
+    return (
+      <div className={cn('group flex items-center gap-2.5', className)}>
+        <div className={cn('inline-flex shrink-0 rounded-lg p-1.5 transition-transform group-hover:scale-105', TONO_ICONO[tono] ?? TONO_ICONO.brand)}>
+          <Icon className="h-4 w-4" aria-hidden="true" />
+        </div>
+        <p className={cn('font-display text-xl font-bold tabular-nums leading-none', TONO_NUMERO[tono] ?? TONO_NUMERO.brand)}>
+          {mostrado}
+        </p>
+        <p className="min-w-0 flex-1 truncate text-xs leading-tight text-slate-500 dark:text-slate-400" title={label}>
+          {label}
+        </p>
+        {trend}
+      </div>
+    )
+  }
   return (
     <div className={cn('group relative', className)}>
       <div className="flex items-start justify-between gap-2">

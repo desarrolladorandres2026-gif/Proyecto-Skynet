@@ -45,10 +45,10 @@ export const auth = {
 }
 
 export const resetPassword = {
-  solicitar(nombre_usuario, email) {
+  solicitar(email) {
     return request('/auth/solicitar-reset', {
       method: 'POST',
-      body: JSON.stringify({ nombre_usuario, email }),
+      body: JSON.stringify({ email }),
     })
   },
   validarToken(token) {

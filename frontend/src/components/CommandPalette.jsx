@@ -46,13 +46,15 @@ export function CommandPalette({ abierto, onAbrirCambio, modulosVisibles }) {
       overlayClassName="panel-modal-backdrop fixed inset-0 z-50 data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out"
       contentClassName="data-[state=open]:animate-zoom-in data-[state=closed]:animate-fade-out"
     >
-      <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3 dark:border-white/10">
-        <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
-        <Command.Input
-          autoFocus
-          placeholder="Buscar un módulo o página…"
-          className="w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100"
-        />
+      <div className="flex items-center gap-2 p-3">
+        <div className="flex w-full items-center rounded-full border border-transparent bg-papel-fondo px-4 py-2.5 shadow-sm">
+          <Command.Input
+            autoFocus
+            placeholder="Buscar un módulo o página…"
+            className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta-segundo"
+          />
+          <Search className="h-4 w-4 shrink-0 text-tinta-segundo" aria-hidden="true" />
+        </div>
       </div>
       <Command.List className="max-h-[50svh] overflow-y-auto p-2">
         <Command.Empty className="px-3 py-6 text-center text-sm text-slate-400">Sin resultados.</Command.Empty>

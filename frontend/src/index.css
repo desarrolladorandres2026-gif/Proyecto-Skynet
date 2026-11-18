@@ -25,6 +25,7 @@
    imports para ganarle a las utilidades de Tailwind (ver tipografia.css). */
 @import "./tipografia.css";
 @import "./styles/admin.css";
+@import "./styles/boton-skynet.css";
 
 /* Tokens del sistema de diseño: Tailwind v4 lee este bloque @theme y genera
    las utilidades correspondientes (bg-brand-500, font-display, rounded-xl,
@@ -55,17 +56,17 @@
      claro; 300-400 = acento sobre fondos oscuros. */
 
   /* AZUL — tomado del azul del logo (azur corporativo, no cian neón). */
-  --color-brand-50: #eef5fb;
-  --color-brand-100: #d5e6f4;
-  --color-brand-200: #aacbe6;
-  --color-brand-300: #77a9d3;
-  --color-brand-400: #4585bd;
-  --color-brand-500: #2468a3;
-  --color-brand-600: #1c568c;
-  --color-brand-700: #184873;
-  --color-brand-800: #163c5e;
-  --color-brand-900: #14324e;
-  --color-brand-950: #0d2036;
+  --color-brand-50: #eef8fe;
+  --color-brand-100: #d3eefc;
+  --color-brand-200: #a8dcf7;
+  --color-brand-300: #6cc1ee;
+  --color-brand-400: #2fa1e0;
+  --color-brand-500: #0a86c9;
+  --color-brand-600: #0072b5;
+  --color-brand-700: #005f98;
+  --color-brand-800: #004d7c;
+  --color-brand-900: #003b60;
+  --color-brand-950: #002640;
 
   /* VERDE — verde del logo (hoja/vía, vivo pero no lima). Segundo color
      real de la identidad: señaliza operación normal y éxito. */
@@ -95,6 +96,38 @@
   --color-warn-800: #7a3812;
   --color-warn-900: #642f12;
   --color-warn-950: #3a1907;
+
+  /* Sistema de diseño "funcional": paleta aparte de la del logo (brand/
+     accent/warn arriba, usada en sidebar/dashboard). azul es el ÚNICO color
+     de interacción/acción (botones, foco, enlaces); verde y rojo son solo
+     funcionales (éxito/error), nunca decorativos. Sin dorado, morado,
+     naranja ni degradados fuera de la barra lateral. Tailwind v4 lee este
+     bloque @theme y genera las utilidades bg-azul, text-azul-oscuro,
+     border-borde-fuerte, etc. — no hay tailwind.config.js en este proyecto.
+     Los nombres de variable (azul/azul-oscuro/azul-suave) quedaron del
+     diseño original en azul; el color de acción pasó a verde claro a
+     pedido, pero renombrar las variables obligaría a tocar cada clase
+     bg-azul/text-azul/border-azul ya escrita (Button, HeaderButton,
+     TextButton, Input, FilterBar, BarraLateral...) sin ganar nada. */
+  --color-azul: #0072b5;
+  --color-azul-oscuro: #005f98;
+  --color-azul-suave: #e0f3fd;
+
+  --color-verde: #1e7b4a;
+  --color-verde-suave: #e3f2ea;
+
+  --color-rojo: #b3261e;
+  --color-rojo-oscuro: #8f1e18;
+  --color-rojo-suave: #fbe9e7;
+
+  --color-papel: #ffffff;
+  --color-papel-fondo: #f3f5f8;
+
+  --color-borde: #c4ccd8;
+  --color-borde-fuerte: #728096;
+
+  --color-tinta: #1a2230;
+  --color-tinta-segundo: #3b4658;
 
   /* Radios consistentes en todo el sistema nuevo */
   --radius-sm: 0.375rem;
@@ -896,4 +929,25 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+/* Sección con título lateral (componente SeccionLateral en ui.jsx).
+   Sin tarjetas ni fondos: solo una línea fina entre secciones. */
+.seccion-lateral {
+  display: grid;
+  grid-template-columns: 14rem minmax(0, 1fr);
+  column-gap: 32px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  border-top: 1px solid var(--color-borde);
+  color: var(--color-tinta);
+}
+.seccion-lateral:first-of-type { border-top: 0; }
+.dark .seccion-lateral { color: #e2e8f0; border-top-color: #475569; }
+.seccion-lateral__titulo { font-size: 14px; font-weight: 600; margin: 0; }
+.seccion-lateral__descripcion { font-size: 13px; margin: 4px 0 0; color: inherit; }
+.seccion-lateral__cuerpo { max-width: 460px; display: flex; flex-direction: column; gap: 14px; }
+.seccion-lateral__acciones { display: flex; justify-content: flex-start; gap: 8px; }
+@media (max-width: 719px) {
+  .seccion-lateral { grid-template-columns: minmax(0, 1fr); row-gap: 14px; }
+  .seccion-lateral__cuerpo { max-width: none; }
 }

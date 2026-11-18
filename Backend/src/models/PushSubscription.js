@@ -3,9 +3,24 @@ import mongoose from 'mongoose'
 const pushSubscriptionSchema = new mongoose.Schema(
   {
     usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
+    // 'web' = Push API del navegador (VAPID). 'nativo' = app Android que
+    // recibe por una conexión SSE propia (ver utils/streamNativo.js); allí
+    // endpoint = 'nativo:<dispositivoId>' y no hay claves p256dh/auth.
+    tipo: { type: String, enum: ['web', 'nativo'], default: 'web' },
+    dispositivoId: { type: String, trim: true },
     endpoint: { type: String, required: true, unique: true },
-    p256dh: { type: String, required: true },
-    auth: { type: String, required: true },
+    p256dh: {
+      type: String,
+      required: function () {
+        return this.tipo !== 'nativo'
+      },
+    },
+    auth: {
+      type: String,
+      required: function () {
+        return this.tipo !== 'nativo'
+      },
+    },
     // Metadatos de UA capturados al suscribirse (ver notificaciones.controller.js):
     // permiten mostrarle al usuario "Chrome en Windows" en vez de un endpoint
     // ilegible, y decidir cuál "olvidar" cuando tiene varios dispositivos.

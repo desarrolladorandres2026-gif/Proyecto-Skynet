@@ -1,11 +1,11 @@
 import { Fragment, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ClipboardList, ArrowLeft, Printer, Library, ChevronRight, ChevronDown } from 'lucide-react'
+import { ClipboardList, ArrowLeft, Printer, Library } from 'lucide-react'
 import { requerimientos as requerimientosApi } from '../../api/requerimientos.js'
+import ReautenticacionModal from '../../components/ReautenticacionModal.jsx'
 import { Btn, Card, ErrorMsg, OkMsg, Select, TablaWrap, Th, Td, EmptyState, fmtFecha } from '../../components/ui.jsx'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh.js'
-import { useDatosConCache } from '../../hooks/useDatosConCache.js'
-import ArticuloSelector from './ArticuloSelector.jsx'
+import { useDatosConCache, invalidarCachePorPrefijo } from '../../hooks/useDatosConCache.js'
 
 const ESTADOS_SUPERVISION = [
   { valor: '', label: 'Todos los estados' },
@@ -30,7 +30,7 @@ function textoPedido(l) {
   return l.presentacion ? `${l.cantidad} ${l.presentacion} (x${l.factor}) = ${l.unidades}` : String(l.cantidad)
 }
 
-function Desglose({ lineas, mostrarEstado = false }) {
+function Desglose({ lineas, mostrarEstado = false, onDespachar }) {
   return (
     <ul className="divide-y divide-brand-600/10 text-sm dark:divide-brand-400/10">
       {lineas.map((l) => (
@@ -47,44 +47,15 @@ function Desglose({ lineas, mostrarEstado = false }) {
             <Link to={`/requerimientos/${l.requerimientoId}`} className="text-brand-700 hover:underline print:hidden dark:text-brand-400">
               Abrir
             </Link>
+            {onDespachar && (
+              <Btn onClick={() => onDespachar({ ids: [l.requerimientoId], etiqueta: `Requerimiento de ${l.solicitante}` })} className="!px-2.5 !py-1 text-xs print:hidden">
+                Despachado
+              </Btn>
+            )}
           </span>
         </li>
       ))}
     </ul>
-  )
-}
-
-function FilaSinIdentificar({ fila, onVincular, ocupado, soloLectura = false }) {
-  const [texto, setTexto] = useState('')
-  return (
-    <div className="space-y-3 border-b border-brand-600/20 py-3 dark:border-brand-400/20">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-sm font-medium text-slate-800 dark:text-slate-100">«{fila.texto}»</p>
-        <p className="text-sm text-slate-700 dark:text-slate-300">Total pedido: <strong>{fila.total}</strong></p>
-      </div>
-      <Desglose lineas={fila.desglose} mostrarEstado={soloLectura} />
-      {soloLectura ? (
-        fila.sugerencias.length > 0 && (
-          <p className="text-xs text-slate-700 dark:text-slate-300">
-            Parecido a: {fila.sugerencias.map((s) => s.nombre).join(' · ')}
-          </p>
-        )
-      ) : (
-      <div className="space-y-2 print:hidden">
-        {fila.sugerencias.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-slate-700 dark:text-slate-300">¿Es alguno de estos?</span>
-            {fila.sugerencias.map((s) => (
-              <Btn key={s._id} variante="secundario" disabled={ocupado} onClick={() => onVincular(fila, s._id)} className="!px-2.5 !py-1 text-xs">
-                {s.nombre}
-              </Btn>
-            ))}
-          </div>
-        )}
-        <ArticuloSelector texto={texto} onTexto={setTexto} onElegir={(a) => onVincular(fila, a._id)} placeholder="O busca otro artículo del catálogo" />
-      </div>
-      )}
-    </div>
   )
 }
 
@@ -100,9 +71,21 @@ export default function ConsolidadoBodegaPage({ supervision = false }) {
     { ttlMs: 15_000 },
   )
   const [abiertos, setAbiertos] = useState(() => new Set())
-  const [ocupado, setOcupado] = useState(false)
-  const [errorAccion, setErrorAccion] = useState('')
+  // Línea cuyo requerimiento Bodega está marcando como despachado.
+  const [porDespachar, setPorDespachar] = useState(null)
   const [ok, setOk] = useState('')
+
+  // Al despachar, el requerimiento pasa a bodega.estado = 'aprobada' y sale
+  // solo de "Qué despachar" (el consolidado filtra por 'pendiente').
+  async function despachar(password) {
+    for (const rid of porDespachar.ids) {
+      // eslint-disable-next-line no-await-in-loop
+      await requerimientosApi.marcarEstadoBodega(rid, 'aprobada', undefined, password)
+    }
+    setOk(`${porDespachar.etiqueta} despachado`)
+    invalidarCachePorPrefijo('requerimientos:')
+    await recargarSilencioso()
+  }
 
   useAutoRefresh(recargarSilencioso)
 
@@ -115,38 +98,18 @@ export default function ConsolidadoBodegaPage({ supervision = false }) {
     })
   }
 
-  // Vincula TODAS las líneas que comparten ese texto libre al mismo artículo.
-  async function vincularFila(fila, articuloId) {
-    setOcupado(true)
-    setErrorAccion('')
-    setOk('')
-    try {
-      for (const l of fila.desglose) {
-        // eslint-disable-next-line no-await-in-loop
-        await requerimientosApi.vincularItem(l.requerimientoId, l.itemId, articuloId)
-      }
-      setOk(`«${fila.texto}» vinculado al catálogo`)
-      await recargarSilencioso()
-    } catch (err) {
-      setErrorAccion(err.message)
-    } finally {
-      setOcupado(false)
-    }
-  }
-
   const articulos = data?.articulos || []
-  const sinIdentificar = data?.sinIdentificar || []
   const soloLectura = supervision || despachados
-  const vacio = !cargando && articulos.length === 0 && sinIdentificar.length === 0
-
-  // Agrupa por "grupo" de Elisa, ya vienen ordenados por grupo y nombre.
-  const grupos = []
-  for (const fila of articulos) {
-    const g = fila.articulo.grupo || 'SIN GRUPO'
-    const ultimo = grupos[grupos.length - 1]
-    if (ultimo?.nombre === g) ultimo.filas.push(fila)
-    else grupos.push({ nombre: g, filas: [fila] })
-  }
+  // Los productos escritos a mano (sin vincular al catálogo) también se despachan:
+  // van en la misma tabla, sin dato de existencia.
+  const libres = (data?.sinIdentificar || []).map((f) => ({
+    articulo: { _id: `libre:${f.texto}`, nombre: f.texto, existencia: '—' },
+    total: f.total,
+    faltante: 0,
+    desglose: f.desglose,
+  }))
+  const filas = [...articulos, ...libres]
+  const vacio = !cargando && filas.length === 0
 
   return (
     <div className="w-full space-y-4">
@@ -186,8 +149,15 @@ export default function ConsolidadoBodegaPage({ supervision = false }) {
         </div>
       </div>
 
-      <ErrorMsg>{error || errorAccion}</ErrorMsg>
+      <ErrorMsg>{error}</ErrorMsg>
       {ok && <OkMsg>{ok}</OkMsg>}
+      <ReautenticacionModal
+        abierto={!!porDespachar}
+        titulo="Confirmar despacho"
+        descripcion={`Reingresa tu contraseña para despachar ${porDespachar?.ids.length || 0} requerimiento(s) completo(s). Saldrán de «Qué despachar».`}
+        onConfirmar={despachar}
+        onCerrar={() => setPorDespachar(null)}
+      />
 
       {cargando ? (
         <Card>Cargando…</Card>
@@ -196,74 +166,59 @@ export default function ConsolidadoBodegaPage({ supervision = false }) {
       ) : (
         <>
           <p className="flex flex-wrap gap-x-6 gap-y-1 border-y border-brand-600/20 py-2 text-sm text-slate-700 dark:border-brand-400/20 dark:text-slate-300">
-            <Resumen etiqueta={supervision ? 'Requerimientos' : despachados ? 'Requerimientos despachados' : 'Requerimientos pendientes'} valor={data.requerimientos} />
-            <Resumen etiqueta="Artículos" valor={articulos.length} />
+            <Resumen etiqueta="Requerimientos" valor={data.requerimientos} />
+            <Resumen etiqueta="Artículos" valor={filas.length} />
             {!soloLectura && <Resumen etiqueta="Sin stock suficiente" valor={data.sinStock} alerta />}
-            <Resumen etiqueta="Por identificar" valor={sinIdentificar.length} alerta />
           </p>
 
-          {sinIdentificar.length > 0 && (
-            <section>
-              <h2 className="panel-mono text-xs uppercase tracking-[0.1em] text-warn-700 dark:text-warn-400">
-                {supervision ? 'Sin identificar — no coinciden con el catálogo' : 'Por identificar — vincúlalos al catálogo para sumarlos'}
-              </h2>
-              {sinIdentificar.map((fila) => (
-                <FilaSinIdentificar key={fila.texto} fila={fila} onVincular={vincularFila} ocupado={ocupado} soloLectura={soloLectura} />
-              ))}
-            </section>
-          )}
-
-          {grupos.map((g) => (
-            <section key={g.nombre} className="space-y-2">
-              <h2 className="panel-mono text-xs uppercase tracking-[0.1em] text-brand-700 dark:text-brand-400">{g.nombre}</h2>
-              <TablaWrap cuadricula>
-                <thead>
-                  <tr>
-                    <Th>Artículo (nombre en Elisa)</Th>
-                    <Th>Despachar</Th>
-                    <Th>En existencia</Th>
-                    {!soloLectura && <Th>Estado</Th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {g.filas.map((f) => {
-                    const id = f.articulo._id
-                    const abierto = abiertos.has(id)
-                    return (
-                      <Fragment key={id}>
-                        <tr onClick={() => alternar(id)} className="cursor-pointer">
-                          <Td>
-                            <span className="flex items-center gap-1.5 font-medium">
-                              {abierto ? <ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" /> : <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />}
-                              {f.articulo.nombre}
-                            </span>
-                          </Td>
-                          <Td className="text-base font-semibold">{f.total}</Td>
-                          <Td>{f.articulo.existencia}</Td>
-                          {!soloLectura && (
-                            <Td>
-                              {f.faltante > 0 ? (
-                                <span className="text-warn-700 dark:text-warn-400">Faltan {f.faltante}</span>
-                              ) : (
-                                <span className="text-accent-700 dark:text-accent-400">Hay stock</span>
-                              )}
-                            </Td>
-                          )}
-                        </tr>
-                        {abierto && (
-                          <tr>
-                            <Td colSpan={soloLectura ? 3 : 4} className="!bg-transparent">
-                              <Desglose lineas={f.desglose} mostrarEstado={supervision} />
-                            </Td>
-                          </tr>
+          <TablaWrap cuadricula>
+            <thead>
+              <tr>
+                <Th>Artículo</Th>
+                <Th>Despachar</Th>
+                <Th className="print:hidden"> </Th>
+              </tr>
+            </thead>
+            <tbody>
+              {filas.map((f) => {
+                const id = f.articulo._id
+                const abierto = abiertos.has(id)
+                return (
+                  <Fragment key={id}>
+                    <tr>
+                      <Td className="font-medium">{f.articulo.nombre}</Td>
+                      <Td className="text-base font-semibold">{f.total}</Td>
+                      <Td className="text-right print:hidden">
+                        <span className="inline-flex items-center gap-2">
+                        <Btn variante="secundario" onClick={() => alternar(id)} className="!px-2.5 !py-1 text-xs">
+                          {abierto ? 'Ocultar' : `Ver requerimientos (${f.desglose.length})`}
+                        </Btn>
+                        {!soloLectura && (
+                          <Btn
+                            onClick={() => setPorDespachar({
+                              ids: [...new Set(f.desglose.map((l) => l.requerimientoId))],
+                              etiqueta: `«${f.articulo.nombre}» (${new Set(f.desglose.map((l) => l.requerimientoId)).size} requerimiento/s)`,
+                            })}
+                            className="!px-2.5 !py-1 text-xs"
+                          >
+                            Despachar
+                          </Btn>
                         )}
-                      </Fragment>
-                    )
-                  })}
-                </tbody>
-              </TablaWrap>
-            </section>
-          ))}
+                        </span>
+                      </Td>
+                    </tr>
+                    {abierto && (
+                      <tr>
+                        <Td colSpan={3} className="!bg-transparent">
+                          <Desglose lineas={f.desglose} mostrarEstado={supervision} onDespachar={soloLectura ? undefined : setPorDespachar} />
+                        </Td>
+                      </tr>
+                    )}
+                  </Fragment>
+                )
+              })}
+            </tbody>
+          </TablaWrap>
         </>
       )}
     </div>

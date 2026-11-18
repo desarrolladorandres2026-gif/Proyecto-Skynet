@@ -3,6 +3,7 @@ import { useEsMovil } from './useEsMovil.js'
 import AppLayout from './AppLayout.jsx'
 import MobileShell from './MobileShell.jsx'
 import PushOnboardingPrompt from '../pwa/PushOnboardingPrompt.jsx'
+import AlertasNativasAutoArranque from '../pwa/AlertasNativasAutoArranque.jsx'
 import CopilotoWidget from '../components/copiloto/CopilotoWidget.jsx'
 import AvisoTerminalPlayer from '../modules/avisos_terminal/AvisoTerminalPlayer.jsx'
 import { TooltipProvider } from '../components/Tooltip.jsx'
@@ -37,6 +38,7 @@ export default function AppShell() {
       {mostrarPanelDenso ? <AppLayout /> : <MobileShell />}
       <PushOnboardingPrompt />
       <AvisoTerminalPlayer />
+      <AlertasNativasAutoArranque />
       <CopilotoWidget />
     </TooltipProvider>
   )

@@ -14,6 +14,7 @@ import ausenciasRoutes from '../modules/ausencias/ausencias.routes.js'
 import operacionRoutes from '../modules/operacion/operacion.routes.js'
 import sistemaRoutes from '../modules/sistema/sistema.routes.js'
 import plataformaRoutes from '../modules/plataforma/plataforma.routes.js'
+import tematicaRoutes from '../modules/tematica/tematica.routes.js'
 import notificacionesRoutes from '../modules/notificaciones/notificaciones.routes.js'
 import avisosTerminalRoutes from '../modules/avisos_terminal/avisos.routes.js'
 import videosRoutes from '../modules/videos/videos.routes.js'
@@ -58,6 +59,9 @@ router.use('/sistema', sistemaRoutes)
 // pública (GET /estado, sin verificarToken): la pantalla de login debe poder
 // consultarlo sin sesión. El resto exige permiso 'plataforma:gestionar'.
 router.use('/plataforma', plataformaRoutes)
+// Temática visual global (Navidad, etc.): leer = público (la usa el login); cambiar
+// exige 'tematica:gestionar'.
+router.use('/tematica', tematicaRoutes)
 router.use('/notificaciones', notificacionesRoutes)
 router.use('/avisos-terminal', avisosTerminalRoutes)
 // Videos informativos: ver los publicados es universal; la gestión exige

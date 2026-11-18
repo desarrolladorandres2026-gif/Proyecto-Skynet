@@ -255,7 +255,7 @@ export default function EleccionNotificacionesPage() {
 
   if (!configuracion) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="space-y-6">
         <NotificacionesAdminTabs />
         <ErrorMsg>{error}</ErrorMsg>
       </div>
@@ -263,7 +263,7 @@ export default function EleccionNotificacionesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <NotificacionesAdminTabs />
       <CoberturaPushCard />
 
@@ -411,7 +411,7 @@ export default function EleccionNotificacionesPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3">
           {categorias.map((cat) => {
             const Icono = ICONOS_CATEGORIA[cat.key] || SlidersHorizontal
             const catConfig = configuracion.canales?.[cat.key] || { email: true, push: true, activo: true }

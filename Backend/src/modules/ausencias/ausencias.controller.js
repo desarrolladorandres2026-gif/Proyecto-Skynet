@@ -1,5 +1,6 @@
 import { CARPETA_SOPORTES } from './ausencias.upload.js'
 import * as service from './ausencias.service.js'
+import * as incapacidades from './incapacidades.service.js'
 import { ErrorNoEncontrado } from '../../utils/errores.js'
 import { enviarArchivoSeguro } from '../../utils/streamArchivo.js'
 
@@ -90,4 +91,58 @@ export async function rechazar(req, res) {
 export async function cancelar(req, res) {
   const ausencia = await service.cancelarAusencia(req.params.id, req.usuario)
   res.json({ ausencia })
+}
+
+// ── Trámite de incapacidades (ver incapacidades.service.js) ────────────────
+
+export async function tramiteIncapacidades(req, res) {
+  res.json(await incapacidades.listarTramite(req.usuario))
+}
+
+export async function supervisionIncapacidades(req, res) {
+  const { etapa, q, desde, hasta } = req.query
+  res.json(await incapacidades.supervisarIncapacidades({ etapa, q, desde, hasta }))
+}
+
+export async function destinatariosIncapacidades(_req, res) {
+  res.json({ destinatarios: await incapacidades.listarDestinatarios() })
+}
+
+export async function verificarIncapacidad(req, res) {
+  res.json({ ausencia: await incapacidades.verificarIncapacidad(req.params.id, req.body, req.usuario) })
+}
+
+export async function devolverIncapacidad(req, res) {
+  res.json({ ausencia: await incapacidades.devolverIncapacidad(req.params.id, req.body, req.usuario) })
+}
+
+export async function reenviarIncapacidad(req, res) {
+  // Igual que en crear(): el soporte solo se arma desde un archivo subido y
+  // validado, nunca desde lo que mande el cliente en el body.
+  const { soporte: _soporteDelCliente, ...datos } = req.body
+  if (req.file) {
+    datos.soporte = {
+      archivo: req.file.filename,
+      nombreArchivo: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+    }
+  }
+  res.json({ ausencia: await incapacidades.reenviarIncapacidad(req.params.id, datos, req.usuario) })
+}
+
+export async function foliarIncapacidad(req, res) {
+  res.json({ ausencia: await incapacidades.foliarIncapacidad(req.params.id, req.body, req.usuario) })
+}
+
+export async function direccionarIncapacidad(req, res) {
+  res.json({ ausencia: await incapacidades.direccionarIncapacidad(req.params.id, req.body, req.usuario) })
+}
+
+export async function completarFolioIncapacidad(req, res) {
+  res.json({ ausencia: await incapacidades.completarFolioIncapacidad(req.params.id, req.body, req.usuario) })
+}
+
+export async function tramitarIncapacidad(req, res) {
+  res.json({ ausencia: await incapacidades.tramitarIncapacidad(req.params.id, req.body, req.usuario) })
 }

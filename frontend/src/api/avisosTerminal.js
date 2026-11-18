@@ -13,6 +13,15 @@ export const avisosTerminal = {
     const params = new URLSearchParams({ q })
     return request(`/avisos-terminal/destinatarios/usuarios?${params.toString()}`)
   },
+  // Vista previa de la audiencia (total y por canal) para el diálogo de
+  // confirmación; no guarda nada.
+  resumenAudiencia(destinatarios) {
+    return request('/avisos-terminal/destinatarios/resumen', { method: 'POST', body: JSON.stringify({ destinatarios }) })
+  },
+  // Vuelve a sonar el aviso más reciente a quienes no lo escucharon.
+  reenviar(id) {
+    return request(`/avisos-terminal/${id}/reenviar`, { method: 'POST' })
+  },
   historial({ page = 1, limit = 20 } = {}) {
     const params = new URLSearchParams({ page, limit })
     return request(`/avisos-terminal?${params.toString()}`)

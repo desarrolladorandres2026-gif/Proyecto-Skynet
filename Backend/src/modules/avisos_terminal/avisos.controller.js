@@ -9,6 +9,8 @@ import {
   actualizarEstadoEntrega,
   obtenerAudioParaUsuario,
   probarVozInstitucional,
+  resumirAudiencia,
+  reenviarAviso,
 } from './avisos.service.js'
 import { ErrorValidacion } from '../../utils/errores.js'
 
@@ -56,6 +58,18 @@ export async function probarVoz(req, res) {
   const audio = await probarVozInstitucional(texto, voz)
   res.set('Content-Type', audio.mimeType)
   res.send(audio.data)
+}
+
+export async function resumenAudiencia(req, res) {
+  const { destinatarios } = req.body || {}
+  if (!destinatarios || typeof destinatarios !== 'object') {
+    throw new ErrorValidacion('Debes indicar el destinatario del aviso')
+  }
+  res.json(await resumirAudiencia(destinatarios))
+}
+
+export async function reenviarAvisoNoEscuchado(req, res) {
+  res.json(await reenviarAviso(req.params.id, req.usuario))
 }
 
 export async function obtenerOpcionesDestinatarios(req, res) {

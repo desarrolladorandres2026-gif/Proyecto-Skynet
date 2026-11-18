@@ -1,0 +1,11 @@
+{
+  "name": "video-pqrs",
+  "private": true,
+  "type": "module",
+  "description": "Video informativo de las PQRS: formulario público del sitio + gestión en Skynet, grabado con la interfaz real, voz neuronal y render a MP4",
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "msedge-tts": "^2.1.1",
+    "puppeteer-core": "^23.0.0"
+  }
+}

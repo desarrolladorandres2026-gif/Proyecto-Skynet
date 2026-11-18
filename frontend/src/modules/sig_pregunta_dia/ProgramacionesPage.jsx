@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CalendarClock, Plus, Ban, X, Search } from 'lucide-react'
+import { CalendarClock, Plus, Ban, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { sig } from '../../api/sig.js'
 import { catalogosApi } from '../../api/catalogos.js'
@@ -9,6 +9,7 @@ import {
   Btn, Badge, Card, ErrorMsg, Field, Input, Switch, Modal,
   TablaWrap, Th, Td, EmptyState, fmtFecha, fmtFechaHora,
 } from '../../components/ui.jsx'
+import { SearchInput } from '../../components/ds/index.js'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
 
 // `seleccionadas` es una lista de { preguntaId, hora } y no un simple array de
@@ -256,15 +257,12 @@ export default function ProgramacionesPage() {
           <ErrorMsg>{errorForm}</ErrorMsg>
 
           <GrupoCampos rotulo={`Preguntas del banco (${form.seleccionadas.length} seleccionada${form.seleccionadas.length === 1 ? '' : 's'})`}>
-            <div className="relative mb-2">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-              <Input
-                className="!pl-8"
-                placeholder="Buscar por enunciado, componente o tema…"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-              />
-            </div>
+            <SearchInput
+              className="mb-2"
+              placeholder="Buscar por enunciado, componente o tema…"
+              value={busqueda}
+              onChange={setBusqueda}
+            />
             <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2 dark:border-slate-700">
               {preguntasFiltradas.length === 0 ? (
                 <p className="px-1 py-2 text-sm text-slate-500 dark:text-slate-400">

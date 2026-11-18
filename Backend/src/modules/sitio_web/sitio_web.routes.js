@@ -23,6 +23,7 @@ import {
   avisosActualizar,
   avisosEliminar,
   radicadosFormularios,
+  radicadosReenviarCorreo,
   radicadosListar,
   radicadosObtener,
   radicadosEstado,
@@ -108,6 +109,7 @@ router.get('/radicados/:id', permRadicados, radicadosObtener)
 router.put('/radicados/:id/estado', permRadicados, radicadosEstado)
 // El permiso va ANTES de recibir el archivo, igual que en /medios.
 router.post('/radicados/:id/respuesta', permRadicados, recibirPdf, radicadosResponder)
+router.post('/radicados/:id/respuestas/:constanciaId/reenviar-correo', permRadicados, radicadosReenviarCorreo)
 router.delete('/radicados/:id', permEliminarRadicados, radicadosEliminar)
 
 router.get('/avisos', permAvisos, avisosListar)

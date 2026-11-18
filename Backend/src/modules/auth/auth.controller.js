@@ -284,19 +284,27 @@ export async function me(req, res) {
 }
 
 export async function solicitarReset(req, res) {
-  const { nombre_usuario, email } = req.body
+  const { email } = req.body
   const mensajeGenerico = {
-    mensaje: 'Si el usuario existe, se ha enviado un correo con instrucciones.',
+    mensaje: 'Si el correo existe, se ha enviado un mensaje con instrucciones.',
   }
 
-  if (typeof nombre_usuario !== 'string' || typeof email !== 'string' || !nombre_usuario || !email) {
-    return res.status(400).json({ error: 'Usuario y correo son obligatorios' })
+  // Tipo string obligatorio: evita inyección NoSQL ({"email": {"$ne": null}}).
+  if (typeof email !== 'string' || !email.trim()) {
+    return res.status(400).json({ error: 'El correo es obligatorio' })
   }
 
-  const usuario = await Usuario.findOne({ nombre_usuario: nombre_usuario.trim(), estado: 'activo' })
-  // El email del body debe coincidir con el registrado: solo sirve como segundo factor
-  // de verificación, nunca como destino de envío (evita reset de cuentas ajenas).
-  if (!usuario || !usuario.email || usuario.email.toLowerCase() !== email.trim().toLowerCase()) {
+  // Se busca solo por correo (único en el modelo). El enlace se envía siempre al
+  // correo REGISTRADO de la cuenta, nunca a uno que llegue en el body, así que
+  // quien pida el reset de una cuenta ajena no recibe nada. Respuesta idéntica
+  // exista o no la cuenta (anti-enumeración).
+  const emailNormalizado = email.trim().toLowerCase()
+  // El formato sí se valida y se reporta (no revela nada sobre qué cuentas existen).
+  if (!esEmailValido(emailNormalizado)) {
+    return res.status(400).json({ error: 'El correo no tiene un formato válido' })
+  }
+  const usuario = await Usuario.findOne({ email: emailNormalizado, estado: 'activo' })
+  if (!usuario) {
     return res.json(mensajeGenerico)
   }
 

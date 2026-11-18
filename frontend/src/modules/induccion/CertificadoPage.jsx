@@ -154,7 +154,7 @@ export default function CertificadoPage() {
   }
 
   return (
-    <div className="mx-auto max-w-xl">
+    <div>
       <Card className="text-center">
         <img src={LOGO_TERMINAL} alt="Logo Terminal" className="mx-auto h-20 w-20 rounded-lg bg-white/90 object-contain p-2" />
         <h1 className="mt-3 flex items-center justify-center gap-2 text-xl font-semibold text-slate-900 dark:text-white">

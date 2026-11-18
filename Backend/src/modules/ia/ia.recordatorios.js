@@ -29,7 +29,9 @@ export const INTERVALO_MS = 2 * 60 * 60 * 1000
 // y `notificaciones` (la campana ya las muestra y el aviso de cada una ya se
 // habló cuando llegó).
 const PENDIENTES = [
-  { tarjeta: 'requerimientosPendientes', destinos: ['requerimientos_financiero', 'requerimientos_todos'] },
+  // Solo para quien aprueba (Financiero). La vista de supervisión
+  // (`requerimientos_todos`) es informativa: no se recuerda.
+  { tarjeta: 'requerimientosPendientes', destinos: ['requerimientos_financiero'], soloConDestino: true },
   { tarjeta: 'requerimientosPorDespachar', destinos: ['requerimientos_bodega'] },
   { tarjeta: 'ausenciasPendientes', destinos: ['ausencias_bandeja', 'ausencias_calendario'] },
   { tarjeta: 'danosPendientes', destinos: ['danos_tareas'] },
@@ -51,12 +53,14 @@ export function armarRecordatorio({ tarjetas, destinos, nombre }) {
   const incluidas = {}
   const acciones = []
 
-  for (const { tarjeta, destinos: candidatos } of PENDIENTES) {
+  for (const { tarjeta, destinos: candidatos, soloConDestino } of PENDIENTES) {
     const n = tarjetas?.[tarjeta]
     if (typeof n !== 'number' || n <= 0) continue
-    incluidas[tarjeta] = n
 
     const destino = candidatos.map((c) => porClave.get(c)).find(Boolean)
+    // Sin pantalla donde actuar (p. ej. supervisión) no hay nada que recordar.
+    if (!destino && soloConDestino) continue
+    incluidas[tarjeta] = n
     if (destino && !acciones.some((a) => a.ruta === destino.ruta)) {
       acciones.push({ etiqueta: destino.titulo, ruta: destino.ruta })
     }

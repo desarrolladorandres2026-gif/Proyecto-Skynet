@@ -70,7 +70,7 @@ export default function MediosPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div>
       <EncabezadoSeccion
         icono={Images}
         titulo="Biblioteca de imágenes"

@@ -10,6 +10,11 @@ export const notificaciones = {
   desuscribirPush(endpoint) {
     return request('/notificaciones/push/desuscribir', { method: 'POST', body: JSON.stringify({ endpoint }) })
   },
+  // App Android propia: registra el dispositivo para recibir avisos por la
+  // conexión SSE del servicio nativo (ver pwa/skynetNotif.js).
+  suscribirNativo(dispositivoId, modelo) {
+    return request('/notificaciones/push/suscribir-nativo', { method: 'POST', body: JSON.stringify({ dispositivoId, modelo }) })
+  },
   misDispositivos() {
     return request('/notificaciones/dispositivos')
   },

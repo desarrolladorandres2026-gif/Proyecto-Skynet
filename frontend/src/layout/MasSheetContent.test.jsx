@@ -61,6 +61,33 @@ describe('MasSheetContent', () => {
     expect(screen.getByText('Auditoría')).toBeInTheDocument()
   })
 
+  describe('punto de novedad', () => {
+    const novedades = {
+      esNueva: (item) => item?.to === '/email/importantes',
+      moduloTieneNovedad: (m) => m.items.some((i) => i.to === '/email/importantes'),
+    }
+    const renderConNovedades = () =>
+      render(
+        <MemoryRouter>
+          <MasSheetContent modulosVisibles={modulosVisibles} rutasOcultas={rutasOcultas} onNavigate={vi.fn()} novedades={novedades} />
+        </MemoryRouter>
+      )
+
+    it('sin la prop `novedades` no pinta ningún punto', () => {
+      renderSheet()
+      expect(screen.queryByText('Nuevo')).not.toBeInTheDocument()
+    })
+
+    it('el módulo cerrado muestra el punto, y al abrirlo baja al item nuevo', () => {
+      renderConNovedades()
+      expect(screen.getAllByText('Nuevo')).toHaveLength(1) // en la fila de Email
+      fireEvent.click(screen.getByText('Email'))
+      // Abierto: ya no está en el módulo, está solo en "Importantes".
+      expect(screen.getAllByText('Nuevo')).toHaveLength(1)
+      expect(screen.getByText('Importantes').closest('a')).toHaveTextContent('Nuevo')
+    })
+  })
+
   it('tocar un item navega y avisa via onNavigate', () => {
     const onNavigate = vi.fn()
     renderSheet(onNavigate)

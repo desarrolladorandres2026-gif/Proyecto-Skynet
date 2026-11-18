@@ -1,0 +1,11 @@
+[
+  { "id": "intro", "texto": "En este video verás, paso a paso, cómo se tramita una PQRS en Skynet: desde que llega la solicitud del ciudadano, hasta que se le responde." },
+  { "id": "resumen", "texto": "El proceso tiene cuatro momentos. Primero, la solicitud llega desde el sitio web del Terminal. Luego, se abre y se revisa. Después, se publica la respuesta oficial. Y por último, queda la constancia de que el ciudadano fue atendido." },
+  { "id": "bandeja", "texto": "Todo empieza en Sitio web, Solicitudes. Aquí llegan las peticiones, quejas, reclamos, sugerencias y denuncias que los ciudadanos radican en la página. Las nuevas aparecen como: Sin leer, y Skynet avisa al equipo para que no se pase ninguna." },
+  { "id": "abrir", "texto": "Para trabajar una solicitud, toca Gestionar. Al abrirla, Skynet la marca automáticamente como: Leído, y el ciudadano ya puede ver que su caso está en revisión. A la izquierda está toda la información que escribió: quién es, cómo contactarlo, y qué pasó." },
+  { "id": "estado", "texto": "En el centro está el estado del trámite, que es el mismo que ve el ciudadano cuando consulta su número de radicado: Recibido, En revisión, y Resuelto. Puedes cambiarlo en cualquier momento." },
+  { "id": "responder", "texto": "Ahora, la respuesta oficial. Escribe el texto, y si hace falta, adjunta un PDF de soporte. Ten presente que la respuesta es pública: no incluyas cédulas ni datos sensibles. Al tocar, Publicar respuesta, el ciudadano la ve al consultar su radicado, se le envía también por correo, y la solicitud pasa sola a: Resuelto." },
+  { "id": "constancia", "texto": "En el historial queda la constancia: quién respondió, cuándo, y si el correo salió bien. Si el envío falla, o decidiste no enviarlo, puedes reenviarlo desde aquí con un clic." },
+  { "id": "formato", "texto": "Si necesitas el formato oficial, toca Formato PQRSDF. Skynet lo llena con lo que escribió el ciudadano y con tus datos; revisas, descargas, y firmas sobre la impresión." },
+  { "id": "cierre", "texto": "Así de simple: la solicitud llega, se abre y se revisa, se publica la respuesta, y queda la constancia. Además, puedes exportar todas las solicitudes a Excel, cuando las necesites." }
+]

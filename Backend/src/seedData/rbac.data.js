@@ -27,6 +27,10 @@ export const PERMISOS = [
   // quien lo tenga es también quien puede SEGUIR USANDO la plataforma durante
   // un mantenimiento activo (ver middleware/mantenimientoPlataforma.js).
   permiso('plataforma', 'gestionar', 'Programar y controlar el mantenimiento de la plataforma'),
+  // Elegir la temática visual (Navidad, etc.) que ven todos los usuarios.
+  // No se asigna a ningún rol del seed (esSuperAdmin ya bypassa); existe para
+  // poder delegarlo desde la pantalla Roles.
+  permiso('tematica', 'gestionar', 'Elegir la temática visual del sistema'),
   // Historial administrativo de envíos (push/email) — ver
   // modules/notificaciones/historial.service.js. Exclusivo de Super
   // Admin en la especificación original (esSuperAdmin ya bypassa), se deja
@@ -146,6 +150,18 @@ export const PERMISOS = [
   // de otra persona y ver las de todo el mundo.
   permiso('ausencias', 'aprobar', 'Aprobar o rechazar solicitudes de vacaciones, permisos e incapacidades'),
   permiso('ausencias', 'ver_todas', 'Ver todas las ausencias del personal (supervisión y calendario)'),
+
+  // Flujo de INCAPACIDADES (a diferencia de vacaciones y permisos, que decide
+  // Talento Humano con 'ausencias:aprobar'). Pasa por cinco manos, cada una
+  // con su permiso: SIG verifica el soporte -> la Secretaria de Gerencia la
+  // folía -> la Gerencia la direcciona a una persona de Talento Humano ->
+  // Talento Humano la recibe. Se gobiernan por permiso y no por nombre de rol
+  // porque los roles se renombran y se crean desde la pantalla Roles.
+  permiso('ausencias', 'verificar_incapacidades', 'Verificar el soporte de las incapacidades: aprobarlas o devolverlas al trabajador (SIG)'),
+  permiso('ausencias', 'foliar_incapacidades', 'Foliar las incapacidades verificadas y completar el folio con el destinatario (Secretaria de Gerencia)'),
+  permiso('ausencias', 'direccionar_incapacidades', 'Revisar las incapacidades foliadas y direccionarlas a Talento Humano (Gerencia)'),
+  permiso('ausencias', 'recibir_incapacidades', 'Recibir las incapacidades direccionadas a Talento Humano; aparece como destinatario posible'),
+  permiso('ausencias', 'supervisar_incapacidades', 'Supervisar todas las incapacidades y en qué etapa del trámite está cada una'),
 
   // Cuestionarios Programados (capacitación diaria, antes "Pregunta SIG del
   // Día" — el nombre cambió, el key interno 'sig_pregunta_dia' no, ver
@@ -365,7 +381,13 @@ export const ROLES = [
     // No es esSistema: no viene de la especificación original de 6 roles, así
     // que sí puede renombrarse o eliminarse desde la pantalla de Roles.
     esSistema: false,
-    permisos: ['ausencias:aprobar', 'ausencias:ver_todas', 'notificaciones:recibir_email'],
+    permisos: [
+      'ausencias:aprobar',
+      'ausencias:ver_todas',
+      'ausencias:recibir_incapacidades',
+      'ausencias:supervisar_incapacidades',
+      'notificaciones:recibir_email',
+    ],
   },
   {
     nombre: 'SIG / HSEQ',
@@ -382,6 +404,8 @@ export const ROLES = [
       'sig_pregunta_dia:programar',
       'sig_pregunta_dia:ver_reportes',
       'sig_pregunta_dia:configurar',
+      'ausencias:verificar_incapacidades',
+      'ausencias:supervisar_incapacidades',
       'notificaciones:recibir_email',
     ],
   },
@@ -441,6 +465,8 @@ export const ROLES = [
       // Solo lectura (calendario): coordinar la agenda de la Gerencia con
       // las ausencias del personal. Aprobarlas sigue siendo de Talento Humano.
       'ausencias:ver_todas',
+      'ausencias:foliar_incapacidades',
+      'ausencias:supervisar_incapacidades',
       'notificaciones:recibir_email',
     ],
   },

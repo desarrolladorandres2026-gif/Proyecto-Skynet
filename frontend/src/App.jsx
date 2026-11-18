@@ -5,6 +5,8 @@ import { PlataformaProvider } from './plataforma/PlataformaContext.jsx'
 import GateMantenimiento from './plataforma/GateMantenimiento.jsx'
 import { ProtectedRoute, ModuleRoute, PermissionRoute, ModuloActivoRoute, SuperAdminRoute } from './auth/ProtectedRoute.jsx'
 import LoginPage from './auth/LoginPage.jsx'
+import RecuperarPasswordPage from './auth/RecuperarPasswordPage.jsx'
+import RestablecerPasswordPage from './auth/RestablecerPasswordPage.jsx'
 import AppShell from './layout/AppShell.jsx'
 import HomeRedirect from './layout/HomeRedirect.jsx'
 import NoEncontrado from './layout/NoEncontrado.jsx'
@@ -49,12 +51,15 @@ const CalendarioSigPage = lazy(() => import('./modules/sig_pregunta_dia/Calendar
 const MisAusenciasPage = lazy(() => import('./modules/ausencias/MisAusenciasPage.jsx'))
 const BandejaAusenciasPage = lazy(() => import('./modules/ausencias/BandejaAusenciasPage.jsx'))
 const CalendarioAusenciasPage = lazy(() => import('./modules/ausencias/CalendarioAusenciasPage.jsx'))
+const TramiteIncapacidadesPage = lazy(() => import('./modules/ausencias/TramiteIncapacidadesPage.jsx'))
+const SupervisionIncapacidadesPage = lazy(() => import('./modules/ausencias/SupervisionIncapacidadesPage.jsx'))
 const DashboardPage = lazy(() => import('./modules/operacion/DashboardPage.jsx'))
 const RolesPage = lazy(() => import('./modules/roles/RolesPage.jsx'))
 const DependenciasCargosPage = lazy(() => import('./modules/catalogos/CatalogosPage.jsx'))
 const AuditoriaPage = lazy(() => import('./modules/auditoria/AuditoriaPage.jsx'))
 const ModulosSistemaPage = lazy(() => import('./modules/sistema/ModulosSistemaPage.jsx'))
 const EstadoPlataformaPage = lazy(() => import('./modules/sistema/EstadoPlataformaPage.jsx'))
+const TematicaSistemaPage = lazy(() => import('./modules/sistema/TematicaSistemaPage.jsx'))
 const BackupPage = lazy(() => import('./modules/backup/BackupPage.jsx'))
 const InduccionHome = lazy(() => import('./modules/induccion/InduccionHome.jsx'))
 const CertificadoPage = lazy(() => import('./modules/induccion/CertificadoPage.jsx'))
@@ -100,6 +105,11 @@ export default function App() {
         <Suspense fallback={<p className="p-4 text-sm">Cargando…</p>}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+
+          {/* Recuperación de contraseña: públicas (el usuario no tiene sesión).
+              /reset-password es la ruta que enlaza el correo de enviarEmailReset. */}
+          <Route path="/recuperar-password" element={<RecuperarPasswordPage />} />
+          <Route path="/reset-password" element={<RestablecerPasswordPage />} />
 
           {/* Pública a propósito: cualquiera debe poder consultar términos y
               privacidad sin haber iniciado sesión (desde el login) ni
@@ -287,6 +297,8 @@ export default function App() {
             <Route path="ausencias/mias" element={<ModuloActivoRoute modulo="ausencias"><MisAusenciasPage /></ModuloActivoRoute>} />
             <Route path="ausencias/bandeja" element={<ModuloActivoRoute modulo="ausencias"><PermissionRoute permiso="ausencias:aprobar"><BandejaAusenciasPage /></PermissionRoute></ModuloActivoRoute>} />
             <Route path="ausencias/calendario" element={<ModuloActivoRoute modulo="ausencias"><PermissionRoute permiso={['ausencias:aprobar', 'ausencias:ver_todas']}><CalendarioAusenciasPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="ausencias/incapacidades" element={<ModuloActivoRoute modulo="ausencias"><PermissionRoute permiso={['ausencias:verificar_incapacidades', 'ausencias:foliar_incapacidades', 'ausencias:direccionar_incapacidades', 'ausencias:recibir_incapacidades']}><TramiteIncapacidadesPage /></PermissionRoute></ModuloActivoRoute>} />
+            <Route path="ausencias/incapacidades/supervision" element={<ModuloActivoRoute modulo="ausencias"><PermissionRoute permiso="ausencias:supervisar_incapacidades"><SupervisionIncapacidadesPage /></PermissionRoute></ModuloActivoRoute>} />
 
             <Route path="usuarios" element={<PermissionRoute permiso="usuarios:gestionar"><UsuariosPage /></PermissionRoute>} />
             <Route path="roles" element={<PermissionRoute permiso="roles:gestionar"><RolesPage /></PermissionRoute>} />
@@ -294,7 +306,8 @@ export default function App() {
             <Route path="auditoria" element={<PermissionRoute permiso="auditoria:leer"><AuditoriaPage /></PermissionRoute>} />
             <Route path="sistema/modulos" element={<PermissionRoute permiso="sistema:gestionar_modulos"><ModulosSistemaPage /></PermissionRoute>} />
             <Route path="sistema/plataforma" element={<PermissionRoute permiso="plataforma:gestionar"><EstadoPlataformaPage /></PermissionRoute>} />
-            <Route path="sistema/backup" element={<SuperAdminRoute><BackupPage /></SuperAdminRoute>} />
+            <Route path="sistema/tematica" element={<PermissionRoute permiso="tematica:gestionar"><TematicaSistemaPage /></PermissionRoute>} />
+            <Route path="sistema/backup"element={<SuperAdminRoute><BackupPage /></SuperAdminRoute>} />
 
             <Route path="induccion" element={<InduccionHome />} />
             <Route path="induccion/certificado" element={<CertificadoPage />} />

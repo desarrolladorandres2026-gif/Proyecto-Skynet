@@ -1,5 +1,8 @@
 import { env } from '../../config/env.js'
 import PushSubscription from '../../models/PushSubscription.js'
+import EnvioNotificacion from '../../models/EnvioNotificacion.js'
+import { registrarConexion } from '../../utils/streamNativo.js'
+import { reenviarPendientesNativo } from '../avisos_terminal/avisos.service.js'
 import PreferenciaNotificacion from '../../models/PreferenciaNotificacion.js'
 import Usuario from '../../models/Usuario.js'
 import { CATEGORIAS_NOTIFICACION, esCategoriaValida } from './notificaciones.catalogo.js'
@@ -89,6 +92,68 @@ export async function suscribirPush(req, res) {
   )
 
   res.status(201).json({ mensaje: 'Suscripción guardada' })
+}
+
+// App Android: registra el dispositivo (id generado por la app) para recibir
+// notificaciones por la conexión SSE propia. Sin terceros.
+export async function suscribirNativo(req, res) {
+  const { dispositivoId, modelo } = req.body
+  if (typeof dispositivoId !== 'string' || !/^[A-Za-z0-9-]{16,64}$/.test(dispositivoId)) {
+    return res.status(400).json({ error: 'dispositivoId inválido' })
+  }
+  await PushSubscription.findOneAndUpdate(
+    { endpoint: `nativo:${dispositivoId}` },
+    {
+      tipo: 'nativo',
+      endpoint: `nativo:${dispositivoId}`,
+      dispositivoId,
+      usuario: req.usuario.id_usuario,
+      navegador: 'App Android',
+      dispositivo: typeof modelo === 'string' && modelo ? modelo.slice(0, 80) : 'Android',
+      estado: 'activa',
+      ultimoUsoEn: new Date(),
+    },
+    { upsert: true }
+  )
+  res.status(201).json({ mensaje: 'Dispositivo registrado' })
+}
+
+// Conexión larga (SSE). La app la abre desde su servicio en segundo plano con
+// la cookie de sesión del WebView. Latido cada 25 s para que nginx / el
+// operador móvil no cierren la conexión por inactividad.
+export async function streamNativo(req, res) {
+  const dispositivoId = String(req.query.dispositivo || '')
+  const sub = await PushSubscription.findOne({
+    endpoint: `nativo:${dispositivoId}`,
+    usuario: req.usuario.id_usuario,
+  })
+  if (!sub) return res.status(404).json({ error: 'Dispositivo no registrado' })
+
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  })
+  req.socket.setTimeout(0) // server.timeout (30 s) no aplica a esta conexión larga
+  res.flushHeaders()
+  res.write('retry: 5000\n\n')
+
+  const quitar = registrarConexion(String(req.usuario.id_usuario), dispositivoId, res)
+  const latido = setInterval(() => res.write(': ping\n\n'), 25000)
+  req.on('close', () => {
+    clearInterval(latido)
+    quitar()
+  })
+
+  // Lo que quedó esperando mientras estuvo desconectado se entrega ya.
+  await EnvioNotificacion.updateMany(
+    { pushSubscription: sub._id, estado: 'pendiente' },
+    { $set: { proximoIntentoEn: new Date() } }
+  )
+  // Avisos Terminal de Neiva no pasan por EnvioNotificacion (ciclo propio,
+  // ver avisos.service.js): se reenvían aparte los que aún no sonaron.
+  reenviarPendientesNativo(req.usuario.id_usuario, dispositivoId).catch(() => {})
 }
 
 export async function desuscribirPush(req, res) {

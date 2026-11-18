@@ -45,7 +45,7 @@ export default function ResumenPage() {
   const me = data?.medios
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div>
       <EncabezadoSeccion
         icono={Globe}
         titulo="Sitio web"

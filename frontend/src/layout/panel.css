@@ -43,63 +43,64 @@
   }
 
   :root {
-    --panel-bg: #f8fafc;
+    --panel-bg: #EAF7FF;
     --panel-fg: #000000;
 
-    --panel-bracket-border: rgba(31, 77, 143, 0.5);
+    --panel-bracket-border: rgba(0, 114, 181, 0.5);
 
     --panel-sidebar-g1: rgba(255, 255, 255, 0.96);
     --panel-sidebar-g2: rgba(248, 250, 252, 0.98);
     --panel-sidebar-border: rgba(15, 23, 42, 0.06);
 
     --panel-brand-color: #000000;
-    --panel-brand-glow: rgba(31, 77, 143, 0.22);
+    --panel-brand-glow: rgba(0, 114, 181, 0.22);
 
     --panel-navlink-color: #000000;
-    --panel-navlink-hover-bg: rgba(31, 77, 143, 0.07);
+    --panel-navlink-hover-bg: rgba(0, 114, 181, 0.07);
     --panel-navlink-hover-color: #000000;
-    --panel-navlink-active-bg: rgba(31, 77, 143, 0.1);
+    --panel-navlink-active-bg: rgba(0, 114, 181, 0.1);
     --panel-navlink-active-color: #000000;
-    --panel-navlink-active-shadow: var(--color-accent-600);
+    --panel-navlink-active-shadow: var(--color-brand-600);
 
     --panel-card-g1: #ffffff;
     --panel-card-g2: #fbfcfd;
-    --panel-card-border: rgba(15, 23, 42, 0.07);
-    --panel-card-border-hover: rgba(31, 77, 143, 0.3);
+    --panel-card-border: rgba(15, 23, 42, 0.14);
+    --panel-card-border-hover: rgba(0, 114, 181, 0.3);
 
-    --panel-accent-bg: var(--color-brand-600);
+    --panel-accent-bg: var(--color-brand-700);
     --panel-accent-fg: #ffffff;
-    --panel-btn-primario-glow: rgba(31, 77, 143, 0.22);
-    --panel-btn-primario-glow-hover: rgba(31, 77, 143, 0.32);
+    --panel-btn-primario-glow: rgba(0, 114, 181, 0.22);
+    --panel-btn-primario-glow-hover: rgba(0, 114, 181, 0.32);
 
-    --panel-btn-sec-border: rgba(31, 77, 143, 0.3);
+    --panel-btn-sec-border: rgba(0, 114, 181, 0.55);
     --panel-btn-sec-color: #000000;
-    --panel-btn-sec-hover-bg: rgba(31, 77, 143, 0.07);
-    --panel-btn-sec-hover-border: rgba(31, 77, 143, 0.45);
+    --panel-btn-sec-hover-bg: rgba(0, 114, 181, 0.07);
+    --panel-btn-sec-hover-border: rgba(0, 114, 181, 0.45);
 
     --panel-btn-fantasma-color: #000000;
-    --panel-btn-fantasma-hover-bg: rgba(31, 77, 143, 0.07);
+    --panel-btn-fantasma-hover-bg: rgba(0, 114, 181, 0.07);
 
-    --panel-input-bg: #ffffff;
-    --panel-input-border: rgba(100, 116, 139, 0.28);
+    --panel-input-bg: #f1f7fc;
+    --panel-input-border: rgba(51, 90, 122, 0.45);
     --panel-input-color: #000000;
     --panel-input-placeholder: rgba(100, 116, 139, 0.5);
-    --panel-input-focus-border: rgba(31, 77, 143, 0.6);
-    --panel-input-focus-bg: rgba(31, 77, 143, 0.04);
-    --panel-input-focus-ring: rgba(31, 77, 143, 0.15);
-    --panel-input-autofill-bg: #eef6f8;
+    --panel-input-focus-border: rgba(0, 114, 181, 0.6);
+    --panel-input-focus-bg: rgba(0, 114, 181, 0.04);
+    --panel-input-focus-ring: rgba(0, 114, 181, 0.15);
+    --panel-input-autofill-bg: #f1f7fc;
     /* Fondo SÓLIDO exclusivo del <select>: ver el comentario junto a
      "select.panel-input" más abajo — el popup nativo de opciones no puede
      usar un fondo translúcido. */
-    --panel-select-bg: #f8fafc;
+    --panel-select-bg: #f1f7fc;
 
     --panel-table-bg: #ffffff;
-    --panel-table-border: rgba(15, 23, 42, 0.07);
-    --panel-th-color: #000000;
-    --panel-th-border: rgba(15, 23, 42, 0.07);
+    --panel-table-border: rgba(15, 23, 42, 0.16);
+    --panel-th-bg: var(--color-brand-700);
+    --panel-th-color: #ffffff;
+    --panel-th-border: var(--color-brand-800);
     --panel-td-color: #000000;
     --panel-td-border: rgba(100, 116, 139, 0.12);
-    --panel-row-hover-bg: rgba(31, 77, 143, 0.04);
+    --panel-row-hover-bg: rgba(0, 114, 181, 0.04);
 
     --panel-navbar-bg: rgba(248, 250, 252, 0.78);
     --panel-navbar-border: rgba(15, 23, 42, 0.06);
@@ -128,11 +129,11 @@
     --panel-navlink-hover-color: #ffffff;
     --panel-navlink-active-bg: rgba(127, 164, 213, 0.1);
     --panel-navlink-active-color: #ffffff;
-    --panel-navlink-active-shadow: var(--color-accent-400);
+    --panel-navlink-active-shadow: var(--color-brand-400);
 
     --panel-card-g1: rgba(13, 18, 26, 0.85);
     --panel-card-g2: rgba(8, 11, 16, 0.9);
-    --panel-card-border: rgba(127, 164, 213, 0.12);
+    --panel-card-border: rgba(127, 164, 213, 0.22);
     --panel-card-border-hover: rgba(127, 164, 213, 0.35);
 
     /* En oscuro el acento es brand-400 (azul institucional aclarado), no un
@@ -162,9 +163,10 @@
     --panel-select-bg: #0b0f16;
 
     --panel-table-bg: rgba(13, 18, 26, 0.6);
-    --panel-table-border: rgba(127, 164, 213, 0.12);
+    --panel-table-border: rgba(127, 164, 213, 0.22);
+    --panel-th-bg: var(--color-brand-800);
     --panel-th-color: #ffffff;
-    --panel-th-border: rgba(127, 164, 213, 0.12);
+    --panel-th-border: rgba(127, 164, 213, 0.22);
     --panel-td-color: #ffffff;
     --panel-td-border: rgba(148, 163, 184, 0.08);
     --panel-row-hover-bg: rgba(127, 164, 213, 0.04);
@@ -331,7 +333,8 @@
     background: var(--panel-btn-fantasma-hover-bg);
   }
 
-  /* Inputs */
+  /* Inputs: el border-radius lo pone la clase rounded-* de Tailwind en cada
+     uso (Input/Select de ui.jsx son píldora por defecto, ver inputBase). */
   .panel-input {
     background: var(--panel-input-bg);
     border: 1px solid var(--panel-input-border);
@@ -388,6 +391,7 @@
   }
 
   .panel-th {
+    background: var(--panel-th-bg);
     color: var(--panel-th-color);
     border-bottom: 1px solid var(--panel-th-border);
   }
@@ -449,8 +453,8 @@
    @layer a propósito: gana sobre px-3/py-2 de Th/Td sin necesitar "!". */
 .tabla-cuadricula {
   --cuad-linea: #b4bcc8;
-  --cuad-th-bg: linear-gradient(#f3f4f6, #dfe3e8);
-  --cuad-th-color: #111827;
+  --cuad-th-bg: var(--color-brand-700);
+  --cuad-th-color: #ffffff;
   border: 1px solid var(--cuad-linea);
   border-radius: 0;
   background: transparent;
@@ -458,8 +462,8 @@
 }
 :root.dark .tabla-cuadricula {
   --cuad-linea: #4b5563;
-  --cuad-th-bg: linear-gradient(#374151, #1f2937);
-  --cuad-th-color: #f3f4f6;
+  --cuad-th-bg: var(--color-brand-800);
+  --cuad-th-color: #ffffff;
 }
 .tabla-cuadricula table { border-collapse: collapse; width: 100%; }
 .tabla-cuadricula th,
@@ -475,7 +479,7 @@
   font-weight: 700;
   color: var(--cuad-th-color);
   background: var(--cuad-th-bg);
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25);
   position: sticky;
   top: 0;
 }

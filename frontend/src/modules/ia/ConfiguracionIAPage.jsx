@@ -32,14 +32,14 @@ export default function ConfiguracionIAPage() {
 
   if (!configuracion) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div>
         <ErrorMsg>{error}</ErrorMsg>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
         <SlidersHorizontal className="h-6 w-6 text-brand-700 dark:text-brand-400" aria-hidden="true" />
         <div>

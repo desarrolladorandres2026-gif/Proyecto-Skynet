@@ -7,12 +7,12 @@ import { usuariosConPermiso } from '../mantenimiento/comun.js'
 import { notificarUsuarios as _notificarUsuarios } from '../../utils/sendPush.js'
 import { rangoFechas } from '../../utils/emailDiseno.js'
 
-const POPULATE_AUSENCIA = [
+export const POPULATE_AUSENCIA = [
   { path: 'solicitante', select: 'nombre nombre_usuario email cargo dependencia' },
   { path: 'decision.revisadoPor', select: 'nombre nombre_usuario' },
 ]
 
-const notificarUsuarios = (userIds, payload) => _notificarUsuarios(userIds, payload, 'ausencias')
+export const notificarUsuarios = (userIds, payload) => _notificarUsuarios(userIds, payload, 'ausencias')
 
 const TIPO_AUSENCIA_TEXTO = {
   vacaciones: 'Vacaciones',
@@ -21,7 +21,7 @@ const TIPO_AUSENCIA_TEXTO = {
   incapacidad: 'Incapacidad',
 }
 
-function tipoTexto(tipo) {
+export function tipoTexto(tipo) {
   return TIPO_AUSENCIA_TEXTO[tipo] || tipo
 }
 
@@ -29,7 +29,7 @@ function tipoTexto(tipo) {
 // `motivo` de la solicitud queda fuera a propósito: en una incapacidad puede
 // ser información de salud, y el correo sale de la plataforma — quien aprueba
 // lo lee dentro de Skynet.
-function detallesDeAusencia(doc, extra = []) {
+export function detallesDeAusencia(doc, extra = []) {
   const horario = doc.horaInicio ? `, de ${doc.horaInicio} a ${doc.horaFin}` : ''
   return [
     { etiqueta: 'Tipo', valor: tipoTexto(doc.tipo) },
@@ -39,7 +39,7 @@ function detallesDeAusencia(doc, extra = []) {
   ]
 }
 
-function auditar(usuarioActor, accion, doc, descripcion, cambios) {
+export function auditar(usuarioActor, accion, doc, descripcion, cambios) {
   return registrarAuditoria({
     usuario: usuarioActor,
     accion,
@@ -78,7 +78,7 @@ const HORA_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 // tipo: nadie puede estar de vacaciones e incapacitado el mismo día. Solo
 // bloquean las vivas (pendiente/aprobada) — una rechazada o cancelada libera
 // sus fechas.
-async function haySolapamiento(usuarioId, inicio, fin, excluirId = null) {
+export async function haySolapamiento(usuarioId, inicio, fin, excluirId = null) {
   const filtro = {
     solicitante: usuarioId,
     estado: { $in: ['pendiente', 'aprobada'] },
@@ -170,16 +170,31 @@ export async function crearAusencia(datos, usuarioActor) {
     cargoSolicitante: solicitante?.cargo || '',
     dependenciaSolicitante: solicitante?.dependencia || '',
     estado: 'pendiente',
+    // La incapacidad no la decide Talento Humano de una vez: entra al trámite
+    // y la primera parada es SIG (ver incapacidades.service.js).
+    ...(tipo === 'incapacidad' && {
+      etapa: 'en_verificacion',
+      etapaDesde: new Date(),
+      historial: [{
+        accion: 'creada',
+        por: usuarioActor.id_usuario,
+        nombre: solicitante?.nombre || usuarioActor.nombre_usuario,
+        cargo: solicitante?.cargo || '',
+      }],
+    }),
   })
 
   const horarioTexto = horaInicioLimpia ? ` de ${horaInicioLimpia} a ${horaFinLimpia}` : ''
   await auditar(usuarioActor, 'crear', doc, `Solicitó ${tipo} por ${diasHabiles} día(s)${horarioTexto}`)
 
-  const aprobadores = await usuariosConPermiso('ausencias:aprobar')
+  // Una incapacidad se avisa a quien verifica el soporte (SIG); vacaciones y
+  // permisos, a quien decide (Talento Humano).
+  const esIncapacidad = tipo === 'incapacidad'
+  const aprobadores = await usuariosConPermiso(esIncapacidad ? 'ausencias:verificar_incapacidades' : 'ausencias:aprobar')
   notificarUsuarios(aprobadores, {
-    title: 'Nueva solicitud de ausencia',
+    title: esIncapacidad ? 'Incapacidad por verificar' : 'Nueva solicitud de ausencia',
     body: `${solicitante?.nombre || usuarioActor.nombre_usuario} solicitó ${tipoTexto(tipo).toLowerCase()} (${diasHabiles} día(s)${horarioTexto})`,
-    url: `/ausencias/bandeja`,
+    url: esIncapacidad ? '/ausencias/incapacidades' : `/ausencias/bandeja`,
     detalles: [
       { etiqueta: 'Solicitante', valor: solicitante?.nombre || usuarioActor.nombre_usuario },
       { etiqueta: 'Cargo', valor: doc.cargoSolicitante },
@@ -190,11 +205,11 @@ export async function crearAusencia(datos, usuarioActor) {
   return obtener(doc._id)
 }
 
-function obtener(id) {
+export function obtener(id) {
   return Ausencia.findById(id).populate(POPULATE_AUSENCIA)
 }
 
-async function obtenerParaMutar(id) {
+export async function obtenerParaMutar(id) {
   const doc = await Ausencia.findById(id)
   if (!doc) throw new ErrorNoEncontrado('Ausencia no encontrada')
   return doc
@@ -208,8 +223,11 @@ async function registrarDecision(doc, usuarioActor) {
   doc.decision.fecha = new Date()
 }
 
+const MENSAJE_FLUJO_INCAPACIDAD = 'Las incapacidades no se aprueban aquí: siguen su propio trámite (verificación de SIG, folio, direccionamiento)'
+
 export async function aprobarAusencia(id, { observacion } = {}, usuarioActor) {
   const doc = await obtenerParaMutar(id)
+  if (doc.tipo === 'incapacidad') throw new ErrorConflicto(MENSAJE_FLUJO_INCAPACIDAD)
   if (doc.estado !== 'pendiente') {
     throw new ErrorConflicto(`No se puede aprobar una ausencia en estado "${doc.estado}"`)
   }
@@ -246,6 +264,7 @@ export async function aprobarAusencia(id, { observacion } = {}, usuarioActor) {
 
 export async function rechazarAusencia(id, { motivoRechazo } = {}, usuarioActor) {
   const doc = await obtenerParaMutar(id)
+  if (doc.tipo === 'incapacidad') throw new ErrorConflicto(MENSAJE_FLUJO_INCAPACIDAD)
   if (doc.estado !== 'pendiente') {
     throw new ErrorConflicto(`No se puede rechazar una ausencia en estado "${doc.estado}"`)
   }
@@ -284,16 +303,31 @@ export async function cancelarAusencia(id, usuarioActor) {
 
   doc.estado = 'cancelada'
   doc.canceladaEn = new Date()
+  if (doc.tipo === 'incapacidad') {
+    doc.historial.push({ accion: 'cancelada', por: usuarioActor.id_usuario, nombre: usuarioActor.nombre_usuario })
+  }
   await doc.save()
   await auditar(usuarioActor, 'cancelar', doc, 'Canceló su solicitud de ausencia')
 
   return obtener(doc._id)
 }
 
+// Permisos que dan acceso a una INCAPACIDAD ajena: cada paso del trámite
+// necesita abrir el soporte (SIG lo verifica, la Secretaria y la Gerencia lo
+// revisan, Talento Humano lo recibe) y la supervisión ve todas.
+export const PERMISOS_TRAMITE_INCAPACIDAD = [
+  'ausencias:verificar_incapacidades',
+  'ausencias:foliar_incapacidades',
+  'ausencias:direccionar_incapacidades',
+  'ausencias:recibir_incapacidades',
+  'ausencias:supervisar_incapacidades',
+]
+
 export function puedeVer(doc, usuarioActor) {
   if (usuarioActor.esSuperAdmin) return true
   if (usuarioActor.permisos?.has('ausencias:ver_todas')) return true
   if (usuarioActor.permisos?.has('ausencias:aprobar')) return true
+  if (doc.tipo === 'incapacidad' && PERMISOS_TRAMITE_INCAPACIDAD.some((c) => usuarioActor.permisos?.has(c))) return true
   const solicitanteId = doc.solicitante?._id || doc.solicitante
   return String(solicitanteId) === String(usuarioActor.id_usuario)
 }
@@ -314,7 +348,8 @@ export function listarMias(usuarioActor) {
 }
 
 export function listarBandeja() {
-  return Ausencia.find({ estado: 'pendiente' })
+  // Las incapacidades tienen su propia bandeja (ver incapacidades.service.js).
+  return Ausencia.find({ estado: 'pendiente', tipo: { $ne: 'incapacidad' } })
     .populate('solicitante', 'nombre nombre_usuario cargo dependencia')
     .sort({ fechaInicio: 1 })
 }

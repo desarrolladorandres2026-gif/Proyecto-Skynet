@@ -4,6 +4,8 @@ import { safeRouter } from '../../middleware/safeRouter.js'
 import {
   getVapidPublicKey,
   suscribirPush,
+  suscribirNativo,
+  streamNativo,
   desuscribirPush,
   misDispositivos,
   olvidarDispositivo,
@@ -41,6 +43,8 @@ router.get('/preferencias', obtenerPreferencias)
 router.put('/preferencias', actualizarPreferencias)
 
 router.post('/push/suscribir', suscribirPush)
+router.post('/push/suscribir-nativo', suscribirNativo)
+router.get('/stream', streamNativo)
 router.post('/push/desuscribir', desuscribirPush)
 router.get('/dispositivos', misDispositivos)
 router.delete('/dispositivos/:id', olvidarDispositivo)

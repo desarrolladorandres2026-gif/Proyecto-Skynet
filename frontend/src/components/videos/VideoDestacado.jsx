@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { urlArchivoVideo, videosApi } from '../../api/videos.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
 import { fmtFecha } from '../ui.jsx'
+import { TematicaEscena } from '../../tematicas/index.js'
 import { VideoMiniatura } from './VideoMiniatura.jsx'
 import { VideoReproductor } from './VideoReproductor.jsx'
 
@@ -32,7 +33,7 @@ function ReproduccionAutomatica({ video, fallback, llenar = false }) {
   if (fallo || (!nativo && !embebido)) return fallback
 
   return (
-    <div className={`relative aspect-video w-full overflow-hidden rounded-xl bg-black ${llenar ? '@2xl:aspect-auto @2xl:h-full @2xl:min-h-[20rem]' : ''}`}>
+    <div className={`relative aspect-video w-full overflow-hidden rounded-xl bg-black ${llenar ? '@2xl:aspect-auto @2xl:h-full @2xl:min-h-0' : ''}`}>
       {nativo ? (
         <video
           src={video.proveedor === 'local' ? urlArchivoVideo(video) : video.embedUrl}
@@ -81,15 +82,15 @@ export default function VideoDestacado({ className = '', children = null, llenar
   if (!video) return children
 
   return (
-    <section aria-labelledby="video-destacado-titulo" className={`@container ${llenar ? 'flex flex-1 flex-col' : ''} ${className}`}>
-      <div className={`grid items-start ${llenar ? '@2xl:items-stretch' : ''} gap-4 border-b border-slate-200/80 pb-5 dark:border-slate-800/80 @2xl:grid-cols-[minmax(0,5fr)_minmax(0,4fr)] @2xl:gap-8 ${llenar ? 'flex-1' : ''}`}>
+    <section aria-labelledby="video-destacado-titulo" className={`@container ${llenar ? 'flex min-h-0 flex-1 flex-col' : ''} ${className}`}>
+      <div className={`grid items-center ${llenar ? '@2xl:items-stretch' : ''} gap-4 overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-white to-brand-50 p-4 shadow-lg shadow-brand-500/5 dark:border-slate-800/80 dark:from-slate-900 dark:via-slate-900 dark:to-brand-950 @2xl:grid-cols-[minmax(0,5fr)_minmax(0,4fr)] @2xl:gap-8 @2xl:p-5 ${llenar ? 'min-h-0 flex-1 @2xl:grid-rows-[minmax(0,1fr)]' : ''}`}>
         <ReproduccionAutomatica
           llenar={llenar}
           video={video}
           fallback={<VideoMiniatura video={video} onClick={() => setReproduciendo(video)} botonGrande />}
         />
 
-        <div className="min-w-0">
+        <div className={`min-w-0 ${llenar ? '@2xl:flex @2xl:max-h-full @2xl:flex-col @2xl:overflow-hidden' : ''}`}>
           <div className="flex items-center gap-2">
             <span className="panel-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-700 dark:text-brand-300">
               Video informativo
@@ -130,6 +131,8 @@ export default function VideoDestacado({ className = '', children = null, llenar
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
           </div>
+
+          <TematicaEscena />
 
           {children && <div className="mt-6">{children}</div>}
         </div>

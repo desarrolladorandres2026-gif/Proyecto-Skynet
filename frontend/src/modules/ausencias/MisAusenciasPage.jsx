@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { CalendarDays, Plus, Ban, Clock, CircleCheck, Paperclip } from 'lucide-react'
+import { CalendarDays, Plus, Ban, Clock, CircleCheck, Paperclip, Stethoscope, Pencil, PlayCircle } from 'lucide-react'
 import { ausencias as ausenciasApi } from '../../api/ausencias.js'
 import { useDatosConCache } from '../../hooks/useDatosConCache.js'
-import { TIPOS_AUSENCIA, TIPO_AUSENCIA_LABELS, MOTIVOS_PERMISO_REMUNERADO } from '../../config/ausenciasConstants.js'
+import { TIPOS_AUSENCIA, TIPO_AUSENCIA_LABELS, MOTIVOS_PERMISO_REMUNERADO, ETAPA_INCAPACIDAD_LABELS } from '../../config/ausenciasConstants.js'
 import {
   Btn, Badge, Card, ErrorMsg, OkMsg, Field, Input, Select, Textarea, Modal,
-  TablaWrap, Th, Td, EmptyState, fmtFecha,
+  TablaWrap, Th, Td, EmptyState, fmtFecha, aInputFecha,
 } from '../../components/ui.jsx'
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx'
+import SoporteMedico from './SoporteMedico.jsx'
+import { useEsMovil } from '../../layout/useEsMovil.js'
 
 const FORM_VACIO = {
   tipo: 'vacaciones',
@@ -50,6 +52,48 @@ function duracionEstimada(horaInicio, horaFin) {
   return partes.join(' ')
 }
 
+// Lo último que SIG le pidió corregir, para mostrarlo junto a la solicitud.
+function motivoDeDevolucion(ausencia) {
+  const devoluciones = (ausencia.historial || []).filter((h) => h.accion === 'devuelta')
+  return devoluciones.at(-1)?.nota || ''
+}
+
+// Una incapacidad no la decide una sola persona: pasa por SIG, Gerencia y
+// Talento Humano. Aquí se le cuenta al trabajador en qué punto va.
+function EstadoIncapacidad({ ausencia: a }) {
+  if (a.etapa === 'devuelta') {
+    return (
+      <span className="block text-red-600 dark:text-red-400">
+        <span className="font-medium">Devuelta, necesita corrección</span>
+        {motivoDeDevolucion(a) && <span className="mt-0.5 block text-xs">{motivoDeDevolucion(a)}</span>}
+      </span>
+    )
+  }
+  if (a.etapa === 'en_verificacion') {
+    return (
+      <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+        <Clock className="h-4 w-4" aria-hidden="true" /> {ETAPA_INCAPACIDAD_LABELS.en_verificacion}
+      </span>
+    )
+  }
+  const tramitada = a.etapa === 'tramitada'
+  return (
+    <span className="block">
+      <span className="flex items-center gap-1.5">
+        <CircleCheck className="h-4 w-4 text-accent-600 dark:text-accent-400" aria-hidden="true" />
+        Verificada y aprobada{a.decision?.nombreRevisor ? ` por ${a.decision.nombreRevisor}` : ''}
+      </span>
+      <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
+        {tramitada
+          ? 'Tramitada por Talento Humano'
+          : a.etapa === 'direccionada'
+          ? `En Talento Humano${a.direccionamiento?.nombreDestinatario ? ` · dirigida a ${a.direccionamiento.nombreDestinatario}` : ''}`
+          : 'En trámite administrativo'}
+      </span>
+    </span>
+  )
+}
+
 export default function MisAusenciasPage() {
   const { data, cargando, error, recargar } = useDatosConCache(
     'ausencias:mias',
@@ -57,26 +101,46 @@ export default function MisAusenciasPage() {
     { ttlMs: 30_000 },
   )
   const lista = data || []
+  const esMovil = useEsMovil()
   const [ok, setOk] = useState('')
 
   const [modalAbierto, setModalAbierto] = useState(false)
   const [form, setForm] = useState(FORM_VACIO)
   const [guardando, setGuardando] = useState(false)
+  const [soporteOcupado, setSoporteOcupado] = useState(false)
   const [errorForm, setErrorForm] = useState('')
+
+  const [tutorialAbierto, setTutorialAbierto] = useState(false)
 
   const [porCancelar, setPorCancelar] = useState(null)
   const [cancelando, setCancelando] = useState(false)
 
-  function abrirNueva() {
-    setForm(FORM_VACIO)
+  // Corrección de una incapacidad devuelta por SIG.
+  const [porCorregir, setPorCorregir] = useState(null)
+  const [formCorreccion, setFormCorreccion] = useState({ fechaInicio: '', fechaFin: '', comentario: '', archivo: null })
+  const [corrigiendo, setCorrigiendo] = useState(false)
+  const [errorCorreccion, setErrorCorreccion] = useState('')
+  const [correccionOcupada, setCorreccionOcupada] = useState(false)
+
+  // `tipo` permite abrir el formulario ya posicionado (p. ej. el atajo
+  // "Reportar incapacidad"): la incapacidad es lo que más se reporta con
+  // prisa y no debería exigir buscarla en el desplegable.
+  function abrirNueva(tipo = 'vacaciones') {
+    setForm({ ...FORM_VACIO, tipo })
     setErrorForm('')
     setModalAbierto(true)
   }
 
   async function solicitar(e) {
     e.preventDefault()
-    setGuardando(true)
     setErrorForm('')
+    // Ya no hay <input required> (el soporte lo arma SoporteMedico), así que
+    // la validación va aquí; el backend igual la repite.
+    if (form.tipo === 'incapacidad' && !form.archivoSoporte) {
+      setErrorForm('Adjunta el soporte médico: toma fotos del certificado o sube el PDF.')
+      return
+    }
+    setGuardando(true)
     try {
       // Con archivo (incapacidad) hay que mandar multipart; sin archivo, el
       // JSON de siempre — ver api/ausencias.js.
@@ -108,6 +172,44 @@ export default function MisAusenciasPage() {
     }
   }
 
+  function abrirCorreccion(ausencia) {
+    setPorCorregir(ausencia)
+    setFormCorreccion({
+      fechaInicio: aInputFecha(ausencia.fechaInicio),
+      fechaFin: aInputFecha(ausencia.fechaFin),
+      comentario: '',
+      archivo: null,
+    })
+    setErrorCorreccion('')
+  }
+
+  async function reenviar(e) {
+    e.preventDefault()
+    setErrorCorreccion('')
+    setCorrigiendo(true)
+    try {
+      // Solo se mandan las fechas que cambiaron: así "no tocar nada" no cuenta
+      // como una corrección.
+      const datos = { comentario: formCorreccion.comentario }
+      if (formCorreccion.fechaInicio !== aInputFecha(porCorregir.fechaInicio)) datos.fechaInicio = formCorreccion.fechaInicio
+      if (formCorreccion.fechaFin !== aInputFecha(porCorregir.fechaFin)) datos.fechaFin = formCorreccion.fechaFin
+      let payload = datos
+      if (formCorreccion.archivo) {
+        payload = new FormData()
+        for (const [clave, valor] of Object.entries(datos)) if (valor) payload.append(clave, valor)
+        payload.append('soporte', formCorreccion.archivo)
+      }
+      await ausenciasApi.reenviarIncapacidad(porCorregir._id, payload)
+      setOk('Incapacidad corregida y enviada de nuevo a verificación.')
+      setPorCorregir(null)
+      recargar()
+    } catch (err) {
+      setErrorCorreccion(err.message)
+    } finally {
+      setCorrigiendo(false)
+    }
+  }
+
   async function confirmarCancelar() {
     if (!porCancelar) return
     setOk('')
@@ -126,21 +228,98 @@ export default function MisAusenciasPage() {
     }
   }
 
+  // Piezas que comparten la tarjeta (celular) y la tabla (escritorio).
+  function TipoConSoporte({ ausencia: a }) {
+    const urlSoporte = a.soporte?.archivo
+      ? ausenciasApi.urlSoporte(a._id, a.soporte.archivo)
+      : (a.soporte?.url || null)
+    return (
+      <span className="flex items-center gap-1.5">
+        <Badge valor={a.tipo} />
+        {urlSoporte && (
+          <a
+            href={urlSoporte}
+            target="_blank"
+            rel="noreferrer"
+            title={a.soporte?.nombreArchivo || 'Ver soporte médico'}
+            className="text-brand-700 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300"
+          >
+            <Paperclip className="h-4 w-4" aria-hidden="true" />
+          </a>
+        )}
+      </span>
+    )
+  }
+
+  function Decision({ ausencia: a }) {
+    const enTramite = a.tipo === 'incapacidad' && a.etapa
+    return (
+      <>
+        {enTramite && a.estado !== 'cancelada' && <EstadoIncapacidad ausencia={a} />}
+        {a.estado === 'rechazada' && a.decision?.motivoRechazo}
+        {a.estado === 'aprobada' && !enTramite && (
+          <span className="flex items-center gap-1.5">
+            <CircleCheck className="h-4 w-4 text-accent-600 dark:text-accent-400" aria-hidden="true" />
+            {a.decision?.nombreRevisor || 'Aprobada'}
+          </span>
+        )}
+        {a.estado === 'pendiente' && !enTramite && (
+          <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+            <Clock className="h-4 w-4" aria-hidden="true" /> En revisión
+          </span>
+        )}
+      </>
+    )
+  }
+
+  function Acciones({ ausencia: a, className = 'justify-end' }) {
+    if (a.estado !== 'pendiente') return null
+    return (
+      <div className={`flex flex-wrap gap-2 ${className}`}>
+        {a.etapa === 'devuelta' && (
+          <Btn variante="fantasma" className="flex items-center gap-1.5" onClick={() => abrirCorreccion(a)}>
+            <Pencil className="h-4 w-4" aria-hidden="true" /> Corregir
+          </Btn>
+        )}
+        <Btn variante="fantasma" className="flex items-center gap-1.5" onClick={() => setPorCancelar(a)}>
+          <Ban className="h-4 w-4" aria-hidden="true" /> Retirar
+        </Btn>
+      </div>
+    )
+  }
+
   const dias = diasEstimados(form.fechaInicio, form.fechaFin)
   const esUnSoloDia = Boolean(form.fechaInicio) && form.fechaInicio === form.fechaFin
   const duracion = esUnSoloDia ? duracionEstimada(form.horaInicio, form.horaFin) : ''
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="panel-mono flex items-center gap-2 text-lg font-semibold tracking-wide text-slate-900 dark:text-white">
           <CalendarDays className="h-5 w-5 text-brand-700 dark:text-brand-400" aria-hidden="true" />
           Mis vacaciones y ausencias
         </h1>
-        <Btn className="flex items-center gap-1.5" onClick={abrirNueva}>
-          <Plus className="h-4 w-4" aria-hidden="true" /> Solicitar
+        <div className="flex flex-wrap justify-end gap-2">
+          <Btn variante="secundario" className="flex items-center gap-1.5" onClick={() => abrirNueva('incapacidad')}>
+            <Stethoscope className="h-4 w-4" aria-hidden="true" /> Reportar incapacidad
+          </Btn>
+          <Btn className="flex items-center gap-1.5" onClick={() => abrirNueva()}>
+            <Plus className="h-4 w-4" aria-hidden="true" /> Solicitar
+          </Btn>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <Btn variante="secundario" className="flex items-center gap-1.5" onClick={() => setTutorialAbierto(true)}>
+          <PlayCircle className="h-4 w-4" aria-hidden="true" /> ¿No sabes cómo gestionar tu incapacidad?
         </Btn>
       </div>
+
+      <Modal abierto={tutorialAbierto} titulo="Tutorial: cómo gestionar tu incapacidad" ancho="max-w-4xl" onCerrar={() => setTutorialAbierto(false)}>
+        {tutorialAbierto && (
+          <video className="w-full rounded-lg bg-black" src="/tutoriales/gestion-incapacidad.mp4" controls autoPlay preload="metadata" />
+        )}
+      </Modal>
 
       <ErrorMsg>{error}</ErrorMsg>
       <OkMsg>{ok}</OkMsg>
@@ -149,6 +328,28 @@ export default function MisAusenciasPage() {
         <Card>Cargando…</Card>
       ) : lista.length === 0 ? (
         <EmptyState mensaje="Todavía no has solicitado vacaciones, permisos ni incapacidades" />
+      ) : esMovil ? (
+        // En el celular una tabla de 7 columnas no cabe: el estado y los botones
+        // (Corregir, Retirar) quedaban fuera de la pantalla. Cada ausencia va
+        // en una tarjeta con todo a la vista.
+        <ul className="space-y-3">
+          {lista.map((a) => (
+            <li key={a._id}>
+              <Card className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <TipoConSoporte ausencia={a} />
+                  <Badge valor={a.estado} />
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  {fmtFecha(a.fechaInicio)} → {fmtFecha(a.fechaFin)} · {a.diasHabiles} día{a.diasHabiles === 1 ? '' : 's'}
+                  {a.horaInicio && <span className="block text-xs">{a.horaInicio}–{a.horaFin}</span>}
+                </p>
+                <div className="text-sm text-slate-600 dark:text-slate-300"><Decision ausencia={a} /></div>
+                <Acciones ausencia={a} className="justify-start" />
+              </Card>
+            </li>
+          ))}
+        </ul>
       ) : (
         <TablaWrap>
           <thead>
@@ -163,28 +364,9 @@ export default function MisAusenciasPage() {
             </tr>
           </thead>
           <tbody>
-            {lista.map((a) => {
-              const urlSoporte = a.soporte?.archivo
-                ? ausenciasApi.urlSoporte(a._id, a.soporte.archivo)
-                : (a.soporte?.url || (a.soporte?.archivo ? ausenciasApi.urlSoporte(a._id) : null))
-              return (
+            {lista.map((a) => (
               <tr key={a._id}>
-                <Td>
-                  <span className="flex items-center gap-1.5">
-                    <Badge valor={a.tipo} />
-                    {urlSoporte && (
-                      <a
-                        href={urlSoporte}
-                        target="_blank"
-                        rel="noreferrer"
-                        title={a.soporte?.nombreArchivo || 'Ver soporte médico'}
-                        className="text-brand-700 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300"
-                      >
-                        <Paperclip className="h-4 w-4" aria-hidden="true" />
-                      </a>
-                    )}
-                  </span>
-                </Td>
+                <Td><TipoConSoporte ausencia={a} /></Td>
                 <Td className="whitespace-nowrap">
                   {fmtFecha(a.fechaInicio)}
                   {a.horaInicio && (
@@ -196,35 +378,15 @@ export default function MisAusenciasPage() {
                 <Td className="whitespace-nowrap">{fmtFecha(a.fechaFin)}</Td>
                 <Td>{a.diasHabiles}</Td>
                 <Td><Badge valor={a.estado} /></Td>
-                <Td className="text-sm text-slate-600 dark:text-slate-300">
-                  {a.estado === 'rechazada' && a.decision?.motivoRechazo}
-                  {a.estado === 'aprobada' && (
-                    <span className="flex items-center gap-1.5">
-                      <CircleCheck className="h-4 w-4 text-accent-600 dark:text-accent-400" aria-hidden="true" />
-                      {a.decision?.nombreRevisor || 'Aprobada'}
-                    </span>
-                  )}
-                  {a.estado === 'pendiente' && (
-                    <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                      <Clock className="h-4 w-4" aria-hidden="true" /> En revisión
-                    </span>
-                  )}
-                </Td>
-                <Td className="text-right">
-                  {a.estado === 'pendiente' && (
-                    <Btn variante="fantasma" className="flex items-center gap-1.5" onClick={() => setPorCancelar(a)}>
-                      <Ban className="h-4 w-4" aria-hidden="true" /> Retirar
-                    </Btn>
-                  )}
-                </Td>
+                <Td className="text-sm text-slate-600 dark:text-slate-300"><Decision ausencia={a} /></Td>
+                <Td className="text-right"><Acciones ausencia={a} /></Td>
               </tr>
-            )
-          })}
+            ))}
           </tbody>
         </TablaWrap>
       )}
 
-      <Modal abierto={modalAbierto} titulo="Solicitar ausencia" onCerrar={() => setModalAbierto(false)}>
+      <Modal abierto={modalAbierto} titulo="Solicitar ausencia" ancho="max-w-2xl" onCerrar={() => setModalAbierto(false)}>
         <form onSubmit={solicitar} className="space-y-4">
           <ErrorMsg>{errorForm}</ErrorMsg>
 
@@ -314,19 +476,11 @@ export default function MisAusenciasPage() {
           {/* La incapacidad es el único tipo que exige soporte: el backend la
               rechaza sin él (ver ausencias.service.js). */}
           {form.tipo === 'incapacidad' && (
-            <Field label="Soporte médico (foto o PDF)">
-              <input
-                type="file"
-                required
-                accept="image/*,application/pdf"
-                onChange={(e) => setForm({ ...form, archivoSoporte: e.target.files?.[0] || null })}
-                className="panel-input w-full rounded-lg px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-brand-600/10 file:px-3 file:py-1 file:text-brand-700 dark:file:bg-brand-400/10 dark:file:text-brand-300"
+            <Field label="Soporte médico (fotos o PDF)">
+              <SoporteMedico
+                onChange={(archivo) => setForm((f) => ({ ...f, archivoSoporte: archivo }))}
+                onOcupado={setSoporteOcupado}
               />
-              {form.archivoSoporte && (
-                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                  <Paperclip className="h-3.5 w-3.5" aria-hidden="true" /> {form.archivoSoporte.name}
-                </p>
-              )}
             </Field>
           )}
 
@@ -338,13 +492,60 @@ export default function MisAusenciasPage() {
             <Btn variante="secundario" onClick={() => setModalAbierto(false)}>Cancelar</Btn>
             <button
               type="submit"
-              disabled={guardando}
+              disabled={guardando || soporteOcupado}
               className="panel-btn-primario rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacity-60"
             >
-              {guardando ? 'Enviando…' : 'Enviar solicitud'}
+              {guardando ? 'Enviando…' : soporteOcupado ? 'Preparando soporte…' : 'Enviar solicitud'}
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal abierto={Boolean(porCorregir)} titulo="Corregir incapacidad" ancho="max-w-2xl" onCerrar={() => setPorCorregir(null)}>
+        {porCorregir && (
+          <form onSubmit={reenviar} className="space-y-4">
+            <ErrorMsg>{errorCorreccion}</ErrorMsg>
+
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+              <p className="font-medium">SIG la devolvió con este comentario:</p>
+              <p className="whitespace-pre-line">{motivoDeDevolucion(porCorregir) || 'Sin comentario.'}</p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Desde">
+                <Input type="date" required value={formCorreccion.fechaInicio}
+                  onChange={(e) => setFormCorreccion({ ...formCorreccion, fechaInicio: e.target.value })} />
+              </Field>
+              <Field label="Hasta">
+                <Input type="date" required min={formCorreccion.fechaInicio || undefined} value={formCorreccion.fechaFin}
+                  onChange={(e) => setFormCorreccion({ ...formCorreccion, fechaFin: e.target.value })} />
+              </Field>
+            </div>
+
+            <Field label="Soporte médico nuevo (opcional si solo corriges las fechas)">
+              <SoporteMedico
+                onChange={(archivo) => setFormCorreccion((f) => ({ ...f, archivo }))}
+                onOcupado={setCorreccionOcupada}
+              />
+            </Field>
+
+            <Field label="Comentario para SIG (opcional)">
+              <Textarea value={formCorreccion.comentario}
+                onChange={(e) => setFormCorreccion({ ...formCorreccion, comentario: e.target.value })} />
+            </Field>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Btn variante="secundario" onClick={() => setPorCorregir(null)}>Cancelar</Btn>
+              <button
+                type="submit"
+                disabled={corrigiendo || correccionOcupada}
+                className="panel-btn-primario rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacity-60"
+              >
+                {corrigiendo ? 'Enviando…' : correccionOcupada ? 'Preparando soporte…' : 'Reenviar a verificación'}
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
 
       <ConfirmDialog
